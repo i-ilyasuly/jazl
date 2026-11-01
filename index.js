@@ -7,8 +7,6 @@ const pool = new Pool({
 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// Белсенді генерацияларды тоқтатуды бақылау (Bot API 10.3 stopped_message_generation)
 const stoppedDrafts = new Set();
 
 // 1. Тікелей Telegram Bot API сұрау функциясы
@@ -26,13 +24,10 @@ async function tgCall(method, payload) {
   return data;
 }
 
-// 2. РЕСМИ АҒЫНДЫ ЖАУАП ЖӘНЕ ОЙЛАНУ БЛОГЫ (Bot API 10.1 - 10.3)
-// sendRichMessageDraft + <tg-thinking> арқылы шынайы стриминг жасап,
-// соңында sendRichMessage арқылы тұрақты Rich Message-ке айналдырады.
+// 2. Ресми Ағынды жауап және Ойлану блогы (Bot API 10.1 - 10.3)
 async function streamRichResponse(chatId, thinkingStages, finalRichHtml, extraOptions = {}) {
   const draftId = Math.floor(100000 + Math.random() * 900000);
 
-  // Аралық ойлану және ағынды черновик кезеңдері
   for (const stage of thinkingStages) {
     if (stoppedDrafts.has(draftId)) {
       stoppedDrafts.delete(draftId);
@@ -59,14 +54,12 @@ async function streamRichResponse(chatId, thinkingStages, finalRichHtml, extraOp
     return;
   }
 
-  // Черновикті негізгі Rich Message ретінде бекіту (Bot API 10.1+)
   const finalRes = await tgCall('sendRichMessage', {
     chat_id: chatId,
     rich_message: { html: finalRichHtml },
     ...extraOptions
   });
 
-  // Егер клиенттің Telegram қосымшасы ескі нұсқада болса, резервтік sendMessage
   if (!finalRes.ok) {
     const cleanFallback = finalRichHtml
       .replace(/<h2>(.*?)<\/h2>/g, '<b>$1</b>\n')
@@ -84,7 +77,7 @@ async function streamRichResponse(chatId, thinkingStages, finalRichHtml, extraOp
   return finalRes;
 }
 
-// 3. НЕГІЗГІ WEBHOOK ЖӘНЕ API ӨҢДЕУШІ
+// 3. НЕГІЗГІ WEBHOOK ЖӘНЕ MINI APP API ӨҢДЕУШІ
 functions.http('jazlWebhook', async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -92,22 +85,130 @@ functions.http('jazlWebhook', async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(204).send('');
 
   try {
-    // Mini App үшін Каталог API
-    if (req.method === 'GET' && req.query.action === 'catalog') {
-      const result = await pool.query(`
-        SELECT s.*, v.name as venue_name, v.category, v.halal_org, v.rating 
-        FROM subscriptions_catalog s
-        JOIN venues v ON s.venue_id = v.id
-        WHERE s.status = 'ACTIVE'
-        ORDER BY s.is_promoted DESC, s.id ASC
-      `);
-      return res.status(200).json({ ok: true, items: result.rows });
+    // =========================================================================
+    // MINI APP API ЭНДПОИНТТЕРІ (Каталог, Кабинет, Сатып алу, Тапсырыс)
+    // =========================================================================
+    if (req.query.action) {
+      const action = req.query.action;
+
+      // 1. Каталог пен филиалдарды алу (GET ?action=catalog)
+      if (action === 'catalog') {
+        const result = await pool.query(`
+          SELECT s.*, v.name as venue_name, v.category, v.description as venue_desc,
+                 v.halal_org, v.rating, v.reviews_count,
+                 b.address as branch_address, b.work_hours, b.allows_courier
+          FROM subscriptions_catalog s
+          JOIN venues v ON s.venue_id = v.id
+          LEFT JOIN branches b ON b.venue_id = v.id
+          WHERE s.status = 'ACTIVE'
+          ORDER BY s.is_promoted DESC, s.id ASC
+        `);
+        return res.status(200).json({ ok: true, items: result.rows });
+      }
+
+      // 2. Клиенттің өз жазылымдары мен белсенді тапсырыстарын алу (GET ?action=my_data&tg_id=...)
+      if (action === 'my_data' && req.query.tg_id) {
+        const tgId = req.query.tg_id;
+        const subs = await pool.query(`
+          SELECT us.*, sc.title, sc.unit_name, sc.units_total, sc.unit_price,
+                 v.name as venue_name, v.halal_org, b.address as branch_address
+          FROM user_subscriptions us
+          JOIN users u ON us.user_id = u.id
+          JOIN subscriptions_catalog sc ON us.catalog_id = sc.id
+          JOIN venues v ON sc.venue_id = v.id
+          LEFT JOIN branches b ON b.venue_id = v.id
+          WHERE u.telegram_id = $1 AND us.status = 'ACTIVE'
+          ORDER BY us.id DESC
+        `, [tgId]);
+
+        const orders = await pool.query(`
+          SELECT o.*, sc.unit_name, v.name as venue_name
+          FROM orders o
+          JOIN users u ON o.user_id = u.id
+          JOIN user_subscriptions us ON o.user_sub_id = us.id
+          JOIN subscriptions_catalog sc ON us.catalog_id = sc.id
+          JOIN venues v ON sc.venue_id = v.id
+          WHERE u.telegram_id = $1 AND o.status != 'COMPLETED'
+          ORDER BY o.id DESC
+        `, [tgId]);
+
+        return res.status(200).json({ ok: true, subscriptions: subs.rows, orders: orders.rows });
+      }
+
+      // 3. Мини Апп ішінен жазылым сатып алу (POST ?action=buy)
+      if (action === 'buy' && req.method === 'POST') {
+        const { tg_id, first_name, catalog_id } = req.body || {};
+        const uRes = await pool.query(
+          `INSERT INTO users (telegram_id, first_name) VALUES ($1, $2)
+           ON CONFLICT (telegram_id) DO UPDATE SET first_name = EXCLUDED.first_name RETURNING id`,
+          [tg_id, first_name || 'Пайдаланушы']
+        );
+        const catRes = await pool.query(`
+          SELECT sc.*, v.name as venue_name FROM subscriptions_catalog sc
+          JOIN venues v ON sc.venue_id = v.id WHERE sc.id = $1
+        `, [catalog_id]);
+
+        if (catRes.rows.length === 0) return res.status(404).json({ ok: false });
+        const cat = catRes.rows[0];
+
+        const subIns = await pool.query(`
+          INSERT INTO user_subscriptions (user_id, catalog_id, units_remaining, valid_until)
+          VALUES ($1, $2, $3, NOW() + INTERVAL '30 days') RETURNING *
+        `, [uRes.rows[0].id, cat.id, cat.units_total]);
+
+        await tgCall('sendRichMessage', {
+          chat_id: tg_id,
+          rich_message: {
+            html: `<h2>Жазылым белсендірілді: ${cat.venue_name}</h2><p>${cat.title} (<b>${cat.units_total} ${cat.unit_name}</b>) пакеті аккаунтыңызға қосылды.</p>`
+          }
+        });
+
+        return res.status(200).json({ ok: true, subscription: subIns.rows[0] });
+      }
+
+      // 4. Мини Апп ішінен тапсырыс беру (POST ?action=order)
+      if (action === 'order' && req.method === 'POST') {
+        const { tg_id, sub_id, fulfillment_type, slot_time } = req.body || {};
+        const subCheck = await pool.query(`
+          SELECT us.*, sc.unit_name, sc.venue_id, v.name as venue_name
+          FROM user_subscriptions us
+          JOIN subscriptions_catalog sc ON us.catalog_id = sc.id
+          JOIN venues v ON sc.venue_id = v.id WHERE us.id = $1
+        `, [sub_id]);
+
+        if (subCheck.rows.length === 0 || subCheck.rows[0].units_remaining <= 0) {
+          return res.status(400).json({ ok: false, error: 'Лимит аяқталған' });
+        }
+        const sub = subCheck.rows[0];
+        const bRes = await pool.query(`SELECT id, address FROM branches WHERE venue_id = $1 LIMIT 1`, [sub.venue_id]);
+        const handoffCode = Math.floor(1000 + Math.random() * 9000).toString();
+        const orderNumber = `#JZ-${Math.floor(100 + Math.random() * 900)}`;
+
+        const ordIns = await pool.query(`
+          INSERT INTO orders (order_number, user_sub_id, user_id, branch_id, fulfillment_type, slot_time, handoff_code, status)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, 'READY') RETURNING *
+        `, [orderNumber, sub.id, sub.user_id, bRes.rows[0].id, fulfillment_type || 'TAKEAWAY', slot_time || '13:00 - 13:30', handoffCode]);
+
+        const msg = await tgCall('sendRichMessage', {
+          chat_id: tg_id,
+          rich_message: {
+            html: `<h2>Тапсырыс төлқұжаты: ${orderNumber}</h2><p>Мекеме: <b>${sub.venue_name}</b> | Растау коды: <tg-spoiler><b>${handoffCode}</b></tg-spoiler></p>`
+          },
+          reply_markup: {
+            inline_keyboard: [[{ text: `Кодты көшіру: ${handoffCode}`, copy_text: { text: handoffCode }, style: 'primary' }]]
+          }
+        });
+        if (msg && msg.ok && msg.result) {
+          await tgCall('pinChatMessage', { chat_id: tg_id, message_id: msg.result.message_id, disable_notification: true });
+        }
+
+        return res.status(200).json({ ok: true, order: ordIns.rows[0] });
+      }
     }
 
     const update = req.body;
     if (!update) return res.status(200).send('OK');
 
-    // Bot API 10.3: Қолданушы генерацияны тоқтатса (Stop батырмасы)
     if (update.stopped_message_generation) {
       stoppedDrafts.add(update.stopped_message_generation.draft_id);
       return res.status(200).send('OK');
@@ -140,17 +241,20 @@ functions.http('jazlWebhook', async (req, res) => {
 
         if (subs.rows.length === 0) {
           const cat = await pool.query(`
-            SELECT sc.id, sc.title, sc.package_price, sc.unit_price, sc.savings_amount, sc.units_total, sc.unit_name, v.name as venue_name
+            SELECT sc.id, sc.title, sc.package_price, sc.unit_price, sc.savings_amount, sc.units_total, sc.unit_name, v.name as venue_name, sc.is_promoted
             FROM subscriptions_catalog sc JOIN venues v ON sc.venue_id = v.id WHERE sc.status = 'ACTIVE'
+            ORDER BY sc.is_promoted DESC, sc.id ASC
           `);
 
           const tableRows = cat.rows.map(item =>
             `<tr><td><b>${item.venue_name}</b></td><td>${item.units_total} ${item.unit_name}</td><td><b>${item.package_price} ₸</b></td><td>+${item.savings_amount} ₸</td></tr>`
           ).join('');
 
-          const buttons = cat.rows.map(item => ([{
+          // Тек бірінші (ұсынылған) пакет батырмасы көк (primary), қалғандары байсалды бейтарап
+          const buttons = cat.rows.map((item, idx) => ([{
             text: `Қосу: ${item.venue_name} (${item.units_total} ${item.unit_name} — ${item.package_price} ₸)`,
-            callback_data: `buy_demo_${item.id}`
+            callback_data: `buy_demo_${item.id}`,
+            ...(idx === 0 ? { style: 'primary' } : {})
           }]));
 
           await streamRichResponse(
@@ -177,10 +281,8 @@ functions.http('jazlWebhook', async (req, res) => {
           return res.status(200).send('OK');
         }
 
-        // Белсенді жазылымдар болса — ресми кестемен шығару
         for (const sub of subs.rows) {
           const halalText = sub.halal_org !== 'NONE' ? `Расталған (${sub.halal_org})` : 'Стандартты';
-          const isExhausted = sub.units_remaining <= 0;
 
           const subHtml =
             `<h2>Жазылым төлқұжаты: ${sub.venue_name}</h2>` +
@@ -204,9 +306,9 @@ functions.http('jazlWebhook', async (req, res) => {
               reply_markup: {
                 inline_keyboard: [
                   [
-                    // Bot API 10.3: Егер лимит бітсе, батырма ресми түрде disabled болады
-                    { text: 'Өзім алып кетемін (13:00)', callback_data: `order_takeaway_${sub.id}`, disabled: isExhausted },
-                    { text: 'Курьермен жеткізу (13:00)', callback_data: `order_courier_${sub.id}`, disabled: isExhausted }
+                    // Тек негізгі «Өзім алып кетемін» батырмасы көк (primary), қалғандары байсалды бейтарап
+                    { text: 'Өзім алып кетемін (13:00)', callback_data: `order_takeaway_${sub.id}`, style: 'primary' },
+                    { text: 'Курьермен жеткізу (13:00)', callback_data: `order_courier_${sub.id}` }
                   ],
                   [{ text: 'Басқа пакет қосу', callback_data: 'show_demo_catalog' }]
                 ]
@@ -223,10 +325,12 @@ functions.http('jazlWebhook', async (req, res) => {
         const cat = await pool.query(`
           SELECT sc.id, sc.package_price, sc.units_total, sc.unit_name, v.name as venue_name
           FROM subscriptions_catalog sc JOIN venues v ON sc.venue_id = v.id WHERE sc.status = 'ACTIVE'
+          ORDER BY sc.is_promoted DESC, sc.id ASC
         `);
-        const buttons = cat.rows.map(item => ([{
+        const buttons = cat.rows.map((item, idx) => ([{
           text: `Қосу: ${item.venue_name} (${item.units_total} ${item.unit_name} — ${item.package_price} ₸)`,
-          callback_data: `buy_demo_${item.id}`
+          callback_data: `buy_demo_${item.id}`,
+          ...(idx === 0 ? { style: 'primary' } : {})
         }]));
 
         await tgCall('sendRichMessage', {
@@ -285,7 +389,7 @@ functions.http('jazlWebhook', async (req, res) => {
               reply_markup: {
                 inline_keyboard: [
                   [
-                    { text: 'Өзім алып кетемін (13:00)', callback_data: `order_takeaway_${subId}` },
+                    { text: 'Өзім алып кетемін (13:00)', callback_data: `order_takeaway_${subId}`, style: 'primary' },
                     { text: 'Курьермен жеткізу (13:00)', callback_data: `order_courier_${subId}` }
                   ],
                   [{ text: 'Менің жазылымдарым', callback_data: 'my_subs' }]
@@ -297,7 +401,7 @@ functions.http('jazlWebhook', async (req, res) => {
         return res.status(200).send('OK');
       }
 
-      // 4. Тапсырыс беру (Кесте + Кіріктірілген Карта + copy_text + Pin)
+      // 4. Тапсырыс беру
       if (data.startsWith('order_takeaway_') || data.startsWith('order_courier_')) {
         const isCourier = data.startsWith('order_courier_');
         const subId = parseInt(data.replace('order_takeaway_', '').replace('order_courier_', ''), 10);
@@ -361,7 +465,8 @@ functions.http('jazlWebhook', async (req, res) => {
           {
             reply_markup: {
               inline_keyboard: [
-                [{ text: `Кодты көшіру: ${handoffCode}`, copy_text: { text: handoffCode } }],
+                // Тек Кодты көшіру батырмасы көк (primary), қосалқы батырмалар бейтарап
+                [{ text: `Кодты көшіру: ${handoffCode}`, copy_text: { text: handoffCode }, style: 'primary' }],
                 [
                   { text: '15 минутқа кешігемін', callback_data: `late_${orderNumber}` },
                   { text: 'Тапсырыстан бас тарту', callback_data: `cancel_${orderNumber}` }
@@ -392,7 +497,7 @@ functions.http('jazlWebhook', async (req, res) => {
         return res.status(200).send('OK');
       }
 
-      // 6. Кассирдің беруді растауы (Балансты шегеру + editMessageText rich_message параметрімен)
+      // 6. Кассирдің беруді растауы
       if (data.startsWith('confirm_handoff_')) {
         const orderId = parseInt(data.replace('confirm_handoff_', ''), 10);
 
@@ -431,7 +536,6 @@ functions.http('jazlWebhook', async (req, res) => {
           show_alert: true
         });
 
-        // Bot API 10.1+: editMessageText ішінде rich_message қолдану және батырманы disabled ету
         await tgCall('editMessageText', {
           chat_id: chatId,
           message_id: msgId,
@@ -446,18 +550,11 @@ functions.http('jazlWebhook', async (req, res) => {
               `<tr><td>Жаңа қалдық</td><td><b>${newRemaining} / ${ord.units_total} ${ord.unit_name}</b></td></tr>` +
               `<tr><td>Мәртебесі</td><td><b>Жабылды</b></td></tr>` +
               `</table>`
-          },
-          reply_markup: {
-            inline_keyboard: [
-              // Bot API 10.3: Орындалған батырма сұр түсті (disabled) күйінде қалады
-              [{ text: 'Тапсырыс табысталды', callback_data: 'noop', disabled: true }]
-            ]
           }
         });
 
         await tgCall('unpinAllChatMessages', { chat_id: chatId });
 
-        // Ресми сапаны бағалау сұрауы
         await tgCall('sendRichMessage', {
           chat_id: chatId,
           rich_message: {
@@ -469,7 +566,7 @@ functions.http('jazlWebhook', async (req, res) => {
               { text: '2', callback_data: 'rate_2' },
               { text: '3', callback_data: 'rate_3' },
               { text: '4', callback_data: 'rate_4' },
-              { text: '5', callback_data: 'rate_5' }
+              { text: '5', callback_data: 'rate_5', style: 'primary' }
             ]]
           }
         });
@@ -545,7 +642,7 @@ functions.http('jazlWebhook', async (req, res) => {
                 `<p>Жүйеге кіру үшін телефон нөміріңізді растаңыз:</p>`
             },
             reply_markup: {
-              keyboard: [[{ text: 'Телефон нөмірді растау', request_contact: true }]],
+              keyboard: [[{ text: 'Телефон нөмірді растау', request_contact: true, style: 'primary' }]],
               resize_keyboard: true,
               one_time_keyboard: true
             }
@@ -608,7 +705,8 @@ functions.http('jazlWebhook', async (req, res) => {
           {
             reply_markup: {
               inline_keyboard: [
-                [{ text: `Табыстауды растау (-1 ${ord.unit_name})`, callback_data: `confirm_handoff_${ord.id}` }]
+                // Кассирдің шешуші растау батырмасы ғана жасыл (success)
+                [{ text: `Табыстауды растау (-1 ${ord.unit_name})`, callback_data: `confirm_handoff_${ord.id}`, style: 'success' }]
               ]
             }
           }
@@ -616,7 +714,7 @@ functions.http('jazlWebhook', async (req, res) => {
         return res.status(200).send('OK');
       }
 
-      // 4. Кез келген мәтіндік сұранысқа ресми Rich Message + Draft Streaming жауабы
+      // 4. Кез келген мәтіндік сұранысқа ресми жауап
       const catRes = await pool.query(`
         SELECT sc.title, sc.package_price, sc.unit_price, sc.savings_amount, sc.units_total, sc.unit_name, v.name as venue_name, v.halal_org
         FROM subscriptions_catalog sc JOIN venues v ON sc.venue_id = v.id WHERE sc.status = 'ACTIVE'
@@ -648,7 +746,7 @@ functions.http('jazlWebhook', async (req, res) => {
         {
           reply_markup: {
             inline_keyboard: [
-              [{ text: 'Менің жазылымдарым', callback_data: 'my_subs' }]
+              [{ text: 'Менің жазылымдарым', callback_data: 'my_subs', style: 'primary' }]
             ]
           }
         }
@@ -677,7 +775,8 @@ async function sendMainMenu(chatId) {
     {
       reply_markup: {
         inline_keyboard: [
-          [{ text: 'Jazl Маркетплейсін ашу', web_app: { url: miniAppUrl } }],
+          // Тек басты Маркетплейс батырмасы ғана көк (primary), ал екіншісі байсалды бейтарап!
+          [{ text: 'Jazl Маркетплейсін ашу', web_app: { url: miniAppUrl }, style: 'primary' }],
           [{ text: 'Менің жазылымдарым', callback_data: 'my_subs' }]
         ]
       }
