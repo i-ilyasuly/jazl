@@ -1,0 +1,9 @@
+{
+  "name": "jazl-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.4.0",
+    "pg": "^8.13.0"
+  }
+}
