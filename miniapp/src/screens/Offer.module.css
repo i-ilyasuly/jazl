@@ -21,7 +21,7 @@
 .head { display: flex; flex-direction: column; gap: 8px; }
 .priceRow { position: relative; display: flex; align-items: center; justify-content: space-between; color: var(--text-strong); }
 .priceRow p { white-space: nowrap; }
-.discount { position: absolute; left: 125px; top: 6px; padding: 3px 11px 3px 9px; border-radius: 10px; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
+.discount { margin-left: 18px; padding: 3px 11px 3px 9px; border-radius: 10px; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
 .badges { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .badge { padding: 4px 12px; border-radius: 14px; white-space: nowrap; }
 .orange { background: var(--orange-bg); color: var(--orange-text); }
@@ -77,3 +77,26 @@
 .btn:active { opacity: 0.75; }
 .secondary { background: var(--button-tint); color: var(--link); }
 .main { background: var(--button); color: #fff; }
+
+/* Қосымша күйлер */
+.priceLine { display: flex; align-items: center; transition: opacity 0.2s ease; }
+.priceLine .discount { font-weight: 400; }
+.dim > span:first-child { opacity: 0.5; }
+.swap { display: inline-block; animation: swap 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes swap { from { transform: translateY(8px); opacity: 0; } }
+.sizes { display: flex; flex-direction: column; gap: 10px; }
+.sizeRow { display: flex; gap: 8px; }
+.size { flex: 1; height: 58px; border-radius: 12px; background: #eef1f5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--text-strong); box-shadow: inset 0 0 0 0 #229af0; transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease; }
+.size small { color: var(--text-secondary); }
+.size:active { transform: scale(0.96); }
+.sizeOn { background: #dcebfb; }
+.sizeOn b, .sizeOn small { color: var(--link); }
+.pageTall { padding-bottom: 118px; }
+.barTall { height: 118px; padding-top: 33px; }
+.caption { position: absolute; left: 0; top: 11px; width: 100%; text-align: center; color: var(--text-secondary); }
+.mainDone { background: rgba(95, 107, 122, 0.16); color: #5f6b7a; }
+.topBar { position: fixed; z-index: 4; left: 50%; margin-left: -206px; top: 0; width: 412px; height: calc(92px + var(--top-shift)); background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 0.5px 0 rgba(17, 26, 38, 0.1); opacity: 0; transition: opacity 0.22s ease; pointer-events: none; }
+.topBarOn { opacity: 1; }
+:global(:root[data-theme="dark"]) .topBar { background: rgba(28, 39, 53, 0.72); }
+:global(:root[data-theme="dark"]) .size { background: var(--surface-category); }
+.photoEnded > img:first-child { opacity: 0.5; }

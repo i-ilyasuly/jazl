@@ -146,6 +146,9 @@ export function finishOnboarding() { onboarded = true; emit(); kv.set("jazl_onbo
 void Promise.all([kv.get("jazl_onboarded"), new Promise((r) => setTimeout(r, 500))]).then(([v]) => { onboarded = v === "1"; emit(); });
 
 // ── «Жуырда» санаттарына жазылу ─────────────────────────────────────────────
+let venueSubs: string[] = [];
+export const useVenueSubs = () => useSyncExternalStore(subscribe, () => venueSubs);
+export function toggleVenueSub(id: string) { venueSubs = venueSubs.includes(id) ? venueSubs.filter((x) => x !== id) : [...venueSubs, id]; emit(); }
 let soonSubs: number[] = [];
 export const useSoon = () => useSyncExternalStore(subscribe, () => soonSubs);
 export function toggleSoon(pct: number) { soonSubs = soonSubs.includes(pct) ? soonSubs.filter((x) => x !== pct) : [...soonSubs, pct]; emit(); kv.set("jazl_soon", soonSubs.join(",")); }
