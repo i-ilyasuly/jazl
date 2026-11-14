@@ -1,0 +1,20 @@
+/* Figma: «Қалқымалы навигация / Android» 380×64, r32, left 16, top 829 (917 биіктікте) */
+.nav {
+  position: fixed; z-index: 30;
+  left: 50%; margin-left: -190px; width: 380px; height: 64px;
+  bottom: calc(24px + var(--tg-safe-area-inset-bottom, 0px));
+  border-radius: 32px; background: var(--nav-bg); border: 1px solid var(--nav-border);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
+  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+}
+.activeBg { position: absolute; left: 6.5px; top: 3px; width: 86px; height: 56px; border-radius: 28px; background: var(--nav-active); transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.tab { position: absolute; top: 3px; width: 93px; height: 56px; padding: 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.iconBox { width: 64px; height: 28px; padding: 2px 0; display: flex; align-items: center; justify-content: center; }
+.icon { filter: brightness(0); }
+.iconActive { filter: none; }
+.label { font-size: 12px; line-height: 14px; letter-spacing: 0.1px; font-weight: 700; color: var(--nav-label); white-space: nowrap; }
+.labelActive { color: var(--action); }
+.avatar { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: rgba(67, 120, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--action); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.unread { position: absolute; left: 335.5px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b30; border: 2px solid #fff; }
+:global(:root[data-theme="dark"]) .icon { filter: brightness(0) invert(1); }

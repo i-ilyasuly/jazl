@@ -1,0 +1,34 @@
+@import "@fontsource-variable/roboto/wght.css";
+@import "./tokens.css";
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body, #root { height: 100%; }
+body {
+  font-family: "Roboto Variable", Roboto, system-ui, sans-serif;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+img { display: block; }
+
+.app { position: relative; width: 100%; max-width: var(--app-width); min-height: 100%; margin: 0 auto; }
+
+/* Мәтін стильдері: UI Kit, Android Roboto */
+.t-large-title { font-size: 34px; line-height: 42px; letter-spacing: 0.25px; font-weight: 700; }
+.t-title1 { font-size: 28px; line-height: 36px; letter-spacing: 0.1px; font-weight: 400; }
+.t-title3 { font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; }
+.t-headline { font-size: 19px; line-height: 28px; letter-spacing: 0.15px; font-weight: 600; }
+.t-text { font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 500; }
+.t-sub1 { font-size: 16px; line-height: 24px; letter-spacing: 0.15px; font-weight: 400; }
+.t-sub2 { font-size: 15px; line-height: 22px; letter-spacing: 0.15px; font-weight: 400; }
+.t-cap1 { font-size: 13px; line-height: 20px; letter-spacing: 0.1px; font-weight: 400; }
+.w-600 { font-weight: 600; }
+.w-700 { font-weight: 700; }
+
+/* Жоғарғы аймақ. Figma-да Telegram батырмалары top 52-де, мазмұн 96-дан басталады.
+   Telegram ішінде нақты қауіпсіз аймақ мәндері қолданылады (Bot API 8.0). */
+:root { --top-shift: 0px; }
+:root[data-env="telegram"] { --top-shift: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) - 96px); }

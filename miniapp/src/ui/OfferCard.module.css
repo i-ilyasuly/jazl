@@ -1,0 +1,20 @@
+/* Figma: ұсыныс карточкасы 380×204, r20 */
+.card { position: relative; display: block; width: 380px; height: 204px; border-radius: 20px; background: var(--surface-card); overflow: hidden; flex: none; transition: transform 0.12s ease; }
+.card:active { transform: scale(0.985); }
+.title { position: absolute; left: 16px; top: 18px; white-space: nowrap; color: var(--text-primary); }
+.venue { position: absolute; left: 16px; top: 41px; white-space: nowrap; color: var(--hint); }
+.discount { position: absolute; left: 262px; top: 14px; padding: 3px 11px 3px 9px; border-radius: 10px; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
+.fav { position: absolute; left: 330px; top: 6px; width: 44px; height: 44px; border-radius: 22px; background: rgba(241, 243, 245, 0.8); display: flex; align-items: center; justify-content: center; }
+.pop { animation: pop 0.28s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes pop { from { transform: scale(0.6); } to { transform: scale(1); } }
+.thumb { position: absolute; left: 16px; top: 72px; width: 176px; height: 116px; border-radius: 12px; background: var(--thumb-bg); overflow: hidden; }
+.thumbIcon { position: absolute; left: 64px; top: 24px; }
+.photo { width: 100%; height: 100%; object-fit: cover; }
+.buyers { position: absolute; left: 8px; top: 80px; height: 22px; padding: 0 8px 0 8px; border-radius: 11px; background: rgba(255, 255, 255, 0.9); display: flex; align-items: center; gap: 4px; color: #285b7b; }
+.deadline { position: absolute; left: 80px; top: 80px; height: 22px; padding: 1px 8px; border-radius: 11px; background: #fff0d6; color: var(--orange-text); white-space: nowrap; }
+.price { position: absolute; right: 14px; top: 73px; font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.unit, .saving { position: absolute; height: 28px; padding: 4px 13px; border-radius: 14px; white-space: nowrap; }
+.unit { right: 18px; top: 116px; background: var(--orange-bg); color: var(--orange-text); }
+.saving { right: 16px; top: 150px; background: var(--green-bg); color: var(--green-text); }
+:global(:root[data-theme="dark"]) .fav { background: rgba(45, 53, 66, 0.8); }
+:global(:root[data-theme="dark"]) .buyers { background: rgba(29, 39, 51, 0.85); color: #8cc4f5; }

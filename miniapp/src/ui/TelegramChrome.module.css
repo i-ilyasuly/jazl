@@ -1,0 +1,11 @@
+.pill { position: absolute; top: 52px; height: 32px; border-radius: 16px; background: var(--pill-bg); overflow: hidden; z-index: 20; }
+.close { left: 8px; width: 84px; }
+.back { left: 8px; width: 88px; }
+.menu { left: 324px; width: 80px; }
+.leftIcon { position: absolute; left: 7px; top: 7px; width: 18px; height: 18px; }
+.label { position: absolute; left: 30px; top: 5px; white-space: nowrap; color: var(--text-primary); }
+.collapse { position: absolute; left: 12px; top: 8px; width: 16px; height: 16px; }
+.dots { position: absolute; left: 50px; top: 9px; width: 18px; height: 18px; }
+:global(:root[data-theme="dark"]) .leftIcon,
+:global(:root[data-theme="dark"]) .collapse,
+:global(:root[data-theme="dark"]) .dots { filter: invert(1); }
