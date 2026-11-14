@@ -1,20 +1,38 @@
-/* Figma: «Қалқымалы навигация / Android» 380×64, r32, left 16, top 829 (917 биіктікте) */
+/* Figma: «Қалқымалы навигация / Android» 380×64, r32, left 16, top 829 (917 биіктікте).
+   Беті Telegram-ның жаңа «әйнек» стилінде: артындағы мазмұн бұлдырап, қанығып көрінеді. */
 .nav {
   position: fixed; z-index: 30; view-transition-name: navbar;
   left: 50%; margin-left: -190px; width: 380px; height: 64px;
   bottom: calc(24px + var(--tg-safe-area-inset-bottom, 0px));
-  border-radius: 32px; background: var(--nav-bg); border: 1px solid var(--nav-border);
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
-  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  border-radius: 32px; border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(22px) saturate(190%); backdrop-filter: blur(22px) saturate(190%);
+  box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 var(--glass-lo), 0 6px 20px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
 }
-.activeBg { position: absolute; left: 6.5px; top: 3px; width: 86px; height: 56px; border-radius: 28px; background: var(--nav-active); transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.tab { position: absolute; top: 3px; width: 93px; height: 56px; padding: 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-.iconBox { width: 64px; height: 28px; padding: 2px 0; display: flex; align-items: center; justify-content: center; }
-.icon { width: 24px; height: 24px; background: var(--nav-label); mask-size: 24px 24px; -webkit-mask-size: 24px 24px; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transition: background 0.2s ease; }
+.activeBg {
+  position: absolute; left: 6.5px; top: 3px; width: 86px; height: 56px; border-radius: 28px;
+  background: var(--glass-active);
+  box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 0 0 0.5px var(--glass-active-edge);
+  transition: translate 0.42s cubic-bezier(0.3, 1.25, 0.4, 1); will-change: translate, scale;
+}
+.tab { position: absolute; top: 3px; width: 93px; height: 56px; padding: 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; -webkit-tap-highlight-color: transparent; }
+.tab:active .iconBox { transform: scale(0.88); }
+.iconBox { width: 64px; height: 28px; padding: 2px 0; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
+.icon { width: 24px; height: 24px; background: var(--nav-label); mask-size: 24px 24px; -webkit-mask-size: 24px 24px; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transition: background 0.25s ease; }
 .iconActive { background: var(--action); }
-.label { font-size: 12px; line-height: 14px; letter-spacing: 0.1px; font-weight: 700; color: var(--nav-label); white-space: nowrap; }
+.label { font-size: 12px; line-height: 14px; letter-spacing: 0.1px; font-weight: 700; color: var(--nav-label); white-space: nowrap; transition: color 0.25s ease; }
 .labelActive { color: var(--action); }
 .avatar { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: rgba(67, 120, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--action); }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
-.unread { position: absolute; left: 335.5px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b30; border: 2px solid #fff; }
+.unread { position: absolute; left: 335.5px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b30; border: 2px solid #fff; animation: dot 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+@keyframes dot { from { transform: scale(0); } }
 
+/* Таб таңдалғанда белгіше бір рет «ойнайды» (Telegram таб-жолағындағыдай), әр белгішенің өз қимылы бар */
+.play_home > * { animation: icHome 0.55s cubic-bezier(0.3, 0.7, 0.3, 1); transform-origin: 50% 100%; }
+.play_scan > * { animation: icScan 0.6s cubic-bezier(0.3, 0.7, 0.3, 1); }
+.play_packs > * { animation: icPacks 0.6s cubic-bezier(0.3, 0.7, 0.3, 1); transform-origin: 50% 100%; }
+.play_profile > * { animation: icProfile 0.55s cubic-bezier(0.3, 0.7, 0.3, 1); }
+@keyframes icHome { 0% { transform: scale(1); } 25% { transform: scale(1.12, 0.82); } 55% { transform: translateY(-5px) scale(0.94, 1.1); } 80% { transform: translateY(0) scale(1.05, 0.95); } 100% { transform: none; } }
+@keyframes icScan { 0% { transform: scale(1); } 30% { transform: scale(0.78) rotate(-10deg); } 65% { transform: scale(1.14) rotate(4deg); } 100% { transform: none; } }
+@keyframes icPacks { 0% { transform: none; } 30% { transform: translateY(-6px) rotate(-6deg); } 60% { transform: translateY(1px) scale(1.1, 0.86); } 82% { transform: translateY(-1px) scale(0.97, 1.04); } 100% { transform: none; } }
+@keyframes icProfile { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 154, 240, 0.45); } 40% { transform: scale(1.2); } 70% { transform: scale(0.95); box-shadow: 0 0 0 8px rgba(34, 154, 240, 0); } 100% { transform: none; box-shadow: 0 0 0 8px rgba(34, 154, 240, 0); } }

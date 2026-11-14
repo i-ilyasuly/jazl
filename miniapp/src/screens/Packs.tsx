@@ -4,7 +4,6 @@ import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { offerOf, usePacks, type Pack } from "../store";
 import { haptic } from "../telegram";
-import { NavBar } from "../ui/NavBar";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Timeline } from "../ui/Timeline";
 import searchIcon from "../assets/icons/search.svg";
@@ -74,7 +73,6 @@ export function Packs() {
             ? list.map((p, i) => <PackCard key={p.id} pack={p} i={i} />)
             : <p className={`t-sub2 rise ${s.empty}`}>{tab === 0 ? "Белсенді пакет жоқ" : "Толық пайдаланылған пакеттер осында шығады"}</p>}
       </main>
-      <NavBar active="packs" />
     </div>
   );
 }

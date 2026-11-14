@@ -27,6 +27,7 @@ interface TelegramWebApp {
   MainButton?: TgBottomButton;
   SecondaryButton?: TgBottomButton;
   HapticFeedback?: { impactOccurred(s: "light" | "medium" | "heavy" | "rigid" | "soft"): void; notificationOccurred(t: "error" | "success" | "warning"): void; selectionChanged(): void };
+  CloudStorage?: { setItem(key: string, value: string, cb?: (err: string | null, ok?: boolean) => void): void; getItem(key: string, cb: (err: string | null, value?: string) => void): void };
   initDataUnsafe?: { user?: { first_name?: string; photo_url?: string } };
 }
 interface Window { Telegram?: { WebApp?: TelegramWebApp } }

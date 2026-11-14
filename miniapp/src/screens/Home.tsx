@@ -3,7 +3,6 @@ import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { haptic } from "../telegram";
 import { HomeSkeleton } from "./HomeSkeleton";
-import { NavBar } from "../ui/NavBar";
 import { OfferCard } from "../ui/OfferCard";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import searchIcon from "../assets/icons/search.svg";
@@ -78,7 +77,6 @@ export function Home() {
         <img src={geo} width={18} height={18} alt="" />
         <span className="t-sub2 w-600">Картада</span>
       </button>
-      <NavBar active="home" />
     </div>
   );
 }

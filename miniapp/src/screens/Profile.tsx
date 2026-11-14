@@ -1,9 +1,9 @@
 // Figma: «Профиль / Негізгі (1)» және «(2)» (13886:35519, 13886:35845)
 import { useCallback } from "react";
 import { useMock } from "../mocks/useMock";
+import { useUnread } from "../store";
 import { useGo } from "../nav";
 import { tg, useBackButton } from "../telegram";
-import { NavBar } from "../ui/NavBar";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import saving from "../assets/icons/p_saving.svg";
 import fav from "../assets/icons/p_fav.svg";
@@ -49,6 +49,7 @@ export function Profile() {
   const back = useCallback(() => go("/", "fade"), [go]);
   useBackButton(back);
   const { loading } = useMock("profile", true, 450);
+  const unread = useUnread();
   const u = tg?.initDataUnsafe?.user as { first_name?: string; last_name?: string; username?: string; photo_url?: string } | undefined;
   const name = u?.first_name ? [u.first_name, u.last_name].filter(Boolean).join(" ") : "Айгерім Нұрланова";
   const handle = u?.username ? "@" + u.username : u?.first_name ? "" : "@aigerim_n";
@@ -75,7 +76,7 @@ export function Profile() {
                 <img src={r.icon} width={32} height={32} alt="" />
                 <span className={s.text}><span className={s.title}>{r.title}</span>{r.sub && <span className={`t-cap1 ${s.sub}`}>{r.sub}</span>}</span>
                 {r.value && <span className={`t-sub1 w-600 ${s.value}`}>{r.value}</span>}
-                {r.badge ? <span className={`t-cap1 w-600 ${s.badge}`}>{r.badge}</span> : null}
+                {r.badge && unread ? <span className={`t-cap1 w-600 ${s.badge}`}>{unread}</span> : null}
                 {i < g.rows.length - 1 && <span className={s.line} />}
               </button>
             ))}
@@ -83,7 +84,6 @@ export function Profile() {
         ))}
         <p className={`t-cap1 ${s.version}`}>Jazl+ v0.1 (MVP)</p>
       </div>
-      <NavBar active="profile" />
     </div>
   );
 }

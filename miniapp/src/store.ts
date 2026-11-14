@@ -1,5 +1,6 @@
 // Қосымшаның жергілікті күйі (бэкендсіз): сатып алынған пакеттер және қолдану тарихы.
 // Бэкенд қосылғанда осы файлдың ішкі жағы API шақыруларына ауысады, экрандар өзгермейді.
+import { kv } from "./telegram";
 import { useSyncExternalStore } from "react";
 import { fmt, offers, unitPrice, type Offer } from "./mocks/offers";
 
@@ -56,3 +57,26 @@ export function redeem(packId: string): boolean {
 }
 
 export const unitLabel = (p: Pack) => fmt(unitPrice(offerOf(p)));
+
+// ── Хабарландырулар ──────────────────────────────────────────────────────────
+export interface Notice { id: string; title: string; sub: string; time: string; read: boolean }
+export interface NoticePrefs { expiry: boolean; rating: boolean; offers: boolean; promo: boolean }
+let notices: Notice[] = [
+  { id: "n1", title: "Тауық донерінің мерзімі 2 күнде бітеді", sub: "Қайта алсаң, қалған бірлік келесі айға көшеді", time: "13:20", read: false },
+  { id: "n2", title: "Coffee Lab-та жаңа ұсыныс", sub: "Латте · 15 стақан, −14%", time: "Кеше", read: false },
+];
+let prefs: NoticePrefs = { expiry: true, rating: true, offers: true, promo: false };
+let unread = 2;
+const count = () => { unread = notices.filter((n) => !n.read).length; };
+export const useNotices = () => useSyncExternalStore(subscribe, () => notices);
+export const useNoticePrefs = () => useSyncExternalStore(subscribe, () => prefs);
+export const useUnread = () => useSyncExternalStore(subscribe, () => unread);
+export function readNotice(id: string) {
+  notices = notices.map((n) => (n.id === id ? { ...n, read: true } : n)); count(); emit();
+  kv.set("jazl_read", notices.filter((n) => n.read).map((n) => n.id).join(","));
+}
+export function setNoticePref(k: keyof NoticePrefs, v: boolean) {
+  prefs = { ...prefs, [k]: v }; emit(); kv.set("jazl_notice_prefs", JSON.stringify(prefs));
+}
+void kv.get("jazl_notice_prefs").then((v) => { if (v) { try { prefs = { ...prefs, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
+void kv.get("jazl_read").then((v) => { if (v) { const ids = v.split(","); notices = notices.map((n) => ({ ...n, read: ids.includes(n.id) })); count(); emit(); } });

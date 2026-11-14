@@ -1,5 +1,4 @@
 // Figma: «Жүктелу / Басты бет скелеті» (13886:15067). Өлшемдер кадрдан алынған.
-import { NavBar } from "../ui/NavBar";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import searchIcon from "../assets/icons/search.svg";
 import h from "./Home.module.css";
@@ -26,7 +25,6 @@ export function HomeSkeleton() {
           {card.map(([x, cy, w, hh, r], i) => <span key={i} className="sk" style={{ position: "absolute", left: x, top: cy, width: w, height: hh, borderRadius: r }} />)}
         </div>
       ))}
-      <NavBar active="home" />
     </div>
   );
 }

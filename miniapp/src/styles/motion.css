@@ -22,7 +22,15 @@
 ::view-transition-group(offer-photo) { animation-duration: 0.36s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); z-index: 5; }
 ::view-transition-old(offer-photo), ::view-transition-new(offer-photo) { height: 100%; width: 100%; object-fit: cover; }
 /* Навигация мен төменгі жолақ ауысу кезінде орнында тұрады */
-::view-transition-group(navbar) { z-index: 10; animation-duration: 0.2s; }
+::view-transition-group(navbar) { z-index: 10; animation: none; }
+/* Таб → таб: жолақ орнында тұрады, ішіндегі тамшы мен белгіше тірі күйде қозғалады */
+::view-transition-old(navbar) { display: none; }
+::view-transition-new(navbar) { animation: none; }
+/* Ішкі бетке өткенде жолақ төмен сырғып кетеді, қайтқанда көтеріледі */
+::view-transition-old(navbar):only-child { display: block; animation: nav-out 0.26s cubic-bezier(0.4, 0, 1, 1) both; }
+::view-transition-new(navbar):only-child { animation: nav-in 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+@keyframes nav-out { to { transform: translateY(110px); opacity: 0; } }
+@keyframes nav-in { from { transform: translateY(110px); opacity: 0; } }
 
 /* Скелет: жылтыр (shimmer) */
 .sk { background: #e4e8ee; position: relative; overflow: hidden; }

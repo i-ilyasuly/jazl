@@ -66,3 +66,18 @@ export function useBottomButtons(main: BottomAction, secondary?: BottomAction, e
     };
   }, [main, secondary, enabled]);
 }
+
+/** Кілт-мән қоймасы: Telegram ішінде нативті CloudStorage (6.9+, құрылғылар арасында синхрондалады),
+ *  браузерде localStorage. */
+export const kv = {
+  get(key: string): Promise<string | null> {
+    return new Promise((res) => {
+      if (inTelegram && at("6.9") && wa?.CloudStorage) wa.CloudStorage.getItem(key, (err, v) => res(err ? null : v || null));
+      else { try { res(localStorage.getItem(key)); } catch { res(null); } }
+    });
+  },
+  set(key: string, value: string) {
+    if (inTelegram && at("6.9") && wa?.CloudStorage) wa.CloudStorage.setItem(key, value);
+    else { try { localStorage.setItem(key, value); } catch { /* жеке режим */ } }
+  },
+};

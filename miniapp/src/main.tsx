@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createHashRouter, Outlet, RouterProvider, ScrollRestoration } from "react-router-dom";
+import { createHashRouter, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
 import "./styles/base.css";
 import { initTelegram } from "./telegram";
 import { Home } from "./screens/Home";
@@ -10,14 +10,24 @@ import { Packs } from "./screens/Packs";
 import { PackPage } from "./screens/PackPage";
 import { Scan } from "./screens/Scan";
 import { Profile } from "./screens/Profile";
+import { Savings } from "./screens/Savings";
+import { History } from "./screens/History";
+import { Notifications } from "./screens/Notifications";
 import { Stub } from "./screens/Stub";
+import { NavBar, type TabKey } from "./ui/NavBar";
+
+const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
 
 initTelegram();
 
+// Навигация бір рет қана орнатылады: бет ауысқанда қайта салынбайды, сондықтан
+// белсенді «тамшы» бір табтан екіншісіне сырғып өтеді.
 function Shell() {
+  const tab = tabOf[useLocation().pathname];
   return (
     <div className="app">
       <Outlet />
+      {tab && <NavBar active={tab} />}
       <ScrollRestoration />
     </div>
   );
@@ -35,6 +45,9 @@ const router = createHashRouter([
       { path: "/scan", element: <Scan /> },
       { path: "/paid/:id", element: <Paid /> },
       { path: "/profile", element: <Profile /> },
+      { path: "/profile/savings", element: <Savings /> },
+      { path: "/profile/history", element: <History /> },
+      { path: "/profile/notifications", element: <Notifications /> },
       { path: "*", element: <Stub /> },
     ],
   },
