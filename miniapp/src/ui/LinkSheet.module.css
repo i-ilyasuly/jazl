@@ -1,0 +1,19 @@
+.root { position: fixed; inset: 0; z-index: 50; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 30px 0 calc(15px + var(--tg-safe-area-inset-bottom, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.closing .scrim { animation: fadeOut 0.2s ease both; }
+.closing .sheet { animation: slideDown 0.2s ease-in both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes slideUp { from { transform: translateY(100%); } }
+@keyframes slideDown { to { transform: translateY(100%); } }
+.grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+.title { height: 24px; margin-bottom: 8px; padding-left: 20px; font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 700; color: var(--text-strong); }
+.row { display: flex; align-items: center; gap: 24px; width: 100%; height: 87px; padding: 0 20px 0 30px; text-align: left; transition: background 0.15s ease; animation: rowIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(120ms + var(--i) * 60ms); }
+.row:active { background: rgba(34, 154, 240, 0.08); }
+@keyframes rowIn { from { transform: translateX(12px); opacity: 0; } }
+.emoji { width: 24px; font-size: 24px; line-height: 24px; text-align: center; }
+.text { display: flex; flex-direction: column; }
+.text b { font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 500; color: var(--text-strong); }
+.text small { color: var(--text-secondary); }
+.cancel { display: block; width: 100%; height: 50px; text-align: center; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 500; color: var(--link); }

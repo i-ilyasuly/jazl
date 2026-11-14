@@ -29,6 +29,7 @@ import { Gift } from "./screens/Gift";
 import { Search } from "./screens/Search";
 import { Category } from "./screens/Category";
 import { MapScreen } from "./screens/MapScreen";
+import { VenuePage } from "./screens/VenuePage";
 import { Stub } from "./screens/Stub";
 import { NavBar, type TabKey } from "./ui/NavBar";
 
@@ -92,6 +93,7 @@ const router = createHashRouter([
       { path: "/profile/gift/:id", element: <Gift /> },
       { path: "/search", element: <Search /> },
       { path: "/map", element: <MapScreen /> },
+      { path: "/venue/:id", element: <VenuePage /> },
       { path: "/category/:kind", element: <Category /> },
       { path: "/welcome", element: <Welcome /> },
       { path: "/welcome/lang", element: <WelcomeLang /> },
