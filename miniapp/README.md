@@ -44,3 +44,4 @@ Telegram ішінде жоғарғы батырмаларды (Жабу/Артқ
 ## Жариялау
 
 `miniapp` тармағына жүктелген сайын GitHub Pages-ке автоматты жарияланады: https://i-ilyasuly.github.io/jazl/
+
