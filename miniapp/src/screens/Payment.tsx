@@ -4,6 +4,7 @@ import { useGo } from "../nav";
 import { removeMethod, setDefaultMethod, useDefaultMethod, useMethods, type PayMethod } from "../store";
 import { haptic } from "../telegram";
 import { ActionSheet } from "../ui/ActionSheet";
+import { Confirm } from "../ui/Confirm";
 import { Group, Note, Row, SubPage } from "../ui/SubPage";
 import more from "../assets/icons/cardMore.svg";
 import s from "./Payment.module.css";
@@ -14,10 +15,12 @@ export function Payment() {
   const def = useDefaultMethod();
   const [sheet, setSheet] = useState<PayMethod | null>(null);
   const [leaving, setLeaving] = useState<string | null>(null);
+  const [ask, setAsk] = useState<PayMethod | null>(null);
+  const remove = (m: string) => { haptic.success(); setLeaving(m); setTimeout(() => { removeMethod(m); setLeaving(null); }, 300); };
   function pick(id: string) {
     if (!sheet) return;
     if (id === "default") { haptic.success(); setDefaultMethod(sheet.id); }
-    if (id === "delete") { const m = sheet.id; setLeaving(m); setTimeout(() => { removeMethod(m); setLeaving(null); }, 300); }
+    if (id === "delete") setAsk(sheet);
   }
   return (
     <SubPage title="Төлем тәсілдері">
@@ -34,6 +37,7 @@ export function Payment() {
       <Note i={1}>Карта деректері төлем провайдеріне қауіпсіз жіберіледі.</Note>
       {sheet && <ActionSheet title={sheet.title} onClose={() => setSheet(null)} onPick={pick}
         actions={[...(sheet.id !== def ? [{ id: "default", text: "Әдепкі ету" }] : []), ...(sheet.card ? [{ id: "delete", text: "Жою", danger: true }] : [])]} />}
+      {ask && <Confirm title="Картаны жою?" text={`${ask.title} төлем тәсілдерінен жойылады.`} cancel="Бас тарту" ok="Жою" danger onClose={() => setAsk(null)} onOk={() => remove(ask.id)} />}
     </SubPage>
   );
 }

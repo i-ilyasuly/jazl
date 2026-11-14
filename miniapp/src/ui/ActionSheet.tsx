@@ -6,9 +6,9 @@ import s from "./ActionSheet.module.css";
 
 export interface SheetAction { id: string; text: string; danger?: boolean }
 
-export function ActionSheet({ title, actions, onPick, onClose }: { title: string; actions: SheetAction[]; onPick: (id: string) => void; onClose: () => void }) {
+export function ActionSheet({ title, actions, onPick, onClose, custom, selected }: { title: string; actions: SheetAction[]; onPick: (id: string) => void; onClose: () => void; custom?: boolean; selected?: string }) {
   const [closing, setClosing] = useState(false);
-  const native = inTelegram && Boolean(tg?.showPopup);
+  const native = !custom && inTelegram && Boolean(tg?.showPopup);
   const close = useMemo(() => (id?: string) => { setClosing(true); setTimeout(() => { onClose(); if (id) onPick(id); }, 200); }, [onClose, onPick]);
   useEffect(() => {
     if (!native) return;
@@ -22,8 +22,8 @@ export function ActionSheet({ title, actions, onPick, onClose }: { title: string
       <div className={s.sheet}>
         <span className={s.grabber} />
         <h2 className={s.title}>{title}</h2>
-        {actions.map((a) => <button key={a.id} className={`${s.row} ${a.danger ? s.danger : ""}`} onClick={() => { haptic.tap(); close(a.id); }}>{a.text}</button>)}
-        <button className={`t-sub1 w-600 ${s.cancel}`} onClick={() => close()}>Бас тарту</button>
+        {actions.map((a) => <button key={a.id} className={`${s.row} ${a.danger ? s.danger : ""} ${selected !== undefined ? s.tall : ""}`} onClick={() => { haptic.tap(); close(a.id); }}>{a.text}{selected !== undefined && <span className={`${s.radio} ${selected === a.id ? s.radioOn : ""}`} />}</button>)}
+        {selected === undefined && <button className={`t-sub1 w-600 ${s.cancel}`} onClick={() => close()}>Бас тарту</button>}
       </div>
     </div>
   );

@@ -14,3 +14,4 @@
 .expired { background: rgba(95, 107, 122, 0.1); color: #5f6b7a; }
 .open { background: rgba(34, 154, 240, 0.16); color: var(--link); font-weight: 600; }
 :global(:root[data-theme="dark"]) .seg { background: var(--surface-category); }
+.cancelled { background: rgba(95, 107, 122, 0.1); color: #5f6b7a; }

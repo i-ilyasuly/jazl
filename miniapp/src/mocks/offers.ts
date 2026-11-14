@@ -36,3 +36,10 @@ export const discount = (o: Offer) => Math.round((1 - o.price / o.oldPrice) * 10
 export const endedOffers: Offer[] = [
   { id: "burger", title: "Бургер комбо · 4 дана", unitWord: "комбо", venue: "Bahandi", distance: "1,2 км", kind: "food", price: 10800, oldPrice: 14000, units: 4, buyers: 27, favorite: true, rating: 4.7, ratingCount: 31, address: "Қарағанды, Бұқар жырау даңғылы 59", hours: "Ашық · бүгін 10:00–23:00" },
 ];
+
+// Іздеуде ғана шығатын қосымша ұсыныстар (Figma: «Іздеу / Нәтижелер»)
+export const moreOffers: Offer[] = [
+  { id: "lamb-doner", title: "Қой етінен донер · 4 дана", unitWord: "донер", venue: "Kebab House", distance: "1,8 км", kind: "food", price: 7600, oldPrice: 10000, units: 4, buyers: 31, favorite: false, rating: 4.7, ratingCount: 19, address: "Қарағанды, Гоголь көшесі 40", hours: "Ашық · бүгін 10:00–23:00" },
+];
+export const allOffers = () => [...offers, ...moreOffers];
+export const findOffer = (id?: string) => [...offers, ...moreOffers, ...endedOffers].find((o) => o.id === id) ?? offers[0];

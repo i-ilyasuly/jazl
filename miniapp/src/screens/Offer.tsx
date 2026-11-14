@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { BuySheet } from "../ui/BuySheet";
-import { discount, fmt, offers, saving, unitPrice } from "../mocks/offers";
+import { discount, findOffer, fmt, saving, unitPrice } from "../mocks/offers";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import heroBurger from "../assets/icons/heroBurger.svg";
@@ -21,7 +21,7 @@ const B = ({ children }: { children: string }) => <span className={s.hlBlue}>{ch
 export function OfferPage() {
   const { id } = useParams();
   const go = useGo();
-  const offer = offers.find((o) => o.id === id) ?? offers[0];
+  const offer = findOffer(id);
   const fav = useFavs().includes(offer.id);
   const [open, setOpen] = useState(false);
   const [buying, setBuying] = useState(false);

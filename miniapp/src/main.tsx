@@ -23,6 +23,8 @@ import { Pin } from "./screens/Pin";
 import { Terms } from "./screens/Terms";
 import { VenueApply, VenueDone } from "./screens/VenueApply";
 import { Report, ReportDone } from "./screens/Report";
+import { Gift } from "./screens/Gift";
+import { Search } from "./screens/Search";
 import { Stub } from "./screens/Stub";
 import { NavBar, type TabKey } from "./ui/NavBar";
 
@@ -67,6 +69,8 @@ const router = createHashRouter([
       { path: "/profile/gifts", element: <Gifts /> },
       { path: "/profile/pin/:mode", element: <Pin /> },
       { path: "/profile/terms", element: <Terms /> },
+      { path: "/profile/gift/:id", element: <Gift /> },
+      { path: "/search", element: <Search /> },
       { path: "/profile/venue", element: <VenueApply /> },
       { path: "/profile/venue/done", element: <VenueDone /> },
       { path: "/profile/report", element: <Report /> },

@@ -60,7 +60,7 @@ export function Packs() {
     <div className={s.page}>
       <header className={s.top}>
         <TelegramChrome mode="close" />
-        <div className={h.searchHit}><span className={h.search}><img src={searchIcon} className={h.searchIcon} alt="" /><span className={`t-sub2 ${h.searchText}`}>Іздеу...</span></span></div>
+        <button className={h.searchHit} onClick={() => go("/search")} aria-label="Іздеу"><span className={h.search}><img src={searchIcon} className={h.searchIcon} alt="" /><span className={`t-sub2 ${h.searchText}`}>Іздеу...</span></span></button>
         <div className={s.seg}>
           <span className={s.segThumb} style={{ transform: `translateX(${tab * 188}px)` }} />
           {["Белсенді", "Тарих"].map((t, i) => (

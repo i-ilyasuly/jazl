@@ -3,7 +3,7 @@ import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { buyPack, getPack, offerOf, usePacks } from "../store";
 import { useEffect, useRef } from "react";
-import { fmt, offers } from "../mocks/offers";
+import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
 import { inTelegram, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -66,7 +66,7 @@ function ResultScreen(p: ResultProps) {
 
 export function Success() {
   const { id } = useParams();
-  const offer = offers.find((o) => o.id === id) ?? offers[0];
+  const offer = findOffer(id);
   const go = useGo();
   const done = useRef(false);
   useEffect(() => { if (!done.current) { done.current = true; buyPack(offer.id); } }, [offer.id]);

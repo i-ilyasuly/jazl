@@ -1,0 +1,15 @@
+.root { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.2s ease both; }
+.box { position: relative; width: 312px; padding: 24px 24px 12px; border-radius: 24px; background: var(--surface-white); display: flex; flex-direction: column; gap: 12px; animation: pop 0.26s cubic-bezier(0.3, 1.3, 0.5, 1) both; }
+.closing .scrim { animation: fadeOut 0.18s ease both; }
+.closing .box { animation: out 0.18s ease both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes pop { from { transform: scale(0.9); opacity: 0; } }
+@keyframes out { to { transform: scale(0.94); opacity: 0; } }
+.title { font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; color: var(--text-strong); }
+.text { color: var(--text-strong); }
+.btns { display: flex; justify-content: flex-end; gap: 8px; }
+.btn { height: 44px; padding: 10px 12px; border-radius: 12px; color: var(--link); transition: background 0.15s ease; }
+.btn:active { background: rgba(34, 154, 240, 0.1); }
+.danger { color: #d8434b; }
