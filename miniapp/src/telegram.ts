@@ -38,31 +38,31 @@ export const haptic = {
 };
 
 /** Нативті «Артқа» батырмасы (толық экранда Telegram оны сол жақ жоғарғы бұрышқа өзі салады). */
-export function useBackButton(onBack: () => void) {
+export function useBackButton(onBack: () => void, enabled = true) {
   useEffect(() => {
-    if (!inTelegram || !wa?.BackButton) return;
+    if (!enabled || !inTelegram || !wa?.BackButton) return;
     wa.BackButton.show();
     wa.BackButton.onClick(onBack);
     return () => { wa.BackButton?.offClick(onBack); wa.BackButton?.hide(); };
-  }, [onBack]);
+  }, [onBack, enabled]);
 }
 
-export interface BottomAction { text: string; onClick: () => void }
+export interface BottomAction { text: string; onClick: () => void; position?: "left" | "bottom" }
 
 /** Нативті төменгі батырмалар: Main оң жақта, Secondary сол жақта (Figma: биіктігі 50, радиусы 8). */
-export function useBottomButtons(main: BottomAction, secondary?: BottomAction) {
+export function useBottomButtons(main: BottomAction, secondary?: BottomAction, enabled = true) {
   useEffect(() => {
-    if (!inTelegram || !wa?.MainButton) return;
+    if (!enabled || !inTelegram || !wa?.MainButton) return;
     const dark = wa.colorScheme === "dark";
     wa.MainButton.setParams({ text: main.text, color: "#229af0", text_color: "#ffffff", is_visible: true, is_active: true });
     wa.MainButton.onClick(main.onClick);
     if (secondary && at("7.10") && wa.SecondaryButton) {
-      wa.SecondaryButton.setParams({ text: secondary.text, position: "left", color: dark ? "#1e3a52" : "#dbeefd", text_color: dark ? "#cbe6fc" : "#1f73c2", is_visible: true, is_active: true });
+      wa.SecondaryButton.setParams({ text: secondary.text, position: secondary.position ?? "left", color: dark ? "#1e3a52" : "#dbeefd", text_color: dark ? "#cbe6fc" : "#1f73c2", is_visible: true, is_active: true });
       wa.SecondaryButton.onClick(secondary.onClick);
-    }
+    } else wa.SecondaryButton?.hide();
     return () => {
       wa.MainButton?.offClick(main.onClick); wa.MainButton?.hide();
       if (secondary) { wa.SecondaryButton?.offClick(secondary.onClick); wa.SecondaryButton?.hide(); }
     };
-  }, [main, secondary]);
+  }, [main, secondary, enabled]);
 }

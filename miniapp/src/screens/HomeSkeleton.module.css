@@ -1,0 +1,6 @@
+.page { position: relative; height: 100vh; overflow: hidden; background: #f4f6fa; }
+.top { position: relative; height: calc(376px + var(--top-shift)); background: #fff; border-radius: 0 0 24px 24px; overflow: hidden; }
+.top > * { translate: 0 var(--top-shift); }
+.card { position: absolute; left: 16px; width: 380px; height: 180px; border-radius: 20px; background: #fff; translate: 0 var(--top-shift); }
+:global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
+:global(:root[data-theme="dark"]) .top, :global(:root[data-theme="dark"]) .card { background: var(--surface-card); }

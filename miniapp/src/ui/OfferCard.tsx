@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useViewTransitionState } from "react-router-dom";
+import { setDir } from "../nav";
 import { useState } from "react";
 import { discount, fmt, saving, unitPrice, type Offer } from "../mocks/offers";
 import { haptic } from "../telegram";
@@ -13,8 +14,10 @@ const kindIcon = { food: burger, coffee: burger, hair: scissors };
 
 export function OfferCard({ offer }: { offer: Offer }) {
   const [fav, setFav] = useState(offer.favorite);
+  const to = `/offer/${offer.id}`;
+  const moving = useViewTransitionState(to);
   return (
-    <Link to={`/offer/${offer.id}`} className={s.card} onClick={() => haptic.tap()}>
+    <Link to={to} viewTransition className={s.card} onClick={() => { haptic.tap(); setDir("forward"); }}>
       <p className={`t-headline ${s.title}`}>{offer.title}</p>
       <p className={`t-sub2 ${s.venue}`}>{offer.venue} · {offer.distance}</p>
       <span className={`t-cap1 ${s.discount}`}>▼ {discount(offer)}%</span>
@@ -25,7 +28,7 @@ export function OfferCard({ offer }: { offer: Offer }) {
       >
         <img src={fav ? heartFill : heart} width={28} height={28} alt="" key={String(fav)} className={fav ? s.pop : undefined} />
       </button>
-      <div className={s.thumb}>
+      <div className={s.thumb} style={{ viewTransitionName: moving ? "offer-photo" : "none" }}>
         {offer.photo ? <img src={offer.photo} className={s.photo} alt="" /> : <img src={kindIcon[offer.kind]} className={s.thumbIcon} width={48} height={48} alt="" />}
         <span className={s.buyers}>
           <img src={group} width={14} height={14} alt="" />

@@ -1,6 +1,8 @@
-import { useNavigate } from "react-router-dom";
 import { offers } from "../mocks/offers";
+import { useMock } from "../mocks/useMock";
+import { useGo } from "../nav";
 import { haptic } from "../telegram";
+import { HomeSkeleton } from "./HomeSkeleton";
 import { NavBar } from "../ui/NavBar";
 import { OfferCard } from "../ui/OfferCard";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -22,8 +24,9 @@ const soon = [
 ];
 
 export function Home() {
-  const nav = useNavigate();
-  const go = (to: string) => { haptic.tap(); nav(to); };
+  const go = useGo();
+  const { data, loading } = useMock("home", offers);
+  if (loading || !data) return <HomeSkeleton />;
   return (
     <div className={s.page}>
       <header className={s.top}>
@@ -57,9 +60,9 @@ export function Home() {
         </button>
 
         <div className={s.soonRow}>
-          {soon.map((x) => (
+          {soon.map((x, i) => (
             <button key={x.pct} className={s.soon} onClick={() => haptic.tap()}>
-              <span className={s.soonFill} style={{ width: x.fill }} />
+              <span className={s.soonFill} style={{ width: x.fill, animationDelay: `${0.15 + i * 0.08}s` }} />
               <span className={`t-sub2 w-600 ${s.soonLabel}`}>Жуырда</span>
               <span className={`t-title1 ${s.soonPct}`}>{x.pct}%</span>
             </button>
@@ -68,7 +71,7 @@ export function Home() {
       </header>
 
       <main className={s.list}>
-        {offers.map((o) => <OfferCard key={o.id} offer={o} />)}
+        {data.map((o, i) => <div key={o.id} className="rise" style={{ ["--i" as string]: i }}><OfferCard offer={o} /></div>)}
       </main>
 
       <button className={s.map} onClick={() => go("/map")}>

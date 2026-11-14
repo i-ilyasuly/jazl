@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useMock } from "../mocks/useMock";
+import { useGo } from "../nav";
+import { BuySheet } from "../ui/BuySheet";
 import { discount, fmt, offers, saving, unitPrice } from "../mocks/offers";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -16,21 +19,25 @@ const B = ({ children }: { children: string }) => <span className={s.hlBlue}>{ch
 
 export function OfferPage() {
   const { id } = useParams();
-  const nav = useNavigate();
+  const go = useGo();
   const offer = offers.find((o) => o.id === id) ?? offers[0];
   const [fav, setFav] = useState(offer.favorite);
   const [open, setOpen] = useState(false);
+  const [buying, setBuying] = useState(false);
+  const { loading } = useMock("offer:" + offer.id, offer, 450);
 
-  const back = useCallback(() => nav(-1), [nav]);
-  useBackButton(back);
-  const pay = useMemo(() => ({ text: "Төлеу", onClick: () => { haptic.tap(); nav("/buy/" + offer.id); } }), [nav, offer.id]);
-  const gift = useMemo(() => ({ text: "Сыйлау", onClick: () => { haptic.tap(); nav("/gift/" + offer.id); } }), [nav, offer.id]);
-  useBottomButtons(pay, gift);
+  const back = useCallback(() => go(-1, "back"), [go]);
+  useBackButton(back, !buying);
+  const pay = useMemo(() => ({ text: "Төлеу", onClick: () => { haptic.tap(); setBuying(true); } }), []);
+  const gift = useMemo(() => ({ text: "Сыйлау", onClick: () => go("/gift/" + offer.id, "up") }), [go, offer.id]);
+  const closeSheet = useCallback(() => setBuying(false), []);
+  const paid = useCallback(() => go("/success/" + offer.id, "up", { replace: true }), [go, offer.id]);
+  useBottomButtons(pay, gift, !buying);
 
   return (
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
-      <div className={s.photo}>
+      <div className={s.photo} style={{ viewTransitionName: "offer-photo" }}>
         {offer.photo ? <img src={offer.photo} className={s.photoImg} alt="" /> : <img src={heroBurger} className={s.heroIcon} width={120} height={120} alt="" />}
         <img src={pagination} className={s.dots} width={80} height={16} alt="" />
         <button className={`${s.round} ${s.share}`} aria-label="Бөлісу" onClick={() => haptic.tap()}><img src={share} width={24} height={24} alt="" /></button>
@@ -39,7 +46,8 @@ export function OfferPage() {
         </button>
       </div>
 
-      <div className={s.content}>
+      {loading ? <OfferSkeleton /> : (
+      <div className={`${s.content} ${s.contentIn}`}>
         <section className={s.head}>
           <h1 className="t-title3">{offer.title}</h1>
           <div className={s.priceRow}>
@@ -127,13 +135,30 @@ export function OfferPage() {
           <div className={s.review}><p className={`w-600 ${s.muted}`} style={{ whiteSpace: "pre" }}>{`Ерлан  •  ★ 5`}</p><p>Жақсы баға, кезек аз болды.</p></div>
         </section>
       </div>
+      )}
 
+      {buying && <BuySheet offer={offer} onClose={closeSheet} onPaid={paid} />}
       {!inTelegram && (
         <div className={s.bar}>
           <button className={`t-sub1 w-600 ${s.btn} ${s.secondary}`} onClick={gift.onClick}>Сыйлау</button>
           <button className={`t-sub1 w-600 ${s.btn} ${s.main}`} onClick={pay.onClick}>Төлеу</button>
         </div>
       )}
+    </div>
+  );
+}
+
+function OfferSkeleton() {
+  const bar = (w: number, h: number, r = 6) => <span className="sk" style={{ display: "block", width: w, height: h, borderRadius: r }} />;
+  return (
+    <div className={s.content} aria-busy>
+      {bar(230, 22)}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>{bar(150, 38, 8)}<div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>{bar(120, 28, 14)}{bar(104, 28, 14)}</div></div>
+      {bar(250, 18)}
+      {[300, 280, 180, 320].map((w) => <div key={w}>{bar(w, 18)}</div>)}
+      {bar(380, 1, 0)}
+      {bar(140, 18)}
+      {bar(380, 120, 8)}
     </div>
   );
 }

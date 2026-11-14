@@ -1,6 +1,6 @@
 /* Figma: «Қалқымалы навигация / Android» 380×64, r32, left 16, top 829 (917 биіктікте) */
 .nav {
-  position: fixed; z-index: 30;
+  position: fixed; z-index: 30; view-transition-name: navbar;
   left: 50%; margin-left: -190px; width: 380px; height: 64px;
   bottom: calc(24px + var(--tg-safe-area-inset-bottom, 0px));
   border-radius: 32px; background: var(--nav-bg); border: 1px solid var(--nav-border);

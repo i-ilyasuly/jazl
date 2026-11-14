@@ -1,0 +1,8 @@
+.row { display: flex; align-items: flex-start; height: 10px; }
+.el { flex: 1; display: flex; align-items: center; gap: 8px; padding-right: 8px; height: 10px; color: #229af0; }
+.last { flex: none; padding-right: 0; }
+.used { color: #31d158; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; animation: dotIn 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both; animation-delay: calc(0.25s + var(--i) * 90ms); }
+.line { flex: 1; height: 3px; border-radius: 1.5px; background: currentColor; transform-origin: left; animation: lineIn 0.3s ease-out both; animation-delay: calc(0.32s + var(--i) * 90ms); }
+@keyframes dotIn { from { transform: scale(0); } }
+@keyframes lineIn { from { transform: scaleX(0); } }

@@ -4,6 +4,8 @@ interface TgBottomButton {
   onClick(cb: () => void): TgBottomButton;
   offClick(cb: () => void): TgBottomButton;
   show(): TgBottomButton;
+  showProgress?(leaveActive?: boolean): TgBottomButton;
+  hideProgress?(): TgBottomButton;
   hide(): TgBottomButton;
 }
 interface TelegramWebApp {
