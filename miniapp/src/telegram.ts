@@ -132,3 +132,16 @@ export function askPhone(): Promise<string | null> {
     if (inTelegram && at("6.9") && wa?.requestContact) wa.requestContact((ok, r) => res(ok ? r?.responseUnsafe?.contact?.phone_number ?? null : null)); else res(null);
   });
 }
+
+/** Орналасуды нативті сұрау (LocationManager, Bot API 8.0): Telegram өз рұқсат диалогын көрсетеді.
+ *  Қайтарады: координата, null — бас тартылды, "browser" — Telegram-нан тыс немесе қолдау жоқ. */
+export function askLocation(): Promise<{ latitude: number; longitude: number } | null | "browser"> {
+  return new Promise((res) => {
+    const lm = wa?.LocationManager;
+    if (!inTelegram || !at("8.0") || !lm) return res("browser");
+    const run = () => (lm.isLocationAvailable ? lm.getLocation((d) => res(d)) : res(null));
+    if (lm.isInited) run(); else lm.init(run);
+  });
+}
+/** Сыртқы сілтемені Telegram-ның ішкі браузерінде ашу. */
+export function openExternal(url: string) { if (inTelegram && wa?.openLink) wa.openLink(url); else window.open(url, "_blank", "noopener"); }

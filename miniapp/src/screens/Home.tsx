@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { offers } from "../mocks/offers";
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
@@ -14,15 +15,17 @@ import plus16 from "../assets/icons/plus16.svg";
 import plus18 from "../assets/icons/plus18.svg";
 import ticket from "../assets/icons/ticket.svg";
 import geo from "../assets/icons/geo.svg";
+import { SoonSheet } from "../ui/SoonSheet";
 import s from "./Home.module.css";
 
 const soon = [
-  { pct: 30, fill: 44 },
-  { pct: 20, fill: 30 },
-  { pct: 15, fill: 22 },
+  { pct: 30, fill: 44, venues: 2 },
+  { pct: 20, fill: 30, venues: 1 },
+  { pct: 15, fill: 22, venues: 1 },
 ];
 
 export function Home() {
+  const [sheet, setSheet] = useState<(typeof soon)[number] | null>(null);
   const go = useGo();
   const { data, loading } = useMock("home", offers);
   if (loading || !data) return <HomeSkeleton />;
@@ -60,7 +63,7 @@ export function Home() {
 
         <div className={s.soonRow}>
           {soon.map((x, i) => (
-            <button key={x.pct} className={s.soon} onClick={() => haptic.tap()}>
+            <button key={x.pct} className={s.soon} onClick={() => { haptic.tap(); setSheet(x); }}>
               <span className={s.soonFill} style={{ width: x.fill, animationDelay: `${0.15 + i * 0.08}s` }} />
               <span className={`t-sub2 w-600 ${s.soonLabel}`}>Жуырда</span>
               <span className={`t-title1 ${s.soonPct}`}>{x.pct}%</span>
@@ -77,6 +80,7 @@ export function Home() {
         <img src={geo} width={18} height={18} alt="" />
         <span className="t-sub2 w-600">Картада</span>
       </button>
+      {sheet && <SoonSheet pct={sheet.pct} venues={sheet.venues} onClose={() => setSheet(null)} />}
     </div>
   );
 }

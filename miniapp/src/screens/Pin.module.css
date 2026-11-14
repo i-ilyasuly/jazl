@@ -1,4 +1,4 @@
-.page { position: relative; min-height: 100vh; background: #fff; }
+.page { position: relative; min-height: var(--app-h, 100vh); background: #fff; }
 .title { position: absolute; left: 20px; top: 258px; width: 372px; text-align: center; font-size: 19px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; color: #000; animation: in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes in { from { transform: translateY(8px); opacity: 0; } }
 .boxes { position: absolute; left: 102px; top: 302px; width: 208px; height: 44px; display: flex; gap: 16px; }

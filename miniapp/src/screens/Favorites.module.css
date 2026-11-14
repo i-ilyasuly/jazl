@@ -1,4 +1,4 @@
-.page { position: relative; min-height: 100vh; padding-bottom: 32px; background: var(--surface-page); }
+.page { position: relative; min-height: var(--app-h, 100vh); padding-bottom: 32px; background: var(--surface-page); }
 .top { position: relative; height: calc(210px + var(--top-shift)); background: var(--surface-card); border-radius: 0 0 24px 24px; overflow: hidden; }
 .top > * { translate: 0 var(--top-shift); }
 .searchHit { position: absolute; left: 100px; top: 44px; width: 216px; height: 48px; }

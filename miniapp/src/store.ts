@@ -2,7 +2,7 @@
 // Бэкенд қосылғанда осы файлдың ішкі жағы API шақыруларына ауысады, экрандар өзгермейді.
 import { kv } from "./telegram";
 import { useSyncExternalStore } from "react";
-import { fmt, offers, unitPrice, type Offer } from "./mocks/offers";
+import { findOffer, fmt, unitPrice, type Offer } from "./mocks/offers";
 
 export interface HistoryItem { emoji: string; title: string; sub: string; right: string }
 export interface Pack {
@@ -32,11 +32,11 @@ const emit = () => subs.forEach((f) => f());
 const subscribe = (f: () => void) => { subs.add(f); return () => { subs.delete(f); }; };
 
 export const usePacks = () => useSyncExternalStore(subscribe, () => packs);
-export const offerOf = (p: Pack): Offer => offers.find((o) => o.id === p.offerId) ?? offers[0];
+export const offerOf = (p: Pack): Offer => findOffer(p.offerId);
 export const getPack = (id?: string) => packs.find((p) => p.id === id);
 
 export function buyPack(offerId: string): string {
-  const o = offers.find((x) => x.id === offerId) ?? offers[0];
+  const o = findOffer(offerId);
   const id = "p" + (Date.now() % 100000);
   packs = [{ id, offerId, total: o.units, left: o.units, daysLeft: 30, until: "14 желтоқсанға дейін",
     history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: "бүгін • Kaspi Pay", right: `${o.units} бірлік` }] }, ...packs];
@@ -82,14 +82,14 @@ void kv.get("jazl_notice_prefs").then((v) => { if (v) { try { prefs = { ...prefs
 void kv.get("jazl_read").then((v) => { if (v) { const ids = v.split(","); notices = notices.map((n) => ({ ...n, read: ids.includes(n.id) })); count(); emit(); } });
 
 // ── Баптаулар: қауіпсіздік, тіл, қала ───────────────────────────────────────
-export interface Settings { lock: boolean; bio: boolean; autolock: string; onCard: boolean; onMethods: boolean; onOpen: boolean; lang: "tg" | "kk" | "ru"; astanaNotify: boolean }
-let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true, onMethods: true, onOpen: true, lang: "tg", astanaNotify: false };
+export interface Settings { lock: boolean; bio: boolean; autolock: string; onCard: boolean; onMethods: boolean; onOpen: boolean; lang: "tg" | "kk" | "ru"; astanaNotify: boolean; geo: "unknown" | "granted" | "denied" }
+let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true, onMethods: true, onOpen: true, lang: "tg", astanaNotify: false, geo: "unknown" };
 export const useSettings = () => useSyncExternalStore(subscribe, () => settings);
 export function setSettings(patch: Partial<Settings>) { settings = { ...settings, ...patch }; emit(); kv.set("jazl_settings", JSON.stringify(settings)); }
 void kv.get("jazl_settings").then((v) => { if (v) { try { settings = { ...settings, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
 
 // ── Таңдаулы ────────────────────────────────────────────────────────────────
-let favs: string[] = ["doner", "burger"];
+let favs: string[] = ["doner", "burger", "cappuccino"];
 let restock: string[] = [];
 export const useFavs = () => useSyncExternalStore(subscribe, () => favs);
 export const useRestock = () => useSyncExternalStore(subscribe, () => restock);
@@ -115,3 +115,38 @@ let pin: string | null = null;
 export const hasPin = () => pin !== null;
 export const checkPin = (v: string) => pin === v;
 export function savePin(v: string) { pin = v; }
+
+// ── Сыйлықтар ───────────────────────────────────────────────────────────────
+export type GiftStatus = "wait" | "ok" | "expired" | "open" | "cancelled";
+export interface Gift { id: string; dir: "sent" | "got"; name: string; color: string; pack: string; emoji: string; venue: string; status: GiftStatus; label: string; sentAt: string; until: string }
+let gifts: Gift[] = [
+  { id: "g1", dir: "sent", name: "Айгерім Нұрланова", color: "#e25a7a", pack: "Тауық донері · 4 дана", emoji: "🍔", venue: "Dämdi Doner", status: "wait", label: "Күтілуде · 5 күн", sentAt: "8 қараша, 13:20", until: "15 қараша" },
+  { id: "g2", dir: "sent", name: "Ерлан Серіков", color: "#4378ff", pack: "Латте · 15 стақан", emoji: "☕", venue: "Brew Point", status: "ok", label: "Қабылданды", sentAt: "5 қараша, 09:40", until: "12 қараша" },
+  { id: "g3", dir: "sent", name: "Дана Әбілова", color: "#fe9500", pack: "Шаш қию · 4 рет", emoji: "✂️", venue: "Qala Barber", status: "expired", label: "Мерзімі өтті", sentAt: "1 қараша, 11:05", until: "8 қараша" },
+  { id: "g4", dir: "got", name: "Берік Нұрлан", color: "#31d158", pack: "Бургер комбо · 4 дана", emoji: "🍔", venue: "Bahandi", status: "open", label: "Ашу", sentAt: "12 қараша, 18:02", until: "19 қараша" },
+  { id: "g5", dir: "got", name: "Мадина Ж.", color: "#b00fb4", pack: "Кофе · 10 стақан", emoji: "☕", venue: "Coffee Lab", status: "ok", label: "Қабылданды", sentAt: "2 қараша, 14:30", until: "9 қараша" },
+];
+export const useGifts = () => useSyncExternalStore(subscribe, () => gifts);
+export function setGiftStatus(id: string, status: GiftStatus, label: string) { gifts = gifts.map((g) => (g.id === id ? { ...g, status, label } : g)); emit(); }
+
+// ── Соңғы іздеулер ──────────────────────────────────────────────────────────
+let recent: string[] = ["донер", "латте", "шаш қию"];
+export const useRecent = () => useSyncExternalStore(subscribe, () => recent);
+const saveRecent = () => kv.set("jazl_recent", JSON.stringify(recent));
+export function addRecent(q: string) { const v = q.trim().toLowerCase(); if (!v) return; recent = [v, ...recent.filter((x) => x !== v)].slice(0, 5); emit(); saveRecent(); }
+export function removeRecent(q: string) { recent = recent.filter((x) => x !== q); emit(); saveRecent(); }
+export function clearRecent() { recent = []; emit(); saveRecent(); }
+void kv.get("jazl_recent").then((v) => { if (v) { try { recent = JSON.parse(v); emit(); } catch { /* бұзылған мән */ } } });
+
+// ── Алғашқы кіру ────────────────────────────────────────────────────────────
+// null — әлі оқылып жатыр (бастапқы экран көрсетіледі), false — таныстыру керек, true — өткен.
+let onboarded: boolean | null = null;
+export const useOnboarded = () => useSyncExternalStore(subscribe, () => onboarded);
+export function finishOnboarding() { onboarded = true; emit(); kv.set("jazl_onboarded", "1"); }
+void Promise.all([kv.get("jazl_onboarded"), new Promise((r) => setTimeout(r, 500))]).then(([v]) => { onboarded = v === "1"; emit(); });
+
+// ── «Жуырда» санаттарына жазылу ─────────────────────────────────────────────
+let soonSubs: number[] = [];
+export const useSoon = () => useSyncExternalStore(subscribe, () => soonSubs);
+export function toggleSoon(pct: number) { soonSubs = soonSubs.includes(pct) ? soonSubs.filter((x) => x !== pct) : [...soonSubs, pct]; emit(); kv.set("jazl_soon", soonSubs.join(",")); }
+void kv.get("jazl_soon").then((v) => { if (v) { soonSubs = v.split(",").map(Number); emit(); } });

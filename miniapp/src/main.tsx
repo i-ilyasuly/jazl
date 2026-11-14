@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createHashRouter, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
+import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
+import { useOnboarded } from "./store";
+import { Splash, Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
 import "./styles/base.css";
 import { initTelegram } from "./telegram";
 import { Home } from "./screens/Home";
@@ -23,6 +25,10 @@ import { Pin } from "./screens/Pin";
 import { Terms } from "./screens/Terms";
 import { VenueApply, VenueDone } from "./screens/VenueApply";
 import { Report, ReportDone } from "./screens/Report";
+import { Gift } from "./screens/Gift";
+import { Search } from "./screens/Search";
+import { Category } from "./screens/Category";
+import { MapScreen } from "./screens/MapScreen";
 import { Stub } from "./screens/Stub";
 import { NavBar, type TabKey } from "./ui/NavBar";
 
@@ -33,7 +39,11 @@ initTelegram();
 // Навигация бір рет қана орнатылады: бет ауысқанда қайта салынбайды, сондықтан
 // белсенді «тамшы» бір табтан екіншісіне сырғып өтеді.
 function Shell() {
-  const tab = tabOf[useLocation().pathname];
+  const path = useLocation().pathname;
+  const tab = tabOf[path] ?? (path.startsWith("/category/") ? "home" : undefined);
+  const onboarded = useOnboarded();
+  if (onboarded === null) return <div className="app"><Splash /></div>;
+  if (!onboarded && !path.startsWith("/welcome")) return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
       <Outlet />
@@ -42,6 +52,18 @@ function Shell() {
     </div>
   );
 }
+
+// Қосалқы бейімдеу: егер орта «бет ені 412» баптауын елемесе (мысалы, тар терезелі компьютер),
+// бүкіл қосымша терезе еніне пропорциямен кішірейтіледі.
+function fit() {
+  const w = window.innerWidth;
+  const z = w < 411.5 ? w / 412 : 1;
+  const root = document.documentElement;
+  root.style.setProperty("zoom", z === 1 ? "" : String(z));
+  if (z === 1) root.style.removeProperty("--app-h"); else root.style.setProperty("--app-h", window.innerHeight / z + "px");
+}
+fit();
+window.addEventListener("resize", fit);
 
 const router = createHashRouter([
   {
@@ -67,6 +89,15 @@ const router = createHashRouter([
       { path: "/profile/gifts", element: <Gifts /> },
       { path: "/profile/pin/:mode", element: <Pin /> },
       { path: "/profile/terms", element: <Terms /> },
+      { path: "/profile/gift/:id", element: <Gift /> },
+      { path: "/search", element: <Search /> },
+      { path: "/map", element: <MapScreen /> },
+      { path: "/category/:kind", element: <Category /> },
+      { path: "/welcome", element: <Welcome /> },
+      { path: "/welcome/lang", element: <WelcomeLang /> },
+      { path: "/welcome/city", element: <WelcomeCity /> },
+      { path: "/welcome/terms", element: <WelcomeTerms /> },
+      { path: "/welcome/doc/:id", element: <Stub /> },
       { path: "/profile/venue", element: <VenueApply /> },
       { path: "/profile/venue/done", element: <VenueDone /> },
       { path: "/profile/report", element: <Report /> },

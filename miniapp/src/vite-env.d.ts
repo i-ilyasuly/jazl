@@ -30,6 +30,8 @@ interface TelegramWebApp {
   CloudStorage?: { setItem(key: string, value: string, cb?: (err: string | null, ok?: boolean) => void): void; getItem(key: string, cb: (err: string | null, value?: string) => void): void };
   initDataUnsafe?: { user?: { first_name?: string; last_name?: string; username?: string; photo_url?: string; language_code?: string } };
   openTelegramLink?: (url: string) => void;
+  openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
+  LocationManager?: { isInited: boolean; isLocationAvailable: boolean; isAccessRequested: boolean; isAccessGranted: boolean; init(cb?: () => void): void; getLocation(cb: (data: { latitude: number; longitude: number } | null) => void): void; openSettings(): void };
   requestContact?: (cb?: (shared: boolean, res?: { responseUnsafe?: { contact?: { phone_number?: string } } }) => void) => void;
   showAlert?: (message: string, cb?: () => void) => void;
   showPopup?: (p: { title?: string; message: string; buttons?: { id?: string; type?: "default" | "ok" | "close" | "cancel" | "destructive"; text?: string }[] }, cb?: (id: string) => void) => void;

@@ -1,5 +1,5 @@
 /* Figma: «Басты / Light» 412×917. Жоғарғы блок 376 биік, төменгі бұрыштары r24. */
-.page { position: relative; min-height: 100vh; padding-bottom: 120px; background: var(--surface-page); }
+.page { position: relative; min-height: var(--app-h, 100vh); padding-bottom: 120px; background: var(--surface-page); }
 .top { position: relative; height: calc(376px + var(--top-shift)); background: var(--surface-card); border-radius: 0 0 24px 24px; overflow: hidden; }
 .top > * { translate: 0 var(--top-shift); }
 
