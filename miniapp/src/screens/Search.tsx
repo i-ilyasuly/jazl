@@ -5,7 +5,7 @@ import { useGo } from "../nav";
 import { addRecent, clearRecent, removeRecent, useRecent } from "../store";
 import { haptic, useBackButton } from "../telegram";
 import { ActionSheet } from "../ui/ActionSheet";
-import { activeCount, FilterSheet, noFilters, type Filters } from "../ui/FilterSheet";
+import { activeCount, FilterSheet, noFilters, PRICE_MAX, type Filters } from "../ui/FilterSheet";
 import { MainBar } from "../ui/MainBar";
 import { OfferCard } from "../ui/OfferCard";
 import { Sticker } from "../ui/Sticker";
@@ -34,7 +34,7 @@ export function Search() {
   const [sheet, setSheet] = useState(false);
   const [filters, setFilters] = useState<Filters>(noFilters);
   const [filterOpen, setFilterOpen] = useState(false);
-  const pass = useCallback((o: Offer, f: Filters) => (!f.cats.length || f.cats.includes(o.kind)) && o.price >= f.min && o.price <= f.max && (!f.dist || km(o) <= f.dist) && discount(o) >= f.save, []);
+  const pass = useCallback((o: Offer, f: Filters) => (!f.cats.length || f.cats.includes(o.kind)) && o.price >= f.min && (f.max >= PRICE_MAX || o.price <= f.max) && (!f.dist || km(o) <= f.dist) && discount(o) >= f.save, []);
   const nFilters = activeCount(filters);
   const clearFilters = useCallback(() => { haptic.tap(); setFilters(noFilters); }, []);
   const input = useRef<HTMLInputElement>(null);

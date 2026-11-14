@@ -1,5 +1,5 @@
 /* Figma: «Ұсыныс беті / Қолжетімді (1) / Light». Фото 412×309 (4:3), мазмұн тегіс ақ бетте. */
-.page { position: relative; min-height: 100vh; background: var(--surface-white); padding-bottom: 94px; }
+.page { position: relative; min-height: var(--app-h, 100vh); background: var(--surface-white); padding-bottom: 94px; }
 :global(:root[data-env="telegram"]) .page { padding-bottom: 24px; }
 .photo { position: relative; width: 100%; height: 309px; background: var(--photo-bg); overflow: hidden; }
 .photoImg { width: 100%; height: 100%; object-fit: cover; }

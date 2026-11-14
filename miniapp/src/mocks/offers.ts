@@ -41,5 +41,13 @@ export const endedOffers: Offer[] = [
 export const moreOffers: Offer[] = [
   { id: "lamb-doner", title: "Қой етінен донер · 4 дана", unitWord: "донер", venue: "Kebab House", distance: "1,8 км", kind: "food", price: 7600, oldPrice: 10000, units: 4, buyers: 31, favorite: false, rating: 4.7, ratingCount: 19, address: "Қарағанды, Гоголь көшесі 40", hours: "Ашық · бүгін 10:00–23:00" },
 ];
+// Санат беттеріндегі ұсыныстар (Figma: «Санат беті / Кофе», «Тағамдар», «Шаш алу»)
+export const categoryOffers: Offer[] = [
+  { id: "cappuccino", title: "Капучино · 12 кесе", unitWord: "кесе", venue: "Taň Coffee", distance: "1,2 км", kind: "coffee", price: 12000, oldPrice: 15600, units: 12, buyers: 48, favorite: true, rating: 4.8, ratingCount: 26, address: "Қарағанды, Бұқар жырау даңғылы 47", hours: "Ашық · бүгін 08:00–22:00" },
+  { id: "americano", title: "Американо · 10 кесе", unitWord: "кесе", venue: "Qala Coffee", distance: "0,9 км", kind: "coffee", price: 10000, oldPrice: 13000, units: 10, buyers: 31, favorite: false, rating: 4.6, ratingCount: 12, address: "Қарағанды, Әлиханов көшесі 5", hours: "Ашық · бүгін 08:00–21:00" },
+  { id: "burger-combo", title: "Бургер комбо · 4 дана", unitWord: "комбо", venue: "Bahandi", distance: "1,2 км", kind: "food", price: 10800, oldPrice: 12800, units: 4, buyers: 86, favorite: false, rating: 4.7, ratingCount: 31, address: "Қарағанды, Бұқар жырау даңғылы 59", hours: "Ашық · бүгін 10:00–23:00" },
+  { id: "pizza", title: "Ірімшікті пицца · 4 дана", unitWord: "пицца", venue: "Dodo Pizza", distance: "2,1 км", kind: "food", price: 16000, oldPrice: 20000, units: 4, buyers: 54, favorite: false, rating: 4.7, ratingCount: 40, address: "Қарағанды, Ермеков көшесі 29", hours: "Ашық · бүгін 10:00–23:00" },
+  { id: "mens-cut", title: "Ерлердің шашын қию · 4 рет", unitWord: "қию", venue: "Qala Barber", distance: "1,8 км", kind: "hair", price: 10000, oldPrice: 14000, units: 4, buyers: 27, favorite: false, rating: 4.9, ratingCount: 18, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 10:00–21:00" },
+];
 export const allOffers = () => [...offers, ...moreOffers];
-export const findOffer = (id?: string) => [...offers, ...moreOffers, ...endedOffers].find((o) => o.id === id) ?? offers[0];
+export const findOffer = (id?: string) => [...offers, ...moreOffers, ...categoryOffers, ...endedOffers].find((o) => o.id === id) ?? offers[0];

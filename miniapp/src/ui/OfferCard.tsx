@@ -9,9 +9,10 @@ import heart from "../assets/icons/heart.svg";
 import group from "../assets/icons/group.svg";
 import burger from "../assets/icons/offerBurger.svg";
 import scissors from "../assets/icons/offerScissors.svg";
+import cup from "../assets/icons/catCup.svg";
 import s from "./OfferCard.module.css";
 
-const kindIcon = { food: burger, coffee: burger, hair: scissors };
+const kindIcon = { food: burger, coffee: cup, hair: scissors };
 
 export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
   const fav = useFavs().includes(offer.id);

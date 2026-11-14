@@ -1,4 +1,4 @@
-.page { position: relative; height: 100vh; min-height: 917px; overflow: hidden; background: linear-gradient(168deg, #1c2733 0%, #05080b 100%); color: #fff; }
+.page { position: relative; height: var(--app-h, 100vh); min-height: 917px; overflow: hidden; background: linear-gradient(168deg, #1c2733 0%, #05080b 100%); color: #fff; }
 .page > h1, .page > p, .page > button, .page > .line { translate: 0 var(--top-shift); }
 .title { position: absolute; left: 0; top: 150px; width: 100%; text-align: center; font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; }
 .hint { position: absolute; left: 56px; top: 186px; width: 300px; text-align: center; opacity: 0.7; }

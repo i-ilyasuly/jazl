@@ -1,4 +1,4 @@
-.page { position: relative; min-height: 100vh; background: #f4f6fa; padding-bottom: 110px; }
+.page { position: relative; min-height: var(--app-h, 100vh); background: #f4f6fa; padding-bottom: 110px; }
 .hero { position: relative; height: calc(296px + var(--top-shift)); }
 .hero > * { translate: 0 var(--top-shift); }
 .halo { position: absolute; left: 142px; top: 84px; width: 128px; height: 128px; border-radius: 50%; background: rgba(226, 90, 122, 0.12); animation: halo 0.6s cubic-bezier(0.2, 0.9, 0.2, 1) both; }

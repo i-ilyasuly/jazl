@@ -1,4 +1,4 @@
-.page { position: relative; min-height: 917px; height: 100vh; background: var(--surface-white); overflow: hidden; }
+.page { position: relative; min-height: 917px; height: var(--app-h, 100vh); background: var(--surface-white); overflow: hidden; }
 .page > * { translate: 0 var(--top-shift); }
 .title { position: absolute; left: 0; top: 116px; width: 100%; text-align: center; font-size: 28px; line-height: 36px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); animation: rise 0.45s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .halo1 { position: absolute; left: 112px; top: 198px; animation: halo 0.7s 0.1s cubic-bezier(0.2, 0.9, 0.2, 1) both, pulse 2.6s 0.9s ease-in-out infinite; }

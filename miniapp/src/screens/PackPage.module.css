@@ -1,4 +1,4 @@
-.page { position: relative; min-height: 100vh; background: #f4f6fa; padding-bottom: 82px; }
+.page { position: relative; min-height: var(--app-h, 100vh); background: #f4f6fa; padding-bottom: 82px; }
 .title { position: absolute; left: 0; top: calc(56px + var(--top-shift)); width: 100%; text-align: center; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); }
 .col { padding: calc(104px + var(--top-shift)) 16px 0; display: flex; flex-direction: column; gap: 12px; }
 .card { width: 380px; border-radius: 20px; background: #fff; color: var(--text-strong); }

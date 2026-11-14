@@ -82,14 +82,14 @@ void kv.get("jazl_notice_prefs").then((v) => { if (v) { try { prefs = { ...prefs
 void kv.get("jazl_read").then((v) => { if (v) { const ids = v.split(","); notices = notices.map((n) => ({ ...n, read: ids.includes(n.id) })); count(); emit(); } });
 
 // ── Баптаулар: қауіпсіздік, тіл, қала ───────────────────────────────────────
-export interface Settings { lock: boolean; bio: boolean; autolock: string; onCard: boolean; onMethods: boolean; onOpen: boolean; lang: "tg" | "kk" | "ru"; astanaNotify: boolean }
-let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true, onMethods: true, onOpen: true, lang: "tg", astanaNotify: false };
+export interface Settings { lock: boolean; bio: boolean; autolock: string; onCard: boolean; onMethods: boolean; onOpen: boolean; lang: "tg" | "kk" | "ru"; astanaNotify: boolean; geo: "unknown" | "granted" | "denied" }
+let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true, onMethods: true, onOpen: true, lang: "tg", astanaNotify: false, geo: "unknown" };
 export const useSettings = () => useSyncExternalStore(subscribe, () => settings);
 export function setSettings(patch: Partial<Settings>) { settings = { ...settings, ...patch }; emit(); kv.set("jazl_settings", JSON.stringify(settings)); }
 void kv.get("jazl_settings").then((v) => { if (v) { try { settings = { ...settings, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
 
 // ── Таңдаулы ────────────────────────────────────────────────────────────────
-let favs: string[] = ["doner", "burger"];
+let favs: string[] = ["doner", "burger", "cappuccino"];
 let restock: string[] = [];
 export const useFavs = () => useSyncExternalStore(subscribe, () => favs);
 export const useRestock = () => useSyncExternalStore(subscribe, () => restock);

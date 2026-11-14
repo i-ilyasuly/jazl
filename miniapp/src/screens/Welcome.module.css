@@ -1,4 +1,5 @@
-.page { position: relative; min-height: 100vh; background: #f4f6fa; overflow: hidden; }
+/* Аласа экранда мазмұн кесілмей, айналдырылады: бет биіктігі макеттегі соңғы батырмаға дейін жетеді */
+.page { position: relative; min-height: max(var(--app-h, 100vh), calc(908px + var(--top-shift))); background: #f4f6fa; overflow-x: clip; }
 .page > * { translate: 0 var(--top-shift); }
 /* Бастапқы экран */
 .logo { position: absolute; left: 160px; top: 340px; width: 92px; height: 92px; border-radius: 50%; background: #e3e7ed; animation: pulse 1.4s ease-in-out infinite; }
