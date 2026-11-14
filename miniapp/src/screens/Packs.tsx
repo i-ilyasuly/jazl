@@ -1,6 +1,7 @@
 // Figma: «Пакеттерім (жаңа навигация) / Light» (13905:8147)
 import { useState } from "react";
-import { useMock } from "../mocks/useMock";
+import { demoEmpty, useMock } from "../mocks/useMock";
+import { EmptyState } from "../ui/EmptyState";
 import { useGo } from "../nav";
 import { offerOf, usePacks, type Pack } from "../store";
 import { haptic } from "../telegram";
@@ -47,7 +48,9 @@ function PackCard({ pack, i }: { pack: Pack; i: number }) {
 }
 
 export function Packs() {
-  const packs = usePacks();
+  const go = useGo();
+  const all = usePacks();
+  const packs = demoEmpty() ? [] : all;
   const [tab, setTab] = useState(0);
   const { loading } = useMock("packs", packs, 500);
   const active = packs.filter((p) => p.left > 0);
@@ -65,14 +68,16 @@ export function Packs() {
           ))}
         </div>
       </header>
-      <main className={s.list} key={tab}>
+      {!loading && packs.length === 0 ? (
+        <EmptyState inline sticker="shop" title="Әзірге пакет жоқ" text={"Пакет сатып алсаң, мекемеде\nсканерлеп қолданасың"} action={{ text: "Ұсыныстарды көру", onClick: () => go("/", "fade") }} />
+      ) : <main className={s.list} key={tab}>
         <p className={`t-sub2 w-600 ${s.header}`}>{tab === 0 ? "Белсенді" : "Тарих"}<span> · {list.length}</span></p>
         {loading
           ? [0, 1].map((i) => <div key={i} className={s.card} style={{ height: 190 }}><span className="sk" style={{ position: "absolute", left: 16, top: 16, width: 72, height: 72, borderRadius: 12 }} /><span className="sk" style={{ position: "absolute", left: 100, top: 20, width: 190, height: 20, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 100, top: 48, width: 130, height: 14, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 16, top: 112, width: 348, height: 10, borderRadius: 5 }} /><span className="sk" style={{ position: "absolute", left: 16, top: 140, width: 90, height: 22, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 274, top: 134, width: 90, height: 36, borderRadius: 18 }} /></div>)
           : list.length
             ? list.map((p, i) => <PackCard key={p.id} pack={p} i={i} />)
             : <p className={`t-sub2 rise ${s.empty}`}>{tab === 0 ? "Белсенді пакет жоқ" : "Толық пайдаланылған пакеттер осында шығады"}</p>}
-      </main>
+      </main>}
     </div>
   );
 }

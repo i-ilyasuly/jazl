@@ -1,6 +1,7 @@
 // Figma: «Сыйлықтарым / Жіберілген» (13886:37243) және «Алынған» (13886:37343)
-import { useState } from "react";
-import { useMock } from "../mocks/useMock";
+import { useMemo, useState } from "react";
+import { demoEmpty, useMock } from "../mocks/useMock";
+import { EmptyState } from "../ui/EmptyState";
 import { useGo } from "../nav";
 import { haptic } from "../telegram";
 import { Group, Note, Row, SkRows, SubPage } from "../ui/SubPage";
@@ -23,6 +24,8 @@ export function Gifts() {
   const { loading } = useMock("gifts", true, 450);
   const [tab, setTab] = useState(0);
   const list = tab === 0 ? sent : got;
+  const toGift = useMemo(() => ({ text: "Пакетті сыйлау", onClick: () => go("/packs", "fade") }), [go]);
+  if (demoEmpty()) return <SubPage title="Сыйлықтарым"><EmptyState sticker="gift" title="Әзірге сыйлық жоқ" text="Пакетті досыңа сыйла, ол осында көрінеді" action={toGift} /></SubPage>;
   return (
     <SubPage title="Сыйлықтарым">
       <div className={`${s.seg} rise`}>

@@ -1,5 +1,6 @@
 // Figma: «Хабарландырулар / Негізгі» (13886:37921)
-import { useMock } from "../mocks/useMock";
+import { demoEmpty, useMock } from "../mocks/useMock";
+import { EmptyState } from "../ui/EmptyState";
 import { haptic } from "../telegram";
 import { readNotice, setNoticePref, useNoticePrefs, useNotices, type NoticePrefs } from "../store";
 import { Group, Row, SkRows, SubPage, Switch } from "../ui/SubPage";
@@ -16,6 +17,7 @@ export function Notifications() {
   const { loading } = useMock("notifications", true, 450);
   const list = useNotices();
   const prefs = useNoticePrefs();
+  if (demoEmpty() || !list.length) return <SubPage title="Хабарландырулар"><EmptyState sticker="sleep" title="Жаңа хабарлама жоқ" text="Мерзім ескертулері мен жаңа ұсыныстар осында көрінеді" /></SubPage>;
   return (
     <SubPage title="Хабарландырулар">
       <Group header="Жаңа" i={0}>

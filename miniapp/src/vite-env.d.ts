@@ -42,3 +42,7 @@ interface TelegramWebApp {
   };
 }
 interface Window { Telegram?: { WebApp?: TelegramWebApp } }
+declare module "lottie-web/build/player/lottie_light" {
+  const lottie: { loadAnimation(p: { container: Element; renderer: "svg"; loop: boolean; autoplay: boolean; animationData: object }): { destroy(): void; play(): void; pause(): void } };
+  export default lottie;
+}

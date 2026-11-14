@@ -17,3 +17,4 @@
 .key img { display: block; }
 .off img { opacity: 0.35; }
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
+.sticker { position: absolute; left: 146px; top: 96px; }

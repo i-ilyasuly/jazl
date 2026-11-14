@@ -5,13 +5,15 @@ import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { checkPin, savePin, setSettings, useSettings } from "../store";
 import { biometricAuth, haptic, useBackButton } from "../telegram";
+import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import finger from "../assets/icons/keyLeft.svg";
 import erase from "../assets/icons/keyRight.svg";
 import s from "./Pin.module.css";
 
 type Step = "old" | "new" | "repeat";
-const titles: Record<Step, string> = { old: "Ағымдағы PIN-кодты енгіз", new: "PIN-код ойлап тап", repeat: "PIN-кодты қайтала" };
+const titles: Record<Step, string> = { old: "Ағымдағы PIN-кодты енгіз", new: "PIN-код ойлап тап", repeat: "PIN-ді қайтала" };
+const hints: Record<Step, string> = { old: "PIN енгіз немесе саусақ ізін қолдан", new: "4 таңбалы код енгіз", repeat: "Сол кодты тағы бір рет енгіз" };
 const MAX_TRIES = 3;
 
 export function Pin() {
@@ -61,13 +63,15 @@ export function Pin() {
   return (
     <div className={s.page}>
       <TelegramChrome mode="close" onBack={back} />
+      {/* Figma: «PIN / 3 Қолданба құлыпталған» — сейф ұстаған үйрек, «4 Қате код» — ойланған үйрек (146,96 120×120) */}
+      {step === "old" && <Sticker key={error ? "think" : "lock"} name={error ? "think" : "lock"} className={s.sticker} />}
       <h1 key={step} className={s.title}>{titles[step]}</h1>
       <div key={shake} className={`${s.boxes} ${shake ? s.shake : ""}`}>
         {[0, 1, 2, 3].map((i) => (
           <span key={i} className={`${s.box} ${i === code.length && !error ? s.active : ""}`}>{i < code.length && <i className={error ? s.bad : ""} />}</span>
         ))}
       </div>
-      <p className={`t-sub2 ${s.hint} ${error ? s.err : ""}`}>{error || "4 таңбалы код енгіз"}</p>
+      <p className={`t-sub2 ${s.hint} ${error ? s.err : ""}`}>{error || (step === "old" && !st.bio ? "PIN енгіз" : hints[step])}</p>
       <div className={s.keys}>
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => <button key={d} className={s.key} onClick={() => press(d)}>{d}</button>)}
         <button className={`${s.key} ${step !== "old" || !st.bio ? s.off : ""}`} onClick={bio} aria-label="Биометрия"><img src={finger} width={116} height={56} alt="" /></button>

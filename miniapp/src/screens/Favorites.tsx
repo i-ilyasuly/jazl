@@ -4,10 +4,10 @@ import { endedOffers, offers } from "../mocks/offers";
 import { useGo } from "../nav";
 import { useFavs } from "../store";
 import { haptic, useBackButton } from "../telegram";
+import { EmptyState } from "../ui/EmptyState";
 import { OfferCard } from "../ui/OfferCard";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import searchIcon from "../assets/icons/search.svg";
-import heart from "../assets/icons/heartFill.svg";
 import s from "./Favorites.module.css";
 
 const sorts = ["Жуырдағы", "Арзан", "Жақын"];
@@ -40,12 +40,7 @@ export function Favorites() {
         </div>
       </header>
       {total === 0 ? (
-        <div className={`${s.empty} rise`}>
-          <span className={s.emptyIcon}><img src={heart} width={56} height={56} alt="" /></span>
-          <h2 className={s.emptyTitle}>Әзірге таңдаулы жоқ</h2>
-          <p className={`t-sub2 ${s.emptyText}`}>Ұнаған ұсыныстың жүрегін басып,<br />оны осында сақта</p>
-          <button className={s.emptyBtn} onClick={() => go("/", "fade")}>Ұсыныстарды көру</button>
-        </div>
+        <EmptyState inline top={340} sticker="love" title="Әзірге таңдаулы жоқ" text={"Ұнаған ұсыныстың жүрегін басып,\nоны осында сақта"} action={{ text: "Ұсыныстарды көру", onClick: () => go("/", "fade") }} />
       ) : (
         <main className={s.list}>
           {live.length > 0 && <h2 className={`t-sub2 w-600 ${s.section}`} style={{ paddingTop: 12 }}><b>Қолжетімді</b> · {live.length}</h2>}

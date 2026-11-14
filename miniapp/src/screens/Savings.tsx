@@ -1,6 +1,8 @@
 // Figma: «Үнем / Негізгі» (13886:36173)
-import { useEffect, useState } from "react";
-import { useMock } from "../mocks/useMock";
+import { useEffect, useMemo, useState } from "react";
+import { demoEmpty, useMock } from "../mocks/useMock";
+import { useGo } from "../nav";
+import { EmptyState } from "../ui/EmptyState";
 import { Group, Row, SkRows, SubPage } from "../ui/SubPage";
 import s from "./Savings.module.css";
 
@@ -24,6 +26,9 @@ function useCountUp(to: number, run: boolean, ms = 700) {
 export function Savings() {
   const { loading } = useMock("savings", true, 450);
   const total = useCountUp(TOTAL, !loading);
+  const go = useGo();
+  const toOffers = useMemo(() => ({ text: "Ұсыныстарды көру", onClick: () => go("/", "fade") }), [go]);
+  if (demoEmpty()) return <SubPage title="Осы айдағы үнем"><EmptyState sticker="bags" title="Әзірге үнем жоқ" text="Алғашқы пакетті сатып алып, пайдалан, үнем осында көрінеді" action={toOffers} /></SubPage>;
   return (
     <SubPage title="Осы айдағы үнем">
       <div className={`${s.summary} rise`}>
