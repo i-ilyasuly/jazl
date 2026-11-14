@@ -125,3 +125,10 @@ export function biometricAuth(reason: string): Promise<"ok" | "denied" | "none" 
   });
 }
 export const biometricKind = () => wa?.BiometricManager?.biometricType ?? "unknown";
+
+/** Пайдаланушының Telegram нөмірін нативті диалогпен сұрау (6.9+). Бермесе немесе браузерде — null. */
+export function askPhone(): Promise<string | null> {
+  return new Promise((res) => {
+    if (inTelegram && at("6.9") && wa?.requestContact) wa.requestContact((ok, r) => res(ok ? r?.responseUnsafe?.contact?.phone_number ?? null : null)); else res(null);
+  });
+}

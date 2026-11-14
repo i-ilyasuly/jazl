@@ -6,7 +6,7 @@ import { haptic, useBackButton } from "../telegram";
 import { TelegramChrome } from "./TelegramChrome";
 import s from "./SubPage.module.css";
 
-export function SubPage({ title, children, variant, top }: { title: string; children: ReactNode; variant?: "settings"; top?: number }) {
+export function SubPage({ title, children, variant, top }: { title: string; children: ReactNode; variant?: "settings" | "roomy"; top?: number }) {
   const go = useGo();
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back);

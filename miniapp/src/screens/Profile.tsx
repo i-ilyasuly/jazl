@@ -1,10 +1,11 @@
 // Figma: «Профиль / Негізгі (1)» және «(2)» (13886:35519, 13886:35845)
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useMock } from "../mocks/useMock";
 import { useSettings, useUnread } from "../store";
 import { useGo } from "../nav";
 import { haptic, openChat, tg, useBackButton } from "../telegram";
 import { SUPPORT_BOT } from "../config";
+import { HowSheet } from "../ui/HowSheet";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import saving from "../assets/icons/p_saving.svg";
 import fav from "../assets/icons/p_fav.svg";
@@ -53,7 +54,8 @@ export function Profile() {
   const unread = useUnread();
   const st = useSettings();
   const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (st.lang === "ru" ? "Русский" : "Қазақша") : r.sub);
-  const open = (r: RowDef) => { if (r.to === "/profile/ask") { haptic.tap(); openChat(SUPPORT_BOT); } else go(r.to); };
+  const [how, setHow] = useState(false);
+  const open = (r: RowDef) => { if (r.to === "/profile/ask") { haptic.tap(); openChat(SUPPORT_BOT); } else if (r.to === "/profile/how") { haptic.tap(); setHow(true); } else go(r.to); };
   const u = tg?.initDataUnsafe?.user as { first_name?: string; last_name?: string; username?: string; photo_url?: string } | undefined;
   const name = u?.first_name ? [u.first_name, u.last_name].filter(Boolean).join(" ") : "Айгерім Нұрланова";
   const handle = u?.username ? "@" + u.username : u?.first_name ? "" : "@aigerim_n";
@@ -88,6 +90,7 @@ export function Profile() {
         ))}
         <p className={`t-cap1 ${s.version}`}>Jazl+ v0.1 (MVP)</p>
       </div>
+      {how && <HowSheet onClose={() => setHow(false)} />}
     </div>
   );
 }

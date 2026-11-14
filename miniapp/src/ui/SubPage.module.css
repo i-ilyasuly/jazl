@@ -30,3 +30,5 @@
 .settings { --row-pad: 12px; --row-min: 50px; }
 .settings .title { top: calc(104px + var(--top-shift)); font-size: 24px; line-height: 32px; }
 .settings .group { padding: 6px 0; }
+.roomy { --row-pad: 12px; --row-min: 50px; }
+.sectionTitle { height: 22px; padding-left: 16px; color: var(--link); }

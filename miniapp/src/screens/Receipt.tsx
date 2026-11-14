@@ -27,7 +27,7 @@ export function Receipt() {
       </Group>
       <Group i={2}>
         <button className={s.action} onClick={download.onClick}>Чекті жүктеу</button>
-        <button className={s.action} onClick={() => go("/profile/report")}>Мәселе туралы жазу</button>
+        <button className={s.action} onClick={() => go("/profile/report", "forward", { state: { purchase: p.id } })}>Мәселе туралы жазу</button>
       </Group>
       {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={download.onClick}>Чекті жүктеу</button></div>}
     </SubPage>

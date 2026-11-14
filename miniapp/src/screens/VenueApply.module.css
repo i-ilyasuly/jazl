@@ -1,0 +1,33 @@
+.h { font-size: 24px; line-height: 32px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); }
+.lead { display: flex; flex-wrap: wrap; gap: 2px 4px; width: 380px; font-size: 16px; line-height: 24px; letter-spacing: 0.15px; color: var(--text-strong); }
+.lead b { height: 22px; padding: 0 5px; border-radius: 6px; font-size: 15px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; }
+.blue { background: #dcebfb; color: #1f5fa8; }
+.green { background: #ddf3e4; color: #1b6b2e; }
+.nogap { display: flex; }
+.points { width: 356px; display: flex; flex-direction: column; gap: 6px; list-style: none; }
+.points li { position: relative; padding-left: 16px; width: 356px; font-size: 15px; line-height: 22px; letter-spacing: 0.1px; color: var(--text-strong); min-height: 24px; }
+.points li::before { content: "•"; position: absolute; left: 0; top: 0; font-size: 16px; line-height: 24px; font-weight: 700; color: var(--text-secondary); }
+.form { width: 380px; padding: 4px 0; border-radius: 20px; background: #fff; }
+.field { position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; height: 72px; padding: 12px 16px; text-align: left; color: var(--text-secondary); transition: background 0.2s ease; }
+.field:not(:last-child) { margin-bottom: 1px; }
+.field:not(:last-child)::after { content: ""; position: absolute; left: 16px; right: 0; bottom: -1px; height: 1px; background: var(--separator); }
+.field label { display: flex; flex-direction: column; gap: 2px; }
+.field input, .value { width: 100%; height: 26px; border: 0; outline: 0; background: none; padding: 0; font: inherit; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; color: var(--text-strong); caret-color: #229af0; }
+.field input::placeholder { color: #9aa5b1; }
+.field:focus-within { background: rgba(34, 154, 240, 0.05); }
+.value { animation: swap 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes swap { from { transform: translateY(6px); opacity: 0; } }
+.chev { position: absolute; right: 16px; top: 26px; }
+.tall { height: 112px; }
+.apps { display: flex; gap: 8px; padding-top: 6px; }
+.app { height: 32px; padding: 6px 12px 6px 10px; border-radius: 10px; background: #f0f2f6; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; transition: background 0.2s ease, color 0.2s ease, transform 0.12s ease; }
+.app:active { transform: scale(0.95); }
+.appOn { background: rgba(34, 154, 240, 0.14); color: var(--link); }
+.appOnWa { background: rgba(49, 209, 88, 0.15); color: #1b6b2e; }
+.tick { animation: tick 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.tickWa { width: 14px; text-align: center; animation: tick 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes tick { from { transform: scale(0); } }
+.err { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); background: rgba(216, 67, 75, 0.07); }
+.err > span:first-child, .err label > span { color: #d8434b; }
+@keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(3px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
+:global(:root[data-theme="dark"]) .form { background: var(--surface-card); }
