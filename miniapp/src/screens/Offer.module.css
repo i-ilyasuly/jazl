@@ -100,3 +100,6 @@
 :global(:root[data-theme="dark"]) .topBar { background: rgba(28, 39, 53, 0.72); }
 :global(:root[data-theme="dark"]) .size { background: var(--surface-category); }
 .photoEnded > img:first-child { opacity: 0.5; }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .venueAvatar { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-theme="dark"]) .sizeOn { background: rgba(92, 180, 244, 0.2); }

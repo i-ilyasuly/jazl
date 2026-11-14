@@ -54,6 +54,8 @@ export const categoryOffers: Offer[] = [
 ];
 export const allOffers = () => [...offers, ...moreOffers];
 export const offersOfVenue = (name: string) => [...offers, ...moreOffers, ...categoryOffers].filter((o) => o.venue === name);
+import { photoOf } from "./photos";
+for (const list of [offers, moreOffers, categoryOffers, endedOffers]) for (const x of list) if (photoOf[x.id]) x.photo = photoOf[x.id];
 export const findOffer = (id?: string) => [...offers, ...moreOffers, ...categoryOffers, ...endedOffers].find((o) => o.id === id) ?? offers[0];
 
 export const isEnded = (id: string) => endedOffers.some((o) => o.id === id);

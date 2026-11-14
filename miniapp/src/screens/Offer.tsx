@@ -31,6 +31,7 @@ function OfferView({ id }: { id?: string }) {
   const base = findOffer(id);
   // Пакет көлемі таңдалса, атауы, бағасы мен жеңілдігі сол көлемге ауысады
   const [size, setSize] = useState(0);
+  const [broken, setBroken] = useState(false);
   const offer = useMemo(() => { const z = base.sizes?.[size]; return z ? { ...base, ...z, title: base.title.replace(/· \d+ /, `· ${z.units} `) } : base; }, [base, size]);
   const fav = useFavs().includes(offer.id);
   const ended = isEnded(base.id);
@@ -71,7 +72,7 @@ function OfferView({ id }: { id?: string }) {
       <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`} />
       <TelegramChrome mode="back" onBack={back} />
       <div className={`${s.photo} ${ended ? s.photoEnded : ""}`} style={{ viewTransitionName: "offer-photo" }}>
-        {offer.photo ? <img src={offer.photo} className={s.photoImg} alt="" /> : <img src={heroBurger} className={s.heroIcon} width={120} height={120} alt="" />}
+        {offer.photo && !broken ? <img src={offer.photo} className={s.photoImg} alt="" onError={() => setBroken(true)} /> : <img src={heroBurger} className={s.heroIcon} width={120} height={120} alt="" />}
         <img src={pagination} className={s.dots} width={80} height={16} alt="" />
         <button className={`${s.round} ${s.share}`} aria-label="Бөлісу" onClick={() => haptic.tap()}><img src={share} width={24} height={24} alt="" /></button>
         <button className={`${s.round} ${s.fav}`} aria-label="Таңдаулы" onClick={() => { haptic.tap(); toggleFav(offer.id); }}>

@@ -13,3 +13,6 @@
 .bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: 66px; padding: 8px 10px; background: #fff; }
 .btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease, filter 0.12s ease; }
 .btn:active { transform: scale(0.98); filter: brightness(0.94); }
+.hero { height: 170px; }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }

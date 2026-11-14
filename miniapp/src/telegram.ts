@@ -10,7 +10,7 @@ export const inTelegram = Boolean(wa && wa.initData);
 const at = (v: string) => Boolean(wa?.isVersionAtLeast?.(v));
 
 function applyTheme() {
-  const dark = wa?.colorScheme === "dark";
+  const dark = inTelegram ? wa?.colorScheme === "dark" : Boolean(window.matchMedia?.("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
   const page = dark ? "#1d2733" : "#f2f4f7";
   const card = dark ? "#242f3d" : "#fbfcfe";
@@ -20,7 +20,11 @@ function applyTheme() {
 
 export function initTelegram() {
   document.documentElement.dataset.env = inTelegram ? "telegram" : "browser";
-  if (!wa || !inTelegram) return;
+  if (!wa || !inTelegram) {
+    applyTheme();
+    window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
+    return;
+  }
   wa.ready();
   wa.expand();
   if (at("7.7")) wa.disableVerticalSwipes?.(); // тізімді айналдырғанда қосымша жабылып қалмасын

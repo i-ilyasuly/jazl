@@ -1,22 +1,22 @@
 /* Figma: «Басты / Light» 412×917. Жоғарғы блок 376 биік, төменгі бұрыштары r24. */
 .page { position: relative; min-height: var(--app-h, 100vh); padding-bottom: 120px; background: var(--surface-page); }
-.top { position: relative; height: calc(376px + var(--top-shift)); background: var(--surface-card); border-radius: 0 0 24px 24px; overflow: hidden; }
+.top { position: relative; height: calc(436px + var(--top-shift)); background: var(--surface-card); border-radius: 0 0 24px 24px; overflow: hidden; }
 .top > * { translate: 0 var(--top-shift); }
 
-.searchHit { position: absolute; left: 100px; top: 44px; width: 216px; height: 48px; }
-.search { position: absolute; left: 0; top: 8px; width: 216px; height: 32px; border-radius: 16px; background: var(--search-bg); border: 1px solid var(--search-border); overflow: hidden; }
-.searchIcon { position: absolute; left: 9px; top: 7px; width: 16px; height: 16px; }
-.searchText { position: absolute; left: 32px; top: 7px; color: #626a72; white-space: nowrap; }
+.searchHit { position: absolute; left: 16px; top: 96px; width: 380px; height: 48px; }
+.search { position: absolute; left: 0; top: 0; width: 380px; height: 48px; border-radius: 24px; background: var(--search-bg); border: 1px solid var(--search-border); overflow: hidden; }
+.searchIcon { position: absolute; left: 16px; top: 14px; width: 20px; height: 20px; }
+.searchText { position: absolute; left: 46px; top: 11px; font-size: 17px; line-height: 26px; color: #626a72; white-space: nowrap; }
 
 .tile { position: absolute; border-radius: 20px; background: var(--surface-category); overflow: hidden; text-align: left; transition: transform 0.12s ease; }
 .tile:active { transform: scale(0.97); }
 .tile img { position: absolute; }
 .tileTitle { position: absolute; left: 16px; top: 17px; white-space: nowrap; color: var(--text-primary); }
-.food { left: 16px; top: 96px; width: 152px; height: 180px; }
-.coffee { left: 180px; top: 96px; width: 216px; height: 84px; }
-.hair { left: 180px; top: 192px; width: 216px; height: 84px; }
+.food { left: 16px; top: 156px; width: 152px; height: 180px; }
+.coffee { left: 180px; top: 156px; width: 216px; height: 84px; }
+.hair { left: 180px; top: 252px; width: 216px; height: 84px; }
 
-.soonRow { position: absolute; left: 0; top: 292px; width: 100%; height: 72px; padding: 0 16px; display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; }
+.soonRow { position: absolute; left: 0; top: 352px; width: 100%; height: 72px; padding: 0 16px; display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; }
 .soonRow::-webkit-scrollbar { display: none; }
 .soon { position: relative; flex: none; width: 148px; height: 72px; border-radius: 16px; background: var(--surface-soon); overflow: hidden; text-align: left; }
 .soonFill { position: absolute; left: 0; top: 0; height: 72px; background: rgba(34, 154, 240, 0.2); transform-origin: left; animation: fill 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
@@ -27,9 +27,13 @@
 .list { padding: 8px 16px 0; display: flex; flex-direction: column; gap: 12px; }
 
 /* «Картада»: 108×36, r18, left 288, top 784 */
-.map { position: fixed; z-index: 25; left: 50%; margin-left: 82px; bottom: calc(97px + var(--tg-safe-area-inset-bottom, 0px)); width: 108px; height: 36px; padding: 8px 10px 8px 34px; border-radius: 18px; background: var(--action); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16); white-space: nowrap; transition: transform 0.12s ease; animation: mapIn 0.4s 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.map { position: fixed; z-index: 25; left: 50%; margin-left: 82px; bottom: calc(97px + var(--safe-b, 0px)); width: 108px; height: 36px; padding: 8px 10px 8px 34px; border-radius: 18px; background: var(--action); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16); white-space: nowrap; transition: transform 0.12s ease; animation: mapIn 0.4s 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
 @keyframes mapIn { from { transform: scale(0.6); opacity: 0; } }
 .map:active { transform: scale(0.95); }
 
 .map img { position: absolute; left: 12px; top: 9px; }
-.search { box-sizing: content-box; width: 214px; height: 30px; }
+
+/* Санат плиткаларындағы нақты фото: үстінен қараңғы градиент, атауы ақ */
+.tilePhoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tile::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.12) 55%, rgba(0, 0, 0, 0) 100%); }
+.tile .tileTitle { z-index: 1; color: #fff !important; font-weight: 600; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); }

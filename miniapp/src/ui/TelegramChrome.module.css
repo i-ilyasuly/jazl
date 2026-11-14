@@ -13,3 +13,5 @@
 .white { background: #fff; }
 .white .label { color: #17212b; }
 :global(:root[data-theme="dark"]) .white .leftIcon { filter: none; }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .white { background: var(--surface-card); }

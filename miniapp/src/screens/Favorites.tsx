@@ -34,7 +34,7 @@ export function Favorites() {
         <h1 className={s.title}>Таңдаулы{total ? ` · ${total}` : ""}</h1>
         <div className={s.seg}>
           <span className={s.thumb} style={{ translate: `${sort * 125.33}px 0` }} />
-          {sorts.map((t, i) => <button key={t} className={`t-cap1 ${s.segBtn} ${sort === i ? s.on : ""}`} onClick={() => { if (sort !== i) { haptic.select(); setSort(i); } }}>{t}</button>)}
+          {sorts.map((t, i) => <button key={t} className={`t-sub2 ${s.segBtn} ${sort === i ? s.on : ""}`} onClick={() => { if (sort !== i) { haptic.select(); setSort(i); } }}>{t}</button>)}
           <span className={s.divider} style={{ left: 252.67, opacity: sort === 0 ? 1 : 0 }} />
           <span className={s.divider} style={{ left: 127.33, opacity: sort === 2 ? 1 : 0 }} />
         </div>

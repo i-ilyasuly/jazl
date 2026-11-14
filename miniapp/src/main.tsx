@@ -62,6 +62,9 @@ function fit() {
   const root = document.documentElement;
   root.style.setProperty("zoom", z === 1 ? "" : String(z));
   if (z === 1) root.style.removeProperty("--app-h"); else root.style.setProperty("--app-h", window.innerHeight / z + "px");
+  const phone = Math.min(screen.width, screen.height);
+  const scaled = Math.abs(w - 412) < 1.5 && phone < 600; // «бет ені 412» баптауы қолданылған
+  root.style.setProperty("--k", String(scaled ? 412 / phone : z !== 1 ? 1 / z : 1));
 }
 fit();
 window.addEventListener("resize", fit);
