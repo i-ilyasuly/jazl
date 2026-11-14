@@ -64,7 +64,7 @@ export function Packs() {
         <div className={s.seg}>
           <span className={s.segThumb} style={{ transform: `translateX(${tab * 188}px)` }} />
           {["Белсенді", "Тарих"].map((t, i) => (
-            <button key={t} className={`t-cap1 ${s.segBtn} ${tab === i ? s.segOn : ""}`} onClick={() => { haptic.select(); setTab(i); }}>{t}</button>
+            <button key={t} className={`t-sub2 ${s.segBtn} ${tab === i ? s.segOn : ""}`} onClick={() => { haptic.select(); setTab(i); }}>{t}</button>
           ))}
         </div>
       </header>

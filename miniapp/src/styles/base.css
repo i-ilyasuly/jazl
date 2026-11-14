@@ -31,5 +31,14 @@ img { display: block; }
 
 /* Жоғарғы аймақ. Figma-да Telegram батырмалары top 52-де, мазмұн 96-дан басталады.
    Telegram ішінде нақты қауіпсіз аймақ мәндері қолданылады (Bot API 8.0). */
-:root { --top-shift: 0px; }
-:root[data-env="telegram"] { --top-shift: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) - 96px); }
+:root { --top-shift: 0px; --safe-b: 0px; }
+/* --k: бет масштабының еселігі (412 / телефон ені). Telegram шегіністерді телефон өлшемімен береді,
+   ал макет 412-ге созылған, сондықтан оларды --k-ға көбейтеміз. 93 = макеттегі жоғарғы аймақ (96) − 3. */
+:root[data-env="telegram"] { --top-shift: calc((var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)) * var(--k, 1) - 93px); --safe-b: calc(var(--tg-safe-area-inset-bottom, 0px) * var(--k, 1)); }
+
+/* ── Түнгі режим: барлық мәтін, соның ішінде батырмалардағы жазу да — таза ақ ── */
+:root[data-theme="dark"] .app, :root[data-theme="dark"] .app * { color: #ffffff !important; }
+:root[data-theme="dark"] .app ::placeholder { color: rgba(255, 255, 255, 0.72) !important; }
+/* Қара не сұр сызылған белгішелер түнде ақ болады (түсі SVG ішінде жазылған) */
+:root[data-theme="dark"] .app img[src*="111A26" i], :root[data-theme="dark"] .app img[src*="5F6B7A" i], :root[data-theme="dark"] .app img[src*="17212B" i],
+:root[data-theme="dark"] .app img[src*="9AA5B1" i], :root[data-theme="dark"] .app img[src*="B8BEC4" i], :root[data-theme="dark"] .app img[src*="626A72" i] { filter: brightness(0) invert(1); }

@@ -11,11 +11,11 @@ export function MainBar({ text, onClick }: { text: string; onClick: () => void }
 }
 
 /** «Өтінім қабылданды» сияқты нәтиже: жасыл белгі 72, тақырып, түсіндірме. */
-import ok from "../assets/icons/ok72.svg";
+import { Sticker } from "./Sticker";
 export function DoneHero({ top, title, text }: { top: number; title: string; text: string }) {
   return (
-    <div className={s.done} style={{ top: `calc(${top}px + var(--top-shift))` }}>
-      <img src={ok} width={72} height={72} className={s.ok} alt="" />
+    <div className={s.done} style={{ top: `calc(${top - 48}px + var(--top-shift))` }}>
+      <Sticker name="party" size={120} />
       <h2 className={s.doneTitle}>{title}</h2>
       <p className={`t-sub2 ${s.doneText}`}>{text}</p>
     </div>

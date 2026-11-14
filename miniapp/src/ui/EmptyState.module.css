@@ -11,3 +11,5 @@
 .main { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; }
 .main:active { transform: scale(0.98); }
 :global(:root[data-theme="dark"]) .inline .title { color: var(--text-strong); }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }

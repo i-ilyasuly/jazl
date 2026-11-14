@@ -29,3 +29,4 @@
 .main { top: 778px; background: var(--button); color: #fff; }
 .secondary { top: 842px; background: var(--button-tint); color: var(--link); }
 :global(:root[data-theme="dark"]) .card { background: #242f3d; }
+.sticker { position: absolute; left: 131px; top: 212px; }

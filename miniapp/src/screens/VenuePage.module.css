@@ -68,8 +68,20 @@
 .report { align-self: flex-start; height: 22px; padding-left: 4px; color: var(--link); }
 .empty { padding-top: 28px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .emptyBtn { margin-top: 8px; height: 36px; padding: 7px 14px; border-radius: 8px; background: rgba(34, 154, 240, 0.16); color: var(--link); }
-.snack { position: fixed; z-index: 40; left: 50%; margin-left: -190px; bottom: calc(27px + var(--tg-safe-area-inset-bottom, 0px)); width: 380px; height: 50px; padding: 14px 16px; border-radius: 8px; background: #2b3645; color: #fff; text-align: center; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.snack { position: fixed; z-index: 40; left: 50%; margin-left: -190px; bottom: calc(27px + var(--safe-b, 0px)); width: 380px; height: 50px; padding: 14px 16px; border-radius: 8px; background: #2b3645; color: #fff; text-align: center; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes snack { 0% { transform: translateY(20px); opacity: 0; } 8%, 88% { transform: none; opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
 :global(:root[data-theme="dark"]) .card { background: var(--surface-card); }
 :global(:root[data-theme="dark"]) .tabs { background: rgba(28, 39, 53, 0.8); }
+.coverPhoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.shot { overflow: hidden; }
+.shotImg { width: 100%; height: 100%; object-fit: cover; opacity: 1 !important; }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .cover { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-theme="dark"]) .avatar { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-theme="dark"]) .quote { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-theme="dark"]) .green { background: rgba(52, 199, 89, 0.24); }
+:global(:root[data-theme="dark"]) .blue { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-theme="dark"]) .miniPin { background: var(--surface-card); }
+:global(:root[data-theme="dark"]) .shot { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-theme="dark"]) .bars i { background: rgba(255, 255, 255, 0.09); }

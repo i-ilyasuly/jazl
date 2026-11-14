@@ -1,6 +1,6 @@
 .root { position: fixed; inset: 0; z-index: 50; }
 .scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
-.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 30px 0 calc(15px + var(--tg-safe-area-inset-bottom, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 30px 0 calc(15px + var(--safe-b, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
 .closing .scrim { animation: fadeOut 0.2s ease both; }
 .closing .sheet { animation: slideDown 0.2s ease-in both; }
 @keyframes fadeIn { from { opacity: 0; } }

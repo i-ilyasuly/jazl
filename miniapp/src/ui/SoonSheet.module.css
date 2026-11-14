@@ -1,6 +1,6 @@
 .root { position: fixed; inset: 0; z-index: 50; }
 .scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
-.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: calc(380px + var(--tg-safe-area-inset-bottom, 0px)); padding: 36px 16px 0; background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 14px; animation: slideUp 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: calc(380px + var(--safe-b, 0px)); padding: 36px 16px 0; background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 14px; animation: slideUp 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
 .closing .scrim { animation: fadeOut 0.22s ease both; }
 .closing .sheet { animation: slideDown 0.22s ease-in both; }
 @keyframes fadeIn { from { opacity: 0; } }
@@ -20,12 +20,14 @@
 .rows { display: flex; flex-direction: column; gap: 10px; }
 .rows p { display: flex; justify-content: space-between; color: var(--text-secondary); }
 .rows b { font-weight: 600; color: var(--text-strong); }
-.bar { position: absolute; left: 0; bottom: 0; width: 412px; height: calc(66px + var(--tg-safe-area-inset-bottom, 0px)); padding: 8px 10px; background: #fff; }
+.bar { position: absolute; left: 0; bottom: 0; width: 412px; height: calc(66px + var(--safe-b, 0px)); padding: 8px 10px; background: #fff; }
 .btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; animation: swap 0.3s ease; }
 .btn:active { transform: scale(0.98); }
 .btnDone { background: rgba(95, 107, 122, 0.16); color: #5f6b7a; }
 @keyframes swap { from { opacity: 0.4; } }
-.snack { position: absolute; z-index: 2; left: 50%; margin-left: -190px; bottom: calc(87px + var(--tg-safe-area-inset-bottom, 0px)); width: 380px; height: 50px; padding: 14px 16px; border-radius: 8px; background: #2b3645; color: #fff; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.snack { position: absolute; z-index: 2; left: 50%; margin-left: -190px; bottom: calc(87px + var(--safe-b, 0px)); width: 380px; height: 50px; padding: 14px 16px; border-radius: 8px; background: #2b3645; color: #fff; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes snack { 0% { transform: translateY(20px); opacity: 0; } 8%, 88% { transform: none; opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
 :global(:root[data-theme="dark"]) .card { background: var(--surface-soon); }
 :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .text b { background: rgba(92, 180, 244, 0.2); }

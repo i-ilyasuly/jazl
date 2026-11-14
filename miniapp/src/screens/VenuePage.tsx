@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { offersOfVenue } from "../mocks/offers";
 import { findVenue, kindEmoji, kindLabel, venues } from "../mocks/venues";
+import { coverPhoto } from "../mocks/photos";
 import { useGo } from "../nav";
 import { toggleVenueSub, useVenueSubs } from "../store";
 import { askWriteAccess, haptic, inTelegram, openExternal, tg, useBackButton } from "../telegram";
@@ -40,6 +41,7 @@ function VenueView({ id }: { id?: string }) {
   const offers = offersOfVenue(v.name);
   const subscribed = useVenueSubs().includes(v.id);
   const [tab, setTab] = useState(0);
+  const [coverBroken, setCoverBroken] = useState(false);
   const [prev, setPrev] = useState(0);
   const [sheet, setSheet] = useState<"route" | "call" | "perm" | null>(null);
   const [snack, setSnack] = useState(false);
@@ -63,7 +65,7 @@ function VenueView({ id }: { id?: string }) {
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
       <div className={s.cover}>
-        <img src={coverIcon[v.kind]} width={110} height={110} className={s.coverIcon} alt="" />
+        {coverBroken ? <img src={coverIcon[v.kind]} width={110} height={110} className={s.coverIcon} alt="" /> : <img src={coverPhoto[v.kind]} className={s.coverPhoto} alt="" onError={() => setCoverBroken(true)} />}
         <button className={`t-cap1 w-600 ${s.photos}`} onClick={() => pick(2)}>4 сурет</button>
       </div>
       <header className={s.head}>
@@ -110,7 +112,7 @@ function VenueView({ id }: { id?: string }) {
         </>}
         {tab === 2 && <section className={s.card}>
           <h2 className={`t-sub2 w-600 ${s.cardTitle}`}>Суреттер</h2>
-          <div className={s.grid}>{[0, 1, 2, 3].map((i) => <span key={i} className={s.shot} style={{ ["--i" as string]: i }}><img src={coverIcon[v.kind]} width={56} height={56} alt="" /></span>)}</div>
+          <div className={s.grid}>{[0, 1, 2, 3].map((i) => <span key={i} className={s.shot} style={{ ["--i" as string]: i }}><img src={offers[i % Math.max(1, offers.length)]?.photo ?? coverPhoto[v.kind]} className={s.shotImg} alt="" loading="lazy" /></span>)}</div>
         </section>}
         {tab === 3 && (v.reviews < 3 ? (
           <div className={s.empty}><h2 className="t-headline">Пікірлер әлі жоқ</h2><p className={`t-sub2 ${s.gray}`}>Пікірлер 3 бағалаудан кейін көрінеді</p></div>

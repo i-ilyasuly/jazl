@@ -15,3 +15,5 @@
 .section { height: 38px; padding: 12px 16px 4px; color: var(--text-secondary); box-sizing: content-box; height: 22px; }
 .section b { font-weight: 600; color: #007aff; }
 :global(:root[data-theme="dark"]) .seg { background: var(--surface-category); }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .thumb { background: rgba(92, 180, 244, 0.2); }

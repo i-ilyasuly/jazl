@@ -31,3 +31,7 @@
 .err > span:first-child, .err label > span { color: #d8434b; }
 @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(3px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
 :global(:root[data-theme="dark"]) .form { background: var(--surface-card); }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .blue { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-theme="dark"]) .green { background: rgba(52, 199, 89, 0.24); }
+:global(:root[data-theme="dark"]) .app { background: rgba(255, 255, 255, 0.09); }

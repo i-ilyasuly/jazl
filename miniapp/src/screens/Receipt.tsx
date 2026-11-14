@@ -5,7 +5,7 @@ import { purchaseOf } from "../mocks/history";
 import { useGo } from "../nav";
 import { inTelegram, useBottomButtons } from "../telegram";
 import { Group, SubPage } from "../ui/SubPage";
-import ok from "../assets/icons/receiptOk.svg";
+import { Sticker } from "../ui/Sticker";
 import s from "./Receipt.module.css";
 
 export function Receipt() {
@@ -16,9 +16,9 @@ export function Receipt() {
   if (!p) return <SubPage title="Чек"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Чек табылмады</p></SubPage>;
   const rows = [["Пакет", p.t], ["Мекеме", p.venue], ["Күні", p.date], ["Төлем тәсілі", p.method], ["Транзакция №", p.txn]];
   return (
-    <SubPage title="Чек" top={100}>
+    <SubPage title="Чек" top={92}>
       <div className={s.hero}>
-        <img src={ok} width={56} height={56} className={s.ok} alt="" />
+        <Sticker name={p.plus ? "wait" : "party"} size={96} />
         <p className={s.amount}>{p.v}</p>
         <span className={`t-cap1 ${s.chip}`}>{p.plus ? "Қайтарылды" : "Төленді"}</span>
       </div>

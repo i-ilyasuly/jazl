@@ -16,6 +16,7 @@ import plus18 from "../assets/icons/plus18.svg";
 import ticket from "../assets/icons/ticket.svg";
 import geo from "../assets/icons/geo.svg";
 import { SoonSheet } from "../ui/SoonSheet";
+import { tilePhoto } from "../mocks/photos";
 import s from "./Home.module.css";
 
 const soon = [
@@ -41,24 +42,16 @@ export function Home() {
         </button>
 
         <button className={`${s.tile} ${s.food}`} onClick={() => go("/category/food")}>
+          <img src={tilePhoto.food} className={s.tilePhoto} alt="" loading="lazy" />
           <span className={`t-text ${s.tileTitle}`}>Тағамдар</span>
-          <img src={catBurger} style={{ left: 78, top: 106 }} width={64} height={64} alt="" />
-          <img src={percent} style={{ left: 114, top: 18 }} alt="" />
-          <img src={plus18} style={{ left: 104, top: 56 }} alt="" />
-          <img src={plus16} style={{ left: 22, top: 90 }} alt="" />
-          <img src={ticket} style={{ left: 19.3, top: 114.6 }} alt="" />
         </button>
         <button className={`${s.tile} ${s.coffee}`} onClick={() => go("/category/coffee")}>
+          <img src={tilePhoto.coffee} className={s.tilePhoto} alt="" loading="lazy" />
           <span className={`t-text ${s.tileTitle}`}>Кофе</span>
-          <img src={catCup} style={{ left: 156, top: 16 }} alt="" />
-          <img src={plus16} style={{ left: 96, top: 16 }} alt="" />
-          <img src={percent} style={{ left: 124, top: 40 }} alt="" />
         </button>
         <button className={`${s.tile} ${s.hair}`} onClick={() => go("/category/hair")}>
+          <img src={tilePhoto.hair} className={s.tilePhoto} alt="" loading="lazy" />
           <span className={`t-text ${s.tileTitle}`}>Шаштараз</span>
-          <img src={catScissors} style={{ left: 156, top: 20 }} alt="" />
-          <img src={plus16} style={{ left: 104, top: 18 }} alt="" />
-          <img src={ticket} style={{ left: 127.2, top: 35.6, width: 22, height: 17.3 }} alt="" />
         </button>
 
         <div className={s.soonRow}>

@@ -8,12 +8,8 @@ import { useGo } from "../nav";
 import { inTelegram, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Timeline } from "../ui/Timeline";
-import halo1 from "../assets/icons/halo1.svg";
-import halo2 from "../assets/icons/halo2.svg";
-import confetti from "../assets/icons/confetti.svg";
-import okCircle from "../assets/icons/okCircle.svg";
-import okCheck from "../assets/icons/okCheck.svg";
 import burger from "../assets/icons/cardBurger.svg";
+import { Sticker } from "../ui/Sticker";
 import s from "./Success.module.css";
 
 interface ResultProps {
@@ -31,13 +27,8 @@ function ResultScreen(p: ResultProps) {
     <div className={s.page}>
       <TelegramChrome mode="close" onBack={p.onClose} />
       <h1 className={s.title}>{p.title}</h1>
-      <img src={halo1} className={s.halo1} alt="" />
-      <img src={halo2} className={s.halo2} alt="" />
-      <img src={confetti} className={s.confetti} alt="" />
-      <img src={okCircle} className={s.circle} alt="" />
-      <svg className={s.check} width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden>
-        <image href={okCheck} width="64" height="64" className={s.checkImg} />
-      </svg>
+      {/* Жасыл белгінің орнында — қуанған балапан (анимациялық стикер) */}
+      <Sticker name="party" size={150} className={s.sticker} />
       <p className={`t-sub2 ${s.paid}`}>{p.paid}</p>
       <div className={s.card}>
         <div className={s.head}>

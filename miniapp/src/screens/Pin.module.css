@@ -18,3 +18,6 @@
 .off img { opacity: 0.35; }
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
 .sticker { position: absolute; left: 146px; top: 96px; }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .box { background: var(--surface-card); }
+:global(:root[data-theme="dark"]) .key { background: rgba(255, 255, 255, 0.09); }

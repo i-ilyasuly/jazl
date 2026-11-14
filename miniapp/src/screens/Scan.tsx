@@ -29,12 +29,17 @@ export function Scan() {
   useEffect(() => {
     if (found) return;
     if (inTelegram && tg?.isVersionAtLeast?.("6.4") && tg.showScanQrPopup) {
-      tg.showScanQrPopup({ text: "Кассадағы терминал экранындағы QR-ды рамкаға келтір" }, () => { detect(); return true; });
-      return () => tg?.closeScanQrPopup?.();
+      let got = false;
+      tg.showScanQrPopup({ text: "Кассадағы терминал экранындағы QR-ды рамкаға келтір" }, () => { got = true; detect(); return true; });
+      // Пайдаланушы нативті сканерді өзі жапса, алдыңғы бетке қайтамыз
+      const onClosed = () => { if (!got) close(); };
+      const w = tg as unknown as { onEvent?: (e: string, cb: () => void) => void; offEvent?: (e: string, cb: () => void) => void };
+      w.onEvent?.("scanQrPopupClosed", onClosed);
+      return () => { w.offEvent?.("scanQrPopupClosed", onClosed); if (!got) tg?.closeScanQrPopup?.(); };
     }
     const t = setTimeout(detect, 2600); // браузерде: QR «оқылды» деп еліктеу
     return () => clearTimeout(t);
-  }, [found, detect]);
+  }, [found, detect, close]);
 
   const pay = useMemo(() => ({
     text: pack ? `💳 Төлеу · ${unitLabel(pack)}` : "Төлеу",
@@ -49,8 +54,11 @@ export function Scan() {
   useBottomButtons(pay, undefined, found && Boolean(pack));
 
   const o = pack ? offerOf(pack) : null;
+  const native = inTelegram && Boolean(tg?.showScanQrPopup);
   return (
-    <div className={`${s.page} ${found ? s.found : ""}`}>
+    <div className={`${s.page} ${found ? s.found : ""} ${native ? s.native : ""}`}>
+      {/* Telegram-да камера көрінісін нативті сканердің өзі көрсетеді; мына жасанды нұсқа тек браузер үшін */}
+      {!native && <>
       <TelegramChrome mode="close" onBack={close} onDark />
       <h1 className={s.title}>Төлем QR-ын сканерле</h1>
       <p className={`t-sub2 ${s.hint}`}>Кассадағы терминал экранындағы QR-ды рамкаға келтір</p>
@@ -60,6 +68,7 @@ export function Scan() {
       <button className={`${s.round} ${s.flash} ${torch ? s.on : ""}`} onClick={() => { haptic.tap(); setTorch(!torch); }} aria-label="Фонарь"><img src={flash} width={24} height={24} alt="" /></button>
       <button className={`${s.round} ${s.gallery}`} onClick={() => haptic.tap()} aria-label="Галерея"><img src={gallery} width={28} height={28} alt="" /></button>
 
+      </>}
       {found && pack && o && (
         <>
           <div className={s.scrim} />
