@@ -1,8 +1,9 @@
 import { Link, useViewTransitionState } from "react-router-dom";
 import { setDir } from "../nav";
-import { useState } from "react";
+import { toggleFav, toggleRestock, useFavs, useRestock } from "../store";
+import bell from "../assets/icons/favBell.svg";
 import { discount, fmt, saving, unitPrice, type Offer } from "../mocks/offers";
-import { haptic } from "../telegram";
+import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";
 import heart from "../assets/icons/heart.svg";
 import group from "../assets/icons/group.svg";
@@ -12,19 +13,21 @@ import s from "./OfferCard.module.css";
 
 const kindIcon = { food: burger, coffee: burger, hair: scissors };
 
-export function OfferCard({ offer }: { offer: Offer }) {
-  const [fav, setFav] = useState(offer.favorite);
+export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
+  const fav = useFavs().includes(offer.id);
+  const waiting = useRestock().includes(offer.id);
+  const notify = async () => { if (waiting) return toggleRestock(offer.id); if (await askWriteAccess()) { haptic.success(); toggleRestock(offer.id); } };
   const to = `/offer/${offer.id}`;
   const moving = useViewTransitionState(to);
   return (
-    <Link to={to} viewTransition className={s.card} onClick={() => { haptic.tap(); setDir("forward"); }}>
+    <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       <p className={`t-headline ${s.title}`}>{offer.title}</p>
       <p className={`t-sub2 ${s.venue}`}>{offer.venue} · {offer.distance}</p>
-      <span className={`t-cap1 ${s.discount}`}>▼ {discount(offer)}%</span>
+      {!ended && <span className={`t-cap1 ${s.discount}`}>▼ {discount(offer)}%</span>}
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
-        onClick={(e) => { e.preventDefault(); haptic.tap(); setFav(!fav); }}
+        onClick={(e) => { e.preventDefault(); haptic.tap(); toggleFav(offer.id); }}
       >
         <img src={fav ? heartFill : heart} width={28} height={28} alt="" key={String(fav)} className={fav ? s.pop : undefined} />
       </button>
@@ -37,8 +40,15 @@ export function OfferCard({ offer }: { offer: Offer }) {
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
       </div>
       <p className={s.price}>{fmt(offer.price)}</p>
-      <span className={`t-cap1 ${s.unit}`}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
-      <span className={`t-cap1 ${s.saving}`}>{fmt(saving(offer))} үнем</span>
+      {ended ? <>
+        <span className={`t-cap1 ${s.over}`}>Аяқталды</span>
+        <button className={`t-sub2 w-600 ${s.notify} ${waiting ? s.waiting : ""}`} onClick={(e) => { e.preventDefault(); void notify(); }}>
+          <img src={bell} width={20} height={20} alt="" className={waiting ? s.ring : undefined} />{waiting ? "Қосылды" : "Хабарла"}
+        </button>
+      </> : <>
+        <span className={`t-cap1 ${s.unit}`}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
+        <span className={`t-cap1 ${s.saving}`}>{fmt(saving(offer))} үнем</span>
+      </>}
     </Link>
   );
 }

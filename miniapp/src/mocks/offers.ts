@@ -31,3 +31,8 @@ export const fmt = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, 
 export const unitPrice = (o: Offer) => Math.round(o.price / o.units);
 export const saving = (o: Offer) => o.oldPrice - o.price;
 export const discount = (o: Offer) => Math.round((1 - o.price / o.oldPrice) * 100);
+
+// Сатылымы аяқталған ұсыныс (Таңдаулыда «Хабарла» батырмасымен көрінеді)
+export const endedOffers: Offer[] = [
+  { id: "burger", title: "Бургер комбо · 4 дана", unitWord: "комбо", venue: "Bahandi", distance: "1,2 км", kind: "food", price: 10800, oldPrice: 14000, units: 4, buyers: 27, favorite: true, rating: 4.7, ratingCount: 31, address: "Қарағанды, Бұқар жырау даңғылы 59", hours: "Ашық · бүгін 10:00–23:00" },
+];

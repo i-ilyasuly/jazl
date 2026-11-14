@@ -1,3 +1,4 @@
+import { toggleFav, useFavs } from "../store";
 import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useMock } from "../mocks/useMock";
@@ -21,7 +22,7 @@ export function OfferPage() {
   const { id } = useParams();
   const go = useGo();
   const offer = offers.find((o) => o.id === id) ?? offers[0];
-  const [fav, setFav] = useState(offer.favorite);
+  const fav = useFavs().includes(offer.id);
   const [open, setOpen] = useState(false);
   const [buying, setBuying] = useState(false);
   const { loading } = useMock("offer:" + offer.id, offer, 450);
@@ -41,7 +42,7 @@ export function OfferPage() {
         {offer.photo ? <img src={offer.photo} className={s.photoImg} alt="" /> : <img src={heroBurger} className={s.heroIcon} width={120} height={120} alt="" />}
         <img src={pagination} className={s.dots} width={80} height={16} alt="" />
         <button className={`${s.round} ${s.share}`} aria-label="Бөлісу" onClick={() => haptic.tap()}><img src={share} width={24} height={24} alt="" /></button>
-        <button className={`${s.round} ${s.fav}`} aria-label="Таңдаулы" onClick={() => { haptic.tap(); setFav(!fav); }}>
+        <button className={`${s.round} ${s.fav}`} aria-label="Таңдаулы" onClick={() => { haptic.tap(); toggleFav(offer.id); }}>
           <img src={fav ? heartFill : heartLine} width={26} height={26} alt="" key={String(fav)} className={s.pop} />
         </button>
       </div>

@@ -87,3 +87,31 @@ let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true,
 export const useSettings = () => useSyncExternalStore(subscribe, () => settings);
 export function setSettings(patch: Partial<Settings>) { settings = { ...settings, ...patch }; emit(); kv.set("jazl_settings", JSON.stringify(settings)); }
 void kv.get("jazl_settings").then((v) => { if (v) { try { settings = { ...settings, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
+
+// ── Таңдаулы ────────────────────────────────────────────────────────────────
+let favs: string[] = ["doner", "burger"];
+let restock: string[] = [];
+export const useFavs = () => useSyncExternalStore(subscribe, () => favs);
+export const useRestock = () => useSyncExternalStore(subscribe, () => restock);
+export function toggleFav(id: string) { favs = favs.includes(id) ? favs.filter((x) => x !== id) : [id, ...favs]; emit(); kv.set("jazl_favs", favs.join(",")); }
+export function toggleRestock(id: string) { restock = restock.includes(id) ? restock.filter((x) => x !== id) : [...restock, id]; emit(); }
+void kv.get("jazl_favs").then((v) => { if (v !== null) { favs = v ? v.split(",") : []; emit(); } });
+
+// ── Төлем тәсілдері ─────────────────────────────────────────────────────────
+export interface PayMethod { id: string; emoji: string; title: string; sub: string; card: boolean }
+let methods: PayMethod[] = [
+  { id: "kaspi", emoji: "🏦", title: "Kaspi Pay", sub: "Шот Kaspi.kz қосымшасына жіберіледі", card: false },
+  { id: "visa4417", emoji: "💳", title: "Visa •• 4417", sub: "Жарамдылық мерзімі 08/28", card: true },
+];
+let defaultMethod = "kaspi";
+export const useMethods = () => useSyncExternalStore(subscribe, () => methods);
+export const useDefaultMethod = () => useSyncExternalStore(subscribe, () => defaultMethod);
+export function setDefaultMethod(id: string) { defaultMethod = id; emit(); }
+export function removeMethod(id: string) { methods = methods.filter((m) => m.id !== id); if (defaultMethod === id) defaultMethod = "kaspi"; emit(); }
+
+// ── PIN ─────────────────────────────────────────────────────────────────────
+// Ескерту: нағыз жүйеде PIN серверде тексеріледі. Бэкенд қосылғанша тек жадта тұрады.
+let pin: string | null = null;
+export const hasPin = () => pin !== null;
+export const checkPin = (v: string) => pin === v;
+export function savePin(v: string) { pin = v; }

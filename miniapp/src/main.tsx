@@ -16,6 +16,10 @@ import { Notifications } from "./screens/Notifications";
 import { Receipt } from "./screens/Receipt";
 import { Security } from "./screens/Security";
 import { City, Language } from "./screens/Choice";
+import { Favorites } from "./screens/Favorites";
+import { Payment } from "./screens/Payment";
+import { Gifts } from "./screens/Gifts";
+import { Pin } from "./screens/Pin";
 import { Stub } from "./screens/Stub";
 import { NavBar, type TabKey } from "./ui/NavBar";
 
@@ -55,6 +59,10 @@ const router = createHashRouter([
       { path: "/profile/security", element: <Security /> },
       { path: "/profile/language", element: <Language /> },
       { path: "/profile/city", element: <City /> },
+      { path: "/profile/favorites", element: <Favorites /> },
+      { path: "/profile/payment", element: <Payment /> },
+      { path: "/profile/gifts", element: <Gifts /> },
+      { path: "/profile/pin/:mode", element: <Pin /> },
       { path: "*", element: <Stub /> },
     ],
   },

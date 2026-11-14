@@ -35,6 +35,7 @@ export const haptic = {
   tap: () => wa?.HapticFeedback?.impactOccurred("light"),
   select: () => wa?.HapticFeedback?.selectionChanged(),
   success: () => wa?.HapticFeedback?.notificationOccurred("success"),
+  error: () => wa?.HapticFeedback?.notificationOccurred("error"),
 };
 
 /** Нативті «Артқа» батырмасы (толық экранда Telegram оны сол жақ жоғарғы бұрышқа өзі салады). */

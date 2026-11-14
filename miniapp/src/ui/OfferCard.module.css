@@ -18,3 +18,10 @@
 .saving { right: 16px; top: 150px; background: var(--green-bg); color: var(--green-text); }
 :global(:root[data-theme="dark"]) .fav { background: rgba(45, 53, 66, 0.8); }
 :global(:root[data-theme="dark"]) .buyers { background: rgba(29, 39, 51, 0.85); color: #8cc4f5; }
+.ended .title, .ended .venue, .ended .thumb, .ended .price { opacity: 0.5; }
+.over { position: absolute; left: 95px; top: 152px; height: 22px; padding: 1px 12px 1px 14px; border-radius: 11px; background: #f4f4f7; color: #000; font-weight: 700; white-space: nowrap; }
+.notify { position: absolute; right: 16px; top: 152px; height: 36px; padding: 7px 12px; border-radius: 18px; background: rgba(67, 120, 255, 0.1); color: #007aff; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.25s ease, transform 0.12s ease; }
+.notify:active { transform: scale(0.95); }
+.waiting { background: rgba(49, 209, 88, 0.15); color: #1f7a38; }
+.ring { animation: ring 0.6s ease; transform-origin: 50% 10%; }
+@keyframes ring { 20% { transform: rotate(-18deg); } 45% { transform: rotate(14deg); } 70% { transform: rotate(-8deg); } 100% { transform: none; } }

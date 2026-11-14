@@ -1,7 +1,7 @@
 // Figma: «Қауіпсіздік / Экран құлпы» (13886:38835)
 // Биометрия Telegram-ның нативті BiometricManager-і арқылы жүреді (Face ID / саусақ ізі).
 import { useGo } from "../nav";
-import { setSettings, useSettings } from "../store";
+import { hasPin, setSettings, useSettings } from "../store";
 import { biometricAuth, biometricKind, haptic, nativeAlert, nativePick } from "../telegram";
 import { Group, Note, Row, SubPage, Switch } from "../ui/SubPage";
 import s from "./Security.module.css";
@@ -23,6 +23,7 @@ export function Security() {
   }
   async function toggleLock(v: boolean) {
     if (!v) return setSettings({ lock: false, bio: false });
+    if (!hasPin()) return go("/profile/pin/create", "up"); // алдымен PIN, содан кейін биометрия
     setSettings({ lock: true });
     await toggleBio(true);
   }
@@ -35,7 +36,7 @@ export function Security() {
     <SubPage title="Қауіпсіздік" variant="settings" top={160}>
       <Group i={0}>
         <Row inset={16} title="Экран құлпы" sub="PIN-код немесе биометрия" right={<Switch on={st.lock} onChange={toggleLock} />} />
-        <Row inset={16} dim={off} title="PIN-ді өзгерту" onClick={() => go("/profile/pin")} />
+        <Row inset={16} dim={off} title="PIN-ді өзгерту" onClick={() => go("/profile/pin/change", "up")} />
         <Row inset={16} dim={off} title="Биометрия" sub={bioSub} right={<Switch on={st.bio} onChange={toggleBio} />} />
         <Row inset={16} dim={off} title="Автоқұлып" onClick={pickTime} right={<span key={st.autolock} className={`t-sub1 ${s.value}`}>{lockTimes.find((t) => t.id === st.autolock)?.text}</span>} />
       </Group>
