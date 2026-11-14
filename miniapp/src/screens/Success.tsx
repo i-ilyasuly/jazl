@@ -1,6 +1,8 @@
 // Figma: «Сатып алу / Сәтті / Light» (13886:25101)
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { buyPack, getPack, offerOf, usePacks } from "../store";
+import { useEffect, useRef } from "react";
 import { fmt, offers } from "../mocks/offers";
 import { useGo } from "../nav";
 import { inTelegram, useBottomButtons } from "../telegram";
@@ -14,20 +16,21 @@ import okCheck from "../assets/icons/okCheck.svg";
 import burger from "../assets/icons/cardBurger.svg";
 import s from "./Success.module.css";
 
-export function Success() {
-  const { id } = useParams();
-  const offer = offers.find((o) => o.id === id) ?? offers[0];
-  const go = useGo();
-  const toPacks = useCallback(() => go("/packs", "forward", { replace: true }), [go]);
-  const close = useCallback(() => go("/", "fade", { replace: true }), [go]);
-  const main = useMemo(() => ({ text: "Пакеттерге өту", onClick: toPacks }), [toPacks]);
-  const secondary = useMemo(() => ({ text: "Жабу", onClick: close, position: "bottom" as const }), [close]);
-  useBottomButtons(main, secondary);
+interface ResultProps {
+  title: string; paid: string; cardTitle: string; cardSub: string;
+  total: number; used: number; counter: string; next: string;
+  main: { text: string; onClick: () => void }; secondary: { text: string; onClick: () => void };
+  onClose: () => void;
+}
 
+function ResultScreen(p: ResultProps) {
+  const main = useMemo(() => p.main, [p.main.text, p.main.onClick]); // eslint-disable-line
+  const secondary = useMemo(() => ({ ...p.secondary, position: "bottom" as const }), [p.secondary.text, p.secondary.onClick]); // eslint-disable-line
+  useBottomButtons(main, secondary);
   return (
     <div className={s.page}>
-      <TelegramChrome mode="close" onBack={close} />
-      <h1 className={s.title}>Пакет сатып алынды</h1>
+      <TelegramChrome mode="close" onBack={p.onClose} />
+      <h1 className={s.title}>{p.title}</h1>
       <img src={halo1} className={s.halo1} alt="" />
       <img src={halo2} className={s.halo2} alt="" />
       <img src={confetti} className={s.confetti} alt="" />
@@ -35,30 +38,67 @@ export function Success() {
       <svg className={s.check} width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden>
         <image href={okCheck} width="64" height="64" className={s.checkImg} />
       </svg>
-      <p className={`t-sub2 ${s.paid}`}>Төлем қабылданды · {fmt(offer.price)}</p>
-
+      <p className={`t-sub2 ${s.paid}`}>{p.paid}</p>
       <div className={s.card}>
         <div className={s.head}>
           <span className={s.icon}><img src={burger} width={32} height={32} alt="" /></span>
           <span className={s.headText}>
-            <span className="t-headline">{offer.title}</span>
-            <span className={`t-sub2 ${s.muted}`}>{offer.venue} · {offer.distance}</span>
+            <span className="t-headline">{p.cardTitle}</span>
+            <span className={`t-sub2 ${s.muted}`}>{p.cardSub}</span>
           </span>
         </div>
-        <Timeline total={offer.units} />
-        <p className="t-sub2 w-600">{offer.units} / {offer.units} · 30 күн</p>
+        <Timeline total={p.total} used={p.used} />
+        <p className="t-sub2 w-600">{p.counter}</p>
         <div className={s.next}>
           <span className={s.emoji} />
-          <span className={`t-sub2 w-600 ${s.nextText}`}>Келесі қадам: мекемеде «Jazl бойынша» деп айт</span>
+          <span className={`t-sub2 w-600 ${s.nextText}`}>{p.next}</span>
         </div>
       </div>
-
       {!inTelegram && (
         <>
-          <button className={`${s.btn} ${s.main}`} onClick={toPacks}>Пакеттерге өту</button>
-          <button className={`${s.btn} ${s.secondary}`} onClick={close}>Жабу</button>
+          <button className={`${s.btn} ${s.main}`} onClick={p.main.onClick}>{p.main.text}</button>
+          <button className={`${s.btn} ${s.secondary}`} onClick={p.secondary.onClick}>{p.secondary.text}</button>
         </>
       )}
     </div>
+  );
+}
+
+export function Success() {
+  const { id } = useParams();
+  const offer = offers.find((o) => o.id === id) ?? offers[0];
+  const go = useGo();
+  const done = useRef(false);
+  useEffect(() => { if (!done.current) { done.current = true; buyPack(offer.id); } }, [offer.id]);
+  const toPacks = useCallback(() => go("/packs", "forward", { replace: true }), [go]);
+  const close = useCallback(() => go("/", "fade", { replace: true }), [go]);
+  return (
+    <ResultScreen
+      title="Пакет сатып алынды" paid={`Төлем қабылданды · ${fmt(offer.price)}`}
+      cardTitle={offer.title} cardSub={`${offer.venue} · ${offer.distance}`}
+      total={offer.units} used={0} counter={`${offer.units} / ${offer.units} · 30 күн`}
+      next="Келесі қадам: мекемеде «Jazl бойынша» деп айт"
+      main={{ text: "Пакеттерге өту", onClick: toPacks }} secondary={{ text: "Жабу", onClick: close }} onClose={close}
+    />
+  );
+}
+
+export function Paid() {
+  const { id } = useParams();
+  usePacks();
+  const go = useGo();
+  const pack = getPack(id);
+  const toPacks = useCallback(() => go("/packs", "fade", { replace: true }), [go]);
+  const receipt = useCallback(() => go("/pack/" + id, "forward", { replace: true }), [go, id]);
+  if (!pack) return null;
+  const o = offerOf(pack);
+  return (
+    <ResultScreen
+      title="Төлем өтті" paid={`${fmt(Math.round(o.price / o.units))} • ${o.venue}`}
+      cardTitle={o.title} cardSub="Нұркен Әбдіров, 24"
+      total={pack.total} used={pack.total - pack.left} counter={`${pack.left} / ${pack.total} қалды`}
+      next="Терминал төлемді растады, тамағыңды алуға болады"
+      main={{ text: "Дайын", onClick: toPacks }} secondary={{ text: "Чекті көру", onClick: receipt }} onClose={toPacks}
+    />
   );
 }

@@ -9,3 +9,7 @@
 :global(:root[data-theme="dark"]) .leftIcon,
 :global(:root[data-theme="dark"]) .collapse,
 :global(:root[data-theme="dark"]) .dots { filter: invert(1); }
+
+.white { background: #fff; }
+.white .label { color: #17212b; }
+:global(:root[data-theme="dark"]) .white .leftIcon { filter: none; }

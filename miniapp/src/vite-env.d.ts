@@ -21,6 +21,8 @@ interface TelegramWebApp {
   setBackgroundColor?: (c: string) => void;
   setBottomBarColor?: (c: string) => void;
   onEvent?: (e: string, cb: () => void) => void;
+  showScanQrPopup?: (params: { text?: string }, cb?: (data: string) => boolean | void) => void;
+  closeScanQrPopup?: () => void;
   BackButton?: { show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void };
   MainButton?: TgBottomButton;
   SecondaryButton?: TgBottomButton;

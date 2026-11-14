@@ -27,7 +27,7 @@ export function NavBar({ active, unread = true }: { active: (typeof tabs)[number
                 {user?.photo_url ? <img src={user.photo_url} alt="" /> : <span>{(user?.first_name ?? "Сіз").slice(0, 1)}</span>}
               </span>
             ) : (
-              <img src={t.icon} width={24} height={24} alt="" className={t.key === active ? s.iconActive : s.icon} />
+              <span className={`${s.icon} ${t.key === active ? s.iconActive : ""}`} style={{ maskImage: `url(${JSON.stringify(t.icon)})`, WebkitMaskImage: `url(${JSON.stringify(t.icon)})` }} />
             )}
           </span>
           <span className={`${s.label} ${t.key === active ? s.labelActive : ""}`}>{t.label}</span>
