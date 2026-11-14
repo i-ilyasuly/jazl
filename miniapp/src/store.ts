@@ -137,3 +137,16 @@ export function addRecent(q: string) { const v = q.trim().toLowerCase(); if (!v)
 export function removeRecent(q: string) { recent = recent.filter((x) => x !== q); emit(); saveRecent(); }
 export function clearRecent() { recent = []; emit(); saveRecent(); }
 void kv.get("jazl_recent").then((v) => { if (v) { try { recent = JSON.parse(v); emit(); } catch { /* бұзылған мән */ } } });
+
+// ── Алғашқы кіру ────────────────────────────────────────────────────────────
+// null — әлі оқылып жатыр (бастапқы экран көрсетіледі), false — таныстыру керек, true — өткен.
+let onboarded: boolean | null = null;
+export const useOnboarded = () => useSyncExternalStore(subscribe, () => onboarded);
+export function finishOnboarding() { onboarded = true; emit(); kv.set("jazl_onboarded", "1"); }
+void Promise.all([kv.get("jazl_onboarded"), new Promise((r) => setTimeout(r, 500))]).then(([v]) => { onboarded = v === "1"; emit(); });
+
+// ── «Жуырда» санаттарына жазылу ─────────────────────────────────────────────
+let soonSubs: number[] = [];
+export const useSoon = () => useSyncExternalStore(subscribe, () => soonSubs);
+export function toggleSoon(pct: number) { soonSubs = soonSubs.includes(pct) ? soonSubs.filter((x) => x !== pct) : [...soonSubs, pct]; emit(); kv.set("jazl_soon", soonSubs.join(",")); }
+void kv.get("jazl_soon").then((v) => { if (v) { soonSubs = v.split(",").map(Number); emit(); } });

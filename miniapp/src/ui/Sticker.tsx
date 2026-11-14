@@ -2,7 +2,9 @@
 // суретіне сәйкес келетін дәл сол анимация. Файл мен ойнатқыш керек кезде ғана жүктеледі.
 import { useEffect, useRef, useState } from "react";
 
-export type StickerName = "search" | "love" | "cry" | "sleep" | "stop" | "shop" | "wait" | "think" | "empty" | "lock" | "offline" | "party" | "phone" | "gift" | "hello" | "bags" | "archive" | "clean" | "sad" | "repair";
+export type StickerName = "egg" | "search" | "love" | "cry" | "sleep" | "stop" | "shop" | "wait" | "think" | "empty" | "lock" | "offline" | "party" | "phone" | "gift" | "hello" | "bags" | "archive" | "clean" | "sad" | "repair";
+// Жұмыртқадағы балапанның TGS файлы әлі қолда жоқ: табылғанша орнында сәлемдескен үйрек тұрады
+const alias: Partial<Record<StickerName, StickerName>> = { egg: "hello" };
 const files = import.meta.glob("../assets/stickers/*.json", { import: "default" }) as Record<string, () => Promise<object>>;
 
 export function Sticker({ name, size = 120, loop = true, className }: { name: StickerName; size?: number; loop?: boolean; className?: string }) {
@@ -11,7 +13,7 @@ export function Sticker({ name, size = 120, loop = true, className }: { name: St
   useEffect(() => {
     let dead = false; let anim: { destroy(): void; play(): void; pause(): void } | undefined; let io: IntersectionObserver | undefined;
     setReady(false);
-    void Promise.all([import("lottie-web/build/player/lottie_light"), files[`../assets/stickers/${name}.json`]()]).then(([m, data]) => {
+    void Promise.all([import("lottie-web/build/player/lottie_light"), files[`../assets/stickers/${alias[name] ?? name}.json`]()]).then(([m, data]) => {
       if (dead || !box.current) return;
       anim = m.default.loadAnimation({ container: box.current, renderer: "svg", loop, autoplay: true, animationData: data });
       setReady(true);

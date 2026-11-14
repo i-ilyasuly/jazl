@@ -35,3 +35,4 @@
 .suggest button { color: var(--link); }
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
 :global(:root[data-theme="dark"]) .recent, :global(:root[data-theme="dark"]) .chip, :global(:root[data-theme="dark"]) .tool { background: var(--surface-card); }
+.toolOn { background: rgba(34, 154, 240, 0.16); color: var(--link); }

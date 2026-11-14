@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createHashRouter, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
+import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
+import { useOnboarded } from "./store";
+import { Splash, Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
 import "./styles/base.css";
 import { initTelegram } from "./telegram";
 import { Home } from "./screens/Home";
@@ -35,7 +37,11 @@ initTelegram();
 // Навигация бір рет қана орнатылады: бет ауысқанда қайта салынбайды, сондықтан
 // белсенді «тамшы» бір табтан екіншісіне сырғып өтеді.
 function Shell() {
-  const tab = tabOf[useLocation().pathname];
+  const path = useLocation().pathname;
+  const tab = tabOf[path];
+  const onboarded = useOnboarded();
+  if (onboarded === null) return <div className="app"><Splash /></div>;
+  if (!onboarded && !path.startsWith("/welcome")) return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
       <Outlet />
@@ -71,6 +77,11 @@ const router = createHashRouter([
       { path: "/profile/terms", element: <Terms /> },
       { path: "/profile/gift/:id", element: <Gift /> },
       { path: "/search", element: <Search /> },
+      { path: "/welcome", element: <Welcome /> },
+      { path: "/welcome/lang", element: <WelcomeLang /> },
+      { path: "/welcome/city", element: <WelcomeCity /> },
+      { path: "/welcome/terms", element: <WelcomeTerms /> },
+      { path: "/welcome/doc/:id", element: <Stub /> },
       { path: "/profile/venue", element: <VenueApply /> },
       { path: "/profile/venue/done", element: <VenueDone /> },
       { path: "/profile/report", element: <Report /> },

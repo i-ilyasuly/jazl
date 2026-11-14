@@ -5,6 +5,8 @@ import { useGo } from "../nav";
 import { addRecent, clearRecent, removeRecent, useRecent } from "../store";
 import { haptic, useBackButton } from "../telegram";
 import { ActionSheet } from "../ui/ActionSheet";
+import { activeCount, FilterSheet, noFilters, type Filters } from "../ui/FilterSheet";
+import { MainBar } from "../ui/MainBar";
 import { OfferCard } from "../ui/OfferCard";
 import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -30,14 +32,19 @@ export function Search() {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("near");
   const [sheet, setSheet] = useState(false);
+  const [filters, setFilters] = useState<Filters>(noFilters);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const pass = useCallback((o: Offer, f: Filters) => (!f.cats.length || f.cats.includes(o.kind)) && o.price >= f.min && o.price <= f.max && (!f.dist || km(o) <= f.dist) && discount(o) >= f.save, []);
+  const nFilters = activeCount(filters);
+  const clearFilters = useCallback(() => { haptic.tap(); setFilters(noFilters); }, []);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => { input.current?.focus({ preventScroll: true }); }, []);
   const query = q.trim().toLowerCase();
   const found = useMemo(() => {
-    const list = allOffers().filter((o) => match(o, query));
+    const list = allOffers().filter((o) => match(o, query) && pass(o, filters));
     const by: Record<string, (a: Offer, b: Offer) => number> = { near: (a, b) => km(a) - km(b), cheap: (a, b) => a.price - b.price, save: (a, b) => saving(b) - saving(a), top: (a, b) => b.buyers - a.buyers, new: (a, b) => discount(b) - discount(a) };
     return list.sort(by[sort]);
-  }, [query, sort]);
+  }, [query, sort, filters, pass]);
   // Нәтиже шыққан сұраныс 1,2 секундтан кейін «соңғы іздеулерге» түседі
   useEffect(() => { if (!query || !found.length) return; const t = setTimeout(() => addRecent(query), 1200); return () => clearTimeout(t); }, [query, found.length]);
   const venues = new Set(found.map((o) => o.venue)).size;
@@ -71,7 +78,7 @@ export function Search() {
         <div className={s.results} key="found">
           <div className={s.tools}>
             <button className={`t-sub2 w-600 ${s.tool}`} onClick={() => { haptic.tap(); setSheet(true); }}><img src={sortIcon} width={16} height={16} alt="" /><span key={sort} className={s.swap}>{sorts.find((x) => x.id === sort)!.text}</span></button>
-            <button className={`t-sub2 w-600 ${s.tool}`} onClick={() => go("/search/filter", "up")}><img src={filterIcon} width={16} height={16} alt="" className={s.gray} />Сүзгі</button>
+            <button className={`t-sub2 w-600 ${s.tool} ${nFilters ? s.toolOn : ""}`} onClick={() => { haptic.tap(); setFilterOpen(true); }}><img src={filterIcon} width={16} height={16} alt="" className={nFilters ? "" : s.gray} />Сүзгі{nFilters ? ` · ${nFilters}` : ""}</button>
           </div>
           <p className={`t-cap1 ${s.count}`}>{found.length} ұсыныс • {venues} мекеме</p>
           <div className={s.list}>{found.map((o, i) => <div key={o.id} className="rise" style={{ ["--i" as string]: i }}><OfferCard offer={o} /></div>)}</div>
@@ -82,8 +89,10 @@ export function Search() {
           <h2 className={s.noneTitle}>«{q.trim()}» бойынша ештеңе табылмады</h2>
           <p className={`t-sub2 ${s.noneText}`}>Емлесін тексеріп, басқа сөзбен іздеп көр немесе сүзгіні тазала</p>
           <p className={`t-sub2 ${s.suggest}`}>Мекемең жоқ па?<button className="w-600" onClick={() => go("/profile/venue")}>Бізге ұсын</button></p>
+          {nFilters > 0 && !filterOpen && <MainBar text="Сүзгіні тазалау" onClick={clearFilters} />}
         </div>
       )}
+      {filterOpen && <FilterSheet value={filters} count={(f) => allOffers().filter((o) => match(o, query) && pass(o, f)).length} onApply={setFilters} onClose={() => setFilterOpen(false)} />}
       {sheet && <ActionSheet custom title="Сұрыптау" actions={sorts} selected={sort} onClose={() => setSheet(false)} onPick={(id) => { haptic.select(); setSort(id); }} />}
     </div>
   );
