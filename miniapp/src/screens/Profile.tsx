@@ -1,9 +1,10 @@
 // Figma: «Профиль / Негізгі (1)» және «(2)» (13886:35519, 13886:35845)
 import { useCallback } from "react";
 import { useMock } from "../mocks/useMock";
-import { useUnread } from "../store";
+import { useSettings, useUnread } from "../store";
 import { useGo } from "../nav";
-import { tg, useBackButton } from "../telegram";
+import { haptic, openChat, tg, useBackButton } from "../telegram";
+import { SUPPORT_BOT } from "../config";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import saving from "../assets/icons/p_saving.svg";
 import fav from "../assets/icons/p_fav.svg";
@@ -50,6 +51,9 @@ export function Profile() {
   useBackButton(back);
   const { loading } = useMock("profile", true, 450);
   const unread = useUnread();
+  const st = useSettings();
+  const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (st.lang === "ru" ? "Русский" : "Қазақша") : r.sub);
+  const open = (r: RowDef) => { if (r.to === "/profile/ask") { haptic.tap(); openChat(SUPPORT_BOT); } else go(r.to); };
   const u = tg?.initDataUnsafe?.user as { first_name?: string; last_name?: string; username?: string; photo_url?: string } | undefined;
   const name = u?.first_name ? [u.first_name, u.last_name].filter(Boolean).join(" ") : "Айгерім Нұрланова";
   const handle = u?.username ? "@" + u.username : u?.first_name ? "" : "@aigerim_n";
@@ -72,9 +76,9 @@ export function Profile() {
                 <span className={s.text}><span className="sk" style={{ display: "block", width: 150, height: 16, borderRadius: 6, margin: "5px 0" }} />{r.sub && <span className="sk" style={{ display: "block", width: 110, height: 12, borderRadius: 6, margin: "4px 0" }} />}</span>
               </div>
             ) : (
-              <button key={r.title} className={`${s.row} ${r.sub ? "" : s.short}`} onClick={() => go(r.to)}>
+              <button key={r.title} className={`${s.row} ${r.sub ? "" : s.short}`} onClick={() => open(r)}>
                 <img src={r.icon} width={32} height={32} alt="" />
-                <span className={s.text}><span className={s.title}>{r.title}</span>{r.sub && <span className={`t-cap1 ${s.sub}`}>{r.sub}</span>}</span>
+                <span className={s.text}><span className={s.title}>{r.title}</span>{r.sub && <span className={`t-cap1 ${s.sub}`}>{subOf(r)}</span>}</span>
                 {r.value && <span className={`t-sub1 w-600 ${s.value}`}>{r.value}</span>}
                 {r.badge && unread ? <span className={`t-cap1 w-600 ${s.badge}`}>{unread}</span> : null}
                 {i < g.rows.length - 1 && <span className={s.line} />}

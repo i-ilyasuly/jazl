@@ -81,3 +81,46 @@ export const kv = {
     else { try { localStorage.setItem(key, value); } catch { /* жеке режим */ } }
   },
 };
+
+/** Telegram ішіндегі сілтемені (бот, чат) Mini App-ты жаппай ашады. */
+export function openChat(username: string) {
+  const url = "https://t.me/" + username;
+  if (inTelegram && wa?.openTelegramLink) wa.openTelegramLink(url); else window.open(url, "_blank", "noopener");
+}
+
+/** Нативті ескерту терезесі (браузерде жай alert-ке түспейді: үнсіз өтеді). */
+export function nativeAlert(message: string) {
+  if (inTelegram && at("6.2") && wa?.showAlert) wa.showAlert(message);
+}
+
+/** Нативті таңдау терезесі (ең көбі 3 батырма). Браузерде бірден fallback мәні қайтады. */
+export function nativePick(title: string, message: string, options: { id: string; text: string }[], fallback: string): Promise<string> {
+  return new Promise((res) => {
+    if (inTelegram && at("6.2") && wa?.showPopup) wa.showPopup({ title, message, buttons: options.map((o) => ({ id: o.id, type: "default" as const, text: o.text })) }, (id) => res(id || ""));
+    else res(fallback);
+  });
+}
+
+/** Ботқа хабар жазуға рұқсат сұрау (нативті диалог, 6.9+). */
+export function askWriteAccess(): Promise<boolean> {
+  return new Promise((res) => {
+    if (inTelegram && at("6.9") && wa?.requestWriteAccess) wa.requestWriteAccess((ok) => res(ok)); else res(true);
+  });
+}
+
+/** Нативті биометрия (BiometricManager, 7.2+): Face ID / саусақ ізі.
+ *  Қайтарады: "ok" — расталды, "denied" — пайдаланушы бас тартты, "none" — құрылғыда жоқ, "browser" — Telegram-нан тыс. */
+export function biometricAuth(reason: string): Promise<"ok" | "denied" | "none" | "browser"> {
+  return new Promise((res) => {
+    const bm = wa?.BiometricManager;
+    if (!inTelegram || !at("7.2") || !bm) return res("browser");
+    const run = () => {
+      if (!bm.isBiometricAvailable) return res("none");
+      const auth = () => bm.authenticate({ reason }, (ok) => res(ok ? "ok" : "denied"));
+      if (bm.isAccessGranted) auth();
+      else bm.requestAccess({ reason }, (granted) => (granted ? auth() : res("denied")));
+    };
+    if (bm.isInited) run(); else bm.init(run);
+  });
+}
+export const biometricKind = () => wa?.BiometricManager?.biometricType ?? "unknown";

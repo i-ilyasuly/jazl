@@ -28,6 +28,17 @@ interface TelegramWebApp {
   SecondaryButton?: TgBottomButton;
   HapticFeedback?: { impactOccurred(s: "light" | "medium" | "heavy" | "rigid" | "soft"): void; notificationOccurred(t: "error" | "success" | "warning"): void; selectionChanged(): void };
   CloudStorage?: { setItem(key: string, value: string, cb?: (err: string | null, ok?: boolean) => void): void; getItem(key: string, cb: (err: string | null, value?: string) => void): void };
-  initDataUnsafe?: { user?: { first_name?: string; photo_url?: string } };
+  initDataUnsafe?: { user?: { first_name?: string; last_name?: string; username?: string; photo_url?: string; language_code?: string } };
+  openTelegramLink?: (url: string) => void;
+  showAlert?: (message: string, cb?: () => void) => void;
+  showPopup?: (p: { title?: string; message: string; buttons?: { id?: string; type?: "default" | "ok" | "close" | "cancel" | "destructive"; text?: string }[] }, cb?: (id: string) => void) => void;
+  requestWriteAccess?: (cb?: (granted: boolean) => void) => void;
+  BiometricManager?: {
+    isInited: boolean; isBiometricAvailable: boolean; biometricType: "finger" | "face" | "unknown"; isAccessRequested: boolean; isAccessGranted: boolean;
+    init(cb?: () => void): void;
+    requestAccess(p: { reason?: string }, cb?: (granted: boolean) => void): void;
+    authenticate(p: { reason?: string }, cb?: (ok: boolean, token?: string) => void): void;
+    openSettings(): void;
+  };
 }
 interface Window { Telegram?: { WebApp?: TelegramWebApp } }
