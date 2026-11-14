@@ -9,6 +9,7 @@ import { Paid, Success } from "./screens/Success";
 import { Packs } from "./screens/Packs";
 import { PackPage } from "./screens/PackPage";
 import { Scan } from "./screens/Scan";
+import { Profile } from "./screens/Profile";
 import { Stub } from "./screens/Stub";
 
 initTelegram();
@@ -33,6 +34,7 @@ const router = createHashRouter([
       { path: "/pack/:id", element: <PackPage /> },
       { path: "/scan", element: <Scan /> },
       { path: "/paid/:id", element: <Paid /> },
+      { path: "/profile", element: <Profile /> },
       { path: "*", element: <Stub /> },
     ],
   },
