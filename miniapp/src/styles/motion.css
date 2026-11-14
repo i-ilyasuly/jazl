@@ -1,0 +1,48 @@
+/* Беттен бетке ауысу (View Transitions). Қолдамайтын браузерде анимациясыз ауысады. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.32s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+:root[data-dir="forward"]::view-transition-old(root) { animation-name: vt-out-left; }
+:root[data-dir="forward"]::view-transition-new(root) { animation-name: vt-in-right; }
+:root[data-dir="back"]::view-transition-old(root) { animation-name: vt-out-right; z-index: 2; }
+:root[data-dir="back"]::view-transition-new(root) { animation-name: vt-in-left; z-index: 1; }
+:root[data-dir="up"]::view-transition-old(root) { animation-name: vt-fade-out; }
+:root[data-dir="up"]::view-transition-new(root) { animation-name: vt-in-up; }
+:root[data-dir="fade"]::view-transition-old(root) { animation-name: vt-fade-out; animation-duration: 0.18s; }
+:root[data-dir="fade"]::view-transition-new(root) { animation-name: vt-fade-in; animation-duration: 0.18s; }
+
+@keyframes vt-in-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes vt-out-left { from { transform: none; opacity: 1; } to { transform: translateX(-28%); opacity: 0.4; } }
+@keyframes vt-in-left { from { transform: translateX(-28%); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@keyframes vt-out-right { from { transform: none; } to { transform: translateX(100%); } }
+@keyframes vt-in-up { from { transform: translateY(40px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } }
+
+/* Ортақ элемент: карточкадағы сурет ұсыныс бетіндегі фотоға «ұшып» барады */
+::view-transition-group(offer-photo) { animation-duration: 0.36s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); z-index: 5; }
+::view-transition-old(offer-photo), ::view-transition-new(offer-photo) { height: 100%; width: 100%; object-fit: cover; }
+/* Навигация мен төменгі жолақ ауысу кезінде орнында тұрады */
+::view-transition-group(navbar) { z-index: 10; animation: none; }
+/* Таб → таб: жолақ орнында тұрады, ішіндегі тамшы мен белгіше тірі күйде қозғалады */
+::view-transition-old(navbar) { display: none; }
+::view-transition-new(navbar) { animation: none; }
+/* Ішкі бетке өткенде жолақ төмен сырғып кетеді, қайтқанда көтеріледі */
+::view-transition-old(navbar):only-child { display: block; animation: nav-out 0.26s cubic-bezier(0.4, 0, 1, 1) both; }
+::view-transition-new(navbar):only-child { animation: nav-in 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+@keyframes nav-out { to { transform: translateY(110px); opacity: 0; } }
+@keyframes nav-in { from { transform: translateY(110px); opacity: 0; } }
+
+/* Скелет: жылтыр (shimmer) */
+.sk { background: #e4e8ee; position: relative; overflow: hidden; }
+:root[data-theme="dark"] .sk { background: #2a3645; }
+.sk::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent); animation: shimmer 1.25s infinite; }
+:root[data-theme="dark"] .sk::after { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent); }
+@keyframes shimmer { to { transform: translateX(100%); } }
+
+/* Мазмұнның пайда болуы: тізім элементтері кезекпен көтеріледі */
+.rise { animation: rise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 55ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

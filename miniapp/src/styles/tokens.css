@@ -1,0 +1,76 @@
+/* Figma: «Jazl+» беті, Telegram Mini Apps UI Kit (Android, Roboto) */
+:root {
+  --surface-page: #f2f4f7;
+  --surface-card: #fbfcfe;
+  --surface-category: #e9eef4;
+  --surface-soon: #eef1f5;
+  --surface-white: #ffffff;
+  --pill-bg: #ebebeb;
+  --search-bg: rgba(241, 243, 245, 0.9);
+  --search-border: rgba(244, 244, 244, 0.6);
+  --text-primary: #17212b;
+  --text-strong: #111a26;
+  --text-secondary: #5f6b7a;
+  --hint: #707579;
+  --link: #1f73c2;
+  --action: #217ac6;
+  --button: #229af0;
+  --button-tint: rgba(34, 154, 240, 0.16);
+  --chip-tint: rgba(34, 154, 240, 0.14);
+  --separator: #e6e9ee;
+  --thumb-bg: #e2f1fc;
+  --photo-bg: #dcebfa;
+  --orange-bg: rgba(254, 149, 0, 0.13);
+  --orange-text: #a86400;
+  --green-bg: rgba(49, 209, 88, 0.15);
+  --green-chip-bg: rgba(49, 209, 88, 0.14);
+  --green-text: #1f7a38;
+  --hl-green-bg: #ddf3e4;
+  --hl-green-text: #1b6b2e;
+  --hl-blue-bg: #dcebfb;
+  --hl-blue-text: #1f5fa8;
+  --quote-bg: #edf4fb;
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --glass-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.62));
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-hi: rgba(255, 255, 255, 0.95);
+  --glass-lo: rgba(17, 26, 38, 0.05);
+  --glass-active: rgba(34, 154, 240, 0.16);
+  --glass-active-edge: rgba(34, 154, 240, 0.18);
+  --nav-border: #ffffff;
+  --nav-active: #e4f1fd;
+  --nav-label: #000000;
+  --app-width: 412px;
+}
+
+/* Dark: Telegram палитрасы. Экрандар әлі Figma-мен салыстырылған жоқ. */
+:root[data-theme="dark"] {
+  --surface-page: #1d2733;
+  --surface-card: #242f3d;
+  --surface-category: #2a3645;
+  --surface-soon: #2a3645;
+  --surface-white: #1d2733;
+  --pill-bg: #2d3542;
+  --search-bg: rgba(45, 53, 66, 0.9);
+  --search-border: rgba(45, 53, 66, 0.6);
+  --text-primary: #f5f5f5;
+  --text-strong: #f5f5f5;
+  --text-secondary: #8da2b5;
+  --hint: #8da2b5;
+  --link: #8cc4f5;
+  --action: #5cb4f4;
+  --separator: #32404f;
+  --thumb-bg: #1e3346;
+  --photo-bg: #1e3346;
+  --quote-bg: #1e3346;
+  --nav-bg: rgba(32, 45, 61, 0.85);
+  --glass-bg: linear-gradient(180deg, rgba(44, 58, 76, 0.72), rgba(28, 39, 53, 0.6));
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-hi: rgba(255, 255, 255, 0.14);
+  --glass-lo: rgba(0, 0, 0, 0.25);
+  --glass-active: rgba(92, 180, 244, 0.2);
+  --glass-active-edge: rgba(92, 180, 244, 0.22);
+  --nav-border: #202d3d;
+  --nav-active: #20364d;
+  --nav-label: #ffffff;
+}

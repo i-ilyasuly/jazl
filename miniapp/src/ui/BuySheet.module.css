@@ -1,0 +1,38 @@
+.root { position: fixed; inset: 0; z-index: 50; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: 474px; padding: 30px 20px 0; background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; overflow: hidden; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.closing .scrim { animation: fadeOut 0.22s ease both; }
+.closing .sheet { animation: slideDown 0.22s ease-in both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes slideUp { from { transform: translateY(100%); } }
+@keyframes slideDown { to { transform: translateY(100%); } }
+:global(:root[data-env="telegram"]) .sheet { height: auto; padding-bottom: 24px; }
+
+.grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+.title { color: var(--text-strong); white-space: nowrap; }
+.item { display: flex; align-items: center; gap: 12px; width: 100%; color: var(--text-strong); }
+.icon { width: 52px; height: 52px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; }
+.itemText { display: flex; flex-direction: column; gap: 1px; white-space: nowrap; }
+.sep { border: 0; height: 1px; width: 100%; background: var(--separator); flex: none; }
+.row { display: flex; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; color: var(--text-strong); }
+.muted { color: var(--text-secondary); }
+.green { color: var(--hl-green-text); }
+.link { color: var(--link); }
+.total { font-size: 19px; line-height: 28px; letter-spacing: 0.15px; font-weight: 700; }
+.method { display: flex; align-items: center; gap: 6px; }
+.agree { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+.box { width: 22px; height: 22px; border-radius: 6px; flex: none; display: flex; align-items: center; justify-content: center; border: 2px solid #9aa5b1; transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
+.boxOn { background: var(--button); border-color: var(--button); }
+.box img { animation: checkPop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.agree:active .box { transform: scale(0.88); }
+@keyframes checkPop { from { transform: scale(0.3); } }
+.agreeText { color: var(--text-secondary); word-spacing: 0.4px; }
+.agreeText b { font-weight: 600; color: var(--link); }
+
+.bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 94px; padding: 10px 10px 0; background: var(--surface-white); }
+.pay { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; padding-left: 8px; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s ease; }
+.pay:active { opacity: 0.8; }
+.pay:disabled { opacity: 0.45; }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

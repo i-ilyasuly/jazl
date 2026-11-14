@@ -1,0 +1,15 @@
+.hero { height: 130px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ok { animation: pop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+@keyframes pop { from { transform: scale(0.4); opacity: 0; } }
+.amount { font-size: 28px; line-height: 36px; letter-spacing: 0.2px; font-weight: 700; color: var(--text-strong); animation: up 0.4s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.chip { padding: 3px 10px; border-radius: 12px; background: rgba(49, 209, 88, 0.15); color: #1f7a38; animation: up 0.4s 0.14s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes up { from { transform: translateY(8px); opacity: 0; } }
+.kv { position: relative; display: flex; justify-content: space-between; height: 46px; padding: 12px 16px; white-space: nowrap; color: var(--text-secondary); }
+.kv b { font-weight: 600; color: var(--text-strong); }
+.kv:not(:last-child), .action:not(:last-child) { margin-bottom: 1px; }
+.kv:not(:last-child)::after, .action:not(:last-child)::after { content: ""; position: absolute; left: 16px; right: 0; bottom: -1px; height: 1px; background: var(--separator); }
+.action { position: relative; display: block; width: 100%; height: 46px; padding: 10px 16px; text-align: left; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 500; color: var(--link); transition: background 0.15s ease; }
+.action:active { background: rgba(34, 154, 240, 0.08); }
+.bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: 66px; padding: 8px 10px; background: #fff; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease, filter 0.12s ease; }
+.btn:active { transform: scale(0.98); filter: brightness(0.94); }
