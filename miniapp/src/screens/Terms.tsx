@@ -8,7 +8,7 @@ const docs = [["Пайдалану шарттары", "terms"], ["Құпиялы
 export function Terms() {
   const go = useGo();
   return (
-    <SubPage title="Шарттар және құпиялылық" variant="roomy">
+    <SubPage title="Шарттар" variant="roomy">
       <Group>
         {docs.map(([t, id]) => <Row key={id} inset={16} title={t} onClick={() => go("/profile/doc/" + id)} right={<img src={chev} width={20} height={20} alt="" />} />)}
       </Group>
