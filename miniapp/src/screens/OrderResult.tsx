@@ -79,6 +79,7 @@ export function OrderView() {
           <div className={s.kv}><span>Пакет</span><b>{o.title}</b></div>
           <div className={s.kv}><span>Жіберілді</span><b>{o.created}</b></div>
           <div className={s.kv}><span>Төлем</span><b>пакеттен 1 бірлік</b></div>
+          <button className={`${s.kv} ${s.kvBtn}`} onClick={() => { haptic.tap(); go("/receipt/order/" + o.id); }}><span>Чек</span><b className={s.link}>Ашу</b></button>
         </div>
         <p className={s.note}>Мекемеге тапсырыс жіберілді. Орындалу барысын қолданба көрсетпейді.<i>”</i></p>
       </>}

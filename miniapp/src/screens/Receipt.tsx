@@ -5,7 +5,7 @@ import { useParams } from "react-router-dom";
 import { purchaseOf } from "../mocks/history";
 import { fmt, unitPrice } from "../mocks/offers";
 import { useGo } from "../nav";
-import { getPack, offerOf, usePacks } from "../store";
+import { getOrder, getPack, offerOf, useOrders, usePacks } from "../store";
 import { downloadFile, haptic, inTelegram, openExternal, saveFile, useBottomButtons } from "../telegram";
 import { Confirm } from "../ui/Confirm";
 import { Group, SubPage } from "../ui/SubPage";
@@ -77,6 +77,36 @@ export function UseReceipt() {
         <Sticker name="party" size={96} />
         <p className={s.amount}>−{fmt(unitPrice(o))}</p>
         <span className={`t-cap1 ${s.chip}`}>Төленді</span>
+      </div>
+      <Group i={1}>
+        {rows.map(([k, v]) => <div key={k} className={`t-sub2 ${s.kv}`}><span>{k}</span><b>{v}</b></div>)}
+      </Group>
+      <Group i={2}>
+        <button className={s.action} onClick={download.onClick}>Чекті жүктеу</button>
+        <button className={s.action} onClick={() => go("/profile/report")}>Мәселе туралы жазу</button>
+      </Group>
+      {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={download.onClick}>Чекті жүктеу</button></div>}
+      {dl.node}
+    </SubPage>
+  );
+}
+
+// Figma «20 · Тапсырыс»: «Тапсырыс чегі» 13918:9311 — алдын ала тапсырыспен пайдаланылған бір бірліктің чегі.
+export function OrderReceipt() {
+  const go = useGo();
+  useOrders();
+  const o = getOrder(useParams().id);
+  const dl = useReceiptDownload(o ? "JZ-ORD" + o.no : "JZ-ORD");
+  const download = useMemo(() => ({ text: "Чекті жүктеу", onClick: dl.start }), [dl.start]);
+  useBottomButtons(download, undefined, Boolean(o));
+  if (!o) return <SubPage title="Тапсырыс чегі"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Чек табылмады</p></SubPage>;
+  const rows = [["Пакет", o.title], ["Мекеме", o.venue], ["Күні", o.created], ["Код", o.code], ["Тапсырыс №", String(o.no)]];
+  return (
+    <SubPage title="Тапсырыс чегі" top={92}>
+      <div className={s.hero}>
+        <Sticker name="bags" size={96} />
+        <p className={s.amount}>1 бірлік</p>
+        <span className={`t-cap1 ${s.chip} ${s.sent}`}>Жіберілді</span>
       </div>
       <Group i={1}>
         {rows.map(([k, v]) => <div key={k} className={`t-sub2 ${s.kv}`}><span>{k}</span><b>{v}</b></div>)}
