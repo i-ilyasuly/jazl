@@ -31,11 +31,17 @@ export function Order() {
   const [branch, setBranch] = useState(list.find((b) => b.open)?.id ?? "");
   const [picking, setPicking] = useState(false);
   const [day, setDay] = useState(0);
-  const times = useMemo(() => (hair ? ["10:00", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30"] : ["now", ...slots(4)]), [hair]);
-  const [time, setTime] = useState(times[hair ? 3 : 0]);
+  const times = useMemo(() => (day === 0 ? ["now", ...slots(4)] : ["10:00", "12:00", "14:00", "18:00"]), [day]);
+  const [time, setTime] = useState("now");
+  useEffect(() => { if (!times.includes(time)) setTime(times[0]); }, [times]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sending, setSending] = useState(false);
   const b = list.find((x) => x.id === branch);
-  const days = pack ? Math.min(7, pack.daysLeft + 1) : 0;
+  // Figma 23 «Тапсырыс: мерзім алу уақытынан ерте бітеді» (14043:12912): мерзімнен кейінгі күндер сызылған,
+  // таңдалса — ескерту және «Жалғастыру» өшік. Демо: ?order=late (пакет мерзімі 2 күннен кейін бітеді)
+  const days = 4;
+  const lastDay = pack ? (demo() === "late" ? 2 : pack.daysLeft) : 0;
+  const tooLate = day > lastDay;
+  const [shake, setShake] = useState(0);
 
   // Тапсырыс беру мүмкін болмаса, бірден түсінікті бетке өтеміз
   useEffect(() => {
@@ -52,7 +58,7 @@ export function Order() {
     tg?.MainButton?.showProgress?.(false);
     setTimeout(() => {
       tg?.MainButton?.hideProgress?.();
-      const label = time === "now" ? "≈15 мин" : (hair ? `${dayLabel(day)}, ${time}` : time);
+      const label = time === "now" ? "≈15 мин" : (day > 0 ? `${dayLabel(day)}, ${time}` : time);
       const order = placeOrder(pack.id, b.address, label);
       if (!order) { haptic.error(); go(`/order/state/nounits/${pack.id}`, "up", { replace: true }); return; }
       if (demo() === "fail") { haptic.error(); go(`/order/state/fail/${pack.id}?o=${order.id}`, "up", { replace: true }); return; }
@@ -60,7 +66,8 @@ export function Order() {
       go("/order/done/" + order.id, "up", { replace: true });
     }, 1400);
   } }), [pack, b, sending, time, hair, day, go]);
-  useBottomButtons(send, undefined, Boolean(pack) && !picking);
+  const sendOk = useMemo(() => (tooLate ? { ...send, onClick: () => { haptic.error(); setShake((n) => n + 1); } } : send), [tooLate, send]);
+  useBottomButtons(sendOk, undefined, Boolean(pack) && !picking);
 
   // Шаштараз — Figma «22»: жеке «Күн мен уақыт» ағыны
   if (hair) return <Navigate to={"/book/" + packId} replace />;
@@ -79,11 +86,13 @@ export function Order() {
         {list.length > 1 && <i className={s.chev} />}
       </button>
 
-      {hair && <>
-        <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 2 }}>Қай күні</h2>
+      {tooLate && pack && <p key={shake} className={`t-sub2 ${s.warn} ${shake ? s.shake : ""}`} role="alert">Пакет мерзімі бітетін күн: {dayLabel(lastDay)}. Таңдаған алу күнің: {dayLabel(day)}. Бұл күнге тапсырыс беру мүмкін емес.<i>”</i></p>}
+      {<>
+        <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 2 }}>{tooLate ? "Қолжетімді күндер" : "Қай күні"}</h2>
         <div className={`${s.chips} rise`} style={{ ["--i" as string]: 2 }}>
-          {Array.from({ length: days }, (_, i) => <button key={i} className={`${s.chip} ${day === i ? s.on : ""}`} onClick={() => { if (day !== i) { haptic.select(); setDay(i); } }}>{dayLabel(i)}</button>)}
+          {Array.from({ length: days }, (_, i) => <button key={i} className={`${s.chip} ${i > lastDay ? s.off : ""} ${day === i ? s.on : ""}`} onClick={() => { if (day !== i) { haptic.select(); setDay(i); } }}>{dayLabel(i)}</button>)}
         </div>
+        {tooLate && pack && <div className={`${s.kvCard} rise`}><p><span>Пакет мерзімі</span><b className={s.amber}>{demo() === "late" ? dayLabel(lastDay) : pack.until}</b></p><p><span>Қалды</span><b>{pack.left} {o.unitWord}</b></p></div>}
       </>}
 
       <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 3 }}>{hair ? "Қай уақытта" : "Қашан аласың"}</h2>
@@ -126,7 +135,7 @@ export function Order() {
         </div>
       )}
 
-      {!inTelegram && !picking && <div className={s.bar}><button className={s.btn} disabled={sending} onClick={send.onClick}>{sending ? "Жіберілуде…" : send.text}</button></div>}
+      {!inTelegram && !picking && <div className={s.bar}><button className={`${s.btn} ${tooLate ? s.btnOff : ""}`} disabled={sending} onClick={sendOk.onClick}>{sending ? "Жіберілуде…" : send.text}</button></div>}
     </SubPage>
   );
 }
