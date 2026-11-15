@@ -1,9 +1,9 @@
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock } from "../store";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
-import { BuySheet } from "../ui/BuySheet";
+import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { detailsOf, discount, findOffer, fmt, isEnded, saving, unitPrice, type OfferDetails } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
 import { venues } from "../mocks/venues";
@@ -58,7 +58,9 @@ function OfferView({ id }: { id?: string }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => { const on = () => setScrolled(window.scrollY > 330); on(); window.addEventListener("scroll", on, { passive: true }); return () => window.removeEventListener("scroll", on); }, []);
   const [open, setOpen] = useState(false);
-  const [buying, setBuying] = useState(false);
+  const loc = useLocation();
+  const startStep = (loc.state as { buy?: BuyStep } | null)?.buy;
+  const [buying, setBuying] = useState(Boolean(startStep));
   const { loading } = useMock("offer:" + offer.id, offer, 450);
   const d = detailsOf(base);
   const photos = useMemo(() => galleryOf(base.id, base.kind), [base.id, base.kind]);
@@ -199,7 +201,7 @@ function OfferView({ id }: { id?: string }) {
       </div>
       )}
 
-      {buying && <BuySheet offer={offer} onClose={closeSheet} onPaid={paid} />}
+      {buying && <BuySheet offer={offer} onClose={closeSheet} onPaid={paid} start={startStep} />}
       {sheet === "how" && <HowSheet onClose={() => setSheet(null)} />}
       {sheet === "route" && <LinkSheet title="Бағыт" rows={routeRows} onClose={() => setSheet(null)} />}
       {sheet === "contact" && <LinkSheet title="Байланыс" rows={contactRows} onClose={() => setSheet(null)} />}

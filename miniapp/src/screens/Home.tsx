@@ -28,7 +28,7 @@ export function Home() {
   if (loading || !data) return <HomeSkeleton />;
   return (
     <div className={s.page}>
-      <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу" style={{ viewTransitionName: "top-search" }}>
+      <button className="topSearch pinned" onClick={() => go("/search")} aria-label="Іздеу" style={{ viewTransitionName: "top-search" }}>
         <img src={searchIcon} alt="" /><span>Іздеу...</span>
       </button>
       <header className={s.top}>
