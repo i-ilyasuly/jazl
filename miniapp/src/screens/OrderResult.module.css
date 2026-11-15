@@ -2,7 +2,7 @@
 .card { width: 100%; display: flex; flex-direction: column; border-radius: 20px; background: var(--surface-white); text-align: left; overflow: hidden; margin-top: 8px; animation: rise 0.4s 0.15s ease both; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
 .head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
-.emoji { width: 52px; height: 52px; flex: none; border-radius: 14px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+.emoji { width: 52px; height: 52px; flex: none; border-radius: 14px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 34px; }
 .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .text b { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
 .text small { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
@@ -19,3 +19,6 @@
 .note i { position: absolute; right: 12px; top: -6px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b301; font-style: normal; }
 :global(:root[data-theme="dark"]) .card { background: var(--surface-card); }
 :global(:root[data-theme="dark"]) .note { background: rgba(255, 184, 0, 0.16); }
+.kvBtn { width: 100%; text-align: left; transition: background 0.15s ease; }
+.kvBtn:active { background: rgba(34, 154, 240, 0.08); }
+.kv b.link { color: var(--link); }

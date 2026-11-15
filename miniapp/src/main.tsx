@@ -20,7 +20,7 @@ import { Profile } from "./screens/Profile";
 import { Savings } from "./screens/Savings";
 import { History } from "./screens/History";
 import { Notifications } from "./screens/Notifications";
-import { Receipt, UseReceipt } from "./screens/Receipt";
+import { Receipt, OrderReceipt, UseReceipt } from "./screens/Receipt";
 import { PayResult } from "./screens/PayResult";
 import { CardAdd } from "./screens/CardAdd";
 import { Order } from "./screens/Order";
@@ -117,6 +117,7 @@ const router = createHashRouter([
       { path: "/scan", element: <Scan /> },
       { path: "/scan/state/:kind", element: <ScanState /> },
       { path: "/receipt/use/:id", element: <UseReceipt /> },
+      { path: "/receipt/order/:id", element: <OrderReceipt /> },
       { path: "/paid/:id", element: <Paid /> },
       { path: "/profile", element: <Profile /> },
       { path: "/profile/savings", element: <Savings /> },
