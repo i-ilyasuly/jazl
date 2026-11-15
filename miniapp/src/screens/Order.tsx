@@ -2,7 +2,7 @@
 // «23»: «Тапсырыс: алу уақыты» 14043:12745. Пакет бұрын төленген — бұл жерде шот та, карта төлемі де жоқ,
 // тек пакеттен 1 бірлік шегеріледі. Шаштаразда бұл бет «Жазылу» болып ашылады (күн + уақыт).
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { branches, getPack, offerOf, placeOrder, usePacks } from "../store";
 import { haptic, inTelegram, tg, useBottomButtons } from "../telegram";
@@ -39,7 +39,7 @@ export function Order() {
 
   // Тапсырыс беру мүмкін болмаса, бірден түсінікті бетке өтеміз
   useEffect(() => {
-    if (!pack) return;
+    if (!pack || hair) return;
     if (pack.left < 1) go(`/order/state/nounits/${pack.id}`, "up", { replace: true });
     else if (demo() === "noaccept") go(`/order/state/noaccept/${pack.id}`, "up", { replace: true });
     else if (demo() === "closed" || list.every((x) => !x.open)) go(`/order/state/closed/${pack.id}`, "up", { replace: true });
@@ -62,6 +62,8 @@ export function Order() {
   } }), [pack, b, sending, time, hair, day, go]);
   useBottomButtons(send, undefined, Boolean(pack) && !picking);
 
+  // Шаштараз — Figma «22»: жеке «Күн мен уақыт» ағыны
+  if (hair) return <Navigate to={"/book/" + packId} replace />;
   if (!pack || !o) return <SubPage title="Тапсырыс"><p className={s.empty}>Пакет табылмады</p></SubPage>;
   return (
     <SubPage title={hair ? "Жазылу" : "Тапсырыс"} variant="settings">

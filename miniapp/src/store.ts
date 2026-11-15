@@ -381,3 +381,50 @@ export function failOrder(id: string) {
   emit();
 }
 export function finishOrder(id: string) { orders = orders.map((o) => (o.id === id ? { ...o, status: "done" } : o)); emit(); }
+
+// ── Шаштараз: жазылу (Figma «22 · Шаштараз: жазылу») ──────────────────────
+// Жазылу расталғанда пакеттен 1 рет брондалады. 2 сағаттан ертерек бас тартса — қайтарылады;
+// кеш бас тартса не келмесе — жұмсалады. Бэкенд қосылғанда: POST /bookings, PATCH /bookings/:id.
+export interface Booking { id: string; packId: string; venue: string; service: string; master?: string; at: number; status: "ok" | "cancelled" | "missed" }
+export const FREE_CANCEL_MS = 2 * 3600_000;
+const kkMonths = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
+export const dayStart = (off: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return d.getTime(); };
+export const atOf = (off: number, hm: string) => { const [h, m] = hm.split(":").map(Number); const d = new Date(dayStart(off)); d.setHours(h, m); return d.getTime(); };
+export function dayWord(off: number, short = false) {
+  if (off === 0) return "Бүгін"; if (off === 1) return "Ертең";
+  const d = new Date(dayStart(off)); return `${d.getDate()} ${short ? kkMonths[d.getMonth()].slice(0, 3) + "." : kkMonths[d.getMonth()]}`;
+}
+export function bookLabel(at: number) {
+  const off = Math.round((dayStart(0) - new Date(at).setHours(0, 0, 0, 0)) / -86400000);
+  const d = new Date(at); return `${dayWord(off)}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+let bookings: Booking[] = [
+  { id: "bk1", packId: "p2", venue: "Qala Barber", service: "Шаш қию", at: atOf(1, "14:00"), status: "ok" },
+  { id: "bk2", packId: "p2", venue: "Qala Barber", service: "Шаш + сақал", master: "Дана", at: atOf(4, "11:00"), status: "ok" },
+];
+let bookNo = 3;
+export const useBookings = () => useSyncExternalStore(subscribe, () => bookings);
+export const getBooking = (id?: string) => bookings.find((b) => b.id === id);
+export const freeCancel = (b: Booking) => b.at - Date.now() > FREE_CANCEL_MS;
+export function book(packId: string, at: number): Booking | null {
+  const p = getPack(packId);
+  if (!p || p.left < 1) return null;
+  const o = offerOf(p);
+  const b: Booking = { id: "bk" + bookNo++, packId, venue: o.venue, service: o.title.split(" · ")[0], at, status: "ok" };
+  bookings = [...bookings, b].sort((x, y) => x.at - y.at);
+  packs = packs.map((x) => x.id !== packId ? x : { ...x, left: x.left - 1,
+    history: [{ emoji: "📅", title: `Жазылу: ${bookLabel(at)}`, sub: `${o.venue} • расталды`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
+  emit();
+  return b;
+}
+export function moveBooking(id: string, at: number) { bookings = bookings.map((b) => (b.id === id ? { ...b, at } : b)).sort((x, y) => x.at - y.at); emit(); }
+/** Бас тарту: 2 сағаттан ерте болса бірлік пакетке қайтады. Қайтарады: қайтарылды ма. */
+export function cancelBooking(id: string): boolean {
+  const b = getBooking(id); if (!b) return false;
+  const free = freeCancel(b);
+  bookings = bookings.map((x) => (x.id === id ? { ...x, status: "cancelled" } : x));
+  if (free) packs = packs.map((x) => x.id !== b.packId ? x : { ...x, left: x.left + 1,
+    history: [{ emoji: "↩️", title: "Жазылудан бас тартылды", sub: `${bookLabel(b.at)} • тегін`, right: `Қалды: ${x.left + 1}` }, ...x.history] });
+  emit();
+  return free;
+}

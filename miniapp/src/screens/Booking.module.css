@@ -1,0 +1,31 @@
+.h2 { height: 20px; padding-left: 16px; color: var(--link); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { height: 44px; padding: 11px 16px; border-radius: 12px; background: var(--surface-white); color: var(--text-strong); transition: background 0.2s ease, color 0.2s ease, transform 0.12s ease; }
+.chip:active:not(:disabled) { transform: scale(0.96); }
+.on { background: rgba(34, 154, 240, 0.18); color: #1f73c2; font-weight: 600; }
+.busy { background: rgba(118, 118, 128, 0.12); color: var(--text-secondary); text-decoration: line-through; opacity: 0.6; }
+.picked { display: flex; align-items: center; gap: 8px; height: 28px; color: var(--text-strong); }
+.pickedChip { height: 28px; padding: 4px 8px; border-radius: 8px; background: rgba(49, 209, 88, 0.16); color: #1b6b2e; animation: pop 0.3s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+@keyframes pop { from { transform: scale(0.85); opacity: 0; } }
+.legend { color: var(--text-secondary); }
+.kv { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 52px; padding: 0 16px; color: var(--text-strong); white-space: nowrap; }
+.kv:not(:last-child)::after { content: ""; position: absolute; left: 16px; right: 0; bottom: 0; height: 1px; background: var(--separator); }
+.kv b { color: var(--text-secondary); }
+.kv b.blue { color: var(--link); }
+.head { display: flex; flex-direction: column; gap: 4px; width: 380px; padding: 16px; border-radius: 20px; background: var(--surface-white); color: var(--text-strong); }
+.head small { color: var(--text-secondary); }
+.note { position: relative; width: 380px; padding: 12px 40px 12px 16px; border-radius: 12px; background: #fdf3d6; color: var(--text-strong); }
+.note::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; background: #f5b800; }
+.note i { position: absolute; right: 12px; top: 8px; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: #f5b800; }
+.empty { text-align: center; color: var(--text-secondary); }
+.bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 8px 10px calc(8px + var(--safe-b, 0px)); background: var(--surface-white); display: flex; gap: 8px; }
+.btn { flex: 1; height: 48px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.12s ease; }
+.btn:active { opacity: 0.8; }
+.btn:disabled { opacity: 0.4; }
+.second { background: var(--chip-tint); color: var(--link); }
+.snack { position: fixed; z-index: 40; left: 50%; margin-left: -190px; bottom: calc(24px + var(--safe-b, 0px)); width: 380px; height: 48px; padding: 14px 16px; border-radius: 12px; background: #2b3645; color: #fff; animation: up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes up { from { transform: translateY(16px); opacity: 0; } }
+:global(:root[data-theme="dark"]) .chip, :global(:root[data-theme="dark"]) .head { background: var(--surface-card); }
+:global(:root[data-theme="dark"]) .on { background: rgba(92, 180, 244, 0.24); color: #fff; }
+:global(:root[data-theme="dark"]) .pickedChip { background: rgba(49, 209, 88, 0.22); color: #fff; }
+:global(:root[data-theme="dark"]) .note { background: rgba(245, 184, 0, 0.16); }
