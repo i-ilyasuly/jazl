@@ -12,3 +12,17 @@ export const history: { month: string; items: Purchase[] }[] = [
   ] },
 ];
 export const purchaseOf = (id?: string) => history.flatMap((g) => g.items).find((i) => i.id === id);
+
+// Figma «Қолдану тарихы» 13918:8337: кассада Jazl QR арқылы пайдаланылған бірліктер (бір бірліктің құны).
+export interface Usage { id: string; e: string; t: string; sub: string; v: string; packId?: string }
+export const usage: { month: string; items: Usage[] }[] = [
+  { month: "Қараша", items: [
+    { id: "u1", e: "🍔", t: "Тауық донері · 1 бірлік", sub: "Dämdi Doner • 12 қараша", v: "−1 500 ₸", packId: "p1" },
+    { id: "u2", e: "✂️", t: "Шаш қию · 1 бірлік", sub: "Qala Barber • 9 қараша • №104", v: "−3 000 ₸", packId: "p2" },
+    { id: "u3", e: "☕", t: "Латте · 1 бірлік", sub: "Brew Point • 2 қараша", v: "−1 500 ₸" },
+  ] },
+  { month: "Қазан", items: [
+    { id: "u4", e: "☕", t: "Кофе · 1 бірлік", sub: "Coffee Lab • 28 қазан • №97", v: "−1 000 ₸" },
+    { id: "u5", e: "🍔", t: "Бургер комбо · 1 бірлік", sub: "Bahandi • 20 қазан", v: "−2 700 ₸", packId: "p3" },
+  ] },
+];

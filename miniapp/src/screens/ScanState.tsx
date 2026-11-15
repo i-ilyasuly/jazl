@@ -63,7 +63,7 @@ export function ScanState() {
   const left = useMemo(() => c.left ? ({ text: c.left, position: "left" as const, onClick: () => {
     haptic.tap();
     if (k === "notpartner") go("/profile/venue");
-    else if (k === "paidbefore") go("/packs?tab=2", "fade", { replace: true });
+    else if (k === "paidbefore") go("/profile/usage", "forward", { replace: true });
     else if (k === "kyc") close();
     else go("/profile/report");
   } }) : undefined, [c.left, k, go, close]);

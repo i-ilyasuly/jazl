@@ -1,7 +1,7 @@
 // Қосымшаның жергілікті күйі (бэкендсіз): сатып алынған пакеттер және қолдану тарихы.
 // Бэкенд қосылғанда осы файлдың ішкі жағы API шақыруларына ауысады, экрандар өзгермейді.
 import { kv } from "./telegram";
-import { API_URL, BOT_APP_LINK } from "./config";
+import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
 import { venues } from "./mocks/venues";
 import { useSyncExternalStore } from "react";
 import { findOffer, fmt, unitPrice, type Offer } from "./mocks/offers";
@@ -265,7 +265,10 @@ export function sendGift(offerId: string, msg: string, anon: boolean): string {
   return id;
 }
 /** Сыйлық сілтемесі: бот орнатылса — t.me/<бот>/<app>?startapp=gift_<id>, әйтпесе Mini App мекенжайы. */
-export const giftLink = (id: string) => (BOT_APP_LINK ? `${BOT_APP_LINK}?startapp=gift_${id}` : `${window.location.origin}/#/gift/open/${id}`);
+export const giftLink = (id: string) => appLink("gift", id);
+/** Ботқа апаратын сілтеме: t.me/oylarbot?startapp=<түр>_<id>; бот жоқ болса — сайт мекенжайы. */
+export const appLink = (kind: "gift" | "venue" | "offer", id: string) =>
+  BOT_APP_LINK ? `${BOT_APP_LINK}?startapp=${kind}_${id}` : `${SITE_URL}/#/${kind === "gift" ? "gift/open" : kind}/${id}`;
 /** Бот хабарламаны дайындайды (savePreparedInlineMessage) → WebApp.shareMessage үшін id. Бэкенд жоқ болса — null. */
 export async function prepareGift(id: string): Promise<string | null> {
   if (!API_URL) return null;

@@ -135,6 +135,19 @@ export function shareToChat(opts: { preparedId?: string | null; url: string; tex
   });
 }
 
+/** Файлды жүктеу. Telegram 8.0+: нативті «Файлды жүктеу?» терезесі (true — келісті, false — бас тартты).
+ *  Браузерде: null — экран өз диалогын көрсетіп, saveFile арқылы жүктейді. */
+export function downloadFile(url: string, fileName: string): Promise<boolean | null> {
+  return new Promise((res) => {
+    if (inTelegram && wa?.downloadFile && at("8.0")) { wa.downloadFile({ url, file_name: fileName }, (ok) => res(Boolean(ok))); return; }
+    res(null);
+  });
+}
+/** Браузерде файлды сақтау (<a download>). */
+export function saveFile(url: string, fileName: string) {
+  const a = document.createElement("a"); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
+}
+
 /** Нативті ескерту терезесі (браузерде жай alert-ке түспейді: үнсіз өтеді). */
 export function nativeAlert(message: string) {
   if (inTelegram && at("6.2") && wa?.showAlert) wa.showAlert(message);

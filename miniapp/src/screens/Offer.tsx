@@ -1,4 +1,4 @@
-import { toggleFav, toggleRestock, useFavs, usePacks, useRestock } from "../store";
+import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useMock } from "../mocks/useMock";
@@ -68,7 +68,7 @@ function OfferView({ id }: { id?: string }) {
   const { loading } = useMock("offer:" + offer.id, offer, 450);
   const d = detailsOf(base);
   const photos = useMemo(() => galleryOf(base.id, base.kind), [base.id, base.kind]);
-  const shareIt = () => { haptic.tap(); const url = "https://t.me/share/url?url=" + encodeURIComponent(location.href) + "&text=" + encodeURIComponent(`${offer.title} — ${offer.venue}, ${fmt(offer.price)}`); if (inTelegram) openChat(url.replace("https://t.me/", "")); else window.open(url, "_blank", "noopener"); };
+  const shareIt = () => { haptic.tap(); const url = "https://t.me/share/url?url=" + encodeURIComponent(appLink("offer", offer.id)) + "&text=" + encodeURIComponent(`${offer.title} — ${offer.venue}, ${fmt(offer.price)}`); if (inTelegram) openChat(url.replace("https://t.me/", "")); else window.open(url, "_blank", "noopener"); };
 
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back, !buying && !using);

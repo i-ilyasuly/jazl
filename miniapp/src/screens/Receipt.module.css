@@ -16,3 +16,8 @@
 .hero { height: 170px; }
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
+/* «Чек: жүктелді» жолағы: биіктігі 48, бұрыш 12, мәтін 15/20 */
+.snack { position: fixed; z-index: 60; left: 50%; margin-left: -190px; bottom: calc(82px + var(--safe-b, 0px)); width: 380px; min-height: 48px; padding: 0 16px; border-radius: 12px; background: rgba(17, 26, 38, 0.92); color: #fff; display: flex; align-items: center; justify-content: space-between; animation: snackIn 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.snack button { height: 48px; color: #5cb4f4; font-size: 15px; line-height: 20px; }
+:global(:root[data-env="telegram"]) .snack { bottom: calc(16px + var(--safe-b, 0px)); }
+@keyframes snackIn { from { opacity: 0; transform: translateY(12px); } }

@@ -12,6 +12,7 @@ import { Packs } from "./screens/Packs";
 import { PackPage } from "./screens/PackPage";
 import { CarryRules, Rebuy, RebuyDone } from "./screens/Rebuy";
 import { GiftSend } from "./screens/GiftSend";
+import { UsageHistory } from "./screens/UsageHistory";
 import { GiftDone, GiftOpen } from "./screens/GiftOpen";
 import { Scan } from "./screens/Scan";
 import { ScanState } from "./screens/ScanState";
@@ -45,11 +46,12 @@ import { NavBar, type TabKey } from "./ui/NavBar";
 const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
 
 initTelegram();
-// Сыйлық сілтемесі ботта t.me/<бот>?startapp=gift_<id> түрінде келеді — бірден сыйлық бетін ашамыз.
+// Бот сілтемелері t.me/oylarbot?startapp=<түр>_<id> түрінде келеді — бірден тиісті бетті ашамыз.
 {
-  const sp = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { start_param?: string } } } }).Telegram?.WebApp?.initDataUnsafe?.start_param;
-  const m = sp?.match(/^gift_(\w+)$/);
-  if (m) window.location.hash = "#/gift/open/" + m[1];
+  const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+  const m = sp?.match(/^(gift|venue|offer)_([\w-]+)$/);
+  const to = m && { gift: "/gift/open/", venue: "/venue/", offer: "/offer/" }[m[1] as "gift" | "venue" | "offer"];
+  if (m && to) window.location.hash = "#" + to + m[2];
 }
 
 // Навигация бір рет қана орнатылады: бет ауысқанда қайта салынбайды, сондықтан
@@ -103,6 +105,7 @@ const router = createHashRouter([
       { path: "/rebuy/done/:id", element: <RebuyDone /> },
       { path: "/rules/carry", element: <CarryRules /> },
       { path: "/gift/:id", element: <GiftSend /> },
+      { path: "/profile/usage", element: <UsageHistory /> },
       { path: "/gift/open/:id", element: <GiftOpen /> },
       { path: "/gift/done/:id", element: <GiftDone /> },
       { path: "/scan", element: <Scan /> },

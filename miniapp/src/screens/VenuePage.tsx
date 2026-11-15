@@ -8,7 +8,7 @@ import { offersOfVenue } from "../mocks/offers";
 import { findVenue, kindEmoji, kindLabel, venues } from "../mocks/venues";
 import { coverPhoto } from "../mocks/photos";
 import { useGo } from "../nav";
-import { toggleVenueSub, useVenueSubs } from "../store";
+import { appLink, toggleVenueSub, useVenueSubs } from "../store";
 import { askWriteAccess, haptic, inTelegram, openExternal, tg, useBackButton } from "../telegram";
 import { Confirm } from "../ui/Confirm";
 import { LinkSheet } from "../ui/LinkSheet";
@@ -59,7 +59,7 @@ function VenueView({ id }: { id?: string }) {
   const share = () => {
     haptic.tap();
     // Нативті бөлісу: Telegram өзінің чат таңдау терезесін ашады
-    const url = "https://t.me/share/url?url=" + encodeURIComponent(window.location.origin + "/#/venue/" + v.id) + "&text=" + encodeURIComponent(`${v.name} · Jazl+\n${kindLabel[v.kind]} • ★ ${String(v.rating).replace(".", ",")} • Қарағанды`);
+    const url = "https://t.me/share/url?url=" + encodeURIComponent(appLink("venue", v.id)) + "&text=" + encodeURIComponent(`${v.name} · Jazl+\n${kindLabel[v.kind]} • ★ ${String(v.rating).replace(".", ",")} • Қарағанды`);
     if (inTelegram && tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
   };
   const subDone = () => { haptic.success(); toggleVenueSub(v.id); setSnack(true); };
