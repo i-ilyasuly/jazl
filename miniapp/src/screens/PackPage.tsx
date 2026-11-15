@@ -19,8 +19,11 @@ export function PackPage() {
   const pack = getPack(id);
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back);
-  const scan = useMemo(() => ({ text: "Сканерлеу", onClick: () => go("/scan?pack=" + id, "up") }), [go, id]);
-  useBottomButtons(scan, undefined, Boolean(pack && pack.left > 0));
+  // Figma «Пакет беті: екі әрекет» 13913:8091: мекемеде — сканерлеу, үйде — тапсырыс беру (шаштаразда — жазылу)
+  const hairPack = pack ? offerOf(pack).kind === "hair" : false;
+  const scan = useMemo(() => ({ text: "Сканерлеу", position: "left" as const, onClick: () => { haptic.medium(); go("/scan?pack=" + id, "up"); } }), [go, id]);
+  const order = useMemo(() => ({ text: hairPack ? "Жазылу" : "Тапсырыс беру", shine: true, onClick: () => { haptic.medium(); go("/order/" + id); } }), [go, id, hairPack]);
+  useBottomButtons(order, scan, Boolean(pack && pack.left > 0));
   if (!pack) return null;
   const o = offerOf(pack);
   const soon = pack.daysLeft <= 3;
@@ -42,6 +45,7 @@ export function PackPage() {
           <p className={s.count}><span>{pack.left} / {pack.total}</span><span className="t-sub1">қалды</span></p>
           <Timeline total={pack.total} used={pack.total - pack.left} warn={soon} width={348} />
           <p className={`t-sub2 ${s.muted}`}>{pack.until} · {pack.daysLeft} күн қалды</p>
+          {pack.left > 0 && <p className={s.howUse}>{o.kind === "hair" ? <>Салонда шеберге QR-ды сканерлейсің, не үйден <b>«Жазылу»</b> арқылы уақыт таңдайсың.</> : <>Кассада «Jazl бойынша» деп айтып, QR-ды сканерле. Не мекемеге бармай <b>«Тапсырыс беру»</b> батырмасын бас — ақша төленбейді, бірлік пакеттен шегеріледі.</>}</p>}
         </section>
 
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 1 }}>
@@ -70,7 +74,8 @@ export function PackPage() {
 
       {!inTelegram && (
         <div className={s.bar}>
-          <button className={s.btn} disabled={pack.left < 1} onClick={scan.onClick}><img src={qr} width={22} height={22} alt="" />Сканерлеу</button>
+          <button className={`${s.btn} ${s.btn2}`} disabled={pack.left < 1} onClick={scan.onClick}><img src={qr} width={22} height={22} alt="" />Сканерлеу</button>
+          <button className={`${s.btn} ${s.shine}`} disabled={pack.left < 1} onClick={order.onClick}>{order.text}</button>
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@
 .top > * { translate: 0 var(--top-shift); }
 /* Segmented Control (Android): 380×44, r44, ішкі шегініс 2 */
 .seg { position: absolute; left: 16px; top: 110px; width: 380px; height: 44px; padding: 2px; border-radius: 44px; background: rgba(118, 118, 128, 0.12); display: flex; }
-.segThumb { position: absolute; left: 2px; top: 2px; width: 188px; height: 40px; border-radius: 40px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04); transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.segThumb { position: absolute; left: 2px; top: 2px; width: 125.33px; height: 40px; border-radius: 40px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04); transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .segBtn { position: relative; flex: 1; height: 40px; border-radius: 40px; color: var(--text-secondary); font-size: 17px !important; line-height: 22px !important; font-weight: 500; transition: color 0.2s ease; }
 .segOn { font-weight: 700; color: var(--text-strong); }
 .list { padding: 8px 16px 0; display: flex; flex-direction: column; gap: 8px; }
@@ -34,3 +34,15 @@
 :global(:root[data-theme="dark"]) .segThumb { background: #3b4a5d; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
 :global(:root[data-theme="dark"]) .segBtn, :global(:root[data-theme="dark"]) .text, :global(:root[data-theme="dark"]) .left { color: var(--text-primary); }
 :global(:root[data-theme="dark"]) .sep { background: var(--separator); }
+.segBtn { font-size: 16px !important; }
+/* Тапсырыстар табы */
+.order { display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 16px; border-radius: 20px; background: var(--surface-card); text-align: left; transition: transform 0.12s ease; }
+.order:active { transform: scale(0.98); }
+.oHead { display: flex; align-items: center; gap: 12px; }
+.oEmoji { width: 52px; height: 52px; flex: none; border-radius: 14px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+.oText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.oText b { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
+.oText small { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.oCode { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 14px; background: var(--chip-tint); }
+.oCode small { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.oCode b { font-size: 24px; line-height: 30px; font-weight: 800; letter-spacing: 3px; color: var(--link); }
