@@ -32,7 +32,7 @@ export function PackPage() {
   // Figma «Пакет беті: екі әрекет» 13913:8091: мекемеде — сканерлеу, үйде — тапсырыс беру (шаштаразда — жазылу)
   const hairPack = pack ? offerOf(pack).kind === "hair" : false;
   const scan = useMemo(() => ({ text: "Сканерлеу", position: "left" as const, onClick: () => { haptic.medium(); go("/scan?pack=" + id, "up"); } }), [go, id]);
-  const order = useMemo(() => ({ text: hairPack ? "Жазылу" : "Тапсырыс беру", shine: true, onClick: () => { haptic.medium(); go("/order/" + id); } }), [go, id, hairPack]);
+  const order = useMemo(() => ({ text: hairPack ? "Жазылу" : "Тапсырыс беру", shine: true, onClick: () => { haptic.medium(); go((hairPack ? "/book/" : "/order/") + id); } }), [go, id, hairPack]);
   // Біткен не мерзімі өткен пакетте жалғыз негізгі әрекет — «Қайта алу»
   const usable = Boolean(pack && pack.left > 0 && !pack.expired);
   const rebuy = useMemo(() => ({ text: "Қайта алу", shine: true, onClick: () => { haptic.medium(); go("/rebuy/" + id); } }), [go, id]);
@@ -79,7 +79,7 @@ export function PackPage() {
                 <button className={s.noteLink} onClick={() => go("/rules/carry")}>Көшіру ережесі туралы толығырақ</button></p>
             </div>
           )}
-          {usable && <p className={s.howUse}>{o.kind === "hair" ? <>Салонда шеберге QR-ды сканерлейсің, не үйден <b>«Жазылу»</b> арқылы уақыт таңдайсың.</> : <>Кассада «Jazl бойынша» деп айтып, QR-ды сканерле. Не мекемеге бармай <b>«Тапсырыс беру»</b> батырмасын бас — ақша төленбейді, бірлік пакеттен шегеріледі.</>}</p>}
+          {usable && <p className={s.howUse}>{o.kind === "hair" ? <>Алдын ала <b>«Жазылу»</b> арқылы уақыт таңда, не жазылусыз келіп QR сканерле. Жазылусыз келгенде тек бос уақытқа қабылданады.</> : <>Кассада «Jazl бойынша» деп айтып, QR-ды сканерле. Не мекемеге бармай <b>«Тапсырыс беру»</b> батырмасын бас — ақша төленбейді, бірлік пакеттен шегеріледі.</>}</p>}
         </section>
 
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 1 }}>

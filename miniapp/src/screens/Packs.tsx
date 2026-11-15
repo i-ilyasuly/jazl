@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
 import { useGo } from "../nav";
-import { getPack, hideRate, offerOf, useActivity, useOrders, usePacks, useRateHidden, type Activity, type Pack } from "../store";
+import { bookLabel, getPack, hideRate, useBookings, offerOf, useActivity, useOrders, usePacks, useRateHidden, type Activity, type Pack } from "../store";
 import { haptic, kv } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Timeline } from "../ui/Timeline";
@@ -57,7 +57,7 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
   );
 }
 
-const tabs = ["Белсенді", "Тапсырыстар", "Тарих"];
+
 
 export function Packs() {
   const go = useGo();
@@ -66,6 +66,9 @@ export function Packs() {
   const [tab, setTab] = useState(() => Number(window.location.hash.match(/[?&]tab=([0-2])/)?.[1] ?? 0));
   const [using, setUsing] = useState<Pack | null>(null);
   const orders = useOrders().filter((o) => o.status === "sent");
+  const bookings = useBookings().filter((b) => b.status === "ok");
+  // Figma «22 · менің жазылуларым»: тек жазылулар болса таб «Жазылулар» деп аталады
+  const tabs = ["Белсенді", bookings.length && !orders.length ? "Жазылулар" : "Тапсырыстар", "Тарих"];
   const { loading } = useMock("packs", packs, 500);
   const active = packs.filter((p) => p.left > 0 && !p.expired);
   const allActs = useActivity();
@@ -97,15 +100,28 @@ export function Packs() {
       {!loading && packs.length === 0 ? (
         <EmptyState inline sticker="shop" title="Әзірге пакет жоқ" text={"Пакет сатып алсаң, мекемеде сканерлеп\nнемесе үйден тапсырыс беріп қолданасың"} action={{ text: "Ұсыныстарды көру", onClick: () => go("/", "fade") }} />
       ) : <main className={s.list} key={tab}>
-        <p className={`t-sub2 w-600 ${s.header}`}>{tab === 2 ? "Соңғы әрекеттер" : <>{tabs[tab]}<span> · {tab === 0 ? active.length : orders.length}</span></>}</p>
+        {!(tab === 1 && bookings.length) && <p className={`t-sub2 w-600 ${s.header}`}>{tab === 2 ? "Соңғы әрекеттер" : <>{tabs[tab]}<span> · {tab === 0 ? active.length : orders.length}</span></>}</p>}
         {loading
           ? [0, 1].map((i) => <div key={i} className={s.card} style={{ height: 190 }}><span className="sk" style={{ position: "absolute", left: 16, top: 16, width: 72, height: 72, borderRadius: 12 }} /><span className="sk" style={{ position: "absolute", left: 100, top: 20, width: 190, height: 20, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 100, top: 48, width: 130, height: 14, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 16, top: 112, width: 348, height: 10, borderRadius: 5 }} /><span className="sk" style={{ position: "absolute", left: 16, top: 140, width: 90, height: 22, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 274, top: 134, width: 90, height: 36, borderRadius: 18 }} /></div>)
           : tab === 1
-            ? (orders.length ? orders.map((o, i) => (
+            ? (orders.length || bookings.length ? [bookings.length > 0 && (
+                <section key="bk" className={`${s.books} rise`}>
+                  <h2 className={s.booksTitle}>Алдағы жазылулар</h2>
+                  <div className={s.bookList}>
+                    {bookings.map((b) => (
+                      <button key={b.id} className={s.bookRow} onClick={() => { haptic.tap(); go("/booking/" + b.id); }}>
+                        <span className={s.oText}><b>{bookLabel(b.at)}</b><small>{b.service} • {b.master ?? b.venue}</small></span>
+                        <span className={`t-cap1 ${s.bookChip}`}>Расталды</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className={`t-sub2 ${s.bookNote}`}>Ауыстыру немесе бас тарту үшін жазылуды ашып қара.<i>”</i></p>
+                </section>
+              ), orders.length > 0 && bookings.length > 0 && <p key="oh" className={`t-sub2 w-600 ${s.header}`}>Тапсырыстар<span> · {orders.length}</span></p>, ...orders.map((o, i) => (
                 <button key={o.id} className={`${s.order} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/orders/" + o.id)}>
                   <span className={s.oHead}><span className={s.oEmoji}>{o.emoji}</span><span className={s.oText}><b>{o.title}</b><small>№{o.no} • {o.venue} • {o.time}</small></span></span>
                   <span className={s.oCode}><small>Кассирге айтатын код</small><b>{o.code}</b></span>
-                </button>)) : <p className={`t-sub2 rise ${s.empty}`}>Белсенді тапсырыс жоқ. Пакет бетінде «Тапсырыс беру» батырмасы бар.</p>)
+                </button>))] : <p className={`t-sub2 rise ${s.empty}`}>Белсенді тапсырыс жоқ. Пакет бетінде «Тапсырыс беру» батырмасы бар.</p>)
           : tab === 2
             ? (acts.length ? (
                 <section className={`${s.acts} rise`}>
