@@ -33,6 +33,8 @@ interface TelegramWebApp {
   openTelegramLink?: (url: string) => void;
   /** Bot API 8.0: бот дайындаған хабарламаны Telegram-ның нативті чат/контакт таңдау терезесімен жіберу. */
   shareMessage?: (msgId: string, cb?: (sent: boolean) => void) => void;
+  /** Bot API 8.0: нативті «Файлды жүктеу?» терезесі. */
+  downloadFile?: (p: { url: string; file_name: string }, cb?: (accepted: boolean) => void) => void;
   openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
   LocationManager?: { isInited: boolean; isLocationAvailable: boolean; isAccessRequested: boolean; isAccessGranted: boolean; init(cb?: () => void): void; getLocation(cb: (data: { latitude: number; longitude: number } | null) => void): void; openSettings(): void };
   requestContact?: (cb?: (shared: boolean, res?: { responseUnsafe?: { contact?: { phone_number?: string } } }) => void) => void;

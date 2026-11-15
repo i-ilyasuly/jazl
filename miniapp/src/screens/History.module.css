@@ -3,3 +3,10 @@
 .plus { color: #1b6b2e; }
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .emoji { background: rgba(92, 180, 244, 0.2); }
+/* «Қолдану тарихы» күйлері: белгі 24 (13/16), жолақ 48 */
+.pending { height: 24px; padding: 4px 8px; border-radius: 12px; background: var(--orange-bg); color: var(--orange-text); }
+.failed { height: 24px; padding: 4px 8px; border-radius: 12px; background: rgba(240, 74, 74, 0.14); color: #c71f1f; }
+.snack { position: fixed; z-index: 60; left: 50%; margin-left: -190px; bottom: calc(16px + var(--safe-b, 0px)); width: 380px; min-height: 48px; padding: 14px 16px; border-radius: 12px; background: rgba(17, 26, 38, 0.92); color: #fff; animation: snackIn 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+@keyframes snackIn { from { opacity: 0; transform: translateY(12px); } }
+:global(:root[data-theme="dark"]) .failed { background: rgba(240, 74, 74, 0.24); color: #fff; }
+.link { display: flex; align-items: center; justify-content: space-between; }

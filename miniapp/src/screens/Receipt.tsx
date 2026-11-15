@@ -1,19 +1,41 @@
-// Figma: «Сатып алу тарихы / Чек» (13886:36837)
-import { useMemo } from "react";
+// Figma: «Сатып алу тарихы / Чек» (13886:36837), «Чек: жүктеу диалогы» 13886:36991, «Чек: жүктелді» 13886:37123.
+// Жүктеу: Telegram 8.0+ — нативті WebApp.downloadFile терезесі; браузерде — Figma-дағы диалог.
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { purchaseOf } from "../mocks/history";
 import { fmt, unitPrice } from "../mocks/offers";
 import { useGo } from "../nav";
 import { getPack, offerOf, usePacks } from "../store";
-import { inTelegram, useBottomButtons } from "../telegram";
+import { downloadFile, haptic, inTelegram, openExternal, saveFile, useBottomButtons } from "../telegram";
+import { Confirm } from "../ui/Confirm";
 import { Group, SubPage } from "../ui/SubPage";
 import { Sticker } from "../ui/Sticker";
 import s from "./Receipt.module.css";
 
+/** Чекті жүктеу ағыны: диалог → жүктеу → «Чек жүктелді · Ашу» жолағы. Бэкенд жоқ кезде — үлгі PDF. */
+function useReceiptDownload(txn: string): { start: () => void; node: ReactNode } {
+  const [ask, setAsk] = useState(false);
+  const [done, setDone] = useState(false);
+  const name = `chek_${txn}.pdf`;
+  const url = new URL(`receipts/${name}`, window.location.href.split("#")[0]).href;
+  useEffect(() => { if (!done) return; const t = window.setTimeout(() => setDone(false), 3600); return () => clearTimeout(t); }, [done]);
+  const start = useCallback(() => {
+    haptic.tap();
+    void downloadFile(url, name).then((r) => { if (r === null) setAsk(true); else if (r) { haptic.success(); setDone(true); } });
+  }, [url, name]);
+  const node = <>
+    {ask && <Confirm title="Файлды жүктеу?" text={`${name} · PDF`} cancel="Бас тарту" ok="Жүктеу" onClose={() => setAsk(false)}
+      onOk={() => { saveFile(url, name); haptic.success(); setDone(true); }} />}
+    {done && <div className={`t-sub2 ${s.snack}`} role="status"><span>Чек жүктелді</span><button className="w-600" onClick={() => openExternal(url)}>Ашу</button></div>}
+  </>;
+  return { start, node };
+}
+
 export function Receipt() {
   const go = useGo();
   const p = purchaseOf(useParams().id);
-  const download = useMemo(() => ({ text: "Чекті жүктеу", onClick: () => go("/profile/receipt-file") }), [go]);
+  const dl = useReceiptDownload(p?.txn ?? "JZ-8F3K29");
+  const download = useMemo(() => ({ text: "Чекті жүктеу", onClick: dl.start }), [dl.start]);
   useBottomButtons(download, undefined, Boolean(p));
   if (!p) return <SubPage title="Чек"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Чек табылмады</p></SubPage>;
   const rows = [["Пакет", p.t], ["Мекеме", p.venue], ["Күні", p.date], ["Төлем тәсілі", p.method], ["Транзакция №", p.txn]];
@@ -32,6 +54,7 @@ export function Receipt() {
         <button className={s.action} onClick={() => go("/profile/report", "forward", { state: { purchase: p.id } })}>Мәселе туралы жазу</button>
       </Group>
       {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={download.onClick}>Чекті жүктеу</button></div>}
+      {dl.node}
     </SubPage>
   );
 }
@@ -41,7 +64,8 @@ export function UseReceipt() {
   const go = useGo();
   usePacks();
   const pack = getPack(useParams().id);
-  const download = useMemo(() => ({ text: "Чекті жүктеу", onClick: () => go("/profile/receipt-file") }), [go]);
+  const dl = useReceiptDownload("JZ-8F3K29");
+  const download = useMemo(() => ({ text: "Чекті жүктеу", onClick: dl.start }), [dl.start]);
   useBottomButtons(download, undefined, Boolean(pack));
   if (!pack) return <SubPage title="Төлем чегі"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Чек табылмады</p></SubPage>;
   const o = offerOf(pack);
@@ -62,6 +86,7 @@ export function UseReceipt() {
         <button className={s.action} onClick={() => go("/profile/report")}>Мәселе туралы жазу</button>
       </Group>
       {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={download.onClick}>Чекті жүктеу</button></div>}
+      {dl.node}
     </SubPage>
   );
 }
