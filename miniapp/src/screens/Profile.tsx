@@ -3,7 +3,8 @@ import { useCallback, useState } from "react";
 import { useMock } from "../mocks/useMock";
 import { useSettings, useUnread } from "../store";
 import { useGo } from "../nav";
-import { haptic, openChat, tg, useBackButton } from "../telegram";
+import { haptic, inTelegram, nativePick, openChat, tg, useBackButton } from "../telegram";
+import { Confirm } from "../ui/Confirm";
 import { SUPPORT_BOT } from "../config";
 import { HowSheet } from "../ui/HowSheet";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -56,7 +57,15 @@ export function Profile() {
   const st = useSettings();
   const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (st.lang === "ru" ? "Русский" : "Қазақша") : r.sub);
   const [how, setHow] = useState(false);
-  const open = (r: RowDef) => { if (r.to === "/profile/ask") { haptic.tap(); openChat(SUPPORT_BOT); } else if (r.to === "/profile/how") { haptic.tap(); setHow(true); } else go(r.to); };
+  const [ask, setAsk] = useState(false);
+  // Figma «Сұрақ қою / Ескерту диалогы» 13886:39249: алдымен ЖҚС ұсынылады
+  const askFlow = async () => {
+    haptic.tap();
+    if (!inTelegram) return setAsk(true);
+    const id = await nativePick("Сұрақ қою", "Алдымен жиі қойылатын сұрақтарды қарап шық: жауап сол жерде болуы мүмкін.", [{ id: "ask", text: "Сұрақ қою" }, { id: "faq", text: "ЖҚС-ке өту" }], "");
+    if (id === "ask") openChat(SUPPORT_BOT); else if (id === "faq") go("/profile/faq");
+  };
+  const open = (r: RowDef) => { if (r.to === "/profile/ask") void askFlow(); else if (r.to === "/profile/how") { haptic.tap(); setHow(true); } else go(r.to); };
   const u = tg?.initDataUnsafe?.user as { first_name?: string; last_name?: string; username?: string; photo_url?: string } | undefined;
   const name = u?.first_name ? [u.first_name, u.last_name].filter(Boolean).join(" ") : "Айгерім Нұрланова";
   const handle = u?.username ? "@" + u.username : u?.first_name ? "" : "@aigerim_n";
@@ -89,9 +98,11 @@ export function Profile() {
             ))}
           </section>
         ))}
-        <p className={`t-cap1 ${s.version}`}>Jazl+ v0.1 (MVP)</p>
+        <button className={`t-cap1 ${s.version}`} onClick={() => go("/profile/about")}>Jazl+ v0.1 (MVP)</button>
       </div>
       {how && <HowSheet onClose={() => setHow(false)} />}
+      {ask && <Confirm title="Сұрақ қою" text="Алдымен жиі қойылатын сұрақтарды қарап шық: жауап сол жерде болуы мүмкін." cancel="Сұрақ қою" ok="ЖҚС-ке өту"
+        onClose={() => setAsk(false)} onOk={() => go("/profile/faq")} onCancel={() => openChat(SUPPORT_BOT)} />}
     </div>
   );
 }

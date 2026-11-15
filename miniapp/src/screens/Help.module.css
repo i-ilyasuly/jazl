@@ -1,0 +1,36 @@
+/* ЖҚС: сұрақ жолы 52, жауап 15/20, белгі ішкі жиегі 2/6 */
+.item { position: relative; }
+.item:not(:last-child)::after { content: ""; position: absolute; left: 16px; right: 0; bottom: 0; height: 1px; background: var(--separator); }
+.q { width: 100%; min-height: 52px; padding: 15px 16px; display: flex; align-items: center; gap: 12px; text-align: left; color: var(--text-strong); transition: background 0.15s ease; }
+.q span { flex: 1; }
+.q:active { background: rgba(34, 154, 240, 0.08); }
+.chev { flex: none; opacity: 0.45; rotate: 90deg; transition: rotate 0.28s cubic-bezier(0.3, 1.2, 0.4, 1); }
+.open .chev { rotate: -90deg; }
+.a { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.a > div { overflow: hidden; }
+.a p { padding: 0 16px 16px; color: var(--text-strong); }
+.open .a { grid-template-rows: 1fr; }
+.mark { padding: 0 6px; border-radius: 6px; font-weight: 600; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.blue { background: rgba(34, 154, 240, 0.14); color: #1f73c2; }
+.green { background: rgba(49, 209, 88, 0.16); color: #1b6b2e; }
+/* Қолданба туралы */
+.about { position: absolute; left: 0; top: calc(128px + var(--top-shift)); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.logo { width: 80px; height: 80px; margin-bottom: 12px; border-radius: 50%; border: 2px dashed #c8cdd3; }
+.name { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
+.ver { color: var(--text-secondary); }
+/* Деректерді жою */
+.del { position: absolute; left: 0; top: calc(280px + var(--top-shift)); width: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.delTitle { margin-top: 16px; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
+.delText { width: 348px; margin-top: 8px; color: var(--text-secondary); }
+.warn { position: relative; width: 300px; margin-top: 16px; padding: 12px 40px 12px 16px; border-radius: 12px; background: #fdf3d6; text-align: left; color: var(--text-strong); }
+.bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; background: #f5b800; }
+.quote { position: absolute; right: 12px; top: -12px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b800; }
+.btns { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 8px 10px calc(8px + var(--safe-b, 0px)); background: #fff; display: flex; gap: 8px; }
+.btn { flex: 1; height: 48px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.12s ease; }
+.btn:active { opacity: 0.8; }
+.btn2 { background: var(--chip-tint); color: var(--link); }
+:global(:root[data-theme="dark"]) .btns { background: var(--surface-card); }
+:global(:root[data-theme="dark"]) .warn { background: rgba(245, 184, 0, 0.16); }
+:global(:root[data-theme="dark"]) .blue { background: rgba(92, 180, 244, 0.2); color: #fff; }
+:global(:root[data-theme="dark"]) .green { background: rgba(49, 209, 88, 0.2); color: #fff; }
+:global(:root[data-theme="dark"]) .logo { border-color: rgba(255, 255, 255, 0.25); }
