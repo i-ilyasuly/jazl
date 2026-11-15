@@ -13,6 +13,7 @@ interface TelegramWebApp {
   expand(): void;
   initData?: string;
   platform?: string;
+  version?: string;
   colorScheme?: "light" | "dark";
   isVersionAtLeast?: (v: string) => boolean;
   requestFullscreen?: () => void;
