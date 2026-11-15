@@ -107,6 +107,12 @@ let defaultMethod = "kaspi";
 export const useMethods = () => useSyncExternalStore(subscribe, () => methods);
 export const useDefaultMethod = () => useSyncExternalStore(subscribe, () => defaultMethod);
 export function setDefaultMethod(id: string) { defaultMethod = id; emit(); }
+export function addMethod(m: PayMethod, makeDefault = true) { methods = [...methods.filter((x) => x.id !== m.id), m]; if (makeDefault) defaultMethod = m.id; emit(); }
+// Kaspi Pay шоты жіберілетін нөмір (пайдаланушы «сақта» десе ғана сақталады)
+let kaspiPhone = "";
+export const useKaspiPhone = () => useSyncExternalStore(subscribe, () => kaspiPhone);
+export function setKaspiPhone(v: string) { kaspiPhone = v; emit(); kv.set("jazl_kaspi_phone", v); }
+void kv.get("jazl_kaspi_phone").then((v) => { if (v) { kaspiPhone = v; emit(); } });
 export function removeMethod(id: string) { methods = methods.filter((m) => m.id !== id); if (defaultMethod === id) defaultMethod = "kaspi"; emit(); }
 
 // ── PIN ─────────────────────────────────────────────────────────────────────

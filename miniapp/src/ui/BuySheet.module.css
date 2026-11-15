@@ -1,25 +1,27 @@
 .root { position: fixed; inset: 0; z-index: 50; }
 .scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
-.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: 474px; padding: 30px 20px 0; background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; overflow: hidden; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; min-height: 300px; padding: 30px 20px calc(110px + var(--safe-b, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; overflow: hidden; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
 .closing .scrim { animation: fadeOut 0.22s ease both; }
 .closing .sheet { animation: slideDown 0.22s ease-in both; }
 @keyframes fadeIn { from { opacity: 0; } }
 @keyframes fadeOut { to { opacity: 0; } }
 @keyframes slideUp { from { transform: translateY(100%); } }
 @keyframes slideDown { to { transform: translateY(100%); } }
-:global(:root[data-env="telegram"]) .sheet { height: auto; padding-bottom: 24px; }
+:global(:root[data-env="telegram"]) .sheet { padding-bottom: calc(24px + var(--safe-b, 0px)); }
 
 .grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
-.title { color: var(--text-strong); white-space: nowrap; }
+.title { font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); white-space: nowrap; }
+.itemTitle { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
+.itemSub { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
 .item { display: flex; align-items: center; gap: 12px; width: 100%; color: var(--text-strong); }
 .icon { width: 52px; height: 52px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; }
 .itemText { display: flex; flex-direction: column; gap: 1px; white-space: nowrap; }
 .sep { border: 0; height: 1px; width: 100%; background: var(--separator); flex: none; }
-.row { display: flex; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; color: var(--text-strong); }
+.row { display: flex; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; color: var(--text-strong); font-size: 17px; line-height: 22px; }
 .muted { color: var(--text-secondary); }
 .green { color: var(--hl-green-text); }
 .link { color: var(--link); }
-.total { font-size: 19px; line-height: 28px; letter-spacing: 0.15px; font-weight: 700; }
+.total { font-size: 24px; line-height: 30px; font-weight: 700; }
 .method { display: flex; align-items: center; gap: 6px; }
 .agree { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
 .box { width: 22px; height: 22px; border-radius: 6px; flex: none; display: flex; align-items: center; justify-content: center; border: 2px solid #9aa5b1; transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
@@ -27,12 +29,57 @@
 .box img { animation: checkPop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1); }
 .agree:active .box { transform: scale(0.88); }
 @keyframes checkPop { from { transform: scale(0.3); } }
-.agreeText { color: var(--text-secondary); word-spacing: 0.4px; }
+.agreeText { color: var(--text-secondary); font-size: 15px; line-height: 20px; }
+.keepText { color: var(--text-strong); font-size: 17px; line-height: 22px; }
 .agreeText b { font-weight: 600; color: var(--link); }
 
-.bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 94px; padding: 10px 10px 0; background: var(--surface-white); }
-.pay { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; padding-left: 8px; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s ease; }
+.bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 94px; padding: 10px 10px 0; background: var(--surface-white); display: flex; gap: 8px; }
+.pay { flex: 1; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s ease; }
 .pay:active { opacity: 0.8; }
 .pay:disabled { opacity: 0.45; }
 .spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.second { background: var(--chip-tint); color: var(--link); }
+.shine { position: relative; overflow: hidden; }
+.shine::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: shine 2.6s ease-in-out infinite; }
+@keyframes shine { 0%, 45% { left: -60%; } 100% { left: 130%; } }
+.sheet > * { animation: stepIn 0.28s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+@keyframes stepIn { from { opacity: 0; transform: translateX(14px); } }
+.sheet > .grabber, .sheet > .bar { animation: none; }
+
+/* Төлем тәсілдері тізімі */
+.list { width: 100%; display: flex; flex-direction: column; }
+.opt { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 68px; padding: 8px 0; text-align: left; }
+.opt + .opt::before { content: ""; position: absolute; left: 58px; right: 0; top: 0; height: 1px; background: var(--separator); }
+.optIcon { width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.plus { color: var(--link); font-size: 28px; font-weight: 600; background: var(--chip-tint); border-radius: 50%; }
+.addText { font-size: 17px; line-height: 22px; }
+.opt .itemText { flex: 1; min-width: 0; }
+.radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #9aa5b1; flex: none; transition: border 0.18s ease; }
+.radioOn { border: 7px solid var(--button); }
+
+/* Kaspi нөмірі */
+.kaspiHead { display: flex; align-items: center; gap: 12px; }
+.lead { font-size: 17px; line-height: 22px; color: var(--text-secondary); }
+.field { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.fieldLabel { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.input { width: 100%; height: 52px; padding: 0 16px; border-radius: 12px; border: 0; outline: 0; background: var(--search-bg); color: var(--text-strong); font: inherit; font-size: 17px; letter-spacing: 0.3px; caret-color: #229af0; transition: box-shadow 0.2s ease; }
+.input:focus { box-shadow: 0 0 0 2px rgba(34, 154, 240, 0.35); }
+.fromTg { font-size: 15px; line-height: 20px; margin-top: -4px; }
+.hint { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+
+/* Kaspi растауын күту */
+.center { align-self: center; text-align: center; white-space: normal; }
+.ring { align-self: center; width: 56px; height: 56px; border-radius: 50%; border: 4px solid rgba(34, 154, 240, 0.2); border-top-color: #229af0; animation: spin 0.9s linear infinite !important; }
+.steps { list-style: none; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.steps li { display: flex; align-items: center; gap: 12px; font-size: 17px; line-height: 22px; color: var(--text-secondary); transition: color 0.3s ease; }
+.steps li span { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; transition: background 0.3s ease, color 0.3s ease; }
+.steps .now { color: var(--text-strong); font-weight: 600; }
+.steps .now span { background: #229af0; color: #fff; }
+.steps .done { color: var(--text-strong); }
+.steps .done span { background: #34c759; color: #fff; animation: checkPop 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
+
+/* Баға өзгерді */
+.up { height: 24px; padding: 2px 8px; border-radius: 12px; background: rgba(240, 74, 74, 0.14); color: #c71f1f; font-size: 13px; line-height: 20px; font-weight: 700; }
+.warn { position: relative; width: 100%; padding: 12px 40px 12px 16px; border-radius: 12px; background: rgba(255, 184, 0, 0.12); border-left: 4px solid #ffb800; font-size: 17px; line-height: 22px; color: var(--text-strong); }
+.warn i { position: absolute; right: 12px; top: -6px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b301; font-style: normal; }

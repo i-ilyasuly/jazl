@@ -16,6 +16,8 @@ import { Savings } from "./screens/Savings";
 import { History } from "./screens/History";
 import { Notifications } from "./screens/Notifications";
 import { Receipt } from "./screens/Receipt";
+import { PayResult } from "./screens/PayResult";
+import { CardAdd } from "./screens/CardAdd";
 import { HapticTest } from "./screens/HapticTest";
 import { Security } from "./screens/Security";
 import { City, Language } from "./screens/Choice";
@@ -77,6 +79,8 @@ const router = createHashRouter([
       { path: "/", element: <Home /> },
       { path: "/offer/:id", element: <OfferPage /> },
       { path: "/success/:id", element: <Success /> },
+      { path: "/pay/:kind/:id", element: <PayResult /> },
+      { path: "/profile/card-add", element: <CardAdd /> },
       { path: "/packs", element: <Packs /> },
       { path: "/pack/:id", element: <PackPage /> },
       { path: "/scan", element: <Scan /> },
