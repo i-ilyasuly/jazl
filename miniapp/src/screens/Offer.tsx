@@ -10,7 +10,8 @@ import { galleryOf } from "../mocks/photos";
 import { venues } from "../mocks/venues";
 import { HowSheet } from "../ui/HowSheet";
 import { LinkSheet, type LinkRow } from "../ui/LinkSheet";
-import { askWriteAccess, haptic, inTelegram, openChat, openExternal, useBackButton, useBottomButtons } from "../telegram";
+import { askWriteAccess, haptic, inTelegram, nativePick, openChat, openExternal, useBackButton, useBottomButtons } from "../telegram";
+import { ActionSheet } from "../ui/ActionSheet";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import heroBurger from "../assets/icons/heroBurger.svg";
 import share from "../assets/icons/share.svg";
@@ -63,6 +64,7 @@ function OfferView({ id }: { id?: string }) {
   const startStep = (loc.state as { buy?: BuyStep } | null)?.buy;
   const [buying, setBuying] = useState(Boolean(startStep));
   const [using, setUsing] = useState(false);
+  const [choose, setChoose] = useState(false);
   const { loading } = useMock("offer:" + offer.id, offer, 450);
   const d = detailsOf(base);
   const photos = useMemo(() => galleryOf(base.id, base.kind), [base.id, base.kind]);
@@ -74,14 +76,21 @@ function OfferView({ id }: { id?: string }) {
   const gift = useMemo(() => ({ text: "Сыйлау", onClick: () => go("/gift/" + offer.id, "up") }), [go, offer.id]);
   const closeSheet = useCallback(() => setBuying(false), []);
   const paid = useCallback(() => go("/success/" + offer.id, "up", { replace: true }), [go, offer.id]);
-  const again = useMemo(() => ({ text: "Тағы алу", onClick: () => { haptic.medium(); setBuying(true); } }), []);
+  // Сатып алынған пакетте: «Тағы алу» → нативті таңдау: өзіме қайта алу немесе досыма сыйлау
+  const again = useMemo(() => ({ text: "Тағы алу", onClick: async () => {
+    haptic.tap();
+    const id = await nativePick("Тағы алу", "Пакетті өзіңе қайта аласың ба, әлде досыңа сыйлайсың ба?", [{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "🎁 Сыйлау" }, { id: "", text: "Бас тарту" }], "ask");
+    if (id === "buy") { haptic.medium(); setBuying(true); }
+    else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); }
+    else if (id === "ask") setChoose(true);
+  } }), [go, offer.id]);
   const use = useMemo(() => ({ text: "Қолдану", shine: true, onClick: () => { haptic.medium(); setUsing(true); } }), []);
   const notify = useMemo(() => ({ text: waiting ? "Хабарланады" : "Хабарла", onClick: async () => { if (waiting) return toggleRestock(base.id); if (await askWriteAccess()) { haptic.success(); toggleRestock(base.id); } } }), [waiting, base.id]);
   // «Қолжетімді» — Сыйлау + Төлеу; «Белсенді пакет» — Тағы алу + Қолдану (сканерлеу НЕМЕСЕ тапсырыс); «Аяқталған» — Хабарла
   const mainBtn = ended ? notify : pack ? use : pay;
   const secondBtn = ended ? undefined : pack ? again : gift;
   const caption = ended ? "Бұл ұсыныс аяқталды" : pack ? `${pack.left} / ${pack.total} қалды · мерзімі ${pack.daysLeft} күн` : "";
-  useBottomButtons(mainBtn, secondBtn, !buying && !sheet && !using);
+  useBottomButtons(mainBtn, secondBtn, !buying && !sheet && !using && !choose);
   const toVenue = () => go("/venue/" + (venue?.id ?? "damdi"));
   const handle = "@" + base.venue.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/ä/g, "a");
   const routeRows: LinkRow[] = [{ emoji: "🗺", title: "2ГИС", sub: `${base.venue} мекенжайын 2ГИС-те аш`, onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(base.venue)) }];
@@ -203,6 +212,7 @@ function OfferView({ id }: { id?: string }) {
       </div>
       )}
 
+      {choose && <ActionSheet title="Тағы алу" actions={[{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "🎁 Сыйлау" }]} onPick={(id) => { setChoose(false); if (id === "buy") { haptic.medium(); setBuying(true); } else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); } }} onClose={() => setChoose(false)} />}
       {using && pack && <UseSheet pack={pack} onClose={() => setUsing(false)} />}
       {buying && <BuySheet offer={offer} onClose={closeSheet} onPaid={paid} start={startStep} />}
       {sheet === "how" && <HowSheet onClose={() => setSheet(null)} />}
