@@ -22,8 +22,8 @@ export function FilterSheet({ value, count, onApply, onClose }: { value: Filters
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
   const n = count(f);
   const set = (p: Partial<Filters>) => { haptic.select(); setF({ ...f, ...p }); };
-  const apply = useMemo(() => ({ text: `Көрсету · ${n}`, onClick: () => { haptic.tap(); onApply(f); close(); } }), [n, f, onApply, close]);
-  const clear = useMemo(() => ({ text: "Тазалау", onClick: () => { haptic.tap(); setF(noFilters); }, position: "left" as const }), []);
+  const apply = useMemo(() => ({ text: `Көрсету · ${n}`, onClick: () => { haptic.medium(); onApply(f); close(); } }), [n, f, onApply, close]);
+  const clear = useMemo(() => ({ text: "Тазалау", onClick: () => { haptic.soft(); setF(noFilters); }, position: "left" as const }), []);
   useBottomButtons(apply, clear, !closing);
   const lo = ((f.min - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100, hi = ((f.max - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
   return (

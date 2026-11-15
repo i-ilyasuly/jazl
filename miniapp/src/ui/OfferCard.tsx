@@ -30,7 +30,7 @@ export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
-        onClick={(e) => { e.preventDefault(); haptic.tap(); toggleFav(offer.id); }}
+        onClick={(e) => { e.preventDefault(); haptic.medium(); toggleFav(offer.id); }}
       >
         <img src={fav ? heartFill : heart} width={28} height={28} alt="" key={String(fav)} className={fav ? s.pop : undefined} />
       </button>

@@ -19,7 +19,7 @@ export function BuySheet({ offer, onClose, onPaid }: { offer: Offer; onClose: ()
     text: `Төлеу · ${fmt(offer.price)}`,
     onClick: () => {
       if (!agree || busy) return;
-      haptic.tap();
+      haptic.medium();
       setBusy(true);
       tg?.MainButton?.showProgress?.(false);
       setTimeout(() => { tg?.MainButton?.hideProgress?.(); haptic.success(); onPaid(); }, 1100);

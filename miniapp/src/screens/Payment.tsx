@@ -16,7 +16,7 @@ export function Payment() {
   const [sheet, setSheet] = useState<PayMethod | null>(null);
   const [leaving, setLeaving] = useState<string | null>(null);
   const [ask, setAsk] = useState<PayMethod | null>(null);
-  const remove = (m: string) => { haptic.success(); setLeaving(m); setTimeout(() => { removeMethod(m); setLeaving(null); }, 300); };
+  const remove = (m: string) => { haptic.warning(); setLeaving(m); setTimeout(() => { removeMethod(m); setLeaving(null); }, 300); };
   function pick(id: string) {
     if (!sheet) return;
     if (id === "default") { haptic.success(); setDefaultMethod(sheet.id); }

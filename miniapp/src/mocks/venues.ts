@@ -1,6 +1,6 @@
 // Мекемелер (карта мен мекеме беті үшін). Алғашқы бесеуі Figma-дағы «Карта / Ашық тізім» тізімінен.
 import type { OfferKind } from "./offers";
-export interface Venue { id: string; name: string; kind: OfferKind; km: number; rating: number; reviews: number; address: string; hours: string; x: number; y: number; offers: [string, number, string?][] }
+export interface Venue { id: string; name: string; kind: OfferKind; km: number; rating: number; reviews: number; address: string; hours: string; x: number; y: number; lng?: number; lat?: number; offers: [string, number, string?][] }
 export const kindLabel: Record<OfferKind, string> = { food: "Тағам", coffee: "Кофе", hair: "Шаштараз" };
 export const kindEmoji: Record<OfferKind, string> = { food: "🍔", coffee: "☕", hair: "✂️" };
 export const kindTint: Record<OfferKind, string> = { food: "#ffb454", coffee: "#c9976a", hair: "#6aa2f5" };
@@ -18,3 +18,7 @@ export const venues: Venue[] = [
   { id: "style", name: "Style Studio", kind: "hair", km: 2.4, rating: 4.5, reviews: 9, address: "Абай 12", hours: "10:00–20:00", x: 64, y: 560, offers: [["Шаш қию · 3 рет", 9000]] },
 ];
 export const findVenue = (id?: string) => venues.find((v) => v.id === id);
+
+// Қарағанды орталығындағы шамамен координаттар (демо): Figma-дағы x/y орындарынан есептеледі.
+export const CITY_CENTER: [number, number] = [73.0950, 49.8040];
+export const lngLat = (v: Venue): [number, number] => [v.lng ?? CITY_CENTER[0] + (v.x - 206) / 412 * 0.034, v.lat ?? CITY_CENTER[1] - (v.y - 400) / 600 * 0.016];

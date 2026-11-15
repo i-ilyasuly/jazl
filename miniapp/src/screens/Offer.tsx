@@ -34,7 +34,6 @@ function Gallery({ photos, fallback, onIndex }: { photos: string[]; fallback: st
         ))}
       </div>
       {photos.length > 1 && <div className={s.dots}>{photos.map((src, i) => <span key={src} className={i === at ? s.dotOn : ""} />)}</div>}
-      {photos.length > 1 && <span className={s.counter}>{at + 1} / {photos.length}</span>}
     </>
   );
 }
@@ -67,11 +66,11 @@ function OfferView({ id }: { id?: string }) {
 
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back, !buying);
-  const pay = useMemo(() => ({ text: "Төлеу", shine: true, onClick: () => { haptic.tap(); setBuying(true); } }), []);
+  const pay = useMemo(() => ({ text: "Төлеу", shine: true, onClick: () => { haptic.medium(); setBuying(true); } }), []);
   const gift = useMemo(() => ({ text: "Сыйлау", onClick: () => go("/gift/" + offer.id, "up") }), [go, offer.id]);
   const closeSheet = useCallback(() => setBuying(false), []);
   const paid = useCallback(() => go("/success/" + offer.id, "up", { replace: true }), [go, offer.id]);
-  const again = useMemo(() => ({ text: "Тағы алу", onClick: () => { haptic.tap(); setBuying(true); } }), []);
+  const again = useMemo(() => ({ text: "Тағы алу", onClick: () => { haptic.medium(); setBuying(true); } }), []);
   const scan = useMemo(() => ({ text: "Сканерлеу", onClick: () => go("/scan", "up") }), [go]);
   const notify = useMemo(() => ({ text: waiting ? "Хабарланады" : "Хабарла", onClick: async () => { if (waiting) return toggleRestock(base.id); if (await askWriteAccess()) { haptic.success(); toggleRestock(base.id); } } }), [waiting, base.id]);
   // Figma: «Қолжетімді» — Сыйлау + Төлеу; «Белсенді пакет» — Тағы алу + Сканерлеу; «Аяқталған» — Хабарла
@@ -94,7 +93,7 @@ function OfferView({ id }: { id?: string }) {
       <div className={`${s.photo} ${ended ? s.photoEnded : ""}`} style={{ viewTransitionName: "offer-photo" }}>
         <Gallery photos={photos} fallback={heroBurger} />
         <button className={`keepIcon ${s.round} ${s.share}`} aria-label="Бөлісу" onClick={shareIt}><img src={share} width={24} height={24} alt="" /></button>
-        <button className={`keepIcon ${s.round} ${s.fav}`} aria-label="Таңдаулы" onClick={() => { haptic.tap(); toggleFav(offer.id); }}>
+        <button className={`keepIcon ${s.round} ${s.fav}`} aria-label="Таңдаулы" onClick={() => { haptic.medium(); toggleFav(offer.id); }}>
           <img src={fav ? heartFill : heartLine} width={26} height={26} alt="" key={String(fav)} className={`${s.pop} ${fav ? "" : s.heartLine}`} />
         </button>
       </div>

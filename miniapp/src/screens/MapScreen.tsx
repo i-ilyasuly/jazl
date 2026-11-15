@@ -1,15 +1,16 @@
 // Figma, «05 · Карта»: «Орналасу рұқсаты» 13886:18191, «Карта және тізім» 13886:18467, «Мекеме таңдалды» 13886:18763,
 // «Ашық тізім» 13886:19089, «Рұқсатсыз» 13886:19443, «Мекеме жоқ» 13886:19747
-// Карта — Figma-дағы стильденген үлгі (нағыз карта қызметі бэкендпен бірге қосылады).
+// Карта — MapLibre + OpenFreeMap нағыз вектор картасы; ол жүктелгенше Figma-дағы стильденген үлгі көрінеді.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fmt, type OfferKind } from "../mocks/offers";
 import { demoEmpty } from "../mocks/useMock";
-import { kindEmoji, kindLabel, kindTint, venues, type Venue } from "../mocks/venues";
+import { CITY_CENTER, kindEmoji, kindLabel, kindTint, venues, type Venue } from "../mocks/venues";
 import { useGo } from "../nav";
 import { setSettings, useSettings } from "../store";
 import { askLocation, haptic, inTelegram, openExternal, useBackButton, useBottomButtons } from "../telegram";
 import { Confirm } from "../ui/Confirm";
 import { Sticker } from "../ui/Sticker";
+import { MapView, type MapApi } from "../ui/MapView";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import mapBg from "../assets/icons/mapBg.svg";
 import locate from "../assets/icons/mLocate.svg";
@@ -34,6 +35,8 @@ export function MapScreen() {
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
   const sheetDrag = useRef<{ y: number; moved: number } | null>(null);
   const [pull, setPull] = useState(0);
+  const [me, setMe] = useState<[number, number] | null>(null);
+  const api = useRef<MapApi | null>(null);
   const back = useCallback(() => { if (sel) { setSel(null); return; } if (snap === "open") { setSnap("peek"); return; } go(-1, "back"); }, [sel, snap, go]);
   useBackButton(back);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -41,7 +44,7 @@ export function MapScreen() {
   const granted = st.geo === "granted";
   const requestGeo = useCallback(async () => {
     const r = await askLocation();
-    if (r === "browser") setAsk(true); else { setSettings({ geo: r ? "granted" : "denied" }); if (r) haptic.success(); }
+    if (r === "browser") setAsk(true); else { setSettings({ geo: r ? "granted" : "denied" }); if (r) { haptic.success(); setMe([r.longitude, r.latitude]); } }
   }, []);
   // Бетке алғаш кіргенде рұқсат сұралады (Figma: «Карта / Орналасу рұқсаты»)
   useEffect(() => { if (st.geo === "unknown") { const t = setTimeout(requestGeo, 600); return () => clearTimeout(t); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -82,6 +85,7 @@ export function MapScreen() {
           })}
         </div>
       </div>
+      <MapView venues={venues} shown={shown} sel={sel} onPick={pick} onTapEmpty={() => { if (sel) setSel(null); }} me={me} onReady={(a) => { api.current = a; }} padBottom={sel ? 260 : 230} />
       <TelegramChrome mode="back" onBack={back} />
       <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>
       <div className={s.chips}>
@@ -90,7 +94,7 @@ export function MapScreen() {
 
       <div className={`${s.sheet} ${s[mode]} ${pull ? s.pulling : ""}`} style={pull ? { transform: `translateY(${Math.max(-60, Math.min(60, pull)) * 0.6}px)` } : undefined}>
         <button className={`${s.fab} ${s.fabList}`} onClick={() => { haptic.tap(); setSel(null); setSnap(snap === "open" ? "peek" : "open"); }}><img src={listIcon} width={20} height={20} alt="" /><span className="t-sub2 w-600">{snap === "open" && !sel ? "Картада" : "Тізімде"}</span></button>
-        <button className={`${s.fab} ${s.fabLocate}`} onClick={() => { haptic.tap(); if (granted) setPan({ x: 0, y: 0 }); else void requestGeo(); }} aria-label="Менің орным"><img src={locate} width={24} height={24} alt="" /></button>
+        <button className={`${s.fab} ${s.fabLocate}`} onClick={() => { haptic.tap(); if (granted && me) api.current?.flyTo(me); else if (granted) { setPan({ x: 0, y: 0 }); api.current?.flyTo(CITY_CENTER, 14.2); void requestGeo(); } else void requestGeo(); }} aria-label="Менің орным"><img src={locate} width={24} height={24} alt="" /></button>
         <div className={s.handle} onPointerDown={sDown} onPointerMove={sMove} onPointerUp={sUp} onPointerCancel={sUp}><span className={s.grabber} /></div>
         {sel ? (
           <div className={s.venue} key={sel.id}>

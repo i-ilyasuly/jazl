@@ -36,7 +36,7 @@ export function Search() {
   const [filterOpen, setFilterOpen] = useState(false);
   const pass = useCallback((o: Offer, f: Filters) => (!f.cats.length || f.cats.includes(o.kind)) && o.price >= f.min && (f.max >= PRICE_MAX || o.price <= f.max) && (!f.dist || km(o) <= f.dist) && discount(o) >= f.save, []);
   const nFilters = activeCount(filters);
-  const clearFilters = useCallback(() => { haptic.tap(); setFilters(noFilters); }, []);
+  const clearFilters = useCallback(() => { haptic.soft(); setFilters(noFilters); }, []);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => { input.current?.focus({ preventScroll: true }); }, []);
   const query = q.trim().toLowerCase();

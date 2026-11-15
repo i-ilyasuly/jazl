@@ -26,22 +26,22 @@
 .contentIn > *:nth-child(2) { animation-delay: 50ms; }
 .contentIn > *:nth-child(n+3) { animation-delay: 100ms; }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
-.head { display: flex; flex-direction: column; gap: 6px; }
-.priceRow { position: relative; display: flex; align-items: center; justify-content: space-between; color: var(--text-strong); }
+.head { display: flex; flex-direction: column; gap: 4px; }
+.priceRow { position: relative; display: flex; align-items: flex-start; justify-content: space-between; color: var(--text-strong); }
 .priceRow p { white-space: nowrap; }
 .discount { margin-left: 12px; height: 26px; padding: 3px 10px; border-radius: 13px; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 700; }
 .old { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
-.badges { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.badges { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; padding-top: 2px; }
 .badge { height: 30px; padding: 5px 12px; border-radius: 15px; white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 600; }
 .orange { background: var(--orange-bg); color: var(--orange-text); }
 .green { background: var(--green-bg); color: var(--green-text); }
 .muted { color: var(--text-secondary); }
 .link { color: var(--link); }
-.venueLine { display: flex; gap: 6px; white-space: pre; font-size: 15px; line-height: 20px; margin-bottom: 8px; }
+.venueLine { display: flex; gap: 6px; white-space: pre; font-size: 15px; line-height: 20px; margin-bottom: 12px; }
 .venueLine .link { font-weight: 600; }
 
 .params { display: flex; flex-direction: column; gap: 10px; font-size: 17px; line-height: 22px; }
-.params div { display: flex; gap: 12px; }
+.params div { display: flex; gap: 12px; align-items: baseline; }
 .params dt { width: 92px; flex: none; color: var(--text-secondary); font-size: 15px; }
 .params dd { color: var(--text-strong); }
 
@@ -139,3 +139,4 @@
 @keyframes shine { 0%, 45% { left: -60%; } 100% { left: 130%; } }
 :global(:root[data-theme="dark"] .app) .stars { color: #ffb800 !important; }
 .heartLine { filter: brightness(0) !important; opacity: 0.85; }
+.priceLine .discount { align-self: flex-start; margin-top: 8px; }

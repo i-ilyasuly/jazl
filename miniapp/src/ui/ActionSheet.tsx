@@ -22,8 +22,8 @@ export function ActionSheet({ title, actions, onPick, onClose, custom, selected 
       <div className={s.sheet}>
         <span className={s.grabber} />
         <h2 className={s.title}>{title}</h2>
-        {actions.map((a) => <button key={a.id} className={`${s.row} ${a.danger ? s.danger : ""} ${selected !== undefined ? s.tall : ""}`} onClick={() => { haptic.tap(); close(a.id); }}>{a.text}{selected !== undefined && <span className={`${s.radio} ${selected === a.id ? s.radioOn : ""}`} />}</button>)}
-        {selected === undefined && <button className={`t-sub1 w-600 ${s.cancel}`} onClick={() => close()}>Бас тарту</button>}
+        {actions.map((a) => <button key={a.id} className={`${s.row} ${a.danger ? s.danger : ""} ${selected !== undefined ? s.tall : ""}`} onClick={() => { if (a.danger) haptic.warning(); else if (selected !== undefined) haptic.select(); else haptic.tap(); close(a.id); }}>{a.text}{selected !== undefined && <span className={`${s.radio} ${selected === a.id ? s.radioOn : ""}`} />}</button>)}
+        {selected === undefined && <button className={`t-sub1 w-600 ${s.cancel}`} onClick={() => { haptic.soft(); close(); }}>Бас тарту</button>}
       </div>
     </div>
   );

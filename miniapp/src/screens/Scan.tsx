@@ -24,7 +24,7 @@ export function Scan() {
   const close = useCallback(() => go(-1, "back"), [go]);
   useBackButton(close);
 
-  const detect = useCallback(() => { if (!found) { haptic.success(); setFound(true); } }, [found]);
+  const detect = useCallback(() => { if (!found) { haptic.heavy(); setFound(true); } }, [found]);
 
   useEffect(() => {
     if (found) return;
@@ -45,7 +45,7 @@ export function Scan() {
     text: pack ? `💳 Төлеу · ${unitLabel(pack)}` : "Төлеу",
     onClick: () => {
       if (!pack || busy) return;
-      haptic.tap();
+      haptic.medium();
       setBusy(true);
       tg?.MainButton?.showProgress?.(false);
       setTimeout(() => { tg?.MainButton?.hideProgress?.(); redeem(pack.id); haptic.success(); go("/paid/" + pack.id, "up", { replace: true }); }, 1100);

@@ -23,7 +23,7 @@ export function Gift() {
   const back = useCallback(() => go(-1, "back"), [go]);
   useEffect(() => { if (!snack) return; const t = setTimeout(() => setSnack(false), 2600); return () => clearTimeout(t); }, [snack]);
   const resend = useCallback(() => {
-    haptic.tap();
+    haptic.medium();
     // Нативті бөлісу: Telegram чат таңдау терезесін ашады
     const url = "https://t.me/share/url?url=" + encodeURIComponent(window.location.origin) + "&text=" + encodeURIComponent("Саған Jazl+ сыйлығы: " + (g?.pack ?? ""));
     if (inTelegram && tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
@@ -55,7 +55,7 @@ export function Gift() {
         <MainBar text="Сыйлықты алу" onClick={accept} />
       </> : g.status === "wait" ? <>
         <Group i={1}>{kv([["Кімге", g.name], ["Пакет", g.pack], ["Жіберілді", g.sentAt], ["Қабылдау мерзімі", g.until]])}</Group>
-        <Group i={2}><button className={s.cancel} onClick={() => { haptic.tap(); setAsk(true); }}>Сыйлықты болдырмау</button></Group>
+        <Group i={2}><button className={s.cancel} onClick={() => { haptic.warning(); setAsk(true); }}>Сыйлықты болдырмау</button></Group>
         <MainBar text="Сілтемені қайта жіберу" onClick={resend} />
       </> : g.status === "expired" ? <>
         <Group i={1}>{kv([["Кімге", g.name], ["Пакет", g.pack], ["Жіберілді", g.sentAt], ["Қайтарылды", "1 пакет", true]])}</Group>

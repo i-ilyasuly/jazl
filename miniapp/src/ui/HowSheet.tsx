@@ -11,7 +11,7 @@ const steps = [
 
 export function HowSheet({ onClose }: { onClose: () => void }) {
   const [closing, setClosing] = useState(false);
-  const close = useMemo(() => () => { haptic.tap(); setClosing(true); setTimeout(onClose, 220); }, [onClose]);
+  const close = useMemo(() => () => { haptic.soft(); setClosing(true); setTimeout(onClose, 220); }, [onClose]);
   useBackButton(close);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
   return (

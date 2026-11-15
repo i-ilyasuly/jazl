@@ -59,7 +59,7 @@ function VenueView({ id }: { id?: string }) {
     if (inTelegram && tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
   };
   const subDone = () => { haptic.success(); toggleVenueSub(v.id); setSnack(true); };
-  const notify = async () => { haptic.tap(); if (subscribed) return toggleVenueSub(v.id); if (!inTelegram) return setSheet("perm"); if (await askWriteAccess()) subDone(); };
+  const notify = async () => { haptic.medium(); if (subscribed) return toggleVenueSub(v.id); if (!inTelegram) return setSheet("perm"); if (await askWriteAccess()) subDone(); };
   const tabs: [string, number?][] = [["Ұсыныстар", offers.length], ["Туралы"], ["Суреттер", 4], ["Пікірлер", v.reviews]];
   return (
     <div className={s.page}>
