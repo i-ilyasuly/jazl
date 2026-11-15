@@ -1,9 +1,19 @@
-// Figma: «Мекеме / Бағыт» 13886:22679 және «Мекеме / Байланыс» 13886:23043 → «Modal / Әрекеттер»
+// Figma: «Мекеме / Бағыт» 13886:22679, «Мекеме / Байланыс» 13886:23043, «Мекеме беті / Бағыт: 2ГИС» 13886:27429 → «Modal / Әрекеттер».
+// Өлшемдер Telegram Mini Apps UI kit шкаласы мен 4/8px тор бойынша: шет 16, жол 60, атау 17/22, түсініктеме 15/20.
 import { useEffect, useMemo, useState } from "react";
 import { haptic, useBackButton } from "../telegram";
+import chev from "../assets/icons/chevRight.svg";
 import s from "./LinkSheet.module.css";
 
-export interface LinkRow { emoji: string; title: string; sub: string; onClick: () => void }
+/** emoji — түссіз тақташадағы белгі; glyph + tint — түрлі түсті тақташадағы ақ белгіше (2ГИС: жасыл тақташа, ақ нүкте). */
+export interface LinkRow { emoji?: string; glyph?: "pin"; tint?: string; title: string; sub: string; onClick: () => void }
+
+const Pin = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
+    <circle cx="12" cy="9.5" r="2.5" stroke="#fff" strokeWidth="2" />
+  </svg>
+);
 
 export function LinkSheet({ title, rows, onClose }: { title: string; rows: LinkRow[]; onClose: () => void }) {
   const [closing, setClosing] = useState(false);
@@ -18,8 +28,9 @@ export function LinkSheet({ title, rows, onClose }: { title: string; rows: LinkR
         <h2 className={s.title}>{title}</h2>
         {rows.map((r, i) => (
           <button key={r.title} className={s.row} style={{ ["--i" as string]: i }} onClick={() => { haptic.tap(); close(r.onClick); }}>
-            <span className={s.emoji}>{r.emoji}</span>
-            <span className={s.text}><b>{r.title}</b><small className="t-cap1">{r.sub}</small></span>
+            <span className={`${s.tile} ${r.glyph ? "keepIcon" : ""}`} style={r.tint ? { background: r.tint } : undefined}>{r.glyph === "pin" ? <Pin /> : r.emoji}</span>
+            <span className={s.text}><b>{r.title}</b><small>{r.sub}</small></span>
+            <img src={chev} width={20} height={20} alt="" />
           </button>
         ))}
         <button className={s.cancel} onClick={() => close()}>Бас тарту</button>

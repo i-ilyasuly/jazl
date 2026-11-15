@@ -13,8 +13,14 @@ export interface Pack {
   left: number;
   daysLeft: number;
   until: string;
+  /** Мерзімі өткен пакет (Figma «Пакет беті / Мерзімі өтті» 13886:29947); endedOn — «2 қарашада». */
+  expired?: boolean;
+  endedOn?: string;
   history: HistoryItem[];
 }
+/** Пакеттің күйі: белсенді, мерзімі жақын (≤3 күн), толық пайдаланылды, мерзімі өтті. */
+export type PackState = "active" | "soon" | "used" | "expired";
+export const packState = (p: Pack): PackState => p.expired ? "expired" : p.left < 1 ? "used" : p.daysLeft <= 3 ? "soon" : "active";
 
 let packs: Pack[] = [
   { id: "p1", offerId: "doner", total: 4, left: 3, daysLeft: 18, until: "8 желтоқсанға дейін",
@@ -27,7 +33,35 @@ let packs: Pack[] = [
       { emoji: "✂️", title: "3 бірлік пайдаланылды", sub: "қазан–қараша • Qala Barber", right: "Қалды: 1" },
       { emoji: "🛒", title: "Пакет сатып алынды", sub: "17 қазан • Kaspi Pay", right: "4 бірлік" },
     ] },
+  // Figma «Пакет беті / Толық пайдаланылды» 13886:29723
+  { id: "p3", offerId: "burger-combo", total: 4, left: 0, daysLeft: 17, until: "2 желтоқсанға дейін",
+    history: [
+      { emoji: "🍴", title: "1 бірлік пайдаланылды", sub: "10 қараша, 14:10 • Bahandi", right: "Қалды: 0" },
+      { emoji: "🍴", title: "1 бірлік пайдаланылды", sub: "4 қараша, 13:00 • Bahandi", right: "Қалды: 1" },
+      { emoji: "🍴", title: "1 бірлік пайдаланылды", sub: "28 қазан, 19:20 • Bahandi", right: "Қалды: 2" },
+      { emoji: "🍴", title: "1 бірлік пайдаланылды", sub: "22 қазан, 12:45 • Bahandi", right: "Қалды: 3" },
+      { emoji: "🛒", title: "Пакет сатып алынды", sub: "20 қазан • Kaspi Pay", right: "4 бірлік" },
+    ] },
+  // Figma «Пакет беті / Мерзімі өтті» 13886:29947
+  { id: "p4", offerId: "latte", total: 12, left: 1, daysLeft: 0, until: "2 қарашаға дейін", expired: true, endedOn: "2 қарашада",
+    history: [
+      { emoji: "☕", title: "1 бірлік пайдаланылды", sub: "30 қазан, 09:10 • Coffee Lab", right: "Қалды: 1" },
+      { emoji: "☕", title: "10 бірлік пайдаланылды", sub: "қазан • Coffee Lab", right: "Қалды: 2" },
+      { emoji: "🛒", title: "Пакет сатып алынды", sub: "2 қазан • Kaspi Pay", right: "12 бірлік" },
+    ] },
 ];
+
+// ── Соңғы әрекеттер (Figma «Пакеттерім / Тарих» 13886:29206) ────────────────
+// action: rate — бағалау күтіп тұр, rated — бағаланған (stars), renew — пакет біткен не мерзімі өткен.
+export interface Activity { id: string; emoji: string; title: string; sub: string; packId: string; offerId: string; action: "rate" | "rated" | "renew"; stars?: number }
+let acts: Activity[] = [
+  { id: "a1", emoji: "🍴", title: "Тауық донері · 1 дана", sub: "Dämdi Doner · бүгін, 13:20", packId: "p1", offerId: "doner", action: "rate" },
+  { id: "a2", emoji: "✂️", title: "Шаш қию · 1 рет", sub: "Qala Barber · 8 қараша", packId: "p2", offerId: "haircut", action: "rated", stars: 5 },
+  { id: "a3", emoji: "☕", title: "Латте · 12 стакан", sub: "Coffee Lab · мерзімі өтті", packId: "p4", offerId: "latte", action: "renew" },
+  { id: "a4", emoji: "🍴", title: "Бургер комбо · 4 дана", sub: "Bahandi · толық пайдаланылды", packId: "p3", offerId: "burger-combo", action: "renew" },
+  { id: "a5", emoji: "🍴", title: "Тауық донері · 1 дана", sub: "Dämdi Doner · 5 қараша", packId: "p1", offerId: "doner", action: "rated", stars: 4 },
+];
+export const useActivity = () => useSyncExternalStore(subscribe, () => acts);
 const subs = new Set<() => void>();
 const emit = () => subs.forEach((f) => f());
 const subscribe = (f: () => void) => { subs.add(f); return () => { subs.delete(f); }; };
@@ -53,6 +87,7 @@ export function redeem(packId: string): boolean {
   const hh = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
   packs = packs.map((x) => x.id !== packId ? x : { ...x, left: x.left - 1,
     history: [{ emoji: o.kind === "hair" ? "✂️" : "🍴", title: "1 бірлік пайдаланылды", sub: `бүгін, ${hh} • ${o.venue}`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
+  acts = [{ id: "a" + Date.now(), emoji: o.kind === "hair" ? "✂️" : o.kind === "coffee" ? "☕" : "🍴", title: o.title.replace(/· \d+/, "· 1"), sub: `${o.venue} · бүгін, ${hh}`, packId, offerId: o.id, action: "rate" }, ...acts];
   emit();
   return true;
 }

@@ -68,7 +68,9 @@
 .report { align-self: flex-start; height: 22px; padding-left: 4px; color: var(--link); }
 .empty { padding-top: 28px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .emptyBtn { margin-top: 8px; height: 36px; padding: 7px 14px; border-radius: 8px; background: rgba(34, 154, 240, 0.16); color: var(--link); }
-.snack { position: fixed; z-index: 40; left: 50%; margin-left: -190px; bottom: calc(27px + var(--safe-b, 0px)); width: 380px; height: 50px; padding: 14px 16px; border-radius: 8px; background: #2b3645; color: #fff; text-align: center; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+/* Snackbar: шет 16, биіктігі 48, мәтін Subheadline2 15/20, белгіше 24 */
+.snack { position: fixed; z-index: 40; left: 50%; margin-left: -190px; bottom: calc(24px + var(--safe-b, 0px)); width: 380px; height: 48px; padding: 12px 16px; border-radius: 12px; background: #2b3645; color: #fff; display: flex; align-items: center; gap: 12px; font-size: 15px; line-height: 20px; letter-spacing: 0.15px; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.snack svg { flex: none; }
 @keyframes snack { 0% { transform: translateY(20px); opacity: 0; } 8%, 88% { transform: none; opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
 :global(:root[data-theme="dark"]) .card { background: var(--surface-card); }
@@ -95,3 +97,4 @@
 :global(:root[data-theme="dark"]) .badgeNew { background: #1f9a41; }
 :global(:root[data-theme="dark"]) .closed { color: #ff6b6b !important; }
 :global(:root[data-theme="dark"]) .nopay { background: rgba(255, 184, 0, 0.16); }
+:global(:root[data-theme="dark"]) .snack { background: #3b4a5d; }
