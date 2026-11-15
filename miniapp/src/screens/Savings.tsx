@@ -46,7 +46,7 @@ export function Savings() {
       </div>
       <Group header="Қараша бойынша" i={2}>
         {loading ? <SkRows n={4} /> : rows.map(([t, sub, v]) => (
-          <Row key={t} title={t} sub={sub} left={<span className={s.circle} />} right={<span className={`t-sub1 w-600 ${s.value}`}>{v}</span>} />
+          <Row key={t} title={t} sub={sub} left={<span className={s.circle}>{/шаш/i.test(t) ? "✂️" : /латте|кофе/i.test(t) ? "☕" : "🍔"}</span>} right={<span className={`t-text w-600 ${s.value}`}>{v}</span>} />
         ))}
       </Group>
       <p className={`t-cap1 ${s.note} rise`} style={{ ["--i" as string]: 3 }}>Үнем = бөлек баға мен пакет бағасының айырмасы × пайдаланылған бірлік саны.</p>
