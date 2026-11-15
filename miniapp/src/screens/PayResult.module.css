@@ -1,6 +1,6 @@
 .page { position: relative; min-height: var(--app-h, 100vh); background: var(--surface-page); display: flex; flex-direction: column; }
 /* Ортаға флекспен қою 917-лік экранда жарты пиксель береді — сондықтан тұрақты жоғарғы шегініс (4px тор) */
-.body { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: calc(268px + var(--top-shift, 0px)) 40px 140px; text-align: center; }
+.body { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: calc(268px + var(--top-shift, 0px)) 16px 140px; text-align: center; }
 .sticker { margin-bottom: 8px; animation: pop 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
 @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
 .title { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); animation: rise 0.4s 0.08s ease both; }
@@ -19,4 +19,4 @@
 .kvBox p { display: flex; align-items: center; justify-content: space-between; height: 44px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; color: var(--text-secondary); }
 .kvBox p + p { box-shadow: inset 0 1px 0 var(--separator); }
 .kvBox b { font-weight: 600; color: var(--text-strong); }
-.title, .text { align-self: stretch; }
+.title, .text { align-self: stretch; padding: 0 24px; }

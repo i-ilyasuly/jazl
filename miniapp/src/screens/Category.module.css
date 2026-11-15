@@ -2,7 +2,7 @@
 .bar { position: fixed; z-index: 4; left: 50%; margin-left: -206px; top: 0; width: 412px; height: calc(92px + var(--top-shift)); background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 0.5px 0 rgba(17, 26, 38, 0.1); opacity: 0; transform: translateY(-8px); transition: opacity 0.22s ease, transform 0.22s ease; pointer-events: none; }
 .barOn { opacity: 1; transform: none; }
 .barTitle { position: absolute; left: 0; bottom: 10px; width: 100%; text-align: center; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); }
-.body { padding: calc(96px + var(--top-shift)) 16px 160px; display: flex; flex-direction: column; gap: 14px; }
+.body { padding: calc(96px + var(--top-shift)) 16px 160px; display: flex; flex-direction: column; gap: 12px; }
 .h1 { font-size: 34px; line-height: 41px; letter-spacing: 0.25px; font-weight: 700; color: var(--text-strong); }
 .search { display: flex; align-items: center; gap: 10px; width: 380px; height: 48px; padding: 12px 14px; border-radius: 12px; background: #eef1f5; transition: box-shadow 0.2s ease; }
 .search:focus-within { box-shadow: 0 0 0 2px rgba(34, 154, 240, 0.35); }

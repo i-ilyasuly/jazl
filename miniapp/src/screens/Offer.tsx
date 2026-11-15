@@ -224,8 +224,8 @@ function OfferView({ id }: { id?: string }) {
       {!inTelegram && (
         <div className={`${s.bar} ${caption ? s.barTall : ""}`}>
           {caption && <p className={`t-cap1 ${s.caption}`}>{caption}</p>}
-          {secondBtn && <button className={`t-sub1 w-600 ${s.btn} ${s.secondary}`} onClick={secondBtn.onClick}>{secondBtn.text}</button>}
-          <button key={mainBtn.text} className={`t-sub1 w-600 ${s.btn} ${s.main} ${"shine" in mainBtn && mainBtn.shine ? s.shine : ""} ${ended && waiting ? s.mainDone : ""}`} onClick={mainBtn.onClick}>{mainBtn.text}</button>
+          {secondBtn && <button className={`t-text w-600 ${s.btn} ${s.secondary}`} onClick={secondBtn.onClick}>{secondBtn.text}</button>}
+          <button key={mainBtn.text} className={`t-text w-600 ${s.btn} ${s.main} ${"shine" in mainBtn && mainBtn.shine ? s.shine : ""} ${ended && waiting ? s.mainDone : ""}`} onClick={mainBtn.onClick}>{mainBtn.text}</button>
         </div>
       )}
     </div>
