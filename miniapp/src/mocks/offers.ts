@@ -62,7 +62,7 @@ export const isEnded = (id: string) => endedOffers.some((o) => o.id === id);
 
 // Ұсыныс бетіндегі мәтіндер санатқа сай болуы керек (кофе пакетінде лаваш туралы сөз болмауы тиіс).
 type Seg = string | { g: string } | { b: string };
-export interface OfferDetails { take: string; use: string; includes: Seg[]; about: Seg[]; reviews: { name: string; text: string }[] }
+export interface OfferDetails { take: string; use: string; includes: Seg[]; about: Seg[]; reviews: { name: string; text: string }[]; days?: number; duration?: string; service?: string }
 const byKind: Record<OfferKind, OfferDetails> = {
   food: {
     take: "мекемеде немесе алып кету", use: "Кассада QR сканерлеп",
@@ -77,7 +77,9 @@ const byKind: Record<OfferKind, OfferDetails> = {
     reviews: [{ name: "Дана", text: "Кофесі дәмді, таңертең кезек күтпедім." }, { name: "Асхат", text: "Күнде аламын, бөлек төлегеннен әлдеқайда арзан." }],
   },
   hair: {
-    take: "алдын ала жазылу арқылы", use: "Шеберге QR көрсетіп",
+    take: "алдын ала жазылу арқылы", use: "Жазылу немесе сканерлеу",
+    // Figma 23 «Шаштараз: ұсыныс беті» 14048:12755
+    days: 60, duration: "≈ 45 минут", service: "мекемеде, жазылумен",
     includes: ["Шаш қию және жуу", { g: "Сәндеу бағаға кіреді" }, "Сақал түзету кірмейді"],
     about: [{ g: "Тәжірибелі шебер" }, " қияды, жуу мен сәндеу кіреді. Келу уақытын алдын ала таңдайсың. Сақал түзету ", { b: "қосылмайды" }, "."],
     reviews: [{ name: "Нұрлан", text: "Шебер ұқыпты, дәл уақытында қабылдады." }, { name: "Тимур", text: "Айына бір барамын, пакетпен әлдеқайда тиімді." }],

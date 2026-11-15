@@ -30,11 +30,11 @@ const copy: Record<ScanKind, Copy> = {
   notpartner: { sticker: "stop", title: "Бұл мекеме Jazl+ серіктесі емес", text: "Бұл төлем QR-ына Jazl+ пакетімен төлеу мүмкін емес.", left: "Мекеме ұсыну", main: "Түсінікті" },
   nopack: { sticker: "empty", title: "Бұл мекемеде белсенді пакетің жоқ", text: "Пакет сатып алсаң, келесі жолы төлей аласың.", main: "Ұсыныстарды көру" },
   notqr: { sticker: "search", title: "Бұл төлем QR-ы емес", text: "Кассадағы терминал экранындағы төлем QR-ын сканерле.", main: "Қайта сканерлеу" },
-  nocam: { sticker: "stop", title: "Камераға рұқсат жоқ", text: "Сканер үшін Telegram баптауында Jazl+ камерасына рұқсат бер.", main: "Қайта көру" },
+  nocam: { sticker: "stop", title: "Камераға рұқсат жоқ", text: "Сканер үшін Telegram баптауында Jazl+ камерасына рұқсат бер.", left: "Код енгізу", main: "Қайта көру" },
   offline: { sticker: "offline", title: "Интернет жоқ", text: "Төлем үшін желі керек. Қосылып, қайта сканерле.", main: "Қайта сканерлеу" },
   expired: { sticker: "sleep", title: "QR мерзімі өтті", text: "Кассирден жаңа QR шығаруын сұра.", main: "Қайта сканерлеу" },
   paidbefore: { sticker: "party", title: "Бұл QR бұрын төленген", text: "Төлем жасалған. Қолдану тарихынан көруге болады.", left: "Тарихқа өту", main: "Түсінікті" },
-  desktop: { sticker: "phone", title: "Сканерді телефонда аш", text: "Компьютерде камера қолжетімсіз. Jazl+ қолданбасын телефоннан аш.", main: "Түсінікті" },
+  desktop: { sticker: "phone", title: "Сканерді телефонда аш", text: "Компьютерде камера қолжетімсіз. Jazl+ қолданбасын телефоннан аш.", left: "Код енгізу", main: "Түсінікті" },
   pinintro: { sticker: "lock", title: "Төлем үшін PIN орнат", text: "PIN әр төлемді растайды. Саусақ ізін де қосуға болады.", main: "PIN орнату" },
   kyc: { sticker: "lock", title: "Төлеу үшін жеке басыңды растау керек", text: "Банк талабы бойынша бір рет. Деректер банкте сақталады.", note: "Бұл қадам тек банк-серіктес талап етсе көрсетіледі.", left: "Кейін", main: "Растау" },
 };
@@ -63,7 +63,8 @@ export function ScanState() {
   } }), [c.main, k, go, home, close, rescan]);
   const left = useMemo(() => c.left ? ({ text: c.left, position: "left" as const, onClick: () => {
     haptic.tap();
-    if (k === "notpartner") go("/profile/venue");
+    if (k === "nocam" || k === "desktop") go("/scan/code", "forward", { replace: true });
+    else if (k === "notpartner") go("/profile/venue");
     else if (k === "paidbefore") go("/profile/usage", "forward", { replace: true });
     else if (k === "kyc") close();
     else go("/profile/report");

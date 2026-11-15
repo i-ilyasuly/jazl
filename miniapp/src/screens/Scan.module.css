@@ -65,3 +65,14 @@
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .avatar { background: rgba(255, 255, 255, 0.09); }
 :global(:root[data-theme="dark"]) .emoji { background: rgba(92, 180, 244, 0.2); }
+/* Figma 23: «Код енгізу» сілтемесі және «кассада қосымша» парағы */
+.codeBtn { position: absolute; left: 146px; top: 732px; width: 120px; height: 36px; border-radius: 18px; background: rgba(255, 255, 255, 0.16); color: #fff; }
+.kvList { display: flex; flex-direction: column; }
+.kvList p { display: flex; align-items: center; justify-content: space-between; height: 44px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; }
+.kvList p + p { box-shadow: inset 0 1px 0 var(--separator); }
+.kvList b { font-weight: 600; }
+.extraChip { align-self: flex-start; height: 28px; padding: 4px 8px; border-radius: 8px; background: rgba(49, 209, 88, 0.16); color: #1b6b2e; }
+.bar2 { display: flex; gap: 8px; }
+.bar2 .btn { width: auto; flex: 1; }
+.btn2 { background: var(--chip-tint); color: var(--link); }
+:global(:root[data-theme="dark"]) .extraChip { color: #fff; }

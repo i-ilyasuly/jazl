@@ -83,7 +83,7 @@ export function UseReceipt() {
       </Group>
       <Group i={2}>
         <button className={s.action} onClick={download.onClick}>Чекті жүктеу</button>
-        <button className={s.action} onClick={() => go("/profile/report")}>Мәселе туралы жазу</button>
+        <button className={s.action} onClick={() => go("/complaint/" + pack.id)}>Мәселе туралы жазу</button>
       </Group>
       {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={download.onClick}>Чекті жүктеу</button></div>}
       {dl.node}
