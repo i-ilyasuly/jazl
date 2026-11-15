@@ -140,7 +140,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
           <h2 className={s.title}>Төлем тәсілі</h2>
           <div className={s.list}>
             {methods.map((x) => (
-              <button key={x.id} className={s.opt} onClick={() => { if (method !== x.id) { haptic.select(); setMethod(x.id); } }}>
+              <button key={x.id} className={`${s.opt} ${method === x.id ? s.optOn : ""}`} onClick={() => { if (method !== x.id) { haptic.select(); setMethod(x.id); } }}>
                 <span className={s.optIcon}>{x.emoji}</span>
                 <span className={s.itemText}><span className={s.itemTitle}>{x.title}</span><span className={s.itemSub}>{x.card ? `Қосылған карта · ${x.sub.replace(/.*(\d\d\/\d\d).*/, "$1")}` : x.sub}</span></span>
                 <span className={`${s.radio} ${method === x.id ? s.radioOn : ""}`} />

@@ -49,7 +49,8 @@
 
 /* Төлем тәсілдері тізімі */
 .list { width: 100%; display: flex; flex-direction: column; }
-.opt { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 68px; padding: 8px 0; text-align: left; }
+.opt { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 68px; padding: 8px 10px; border-radius: 14px; text-align: left; transition: background 0.2s ease; }
+.optOn { background: var(--chip-tint); }
 .opt + .opt::before { content: ""; position: absolute; left: 58px; right: 0; top: 0; height: 1px; background: var(--separator); }
 .optIcon { width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 22px; }
 .plus { color: var(--link); font-size: 28px; font-weight: 600; background: var(--chip-tint); border-radius: 50%; }
