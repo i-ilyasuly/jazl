@@ -24,7 +24,7 @@ export interface Offer {
 }
 
 export const offers: Offer[] = [
-  { id: "doner", title: "Тауық донері · 4 дана", unitWord: "донер", venue: "Dämdi Doner", distance: "1,2 км", kind: "food", price: 6000, oldPrice: 8000, units: 4, buyers: 48, favorite: true, rating: 4.8, ratingCount: 23, address: "Қарағанды, Бухар-Жырау даңғылы 52", hours: "Ашық · бүгін 09:00–22:00", sizes: [{ units: 4, price: 6000, oldPrice: 8000 }, { units: 8, price: 11000, oldPrice: 16000 }, { units: 12, price: 15600, oldPrice: 24000 }] },
+  { id: "doner", title: "Тауық донері · 4 дана", unitWord: "донер", venue: "Dämdi Doner", distance: "1,2 км", kind: "food", price: 6000, oldPrice: 8000, units: 4, buyers: 48, favorite: true, rating: 4.8, ratingCount: 23, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 09:00–22:00", sizes: [{ units: 4, price: 6000, oldPrice: 8000 }, { units: 8, price: 11000, oldPrice: 16000 }, { units: 12, price: 15600, oldPrice: 24000 }] },
   { id: "haircut", title: "Шаш қию · 4 рет", unitWord: "рет", venue: "Qala Barber", distance: "1,5 км", kind: "hair", price: 12000, oldPrice: 16000, units: 4, buyers: 31, favorite: false, deadline: "2 күн қалды", rating: 4.9, ratingCount: 18, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 10:00–21:00" },
   { id: "latte", title: "Латте · 12 стакан", unitWord: "стакан", venue: "Coffee Lab", distance: "2,1 км", kind: "coffee", price: 10800, oldPrice: 13200, units: 12, buyers: 27, favorite: false, rating: 4.6, ratingCount: 14, address: "Қарағанды, Ерубаев көшесі 33", hours: "Ашық · бүгін 08:00–22:00" },
 ];
@@ -41,7 +41,7 @@ export const endedOffers: Offer[] = [
 
 // Іздеуде ғана шығатын қосымша ұсыныстар (Figma: «Іздеу / Нәтижелер»)
 export const moreOffers: Offer[] = [
-  { id: "doner-drink", title: "Донер + сусын · 4 дана", unitWord: "комбо", venue: "Dämdi Doner", distance: "1,2 км", kind: "food", price: 9200, oldPrice: 12000, units: 4, buyers: 19, favorite: false, rating: 4.8, ratingCount: 23, address: "Қарағанды, Бухар-Жырау даңғылы 52", hours: "Ашық · бүгін 09:00–22:00" },
+  { id: "doner-drink", title: "Донер + сусын · 4 дана", unitWord: "комбо", venue: "Dämdi Doner", distance: "1,2 км", kind: "food", price: 9200, oldPrice: 12000, units: 4, buyers: 19, favorite: false, rating: 4.8, ratingCount: 23, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 09:00–22:00" },
   { id: "lamb-doner", title: "Қой етінен донер · 4 дана", unitWord: "донер", venue: "Kebab House", distance: "1,8 км", kind: "food", price: 7600, oldPrice: 10000, units: 4, buyers: 31, favorite: false, rating: 4.7, ratingCount: 19, address: "Қарағанды, Гоголь көшесі 40", hours: "Ашық · бүгін 10:00–23:00" },
 ];
 // Санат беттеріндегі ұсыныстар (Figma: «Санат беті / Кофе», «Тағамдар», «Шаш алу»)

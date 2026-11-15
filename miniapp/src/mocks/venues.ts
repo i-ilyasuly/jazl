@@ -6,7 +6,7 @@ export const kindEmoji: Record<OfferKind, string> = { food: "🍔", coffee: "☕
 export const kindTint: Record<OfferKind, string> = { food: "#ffb454", coffee: "#c9976a", hair: "#6aa2f5" };
 // x, y — белгінің ортасы (Figma кадрындағы координата, 412×917)
 export const venues: Venue[] = [
-  { id: "damdi", name: "Dämdi Doner", kind: "food", km: 1.2, rating: 4.8, reviews: 23, address: "Бухар-Жырау 52", hours: "09:00–22:00", x: 90, y: 236, offers: [["Тауық донері · 4 дана", 6000, "doner"], ["Бургер комбо · 4 дана", 10800, "burger-combo"], ["Донер комбо · 6 дана", 9600]] },
+  { id: "damdi", name: "Dämdi Doner", kind: "food", km: 1.2, rating: 4.8, reviews: 23, address: "Нұркен Әбдіров, 24", hours: "09:00–22:00", x: 90, y: 236, offers: [["Тауық донері · 4 дана", 6000, "doner"], ["Донер + сусын · 4 дана", 9200, "doner-drink"], ["Донер комбо · 6 дана", 9600]] },
   { id: "brew", status: "247", name: "Brew Point", kind: "coffee", km: 0.9, rating: 4.7, reviews: 15, address: "Ерубаев 21", hours: "08:00–22:00", x: 205, y: 300, offers: [["Латте · 15 стақан", 27000]] },
   { id: "qala-barber", name: "Qala Barber", kind: "hair", km: 1.5, rating: 4.9, reviews: 18, address: "Нұркен Әбдіров 24", hours: "10:00–21:00", x: 300, y: 214, offers: [["Шаш қию · 4 рет", 12000, "haircut"]] },
   { id: "coffee-lab", name: "Coffee Lab", kind: "coffee", km: 1.6, rating: 4.6, reviews: 14, address: "Ерубаев 33", hours: "08:00–22:00", x: 330, y: 360, offers: [["Латте · 12 стакан", 10800, "latte"], ["Кофе · 10 стақан", 18000]] },

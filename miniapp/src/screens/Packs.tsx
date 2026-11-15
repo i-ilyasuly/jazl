@@ -87,7 +87,7 @@ export function Packs() {
   const closeHint = () => { setHint(false); kv.set("jazl_packs_hint", "1"); };
   return (
     <div className={s.page}>
-      <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>
+      <button className="topSearch pinned" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>
       <header className={s.top}>
         <TelegramChrome mode="close" />
         <div className={s.seg}>

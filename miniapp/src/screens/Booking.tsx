@@ -23,7 +23,7 @@ function busy(day: number, t: string) {
 }
 
 function Bar({ left, main }: { left: BottomAction; main: BottomAction & { disabled?: boolean } }) {
-  useBottomButtons(main, left, !main.disabled);
+  useBottomButtons(main, left);
   if (inTelegram) return null;
   return (
     <div className={s.bar}>

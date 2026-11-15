@@ -31,9 +31,21 @@ export function Order() {
   const [branch, setBranch] = useState(list.find((b) => b.open)?.id ?? "");
   const [picking, setPicking] = useState(false);
   const [day, setDay] = useState(0);
-  const times = useMemo(() => (day === 0 ? ["now", ...slots(4)] : ["10:00", "12:00", "14:00", "18:00"]), [day]);
+  // Уақыттар филиалдың жұмыс уақытымен шектеледі: «Қазір» — жабылуға 30 мин қалғанға дейін, слоттар — жабылудан 30 мин бұрын
+  const hoursOf = (id: string) => (list.find((x) => x.id === id)?.hours ?? "09:00–22:00").split("–").map((h) => { const [a, m] = h.split(":").map(Number); return a * 60 + m; });
+  const [openM, closeM] = hoursOf(branch);
+  const mins = (t: string) => { const [a, m] = t.split(":").map(Number); return a * 60 + m; };
+  const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+  const times = useMemo(() => {
+    const ok = (t: string) => mins(t) >= openM + 30 && mins(t) <= closeM - 30;
+    if (day > 0) return ["10:00", "12:00", "14:00", "16:00", "18:00", "20:00"].filter(ok);
+    const later = slots(6).filter((t) => mins(t) > nowM && ok(t)).slice(0, 4);
+    return [...(nowM >= openM && nowM <= closeM - 30 ? ["now"] : []), ...later];
+  }, [day, openM, closeM, nowM]); // eslint-disable-line react-hooks/exhaustive-deps
   const [time, setTime] = useState("now");
-  useEffect(() => { if (!times.includes(time)) setTime(times[0]); }, [times]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!times.includes(time)) setTime(times[0] ?? ""); }, [times]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Бүгін уақыт қалмаса — бірден ертеңге ауысамыз
+  useEffect(() => { if (day === 0 && times.length === 0) setDay(1); }, [day, times.length]);
   const [sending, setSending] = useState(false);
   const b = list.find((x) => x.id === branch);
   // Figma 23 «Тапсырыс: мерзім алу уақытынан ерте бітеді» (14043:12912): мерзімнен кейінгі күндер сызылған,
@@ -66,7 +78,7 @@ export function Order() {
       go("/order/done/" + order.id, "up", { replace: true });
     }, 1400);
   } }), [pack, b, sending, time, hair, day, go]);
-  const sendOk = useMemo(() => (tooLate ? { ...send, onClick: () => { haptic.error(); setShake((n) => n + 1); } } : send), [tooLate, send]);
+  const sendOk = useMemo(() => (tooLate || !time ? { ...send, disabled: true, onClick: () => { haptic.error(); setShake((n) => n + 1); } } : send), [tooLate, send]);
   useBottomButtons(sendOk, undefined, Boolean(pack) && !picking);
 
   // Шаштараз — Figma «22»: жеке «Күн мен уақыт» ағыны

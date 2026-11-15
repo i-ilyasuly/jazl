@@ -26,7 +26,7 @@ export function Favorites() {
   const total = live.length + ended.length;
   return (
     <div className={s.page}>
-      <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу">
+      <button className="topSearch pinned" onClick={() => go("/search")} aria-label="Іздеу">
           <img src={searchIcon} alt="" /><span>Іздеу...</span>
         </button>
       <header className={s.top}>

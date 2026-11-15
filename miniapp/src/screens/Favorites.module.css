@@ -1,5 +1,5 @@
 .page { position: relative; min-height: var(--app-h, 100vh); padding-bottom: 32px; background: var(--surface-page); }
-.top { position: relative; height: calc(210px + var(--top-shift)); background: var(--surface-card); border-radius: 0 0 24px 24px; overflow: hidden; }
+.top { position: sticky; z-index: 20; top: 0; height: calc(210px + var(--top-shift)); background: var(--surface-card); border-radius: 0 0 24px 24px; overflow: hidden; box-shadow: 0 4px 16px rgba(17, 26, 38, 0.06); }
 .top > * { translate: 0 var(--top-shift); }
 .searchHit { position: absolute; left: 100px; top: 44px; width: 216px; height: 48px; }
 .search { position: absolute; left: 0; top: 8px; box-sizing: content-box; width: 214px; height: 30px; border-radius: 16px; background: var(--search-bg); border: 1px solid var(--search-border); overflow: hidden; }
