@@ -12,7 +12,7 @@
 .quote i { position: absolute; right: 12px; top: 0; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: var(--button); }
 .card { width: 380px; padding: 4px 0; border-radius: 20px; background: #fff; color: var(--text-strong); overflow: hidden; }
 .row { display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 12px 16px; }
-.emoji { flex: none; width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 24px; }
+.emoji { flex: none; width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 25px; }
 .text { flex: 1; min-width: 0; display: flex; flex-direction: column; white-space: nowrap; }
 .kv { position: relative; display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 13px 16px; font-size: 17px; line-height: 22px; white-space: nowrap; }
 .kv::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 1px; background: var(--separator); }

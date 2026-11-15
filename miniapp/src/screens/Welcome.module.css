@@ -27,7 +27,7 @@
 @keyframes up { from { transform: translateY(12px); opacity: 0; } }
 .perks { position: absolute; left: 16px; top: 563px; width: 380px; height: 194px; padding: 16px; border-radius: 20px; background: #fff; border: 1px solid #e3e7ed; display: flex; flex-direction: column; gap: 14px; animation: up 0.5s 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .perk { display: flex; align-items: center; gap: 14px; height: 44px; color: var(--text-strong); white-space: nowrap; animation: perk 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(380ms + var(--i) * 80ms); }
-.perk > div { display: flex; flex-direction: column; gap: 1px; }
+.perk > div { display: flex; flex-direction: column; gap: 0; }
 @keyframes perk { from { transform: translateX(14px); opacity: 0; } }
 .slot { flex: none; width: 44px; height: 44px; border-radius: 12px; }
 .perkSub { color: var(--text-secondary); }
