@@ -53,7 +53,7 @@ function OfferView({ id }: { id?: string }) {
   const offer = useMemo(() => { const z = base.sizes?.[size]; return z ? { ...base, ...z, title: base.title.replace(/· \d+ /, `· ${z.units} `) } : base; }, [base, size]);
   const fav = useFavs().includes(offer.id);
   const ended = isEnded(base.id);
-  const pack = usePacks().find((p) => p.offerId === base.id && p.left > 0);
+  const pack = usePacks().find((p) => p.offerId === base.id && p.left > 0 && !p.expired);
   const waiting = useRestock().includes(base.id);
   const venue = venues.find((v) => v.name === base.venue);
   const [sheet, setSheet] = useState<"route" | "contact" | "how" | null>(null);
@@ -93,7 +93,7 @@ function OfferView({ id }: { id?: string }) {
   useBottomButtons(mainBtn, secondBtn, !buying && !sheet && !using && !choose);
   const toVenue = () => go("/venue/" + (venue?.id ?? "damdi"));
   const handle = "@" + base.venue.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/ä/g, "a");
-  const routeRows: LinkRow[] = [{ emoji: "🗺", title: "2ГИС", sub: `${base.venue} мекенжайын 2ГИС-те аш`, onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(base.venue)) }];
+  const routeRows: LinkRow[] = [{ glyph: "pin", tint: "#31d158", title: "2ГИС", sub: `${base.venue} мекенжайын 2ГИС-те аш`, onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(base.venue)) }];
   const contactRows: LinkRow[] = [
     { emoji: "✈️", title: "Telegram-да жазу", sub: handle, onClick: () => openChat(handle.slice(1)) },
     { emoji: "📞", title: "Қоңырау шалу", sub: "+7 700 000 00 00", onClick: () => { window.location.href = "tel:+77000000000"; } },

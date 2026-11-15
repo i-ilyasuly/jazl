@@ -16,7 +16,7 @@ export function Scan() {
   const [params] = useSearchParams();
   const packs = usePacks();
   const go = useGo();
-  const pack = getPack(params.get("pack") ?? undefined) ?? packs.find((p) => p.left > 0);
+  const pack = getPack(params.get("pack") ?? undefined) ?? packs.find((p) => p.left > 0 && !p.expired);
   const [found, setFound] = useState(false);
   const [busy, setBusy] = useState(false);
   const [torch, setTorch] = useState(false);
