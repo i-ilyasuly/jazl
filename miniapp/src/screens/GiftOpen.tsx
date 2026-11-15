@@ -16,7 +16,7 @@ import s from "./GiftOpen.module.css";
 type Bad = "expired" | "taken" | "cancelled" | "own";
 const BAD: Record<Bad, { sticker: StickerName; title: string; text: string; btn: string }> = {
   expired: { sticker: "sleep", title: "Сыйлықтың мерзімі өтті", text: "Қабылдау мерзімі бітті. Пакет жіберушіге қайтарылды.", btn: "Ұсыныстарды көру" },
-  taken: { sticker: "think", title: "Сыйлық бұрын қабылданған", text: "Бұл сыйлықты басқа адам алып қойған.", btn: "Ұсыныстарды көру" },
+  taken: { sticker: "party", title: "Сыйлық бұрын қабылданған", text: "Бұл сыйлықты басқа адам алып қойған.", btn: "Ұсыныстарды көру" },
   cancelled: { sticker: "stop", title: "Жіберуші сыйлықты болдырмады", text: "Бұл сыйлық енді жарамсыз.", btn: "Ұсыныстарды көру" },
   own: { sticker: "hello", title: "Бұл сенің өз сыйлығың", text: "Сыйлықты өзіңе қабылдай алмайсың. Сілтемені досыңа жібер.", btn: "Сілтемені жіберу" },
 };

@@ -17,7 +17,7 @@ export const errorKinds = ["offline", "server", "maintenance", "session", "banne
 type Kind = (typeof errorKinds)[number];
 const copy: Record<Kind, { sticker: StickerName; title: string; text: string; left?: string; main: string }> = {
   offline: { sticker: "offline", title: "Желі жоқ", text: "Интернетті тексеріп, қайта көр", main: "Қайта көру" },
-  server: { sticker: "cry", title: "Қате орын алды", text: "Біз оны түзетіп жатырмыз. Сәл күтіп, қайта көр", left: "Қолдауға жазу", main: "Қайта көру" },
+  server: { sticker: "sad", title: "Қате орын алды", text: "Біз оны түзетіп жатырмыз. Сәл күтіп, қайта көр", left: "Қолдауға жазу", main: "Қайта көру" },
   maintenance: { sticker: "repair", title: "Техникалық жұмыстар", text: "Қызмет уақытша қолжетімсіз. Шамамен 30 минуттан кейін қайта кір", main: "Тексеру" },
   session: { sticker: "sleep", title: "Сессия аяқталды", text: "Қауіпсіздік үшін қолданбаны қайта аш.", main: "Қайта ашу" },
   banned: { sticker: "stop", title: "Аккаунт уақытша шектелген", text: "Күдікті әрекеттер байқалды. Қолдауға жазсаң, көмектесеміз.", main: "Қолдауға жазу" },

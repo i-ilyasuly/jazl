@@ -104,7 +104,7 @@ export function OrderReceipt() {
   return (
     <SubPage title="Тапсырыс чегі" top={92}>
       <div className={s.hero}>
-        <Sticker name="bags" size={96} />
+        <Sticker name="party" size={96} />
         <p className={s.amount}>1 бірлік</p>
         <span className={`t-cap1 ${s.chip} ${s.sent}`}>Жіберілді</span>
       </div>
