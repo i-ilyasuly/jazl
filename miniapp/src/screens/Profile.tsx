@@ -74,14 +74,14 @@ export function Profile() {
             {g.header && <h2 className={`t-sub2 w-600 ${s.header}`}>{g.header}</h2>}
             {g.rows.map((r, i) => loading ? (
               <div key={r.title} className={`${s.row} ${r.sub ? "" : s.short}`}>
-                <span className="sk" style={{ width: 30, height: 30, borderRadius: 8, margin: 1, flex: "none" }} />
+                <span className="sk" style={{ width: 36, height: 36, borderRadius: 10, flex: "none" }} />
                 <span className={s.text}><span className="sk" style={{ display: "block", width: 150, height: 16, borderRadius: 6, margin: "5px 0" }} />{r.sub && <span className="sk" style={{ display: "block", width: 110, height: 12, borderRadius: 6, margin: "4px 0" }} />}</span>
               </div>
             ) : (
               <button key={r.title} className={`${s.row} ${r.sub ? "" : s.short}`} onClick={() => open(r)}>
-                <img src={r.icon} width={32} height={32} alt="" />
-                <span className={s.text}><span className={s.title}>{r.title}</span>{r.sub && <span className={`t-sub2 ${s.sub}`}>{subOf(r)}</span>}</span>
-                {r.value && <span className={`t-sub1 w-600 ${s.value}`}>{r.value}</span>}
+                <img src={r.icon} width={36} height={36} className={s.icon} alt="" />
+                <span className={s.text}><span className={s.title}>{r.title}</span>{r.sub && <span className={s.sub}>{subOf(r)}</span>}</span>
+                {r.value && <span className={s.value}>{r.value}</span>}
                 {r.badge && unread ? <span className={`t-cap1 w-600 ${s.badge}`}>{unread}</span> : null}
                 {i < g.rows.length - 1 && <span className={s.line} />}
               </button>

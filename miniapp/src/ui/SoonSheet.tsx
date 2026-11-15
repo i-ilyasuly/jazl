@@ -16,7 +16,7 @@ export function SoonSheet({ pct, onClose }: { pct: number; venues?: number; onCl
   useEffect(() => { if (!snack) return; const t = setTimeout(() => setSnack(false), 2600); return () => clearTimeout(t); }, [snack]);
   const done = () => { haptic.success(); toggleSoon(pct); setSnack(true); };
   // Рұқсат диалогы Telegram-да нативті (requestWriteAccess); браузерде соның көшірмесі
-  const subscribe = useMemo(() => ({ text: "Ашылғанда хабарла", onClick: async () => { haptic.tap(); if (!inTelegram) return setAsk(true); if (await askWriteAccess()) done(); } }), [pct]); // eslint-disable-line react-hooks/exhaustive-deps
+  const subscribe = useMemo(() => ({ text: "Ашылғанда хабарла", onClick: async () => { haptic.medium(); if (!inTelegram) return setAsk(true); if (await askWriteAccess()) done(); } }), [pct]); // eslint-disable-line react-hooks/exhaustive-deps
   useBottomButtons(subscribe, undefined, !on && !closing);
   return (
     <div className={`${s.root} ${closing ? s.closing : ""}`}>

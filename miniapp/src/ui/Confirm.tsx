@@ -12,7 +12,7 @@ export function Confirm({ title, text, cancel, ok, danger, onOk, onClose }: { ti
     tg!.showPopup!({ title, message: text, buttons: [{ id: "no", type: "default", text: cancel }, { id: "ok", type: danger ? "destructive" : "default", text: ok }] }, (id) => { onClose(); if (id === "ok") onOk(); });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (native) return null;
-  const close = (yes: boolean) => { haptic.tap(); setClosing(true); setTimeout(() => { onClose(); if (yes) onOk(); }, 180); };
+  const close = (yes: boolean) => { if (yes && danger) haptic.warning(); else if (yes) haptic.medium(); else haptic.soft(); setClosing(true); setTimeout(() => { onClose(); if (yes) onOk(); }, 180); };
   return (
     <div className={`${s.root} ${closing ? s.closing : ""}`}>
       <div className={s.scrim} onClick={() => close(false)} />

@@ -1,0 +1,16 @@
+.map { position: absolute; inset: 0; z-index: 1; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
+.live { opacity: 1; pointer-events: auto; }
+.map :global(.maplibregl-ctrl-attrib) { font-size: 10px; }
+.map :global(.maplibregl-ctrl-bottom-right) { bottom: auto; top: calc(var(--bar-c) + 80px); }
+.pin { width: 42px; height: 42px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(17, 26, 38, 0.22); transition: width 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), height 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.2s ease, opacity 0.25s ease, scale 0.25s ease; -webkit-tap-highlight-color: transparent; cursor: pointer; }
+.pin:active { scale: 0.9; }
+.dot { position: absolute; inset: 4px; border-radius: 50%; background: color-mix(in srgb, var(--tint) 35%, #fff); display: flex; align-items: center; justify-content: center; }
+.dot i { font-style: normal; font-size: 17px; line-height: 24px; }
+.price { position: absolute; left: 50%; bottom: calc(100% + 6px); translate: -50% 0; height: 26px; padding: 3px 10px; border-radius: 13px; background: #229af0; color: #fff !important; font-size: 13px; line-height: 20px; font-weight: 700; white-space: nowrap; opacity: 0; scale: 0.6; transition: opacity 0.2s ease, scale 0.25s cubic-bezier(0.3, 1.5, 0.5, 1); pointer-events: none; }
+.on { width: 56px; height: 56px; z-index: 3; box-shadow: inset 0 0 0 3px #229af0, 0 4px 12px rgba(34, 154, 240, 0.4); }
+.on .price { opacity: 1; scale: 1; }
+.hidden { opacity: 0; scale: 0; pointer-events: none; }
+.me { width: 20px; height: 20px; border-radius: 50%; background: #229af0; border: 3px solid #fff; box-shadow: 0 0 0 8px rgba(34, 154, 240, 0.2), 0 2px 6px rgba(0, 0, 0, 0.3); animation: pulse 2s ease-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 14px rgba(34, 154, 240, 0.08), 0 2px 6px rgba(0, 0, 0, 0.3); } }
+:global(:root[data-theme="dark"]) .pin { background: #242f3d; }
+:global(:root[data-theme="dark"]) .dot { background: color-mix(in srgb, var(--tint) 35%, #242f3d); }

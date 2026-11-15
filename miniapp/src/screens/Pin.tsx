@@ -30,7 +30,7 @@ export function Pin() {
   useBackButton(back);
 
   const fail = useCallback((msg: string) => { haptic.error(); setError(msg); setShake((n) => n + 1); setTimeout(() => setCode(""), 420); }, []);
-  const next = useCallback((to: Step) => { setTimeout(() => { setCode(""); setError(""); setStep(to); }, 180); }, []);
+  const next = useCallback((to: Step) => { haptic.rigid(); setTimeout(() => { setCode(""); setError(""); setStep(to); }, 180); }, []);
 
   useEffect(() => {
     if (code.length < 4) return;
@@ -50,7 +50,7 @@ export function Pin() {
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const press = (d: string) => { if (code.length >= 4) return; haptic.tap(); setError(""); setCode(code + d); };
-  const del = () => { if (!code) return; haptic.tap(); setCode(code.slice(0, -1)); };
+  const del = () => { if (!code) return; haptic.soft(); setCode(code.slice(0, -1)); };
   const bio = async () => { if (step !== "old" || !st.bio) return; if ((await biometricAuth("PIN-кодты өзгерту")) === "ok") next("new"); };
 
   // Нақты пернетақтадан да теруге болады (десктоп Telegram)

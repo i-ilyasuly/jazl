@@ -35,11 +35,25 @@ export function initTelegram() {
   wa.onEvent?.("themeChanged", applyTheme);
 }
 
+/**
+ * Нативті діріл ережесі (әр жаңа бетте міндетті):
+ * tap/light — карточка, ұяшық, навигация, артқа; soft — парақтарды жабу, жұмсақ әрекет;
+ * medium — негізгі әрекет («Төлеу», «Қолдану», «Сыйлау», таңдаулыға қосу, жазылу);
+ * heavy — сирек маңызды сәт (QR оқылды); rigid — PIN толық енгізілді, қатаң растау;
+ * select — сегмент, таб, чип, көлем, галерея; success/warning/error — нәтиже.
+ */
+const impact = (k: "light" | "medium" | "heavy" | "rigid" | "soft") => () => wa?.HapticFeedback?.impactOccurred(k);
+const notify = (k: "success" | "warning" | "error") => () => wa?.HapticFeedback?.notificationOccurred(k);
 export const haptic = {
-  tap: () => wa?.HapticFeedback?.impactOccurred("light"),
+  tap: impact("light"),
+  soft: impact("soft"),
+  medium: impact("medium"),
+  heavy: impact("heavy"),
+  rigid: impact("rigid"),
   select: () => wa?.HapticFeedback?.selectionChanged(),
-  success: () => wa?.HapticFeedback?.notificationOccurred("success"),
-  error: () => wa?.HapticFeedback?.notificationOccurred("error"),
+  success: notify("success"),
+  warning: notify("warning"),
+  error: notify("error"),
 };
 
 /** Нативті «Артқа» батырмасы (толық экранда Telegram оны сол жақ жоғарғы бұрышқа өзі салады). */

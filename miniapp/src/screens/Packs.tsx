@@ -32,7 +32,7 @@ function PackCard({ pack, i }: { pack: Pack; i: number }) {
       <Timeline total={pack.total} used={pack.total - pack.left} warn={soon} width={348} />
       <div className={s.bottom}>
         <p className={s.left}><span className="t-sub1 w-600">{pack.left} / {pack.total}</span><span className={`t-sub2 ${s.sub}`}>қалды</span></p>
-        <button className={`t-sub2 w-600 ${s.use}`} disabled={pack.left < 1} onClick={(e) => { e.stopPropagation(); go("/scan?pack=" + pack.id, "up"); }}>Қолдану</button>
+        <button className={`t-sub2 w-600 ${s.use}`} disabled={pack.left < 1} onClick={(e) => { e.stopPropagation(); haptic.medium(); go("/scan?pack=" + pack.id, "up"); }}>Қолдану</button>
       </div>
       {soon && (
         <div className={s.renew}>

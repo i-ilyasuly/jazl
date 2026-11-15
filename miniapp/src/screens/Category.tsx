@@ -55,7 +55,7 @@ function CategoryPage({ kind }: { kind: OfferKind }) {
     return near ? [...l].sort((a, b) => km(a) - km(b)) : l;
   }, [base, q, sub, near, onlyFav, favs, filters, pass]);
   const nFilters = activeCount(filters);
-  const reset = () => { haptic.tap(); setQ(""); setSub(""); setOnlyFav(false); setFilters(noFilters); };
+  const reset = () => { haptic.soft(); setQ(""); setSub(""); setOnlyFav(false); setFilters(noFilters); };
   return (
     <div className={s.page}>
       {/* Айналдырғанда пайда болатын әйнек жолақ (Figma: «Жоғарғы жолақ» 412×92, ақ 95%) */}
