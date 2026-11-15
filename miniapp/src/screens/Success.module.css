@@ -15,7 +15,7 @@
 @keyframes draw { to { clip-path: inset(0 0 0 0); } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
 
-.card { position: absolute; left: 16px; top: 470px; width: 380px; padding: 20px; border-radius: 20px; background: #f4f6fa; display: flex; flex-direction: column; gap: 16px; color: var(--text-strong); animation: rise 0.5s 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.card { position: absolute; left: 16px; top: 470px; width: 380px; padding: 20px 16px; border-radius: 20px; background: #f4f6fa; display: flex; flex-direction: column; gap: 16px; color: var(--text-strong); animation: rise 0.5s 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .head { display: flex; align-items: center; gap: 12px; }
 .icon { width: 56px; height: 56px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; }
 .headText { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }

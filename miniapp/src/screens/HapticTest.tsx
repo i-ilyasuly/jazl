@@ -18,10 +18,10 @@ export function HapticTest() {
   return (
     <SubPage title="Діріл сынағы" variant="settings">
       <Group header="Орта" i={0}>
-        <Row title="Telegram ішінде" right={<b>{i.inTelegram ? "иә" : "жоқ"}</b>} />
-        <Row title="Платформа / нұсқа" right={<b>{i.platform} · {i.version}</b>} />
-        <Row title="HapticFeedback" right={<b>{i.has && i.ok ? "бар" : "жоқ"}</b>} />
-        <Row title="navigator.vibrate" right={<b>{i.vibrateApi ? "бар" : "жоқ"}</b>} />
+        <Row title="Telegram ішінде" right={<b className="t-text">{i.inTelegram ? "иә" : "жоқ"}</b>} />
+        <Row title="Платформа / нұсқа" right={<b className="t-text">{i.platform} · {i.version}</b>} />
+        <Row title="HapticFeedback" right={<b className="t-text">{i.has && i.ok ? "бар" : "жоқ"}</b>} />
+        <Row title="navigator.vibrate" right={<b className="t-text">{i.vibrateApi ? "бар" : "жоқ"}</b>} />
       </Group>
       <Group header="Қосымшадағы дірілдер" i={1}>
         {app.map(([t, f]) => <Row key={t} title={t} onClick={() => { f(); const h = hapticInfo(); setLast(`${t}${h.android ? ` · vibrate: ${h.lastVibe === null ? "—" : h.lastVibe ? "иә" : "жоқ → Telegram"}` : ""}`); }} />)}

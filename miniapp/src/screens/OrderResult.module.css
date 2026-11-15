@@ -10,7 +10,7 @@
 .kv::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 1px; background: var(--separator); }
 .kv span { color: var(--text-secondary); }
 .kv b { font-weight: 600; color: var(--text-strong); text-align: right; }
-.codeBox { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px; margin: 0 12px 12px; border-radius: 16px; background: var(--chip-tint); }
+.codeBox { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px; margin: 0 16px 16px; border-radius: 16px; background: var(--chip-tint); }
 .codeBox span { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
 .code { display: flex; gap: 10px; font-size: 34px; line-height: 41px; font-weight: 800; letter-spacing: 1px; color: var(--link); }
 .code i { font-style: normal; animation: digit 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both; animation-delay: calc(0.3s + var(--i) * 0.08s); }

@@ -40,7 +40,7 @@
 .venueLine { display: flex; gap: 6px; white-space: pre; font-size: 15px; line-height: 20px; margin-bottom: 12px; }
 .venueLine .link { font-weight: 600; }
 
-.params { display: flex; flex-direction: column; gap: 10px; font-size: 17px; line-height: 22px; }
+.params { display: flex; flex-direction: column; gap: 12px; font-size: 17px; line-height: 22px; }
 .params div { display: flex; gap: 12px; align-items: baseline; }
 .params dt { width: 92px; flex: none; color: var(--text-secondary); font-size: 15px; line-height: 20px; }
 .params dd { color: var(--text-strong); }
@@ -50,7 +50,7 @@
 .block10 { display: flex; flex-direction: column; gap: 10px; }
 .block { display: flex; flex-direction: column; gap: 12px; }
 .blockTitle { font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
-.bullets { list-style: none; display: flex; flex-direction: column; gap: 10px; width: 100%; color: var(--text-strong); font-size: 17px; line-height: 22px; }
+.bullets { list-style: none; display: flex; flex-direction: column; gap: 8px; width: 100%; color: var(--text-strong); font-size: 17px; line-height: 22px; }
 .bullets li { position: relative; padding-left: 18px; }
 .bullets li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 6px; height: 6px; border-radius: 3px; background: var(--link); }
 

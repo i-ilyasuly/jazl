@@ -40,6 +40,6 @@
 
 .map img { position: absolute; left: 12px; top: 9px; }
 
-.listTitle { margin: 8px 0 -2px 4px; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); scroll-margin-top: 100px; }
+.listTitle { margin: 8px 0 0; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); scroll-margin-top: 100px; }
 .map span { font-size: 15px; line-height: 20px; font-weight: 600; }
 :global(:root[data-theme="dark"]) .map { background: #2481cc; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
