@@ -239,15 +239,46 @@ export function savePin(v: string) { pin = v; }
 
 // ── Сыйлықтар ───────────────────────────────────────────────────────────────
 export type GiftStatus = "wait" | "ok" | "expired" | "open" | "cancelled";
-export interface Gift { id: string; dir: "sent" | "got"; name: string; color: string; pack: string; emoji: string; venue: string; status: GiftStatus; label: string; sentAt: string; until: string }
+export interface Gift { id: string; dir: "sent" | "got"; name: string; color: string; pack: string; emoji: string; venue: string; status: GiftStatus; label: string; sentAt: string; until: string;
+  /** Figma «13 · Сыйлау»: ұсыныс, құттықтау, жіберуші атын жасырды ма, алушының @username-і. */
+  offerId?: string; msg?: string; anon?: boolean; username?: string }
 let gifts: Gift[] = [
   { id: "g1", dir: "sent", name: "Айгерім Нұрланова", color: "#e25a7a", pack: "Тауық донері · 4 дана", emoji: "🍔", venue: "Dämdi Doner", status: "wait", label: "Күтілуде · 5 күн", sentAt: "8 қараша, 13:20", until: "15 қараша" },
   { id: "g2", dir: "sent", name: "Ерлан Серіков", color: "#4378ff", pack: "Латте · 15 стақан", emoji: "☕", venue: "Brew Point", status: "ok", label: "Қабылданды", sentAt: "5 қараша, 09:40", until: "12 қараша" },
   { id: "g3", dir: "sent", name: "Дана Әбілова", color: "#fe9500", pack: "Шаш қию · 4 рет", emoji: "✂️", venue: "Qala Barber", status: "expired", label: "Мерзімі өтті", sentAt: "1 қараша, 11:05", until: "8 қараша" },
-  { id: "g4", dir: "got", name: "Берік Нұрлан", color: "#31d158", pack: "Бургер комбо · 4 дана", emoji: "🍔", venue: "Bahandi", status: "open", label: "Ашу", sentAt: "12 қараша, 18:02", until: "19 қараша" },
+  { id: "g4", dir: "got", name: "Берік Нұрлан", color: "#31d158", pack: "Бургер комбо · 4 дана", emoji: "🍔", venue: "Bahandi", status: "open", label: "Ашу", sentAt: "12 қараша, 18:02", until: "19 қараша", offerId: "burger-combo", msg: "Туған күніңмен! Бургер менің атымнан 🎉" },
   { id: "g5", dir: "got", name: "Мадина Ж.", color: "#b00fb4", pack: "Кофе · 10 стақан", emoji: "☕", venue: "Coffee Lab", status: "ok", label: "Қабылданды", sentAt: "2 қараша, 14:30", until: "9 қараша" },
 ];
 export const useGifts = () => useSyncExternalStore(subscribe, () => gifts);
+/** Сыйлауға болатын Telegram контактілері (мок). Бэкенд қосылғанда — бот арқылы таңдалған чат. */
+export const contacts = [
+  { name: "Айгерім Нұрланова", username: "aigerim_n", color: "#e25a7a" },
+  { name: "Ерлан Серіков", username: "erlan_s", color: "#4378ff" },
+  { name: "Дана Әбілова", username: "dana_ab", color: "#fe9500" },
+  { name: "Мадина Жұмабаева", username: "madina_zh", color: "#b00fb4" },
+];
+export type Contact = (typeof contacts)[number];
+const nowLabel = () => { const d = new Date(); return `${d.getDate()} ${["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"][d.getMonth()]}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+/** Сыйлық жіберу (төлем өткен соң). to жоқ болса — «Сілтеме»: алушы сілтеме арқылы анықталады. */
+export function sendGift(offerId: string, to: Contact | null, msg: string, anon: boolean): string {
+  const o = findOffer(offerId);
+  const id = "g" + (Date.now() % 100000);
+  const until = new Date(Date.now() + 7 * 864e5);
+  gifts = [{ id, dir: "sent", name: to?.name ?? "Сілтеме арқылы", color: to?.color ?? "#229af0", username: to?.username, pack: o.title, emoji: o.kind === "coffee" ? "☕" : o.kind === "hair" ? "✂️" : "🍔", venue: o.venue,
+    status: "wait", label: "Күтілуде · 7 күн", sentAt: nowLabel(), until: untilText(until).replace("ға дейін", "").replace("ге дейін", "").replace("ке дейін", ""), offerId, msg, anon }, ...gifts];
+  emit();
+  return id;
+}
+/** Алынған сыйлықты қабылдау: пакет Пакеттерімге қосылады. */
+export function acceptGift(id: string): string | null {
+  const g = gifts.find((x) => x.id === id);
+  if (!g || g.status !== "open") return null;
+  const pid = buyPack(g.offerId ?? "doner");
+  packs = packs.map((p) => (p.id === pid ? { ...p, history: [{ emoji: "🎁", title: "Сыйлық қабылданды", sub: `бүгін • ${g.anon ? "Аноним" : g.name}`, right: `${p.total} бірлік` }] } : p));
+  gifts = gifts.map((x) => (x.id === id ? { ...x, status: "ok", label: "Қабылданды" } : x));
+  emit();
+  return pid;
+}
 export function setGiftStatus(id: string, status: GiftStatus, label: string) { gifts = gifts.map((g) => (g.id === id ? { ...g, status, label } : g)); emit(); }
 
 // ── Соңғы іздеулер ──────────────────────────────────────────────────────────

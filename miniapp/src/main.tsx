@@ -11,6 +11,8 @@ import { Paid, Success } from "./screens/Success";
 import { Packs } from "./screens/Packs";
 import { PackPage } from "./screens/PackPage";
 import { CarryRules, Rebuy, RebuyDone } from "./screens/Rebuy";
+import { GiftSend } from "./screens/GiftSend";
+import { GiftDone, GiftOpen } from "./screens/GiftOpen";
 import { Scan } from "./screens/Scan";
 import { ScanState } from "./screens/ScanState";
 import { Profile } from "./screens/Profile";
@@ -43,6 +45,12 @@ import { NavBar, type TabKey } from "./ui/NavBar";
 const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
 
 initTelegram();
+// Сыйлық сілтемесі ботта t.me/<бот>?startapp=gift_<id> түрінде келеді — бірден сыйлық бетін ашамыз.
+{
+  const sp = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { start_param?: string } } } }).Telegram?.WebApp?.initDataUnsafe?.start_param;
+  const m = sp?.match(/^gift_(\w+)$/);
+  if (m) window.location.hash = "#/gift/open/" + m[1];
+}
 
 // Навигация бір рет қана орнатылады: бет ауысқанда қайта салынбайды, сондықтан
 // белсенді «тамшы» бір табтан екіншісіне сырғып өтеді.
@@ -94,6 +102,9 @@ const router = createHashRouter([
       { path: "/rebuy/:id", element: <Rebuy /> },
       { path: "/rebuy/done/:id", element: <RebuyDone /> },
       { path: "/rules/carry", element: <CarryRules /> },
+      { path: "/gift/:id", element: <GiftSend /> },
+      { path: "/gift/open/:id", element: <GiftOpen /> },
+      { path: "/gift/done/:id", element: <GiftDone /> },
       { path: "/scan", element: <Scan /> },
       { path: "/scan/state/:kind", element: <ScanState /> },
       { path: "/receipt/use/:id", element: <UseReceipt /> },
