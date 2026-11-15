@@ -32,6 +32,8 @@ import { Favorites } from "./screens/Favorites";
 import { Payment } from "./screens/Payment";
 import { Gifts } from "./screens/Gifts";
 import { Pin } from "./screens/Pin";
+import { AppError } from "./screens/AppError";
+import { OfflineBar } from "./ui/OfflineBar";
 import { About, DeleteData, Faq } from "./screens/Help";
 import { Terms } from "./screens/Terms";
 import { VenueApply, VenueDone } from "./screens/VenueApply";
@@ -68,6 +70,7 @@ function Shell() {
     <div className="app">
       <Outlet />
       {tab && <NavBar active={tab} />}
+      {tab && <OfflineBar />}
       {locked && <Pin lock />}
       <ScrollRestoration />
     </div>
@@ -143,6 +146,7 @@ const router = createHashRouter([
       { path: "/profile/venue/done", element: <VenueDone /> },
       { path: "/profile/report", element: <Report /> },
       { path: "/profile/faq", element: <Faq /> },
+      { path: "/error/:kind", element: <AppError /> },
       { path: "/profile/about", element: <About /> },
       { path: "/profile/delete", element: <DeleteData /> },
       { path: "/profile/report/done", element: <ReportDone /> },
