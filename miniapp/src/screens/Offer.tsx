@@ -4,6 +4,7 @@ import { useLocation, useParams } from "react-router-dom";
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { BuySheet, type BuyStep } from "../ui/BuySheet";
+import { UseSheet } from "../ui/UseSheet";
 import { detailsOf, discount, findOffer, fmt, isEnded, saving, unitPrice, type OfferDetails } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
 import { venues } from "../mocks/venues";
@@ -61,25 +62,26 @@ function OfferView({ id }: { id?: string }) {
   const loc = useLocation();
   const startStep = (loc.state as { buy?: BuyStep } | null)?.buy;
   const [buying, setBuying] = useState(Boolean(startStep));
+  const [using, setUsing] = useState(false);
   const { loading } = useMock("offer:" + offer.id, offer, 450);
   const d = detailsOf(base);
   const photos = useMemo(() => galleryOf(base.id, base.kind), [base.id, base.kind]);
   const shareIt = () => { haptic.tap(); const url = "https://t.me/share/url?url=" + encodeURIComponent(location.href) + "&text=" + encodeURIComponent(`${offer.title} — ${offer.venue}, ${fmt(offer.price)}`); if (inTelegram) openChat(url.replace("https://t.me/", "")); else window.open(url, "_blank", "noopener"); };
 
   const back = useCallback(() => go(-1, "back"), [go]);
-  useBackButton(back, !buying);
+  useBackButton(back, !buying && !using);
   const pay = useMemo(() => ({ text: "Төлеу", shine: true, onClick: () => { haptic.medium(); setBuying(true); } }), []);
   const gift = useMemo(() => ({ text: "Сыйлау", onClick: () => go("/gift/" + offer.id, "up") }), [go, offer.id]);
   const closeSheet = useCallback(() => setBuying(false), []);
   const paid = useCallback(() => go("/success/" + offer.id, "up", { replace: true }), [go, offer.id]);
   const again = useMemo(() => ({ text: "Тағы алу", onClick: () => { haptic.medium(); setBuying(true); } }), []);
-  const scan = useMemo(() => ({ text: "Сканерлеу", onClick: () => go("/scan", "up") }), [go]);
+  const use = useMemo(() => ({ text: "Қолдану", shine: true, onClick: () => { haptic.medium(); setUsing(true); } }), []);
   const notify = useMemo(() => ({ text: waiting ? "Хабарланады" : "Хабарла", onClick: async () => { if (waiting) return toggleRestock(base.id); if (await askWriteAccess()) { haptic.success(); toggleRestock(base.id); } } }), [waiting, base.id]);
-  // Figma: «Қолжетімді» — Сыйлау + Төлеу; «Белсенді пакет» — Тағы алу + Сканерлеу; «Аяқталған» — Хабарла
-  const mainBtn = ended ? notify : pack ? scan : pay;
+  // «Қолжетімді» — Сыйлау + Төлеу; «Белсенді пакет» — Тағы алу + Қолдану (сканерлеу НЕМЕСЕ тапсырыс); «Аяқталған» — Хабарла
+  const mainBtn = ended ? notify : pack ? use : pay;
   const secondBtn = ended ? undefined : pack ? again : gift;
   const caption = ended ? "Бұл ұсыныс аяқталды" : pack ? `${pack.left} / ${pack.total} қалды · мерзімі ${pack.daysLeft} күн` : "";
-  useBottomButtons(mainBtn, secondBtn, !buying && !sheet);
+  useBottomButtons(mainBtn, secondBtn, !buying && !sheet && !using);
   const toVenue = () => go("/venue/" + (venue?.id ?? "damdi"));
   const handle = "@" + base.venue.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/ä/g, "a");
   const routeRows: LinkRow[] = [{ emoji: "🗺", title: "2ГИС", sub: `${base.venue} мекенжайын 2ГИС-те аш`, onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(base.venue)) }];
@@ -201,6 +203,7 @@ function OfferView({ id }: { id?: string }) {
       </div>
       )}
 
+      {using && pack && <UseSheet pack={pack} onClose={() => setUsing(false)} />}
       {buying && <BuySheet offer={offer} onClose={closeSheet} onPaid={paid} start={startStep} />}
       {sheet === "how" && <HowSheet onClose={() => setSheet(null)} />}
       {sheet === "route" && <LinkSheet title="Бағыт" rows={routeRows} onClose={() => setSheet(null)} />}

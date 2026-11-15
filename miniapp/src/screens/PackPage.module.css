@@ -33,3 +33,11 @@
 :global(:root[data-theme="dark"]) .card, :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .emoji { background: rgba(92, 180, 244, 0.2); }
+.howUse { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.howUse b { color: var(--link); font-weight: 600; }
+.bar { display: flex; gap: 8px; }
+.btn { flex: 1; width: auto !important; border-radius: 12px !important; }
+.btn2 { background: var(--chip-tint) !important; color: var(--link) !important; }
+.shine { position: relative; overflow: hidden; }
+.shine::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: shine 2.6s ease-in-out infinite; }
+@keyframes shine { 0%, 45% { left: -60%; } 100% { left: 130%; } }

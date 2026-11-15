@@ -159,3 +159,45 @@ let soonSubs: number[] = [];
 export const useSoon = () => useSyncExternalStore(subscribe, () => soonSubs);
 export function toggleSoon(pct: number) { soonSubs = soonSubs.includes(pct) ? soonSubs.filter((x) => x !== pct) : [...soonSubs, pct]; emit(); kv.set("jazl_soon", soonSubs.join(",")); }
 void kv.get("jazl_soon").then((v) => { if (v) { soonSubs = v.split(",").map(Number); emit(); } });
+
+// ── Алдын ала тапсырыс ──────────────────────────────────────────────────────
+// Пакет бұрын төленген, сондықтан тапсырыс кезінде ешқандай шот/карта төлемі жоқ:
+// пакеттен 1 бірлік шегеріледі. Тапсырыс мекемеге жетпесе, бірлік қайтарылады.
+export interface Branch { id: string; address: string; hours: string; km: number; open: boolean }
+export interface Order { id: string; no: number; packId: string; title: string; venue: string; emoji: string; branch: string; time: string; code: string; status: "sent" | "done"; created: string }
+const branchesOf: Record<string, Branch[]> = {
+  "Dämdi Doner": [
+    { id: "b1", address: "Нұркен Әбдіров, 24", hours: "09:00–23:00", km: 1.2, open: true },
+    { id: "b2", address: "Мәңгілік Ел, 28", hours: "10:00–22:00", km: 3.4, open: true },
+    { id: "b3", address: "Бухар-Жырау, 52", hours: "10:00–22:00", km: 4.1, open: false },
+  ],
+};
+export const branches = (venue: string, address: string): Branch[] => branchesOf[venue] ?? [{ id: "b1", address, hours: "09:00–22:00", km: 1.2, open: true }];
+let orders: Order[] = [
+  { id: "o104", no: 104, packId: "p1", title: "Бургер комбо · 1 бірлік", venue: "Bahandi", emoji: "🍔", branch: "Бұқар жырау 59", time: "14:00", code: "3071", status: "sent", created: "бүгін, 12:40" },
+];
+let orderNo = 105;
+export const useOrders = () => useSyncExternalStore(subscribe, () => orders);
+export const getOrder = (id?: string) => orders.find((o) => o.id === id);
+export function placeOrder(packId: string, branch: string, time: string): Order | null {
+  const p = getPack(packId);
+  if (!p || p.left < 1) return null;
+  const o = offerOf(p);
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  const no = orderNo++;
+  const order: Order = { id: "o" + no, no, packId, title: `${o.title.split(" · ")[0]} · 1 бірлік`, venue: o.venue, emoji: o.kind === "coffee" ? "☕" : o.kind === "hair" ? "✂️" : "🍔", branch, time, code: String(1000 + Math.floor(Math.random() * 9000)), status: "sent", created: `бүгін, ${hh}` };
+  orders = [order, ...orders];
+  packs = packs.map((x) => x.id !== packId ? x : { ...x, left: x.left - 1,
+    history: [{ emoji: "🛍️", title: `Тапсырыс №${no}`, sub: `бүгін, ${hh} • ${branch}`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
+  emit();
+  return order;
+}
+/** Тапсырыс мекемеге жетпесе: бірлікті пакетке қайтару. */
+export function failOrder(id: string) {
+  const o = getOrder(id); if (!o) return;
+  orders = orders.filter((x) => x.id !== id);
+  packs = packs.map((x) => x.id !== o.packId ? x : { ...x, left: x.left + 1, history: x.history.slice(1) });
+  emit();
+}
+export function finishOrder(id: string) { orders = orders.map((o) => (o.id === id ? { ...o, status: "done" } : o)); emit(); }
