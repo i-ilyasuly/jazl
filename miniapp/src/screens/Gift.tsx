@@ -1,7 +1,7 @@
 // Figma: «Сыйлық / Жіберілген (күтілуде)» 13886:37463, «Алынған (күтілуде)» 13886:37559,
 // «Мерзімі өтті» 13886:37625, «Сыйлықты болдырмау: диалог» 13886:37717, «Нәтиже» 13886:37831
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { setGiftStatus, useGifts } from "../store";
 import { haptic, inTelegram, tg } from "../telegram";
@@ -28,13 +28,13 @@ export function Gift() {
     const url = "https://t.me/share/url?url=" + encodeURIComponent(window.location.origin) + "&text=" + encodeURIComponent("Саған Jazl+ сыйлығы: " + (g?.pack ?? ""));
     if (inTelegram && tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
   }, [g]);
-  const accept = useCallback(() => { if (!g) return; haptic.success(); setGiftStatus(g.id, "ok", "Қабылданды"); go("/packs", "fade"); }, [g, go]);
   const again = useCallback(() => go("/packs", "fade"), [go]);
+  // Алынған, әлі ашылмаған сыйлық — «Сыйлық сілтемесі / Қабылдау» бетінде ашылады
+  if (g?.status === "open") return <Navigate to={"/gift/open/" + g.id} replace />;
   if (!g) return <SubPage title="Сыйлық"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Сыйлық табылмады</p></SubPage>;
 
   const view: Record<string, { sticker: StickerName; title: string; chip?: string; chipCls?: string; sub?: string }> = {
     wait: { sticker: "wait", title: "Сыйлық күтілуде", chip: "Қабылдауға 5 күн қалды", chipCls: s.orange },
-    open: { sticker: "gift", title: "Саған сыйлық!", sub: `${g.name} сыйлады` },
     expired: { sticker: "sleep", title: "Сыйлық қабылданбады", chip: "Мерзімі өтті", chipCls: s.gray },
     cancelled: { sticker: "stop", title: "Сыйлық болдырылмады", chip: "Болдырылмады", chipCls: s.gray },
   };
@@ -48,12 +48,8 @@ export function Gift() {
         {v.chip && <span className={`t-cap1 ${s.chip} ${v.chipCls}`}>{v.chip}</span>}
         {v.sub && <p className={`t-sub1 ${s.sub}`}>{v.sub}</p>}
       </div>
-      {g.status !== "cancelled" && <div className={`${s.quote} rise`}><span className={s.bar} /><p className="t-sub2">{MESSAGE}</p><span className={s.mark} aria-hidden>”</span></div>}
-      {g.status === "open" ? <>
-        <Group i={1}><Row title={g.pack} sub={`${g.venue} • 30 күн`} left={<span className={s.emoji}>{g.emoji}</span>} /></Group>
-        <Note>Сыйлықты 5 күн ішінде қабылда, әйтпесе пакет жіберушіге қайтады.</Note>
-        <MainBar text="Сыйлықты алу" onClick={accept} />
-      </> : g.status === "wait" ? <>
+      {g.status !== "cancelled" && <div className={`${s.quote} rise`}><span className={s.bar} /><p className="t-sub2">{g.msg || MESSAGE}</p><span className={s.mark} aria-hidden>”</span></div>}
+      {g.status === "wait" ? <>
         <Group i={1}>{kv([["Кімге", g.name], ["Пакет", g.pack], ["Жіберілді", g.sentAt], ["Қабылдау мерзімі", g.until]])}</Group>
         <Group i={2}><button className={s.cancel} onClick={() => { haptic.warning(); setAsk(true); }}>Сыйлықты болдырмау</button></Group>
         <MainBar text="Сілтемені қайта жіберу" onClick={resend} />
