@@ -7,7 +7,7 @@
 @keyframes fadeOut { to { opacity: 0; } }
 @keyframes pop { from { transform: scale(0.9); opacity: 0; } }
 @keyframes out { to { transform: scale(0.94); opacity: 0; } }
-.title { font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; color: var(--text-strong); }
+.title { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; color: var(--text-strong); }
 .text { color: var(--text-strong); }
 .btns { display: flex; justify-content: flex-end; gap: 8px; }
 .btn { height: 44px; padding: 10px 12px; border-radius: 12px; color: var(--link); transition: background 0.15s ease; }

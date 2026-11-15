@@ -5,7 +5,7 @@
 .search { position: absolute; left: 0; top: 8px; box-sizing: content-box; width: 214px; height: 30px; border-radius: 16px; background: var(--search-bg); border: 1px solid var(--search-border); overflow: hidden; }
 .searchIcon { position: absolute; left: 9px; top: 7px; width: 16px; height: 16px; }
 .searchText { position: absolute; left: 32px; top: 7px; color: #626a72; white-space: nowrap; }
-.title { position: absolute; left: 16px; top: 98px; font-size: 24px; line-height: 32px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); white-space: nowrap; }
+.title { position: absolute; left: 16px; top: 98px; font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); white-space: nowrap; }
 .seg { position: absolute; left: 16px; top: 150px; width: 380px; height: 44px; padding: 2px; border-radius: 44px; background: rgba(118, 118, 128, 0.12); display: flex; }
 .thumb { position: absolute; left: 2px; top: 2px; width: 125.33px; height: 40px; border-radius: 40px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); transition: translate 0.36s cubic-bezier(0.3, 1.2, 0.4, 1); }
 .segBtn { position: relative; flex: 1; height: 40px; border-radius: 40px; color: var(--text-secondary); font-size: 17px !important; line-height: 22px !important; font-weight: 500; transition: color 0.2s ease; -webkit-tap-highlight-color: transparent; }

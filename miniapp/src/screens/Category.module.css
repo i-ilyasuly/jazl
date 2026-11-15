@@ -1,9 +1,9 @@
 .page { position: relative; min-height: var(--app-h, 100vh); background: #f4f6fa; }
 .bar { position: fixed; z-index: 4; left: 50%; margin-left: -206px; top: 0; width: 412px; height: calc(92px + var(--top-shift)); background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 0.5px 0 rgba(17, 26, 38, 0.1); opacity: 0; transform: translateY(-8px); transition: opacity 0.22s ease, transform 0.22s ease; pointer-events: none; }
 .barOn { opacity: 1; transform: none; }
-.barTitle { position: absolute; left: 0; bottom: 10px; width: 100%; text-align: center; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); }
+.barTitle { position: absolute; left: 0; bottom: 10px; width: 100%; text-align: center; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); }
 .body { padding: calc(96px + var(--top-shift)) 16px 160px; display: flex; flex-direction: column; gap: 14px; }
-.h1 { font-size: 34px; line-height: 42px; letter-spacing: 0.25px; font-weight: 700; color: var(--text-strong); }
+.h1 { font-size: 34px; line-height: 41px; letter-spacing: 0.25px; font-weight: 700; color: var(--text-strong); }
 .search { display: flex; align-items: center; gap: 10px; width: 380px; height: 48px; padding: 12px 14px; border-radius: 12px; background: #eef1f5; transition: box-shadow 0.2s ease; }
 .search:focus-within { box-shadow: 0 0 0 2px rgba(34, 154, 240, 0.35); }
 .search input { flex: 1; min-width: 0; height: 24px; border: 0; outline: 0; background: none; padding: 0; font-family: inherit; color: var(--text-strong); caret-color: #229af0; }
@@ -11,7 +11,7 @@
 .subs { display: flex; gap: 12px; height: 118px; margin: 0 -16px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
 .subs::-webkit-scrollbar { display: none; }
 .sub { flex: none; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-strong); white-space: nowrap; -webkit-tap-highlight-color: transparent; }
-.subTile { width: 84px; height: 84px; border-radius: 16px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 36px; transition: transform 0.15s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.2s ease, background 0.2s ease; }
+.subTile { width: 84px; height: 84px; border-radius: 16px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 34px; transition: transform 0.15s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.2s ease, background 0.2s ease; }
 .sub:active .subTile { transform: scale(0.93); }
 .subTile i { font-style: normal; display: inline-block; transition: transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1); }
 .subOn .subTile i { transform: scale(2.3); }
@@ -23,7 +23,7 @@
 .h2 { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 700; color: var(--text-strong); }
 .skCard { width: 380px; height: 204px; border-radius: 20px; }
 .none { padding-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.noneTitle { font-size: 20px; line-height: 24px; font-weight: 600; color: var(--text-strong); }
+.noneTitle { font-size: 20px; line-height: 25px; font-weight: 600; color: var(--text-strong); }
 .none button { color: var(--link); }
 .map { position: fixed; z-index: 25; left: 50%; margin-left: 82px; bottom: calc(97px + var(--safe-b, 0px)); width: 108px; height: 36px; padding: 8px 10px 8px 34px; border-radius: 18px; background: var(--action); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16); white-space: nowrap; transition: transform 0.12s ease; animation: mapIn 0.4s 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
 @keyframes mapIn { from { transform: scale(0.6); opacity: 0; } }

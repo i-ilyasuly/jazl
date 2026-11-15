@@ -8,7 +8,13 @@
 .reason i { position: absolute; right: 12px; top: -6px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b301; font-style: normal; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
 .bar { position: fixed; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: calc(70px + var(--safe-b, 0px)); padding: 10px 10px 0; display: flex; gap: 8px; background: var(--surface-white); }
-.btn { flex: 1; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; font-weight: 600; transition: opacity 0.15s ease; }
+.btn { flex: 1; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.15s ease; }
 .btn:active { opacity: 0.8; }
 .second { background: var(--chip-tint); color: var(--link); }
 :global(:root[data-theme="dark"]) .reason { background: rgba(255, 184, 0, 0.16); }
+/* Сканер күйлері (ScanState): ескертпе 15/20, сома кестесі — жол 44, шет 16, бұрыш 12 */
+.note { font-size: 15px; line-height: 20px; letter-spacing: 0.15px; }
+.kvBox { width: 100%; margin-top: 12px; padding: 4px 16px; border-radius: 12px; background: var(--surface-card); animation: rise 0.4s 0.2s ease both; }
+.kvBox p { display: flex; align-items: center; justify-content: space-between; height: 44px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; color: var(--text-secondary); }
+.kvBox p + p { border-top: 1px solid var(--separator); }
+.kvBox b { font-weight: 600; color: var(--text-strong); }

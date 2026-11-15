@@ -10,7 +10,7 @@
   radial-gradient(circle at 18% 62%, rgba(255, 170, 120, 0.35) 0 3px, transparent 4px),
   radial-gradient(circle at 34% 78%, rgba(120, 190, 255, 0.45) 0 2.5px, transparent 3.5px),
   radial-gradient(circle at 12% 84%, rgba(130, 220, 160, 0.45) 0 2.5px, transparent 3.5px); }
-.tileTitle { position: absolute; z-index: 2; left: 18px; top: 16px; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: 0.1px; color: var(--text-strong); white-space: nowrap; }
+.tileTitle { position: absolute; z-index: 2; left: 18px; top: 16px; font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: 0.1px; color: var(--text-strong); white-space: nowrap; }
 .art { position: absolute; z-index: 1; filter: drop-shadow(0 8px 12px rgba(40, 30, 20, 0.18)); pointer-events: none; }
 .food { left: 16px; top: 108px; width: 152px; height: 244px; background: linear-gradient(165deg, #fbf3ee 0%, #f3e6de 100%); }
 .food .art { width: 182px; right: -16px; bottom: -6px; }

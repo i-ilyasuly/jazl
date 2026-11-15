@@ -1,4 +1,4 @@
-.empty { padding: 40px 16px; text-align: center; color: var(--text-secondary); font-size: 17px; }
+.empty { padding: 40px 16px; text-align: center; color: var(--text-secondary); font-size: 17px; line-height: 22px; }
 .pack, .card { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border-radius: 20px; background: var(--surface-white); text-align: left; }
 .emoji, .pin { width: 52px; height: 52px; flex: none; border-radius: 14px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 28px; }
 .pin { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
@@ -40,7 +40,7 @@
 .ring { width: 52px; height: 52px; margin-bottom: 8px; border-radius: 50%; border: 4px solid rgba(34, 154, 240, 0.2); border-top-color: #229af0; animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: calc(70px + var(--safe-b, 0px)); padding: 10px 10px 0; background: var(--glass-bg); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-top: 1px solid var(--glass-border); }
-.btn { position: relative; overflow: hidden; width: 100%; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; font-weight: 600; }
+.btn { position: relative; overflow: hidden; width: 100%; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; }
 .btn::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: shine 2.6s ease-in-out infinite; }
 .btn:disabled { opacity: 0.6; }
 @keyframes shine { 0%, 45% { left: -60%; } 100% { left: 130%; } }

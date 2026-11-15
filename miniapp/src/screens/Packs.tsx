@@ -60,7 +60,7 @@ export function Packs() {
   const go = useGo();
   const all = usePacks();
   const packs = demoEmpty() ? [] : all;
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(() => Number(window.location.hash.match(/[?&]tab=([0-2])/)?.[1] ?? 0));
   const [using, setUsing] = useState<Pack | null>(null);
   const orders = useOrders().filter((o) => o.status === "sent");
   const { loading } = useMock("packs", packs, 500);

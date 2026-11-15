@@ -1,10 +1,10 @@
 .bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: 66px; padding: 8px 10px; background: #fff; }
-.btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease, filter 0.12s ease; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease, filter 0.12s ease; }
 .btn:active { transform: scale(0.98); filter: brightness(0.94); }
 .done { position: absolute; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
 .ok { animation: pop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
 @keyframes pop { from { transform: scale(0.3); opacity: 0; } }
-.doneTitle { font-size: 24px; line-height: 32px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); animation: up 0.4s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.doneTitle { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); animation: up 0.4s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .doneText { color: var(--text-secondary); animation: up 0.4s 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes up { from { transform: translateY(10px); opacity: 0; } }
 :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
