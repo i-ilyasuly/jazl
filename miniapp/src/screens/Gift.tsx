@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useGo } from "../nav";
+import { shareGift } from "./GiftSend";
 import { setGiftStatus, useGifts } from "../store";
 import { haptic, inTelegram, tg } from "../telegram";
 import { Confirm } from "../ui/Confirm";
@@ -22,12 +23,8 @@ export function Gift() {
   const [snack, setSnack] = useState(false);
   const back = useCallback(() => go(-1, "back"), [go]);
   useEffect(() => { if (!snack) return; const t = setTimeout(() => setSnack(false), 2600); return () => clearTimeout(t); }, [snack]);
-  const resend = useCallback(() => {
-    haptic.medium();
-    // Нативті бөлісу: Telegram чат таңдау терезесін ашады
-    const url = "https://t.me/share/url?url=" + encodeURIComponent(window.location.origin) + "&text=" + encodeURIComponent("Саған Jazl+ сыйлығы: " + (g?.pack ?? ""));
-    if (inTelegram && tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
-  }, [g]);
+  // Нативті Telegram контакт/чат таңдау терезесі (WebApp.shareMessage не t.me/share)
+  const resend = useCallback(() => { if (!g) return; haptic.medium(); void shareGift(g.id, g.pack); }, [g]);
   const again = useCallback(() => go("/packs", "fade"), [go]);
   // Алынған, әлі ашылмаған сыйлық — «Сыйлық сілтемесі / Қабылдау» бетінде ашылады
   if (g?.status === "open") return <Navigate to={"/gift/open/" + g.id} replace />;
@@ -37,6 +34,10 @@ export function Gift() {
     wait: { sticker: "wait", title: "Сыйлық күтілуде", chip: "Қабылдауға 5 күн қалды", chipCls: s.orange },
     expired: { sticker: "sleep", title: "Сыйлық қабылданбады", chip: "Мерзімі өтті", chipCls: s.gray },
     cancelled: { sticker: "stop", title: "Сыйлық болдырылмады", chip: "Болдырылмады", chipCls: s.gray },
+    // Figma «Жіберушіге хабарлама (бот)» 13886:34660 — бот хабарламасының мазмұны осында да көрінеді
+    ok: g.dir === "sent"
+      ? { sticker: "party", title: "Сыйлық қабылданды", sub: `🎁 ${g.name} сыйлығыңды қабылдады!` }
+      : { sticker: "love", title: "Сыйлықты қабылдадың", sub: `${g.anon ? "Аноним" : g.name} сыйлады` },
   };
   const v = view[g.status] ?? view.wait;
   const kv = (rows: [string, string, boolean?][]) => rows.map(([k, val, green]) => <div key={k} className={`t-sub2 ${s.kv}`}><span>{k}</span><b className={green ? s.green : ""}>{val}</b></div>);
@@ -53,6 +54,10 @@ export function Gift() {
         <Group i={1}>{kv([["Кімге", g.name], ["Пакет", g.pack], ["Жіберілді", g.sentAt], ["Қабылдау мерзімі", g.until]])}</Group>
         <Group i={2}><button className={s.cancel} onClick={() => { haptic.warning(); setAsk(true); }}>Сыйлықты болдырмау</button></Group>
         <MainBar text="Сілтемені қайта жіберу" onClick={resend} />
+      </> : g.status === "ok" ? <>
+        <Group i={1}>{kv([[g.dir === "sent" ? "Кімге" : "Кімнен", g.anon && g.dir === "got" ? "Аноним" : g.name], ["Пакет", g.pack], ["Жіберілді", g.sentAt], ["Қабылданды", g.acceptedAt ?? g.sentAt, true]])}</Group>
+        <Note>{g.dir === "sent" ? `${g.pack} енді оның Пакеттерінде.` : "Пакет Пакеттерімде: мекемеде сканерлеп не тапсырыс беріп қолданасың."}</Note>
+        <MainBar text={g.dir === "sent" ? "Тағы сыйлау" : "Пакеттерді ашу"} onClick={() => go(g.dir === "sent" ? "/gift/" + (g.offerId ?? "doner") : "/packs", g.dir === "sent" ? "up" : "fade")} />
       </> : g.status === "expired" ? <>
         <Group i={1}>{kv([["Кімге", g.name], ["Пакет", g.pack], ["Жіберілді", g.sentAt], ["Қайтарылды", "1 пакет", true]])}</Group>
         <Note>Алушы 7 күн ішінде қабылдамағандықтан, пакет өзіңе қайтарылды.</Note>

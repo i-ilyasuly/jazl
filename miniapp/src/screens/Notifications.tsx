@@ -2,6 +2,7 @@
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
 import { haptic } from "../telegram";
+import { useGo } from "../nav";
 import { readNotice, setNoticePref, useNoticePrefs, useNotices, type NoticePrefs } from "../store";
 import { Group, Row, SkRows, SubPage, Switch } from "../ui/SubPage";
 import s from "./Notifications.module.css";
@@ -17,12 +18,13 @@ export function Notifications() {
   const { loading } = useMock("notifications", true, 450);
   const list = useNotices();
   const prefs = useNoticePrefs();
+  const go = useGo();
   if (demoEmpty() || !list.length) return <SubPage title="Хабарландырулар"><EmptyState sticker="sleep" title="Жаңа хабарлама жоқ" text="Мерзім ескертулері мен жаңа ұсыныстар осында көрінеді" /></SubPage>;
   return (
     <SubPage title="Хабарландырулар">
       <Group header="Жаңа" i={0}>
         {loading ? <SkRows n={2} circle={false} /> : list.map((n) => (
-          <Row key={n.id} wrap inset={38} title={n.title} sub={n.sub} onClick={() => { if (!n.read) { haptic.select(); readNotice(n.id); } }}
+          <Row key={n.id} wrap inset={38} title={n.title} sub={n.sub} onClick={() => { if (!n.read) { haptic.select(); readNotice(n.id); } if (n.to) go(n.to); }}
             left={<span className={`${s.dot} ${n.read ? s.read : ""}`} />}
             right={<span className={`t-cap1 ${s.time}`}>{n.time}</span>} />
         ))}

@@ -27,7 +27,7 @@ export function Gifts() {
       <div key={tab} className={`${s.pane} ${tab ? s.fromRight : s.fromLeft}`}>
         <Group i={1}>
           {loading ? <SkRows n={list.length} /> : list.map((g) => (
-            <Row key={g.id} title={g.name} sub={g.pack} onClick={g.status === "ok" ? undefined : () => go("/profile/gift/" + g.id)}
+            <Row key={g.id} title={g.name} sub={g.pack} onClick={() => go("/profile/gift/" + g.id)}
               left={<span className={s.avatar} style={{ background: g.color }}>{g.name.slice(0, 1)}</span>}
               right={<span className={`t-cap1 ${s.chip} ${s[g.status]}`}>{g.label}</span>} />
           ))}

@@ -122,6 +122,19 @@ export function openChat(username: string) {
   if (inTelegram && wa?.openTelegramLink) wa.openTelegramLink(url); else window.open(url, "_blank", "noopener");
 }
 
+/** Чат/контакт таңдап жіберу — Telegram-ның нативті терезесі.
+ *  1) Бот хабарламаны алдын ала дайындаса (savePreparedInlineMessage, Bot API 8.0) — WebApp.shareMessage:
+ *     контактілер мен чаттар тізімі, хабарлама сыйлық карточкасы ретінде кетеді, sent=true/false қайтады.
+ *  2) Әйтпесе — t.me/share/url: Telegram-ның өз «Кімге жіберу» тізімі (контактілер мен чаттар). */
+export function shareToChat(opts: { preparedId?: string | null; url: string; text: string }): Promise<boolean> {
+  return new Promise((res) => {
+    if (opts.preparedId && inTelegram && wa?.shareMessage && at("8.0")) { wa.shareMessage(opts.preparedId, (sent) => res(Boolean(sent))); return; }
+    const link = "https://t.me/share/url?url=" + encodeURIComponent(opts.url) + "&text=" + encodeURIComponent(opts.text);
+    if (inTelegram && wa?.openTelegramLink) wa.openTelegramLink(link); else window.open(link, "_blank", "noopener");
+    res(true);
+  });
+}
+
 /** Нативті ескерту терезесі (браузерде жай alert-ке түспейді: үнсіз өтеді). */
 export function nativeAlert(message: string) {
   if (inTelegram && at("6.2") && wa?.showAlert) wa.showAlert(message);
