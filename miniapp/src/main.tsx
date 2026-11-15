@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
-import { useOnboarded } from "./store";
+import { useLocked, useOnboarded } from "./store";
 import { Splash, Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
 import "./styles/base.css";
 import { initTelegram } from "./telegram";
@@ -60,12 +60,14 @@ function Shell() {
   const path = useLocation().pathname;
   const tab = tabOf[path] ?? (path.startsWith("/category/") ? "home" : undefined);
   const onboarded = useOnboarded();
+  const locked = useLocked();
   if (onboarded === null) return <div className="app"><Splash /></div>;
   if (!onboarded && !path.startsWith("/welcome")) return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
       <Outlet />
       {tab && <NavBar active={tab} />}
+      {locked && <Pin lock />}
       <ScrollRestoration />
     </div>
   );

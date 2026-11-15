@@ -28,7 +28,7 @@
 .radioOn { box-shadow: inset 0 0 0 2px #007aff; }
 .radioOn::after { scale: 1; }
 /* Қауіпсіздік беті: үлкен тақырып, жолдар кеңірек */
-.settings { --row-pad: 12px; --row-min: 50px; }
+.settings { --row-pad: 12px; --row-min: 52px; }
 .settings .group { padding: 6px 0; }
 .roomy { --row-pad: 12px; --row-min: 50px; }
 .sectionTitle { height: 22px; padding-left: 16px; color: var(--link); }

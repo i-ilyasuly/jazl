@@ -233,11 +233,32 @@ void kv.get("jazl_kaspi_phone").then((v) => { if (v) { kaspiPhone = v; emit(); }
 export function removeMethod(id: string) { methods = methods.filter((m) => m.id !== id); if (defaultMethod === id) defaultMethod = "kaspi"; emit(); }
 
 // ── PIN ─────────────────────────────────────────────────────────────────────
-// Ескерту: нағыз жүйеде PIN серверде тексеріледі. Бэкенд қосылғанша тек жадта тұрады.
+// Ескерту: нағыз жүйеде PIN серверде тексеріледі. Бэкенд қосылғанша құрылғыда тек хэші сақталады (кодтың өзі емес).
+const pinHash = (v: string) => { let h = 2166136261; for (const c of "jazl+pin:" + v) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 let pin: string | null = null;
 export const hasPin = () => pin !== null;
-export const checkPin = (v: string) => pin === v;
-export function savePin(v: string) { pin = v; }
+export const checkPin = (v: string) => pin === pinHash(v);
+export function savePin(v: string) { pin = pinHash(v); kv.set("jazl_pin_h", pin); }
+
+// ── Экран құлпы (Figma 17 «PIN / 3 Қолданба құлыпталған») ──────────────────
+// Қолданба ашылғанда (баптауда «Қолданбаны ашқанда» қосулы болса) және фонда «Автоқұлып» уақытынан
+// ұзақ тұрса құлыпталады. Демо: ?lock=1 (PIN қойылмаған болса, демо коды 1111).
+let locked = false;
+export const useLocked = () => useSyncExternalStore(subscribe, () => locked);
+export function unlockApp() { locked = false; emit(); }
+const lockOn = () => settings.lock && settings.onOpen && pin !== null;
+void Promise.all([kv.get("jazl_pin_h"), kv.get("jazl_settings")]).then(([h, st]) => {
+  if (h) pin = h;
+  if (st) { try { settings = { ...settings, ...JSON.parse(st) }; } catch { /* бұзылған мән */ } }
+  if (window.location.hash.includes("lock=1")) { if (!pin) pin = pinHash("1111"); locked = true; }
+  else if (lockOn()) locked = true;
+  emit();
+});
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (hiddenAt && lockOn() && Date.now() - hiddenAt >= Number(settings.autolock) * 60_000) { locked = true; emit(); }
+});
 
 // ── Сыйлықтар ───────────────────────────────────────────────────────────────
 export type GiftStatus = "wait" | "ok" | "expired" | "open" | "cancelled";

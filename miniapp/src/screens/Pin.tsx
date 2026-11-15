@@ -1,11 +1,13 @@
-// Figma: «PIN / 1 PIN ойлап тап», «2 PIN қайтала», «4 Қате код» (13886:38955, 13886:38983, 13886:39041)
+// Figma: «PIN / 1 PIN ойлап тап», «2 PIN қайтала», «3 Қолданба құлыпталған», «4 Қате код», «5 Биометрия сұрауы»,
+// «6 PIN өзгерту: ағымдағы код», «7 Кодтар сәйкес келмеді» (13886:38955…39071, 14084:12765, 14084:12867)
+// unlock — қолданба құлпы (Shell үстінде ашылады); биометрия сұрауы — Telegram-ның нативті BiometricManager терезесі.
 // Режимдер: create — жаңа PIN (екі рет енгізу); change — алдымен ескі PIN, содан кейін жаңасы;
 // pay — төлемді растау (Figma «10»: «PIN: төлемді растау» 13907:7998): дұрыс PIN-нен кейін бірлік шегеріледі.
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useGo } from "../nav";
-import { checkPin, redeem, savePin, setSettings, useSettings } from "../store";
-import { biometricAuth, haptic, useBackButton } from "../telegram";
+import { checkPin, redeem, savePin, setSettings, unlockApp, useSettings } from "../store";
+import { biometricAuth, haptic, inTelegram, tg, useBackButton } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import finger from "../assets/icons/keyLeft.svg";
@@ -17,22 +19,31 @@ const titles: Record<Step, string> = { old: "Ағымдағы PIN-кодты е�
 const hints: Record<Step, string> = { old: "PIN енгіз немесе саусақ ізін қолдан", new: "4 таңбалы код енгіз", repeat: "Сол кодты тағы бір рет енгіз" };
 const MAX_TRIES = 3;
 
-export function Pin() {
+const LOCK_WAIT = 30;
+
+export function Pin({ lock }: { lock?: boolean } = {}) {
   const go = useGo();
   const st = useSettings();
-  const mode = useParams().mode;
+  const param = useParams().mode;
+  const mode = lock ? "unlock" : param;
+  const unlocking = mode === "unlock";
   const change = mode === "change";
   const paying = mode === "pay";
   const locState = useLocation().state as { packId?: string; sum?: string } | null;
   const payInfo = paying ? locState : null;
-  const [step, setStep] = useState<Step>(change || paying ? "old" : "new");
+  const [step, setStep] = useState<Step>(change || paying || unlocking ? "old" : "new");
+  const [wait, setWait] = useState(0);
   const [code, setCode] = useState("");
   const [first, setFirst] = useState("");
   const [error, setError] = useState("");
   const [tries, setTries] = useState(MAX_TRIES);
   const [shake, setShake] = useState(0);
-  const back = useCallback(() => go(-1, "back"), [go]);
-  useBackButton(back);
+  // Құлып экранында «Жабу» — Mini App-ты жабады (артқа өтуге болмайды)
+  const back = useCallback(() => { if (unlocking) { if (inTelegram) tg?.close?.(); return; } go(-1, "back"); }, [go, unlocking]);
+  useBackButton(back, !unlocking);
+  useEffect(() => { if (!wait) return; const t = setTimeout(() => { if (wait === 1) { setTries(MAX_TRIES); setError(""); } setWait(wait - 1); }, 1000); return () => clearTimeout(t); }, [wait]);
+  // Құлып ашылғанда биометрия бірден сұралады (Figma «5 Биометрия сұрауы»)
+  useEffect(() => { if (unlocking && st.bio) void biometricAuth("Jazl+ қолданбасын ашу").then((r) => { if (r === "ok") { haptic.success(); unlockApp(); } }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fail = useCallback((msg: string) => { haptic.error(); setError(msg); setShake((n) => n + 1); setTimeout(() => setCode(""), 420); }, []);
   const next = useCallback((to: Step) => { haptic.rigid(); setTimeout(() => { setCode(""); setError(""); setStep(to); }, 180); }, []);
@@ -40,9 +51,11 @@ export function Pin() {
   useEffect(() => {
     if (code.length < 4) return;
     if (step === "old") {
-      if (checkPin(code) && paying) { haptic.success(); setTimeout(() => { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); else back(); }, 250); }
+      if (checkPin(code) && unlocking) { haptic.success(); setTimeout(unlockApp, 200); }
+      else if (checkPin(code) && paying) { haptic.success(); setTimeout(() => { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); else back(); }, 250); }
       else if (checkPin(code)) next("new");
       else if (tries > 1) { setTries(tries - 1); fail(`Қате код. ${tries - 1} әрекет қалды`); }
+      else if (unlocking) { fail(`Тым көп қате әрекет. ${LOCK_WAIT} секундтан кейін қайтала`); setWait(LOCK_WAIT); }
       else { fail("Тым көп қате әрекет. Кейінірек қайталап көр"); setTimeout(() => (paying ? go("/scan/state/limit", "up", { replace: true }) : back()), 1400); }
     } else if (step === "new") { setFirst(code); next("repeat"); }
     else if (code === first) {
@@ -55,9 +68,9 @@ export function Pin() {
     } else { fail("Кодтар сәйкес келмеді. Қайта ойлап тап"); setTimeout(() => { setStep("new"); setFirst(""); }, 420); }
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const press = (d: string) => { if (code.length >= 4) return; haptic.tap(); setError(""); setCode(code + d); };
+  const press = (d: string) => { if (code.length >= 4 || wait) return; haptic.tap(); setError(""); setCode(code + d); };
   const del = () => { if (!code) return; haptic.soft(); setCode(code.slice(0, -1)); };
-  const bio = async () => { if (step !== "old" || !st.bio) return; if ((await biometricAuth(paying ? "Төлемді растау" : "PIN-кодты өзгерту")) !== "ok") return; if (paying) { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); } else next("new"); };
+  const bio = async () => { if (step !== "old" || !st.bio || wait) return; if ((await biometricAuth(unlocking ? "Jazl+ қолданбасын ашу" : paying ? "Төлемді растау" : "PIN-кодты өзгерту")) !== "ok") return; if (unlocking) { haptic.success(); unlockApp(); } else if (paying) { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); } else next("new"); };
 
   // Нақты пернетақтадан да теруге болады (десктоп Telegram)
   useEffect(() => {
@@ -67,17 +80,17 @@ export function Pin() {
   });
 
   return (
-    <div className={s.page}>
+    <div className={`${s.page} ${unlocking ? s.lock : ""}`}>
       <TelegramChrome mode="close" onBack={back} />
       {/* Figma: «PIN / 3 Қолданба құлыпталған» — сейф ұстаған үйрек, «4 Қате код» — ойланған үйрек (146,96 120×120) */}
       {step === "old" && <Sticker key={error ? "think" : "lock"} name={error ? "think" : "lock"} className={s.sticker} />}
-      <h1 key={step} className={s.title}>{paying ? "Төлемді растаңыз" : titles[step]}</h1>
+      <h1 key={step} className={s.title}>{unlocking ? "Қолданба құлыпталған" : paying ? "Төлемді растаңыз" : titles[step]}</h1>
       <div key={shake} className={`${s.boxes} ${shake ? s.shake : ""}`}>
         {[0, 1, 2, 3].map((i) => (
           <span key={i} className={`${s.box} ${i === code.length && !error ? s.active : ""}`}>{i < code.length && <i className={error ? s.bad : ""} />}</span>
         ))}
       </div>
-      <p className={`t-sub2 ${s.hint} ${error ? s.err : ""}`}>{error || (paying ? "Төлемді растау үшін PIN енгіз" : step === "old" && !st.bio ? "PIN енгіз" : hints[step])}</p>
+      <p className={`t-sub2 ${s.hint} ${error || wait ? s.err : ""}`}>{(wait ? `Тым көп қате әрекет. ${wait} секундтан кейін қайтала` : error) || (paying ? "Төлемді растау үшін PIN енгіз" : step === "old" && !st.bio ? "PIN енгіз" : hints[step])}</p>
       {paying && payInfo?.sum && <p className={s.sum}>{payInfo.sum}</p>}
       <div className={s.keys}>
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => <button key={d} className={s.key} onClick={() => press(d)}>{d}</button>)}
