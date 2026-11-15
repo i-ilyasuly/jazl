@@ -43,29 +43,44 @@ export function initTelegram() {
  * select — сегмент, таб, чип, көлем, галерея; success/warning/error — нәтиже.
  */
 type Impact = "light" | "medium" | "heavy" | "rigid" | "soft";
-// Telegram Android клиенті «light» дірілін 7 мс және әлсіз амплитудамен (65/255), «selection»-ды 1 мс-пен береді:
-// көп Android (әсіресе Huawei, Xiaomi) телефонында мүлде сезілмейді. Сондықтан Android-та сол нативті
-// әдістердің ішінен бір саты күштірегін аламыз: light→soft (10 мс, 175), selection→rigid (3 мс, 225), medium→heavy.
-// iOS-та Taptic Engine нәзік дірілдерді жақсы береді, онда түпнұсқа күйі қалады.
+// СЕБЕБІ (2026-11-16, Патша: P30 lite-та тек notification сезіледі): Telegram Android клиенті дірілді
+// BotWebViewVibrationEffect арқылы береді. Телефонда амплитуда басқаруы болмаса (Vibrator.hasAmplitudeControl() = false,
+// көп Huawei/EMUI), ол «fallback» уақыттарын VibrationEffect.createWaveform(timings, -1) ретінде жібереді. Android-та бұл
+// массивтің 1-элементі — КҮТУ уақыты. impact/selection үлгілері бір элементті ({60}, {70}, {80}, {50}, {55}, {30}) —
+// телефон тек күтеді, дірілдемейді. notification үлгілері көп элементті (күту, діріл, ...) — сондықтан тек солар сезіледі.
+// ШЕШІМ: Android-та жеңіл дірілдерді WebView-дің өз Vibration API-імен (navigator.vibrate, Telegram-да VIBRATE рұқсаты бар)
+// береміз; ол жоқ не бас тартса — Telegram-ның нативті әдісі. iOS-та тек нативті Taptic Engine.
 const android = wa?.platform === "android";
-const boost: Record<Impact, Impact> = android ? { light: "soft", soft: "soft", medium: "heavy", heavy: "heavy", rigid: "rigid" } : { light: "light", soft: "soft", medium: "medium", heavy: "heavy", rigid: "rigid" };
+const ms: Record<Impact | "select", number> = { light: 12, soft: 16, rigid: 14, medium: 24, heavy: 36, select: 10 };
+let vibeOk: boolean | null = null; // соңғы navigator.vibrate нәтижесі (сынақ беті үшін)
+function vibe(p: number | number[]): boolean {
+  if (!android || typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return false;
+  try { vibeOk = navigator.vibrate(p); } catch { vibeOk = false; }
+  return vibeOk;
+}
 const hf = () => (at("6.1") ? wa?.HapticFeedback : undefined);
-const impact = (k: Impact) => () => { hf()?.impactOccurred(boost[k]); };
+const impact = (k: Impact) => () => { if (!vibe(ms[k])) hf()?.impactOccurred(k); };
 const notify = (k: "success" | "warning" | "error") => () => { hf()?.notificationOccurred(k); };
-/** Сынақ беті үшін: нативті әдісті ешбір күшейтусіз тікелей шақыру. */
+/** Сынақ беті үшін: нативті әдісті тікелей шақыру. */
 export const rawHaptic = (kind: "impact" | "notification" | "selection", v?: string) => {
   const h = hf(); if (!h) return false;
   if (kind === "impact") h.impactOccurred(v as Impact); else if (kind === "notification") h.notificationOccurred(v as "success"); else h.selectionChanged();
   return true;
 };
-export const hapticInfo = () => ({ inTelegram, platform: wa?.platform ?? "—", version: wa?.version ?? "—", has: Boolean(wa?.HapticFeedback), ok: at("6.1") });
+/** Сынақ беті үшін: WebView Vibration API-ін тікелей шақыру. Қайтарады: true/false, «жоқ» — API жоқ. */
+export const rawVibrate = (p: number | number[]): boolean | "none" => {
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return "none";
+  try { return navigator.vibrate(p); } catch { return false; }
+};
+export const hapticInfo = () => ({ inTelegram, platform: wa?.platform ?? "—", version: wa?.version ?? "—", has: Boolean(wa?.HapticFeedback), ok: at("6.1"),
+  vibrateApi: typeof navigator !== "undefined" && typeof navigator.vibrate === "function", android, lastVibe: vibeOk });
 export const haptic = {
   tap: impact("light"),
   soft: impact("soft"),
   medium: impact("medium"),
   heavy: impact("heavy"),
   rigid: impact("rigid"),
-  select: () => { if (android) hf()?.impactOccurred("rigid"); else hf()?.selectionChanged(); },
+  select: () => { if (!vibe(ms.select)) hf()?.selectionChanged(); },
   success: notify("success"),
   warning: notify("warning"),
   error: notify("error"),
@@ -81,14 +96,16 @@ export function useBackButton(onBack: () => void, enabled = true) {
   }, [onBack, enabled]);
 }
 
-export interface BottomAction { text: string; onClick: () => void; position?: "left" | "bottom"; shine?: boolean }
+/** disabled — батырма жасырылмайды, сұр түсте белсенді емес болып тұрады (форма толмағанда). */
+export interface BottomAction { text: string; onClick: () => void; position?: "left" | "bottom"; shine?: boolean; disabled?: boolean }
 
 /** Нативті төменгі батырмалар: Main оң жақта, Secondary сол жақта (Figma: биіктігі 50, радиусы 8). */
 export function useBottomButtons(main: BottomAction, secondary?: BottomAction, enabled = true) {
   useEffect(() => {
     if (!enabled || !inTelegram || !wa?.MainButton) return;
     const dark = wa.colorScheme === "dark";
-    wa.MainButton.setParams({ text: main.text, color: "#229af0", text_color: "#ffffff", is_visible: true, is_active: true, ...(at("7.10") ? { has_shine_effect: Boolean(main.shine) } : {}) });
+    const off = Boolean(main.disabled);
+    wa.MainButton.setParams({ text: main.text, color: off ? (dark ? "#3b4a5d" : "#c4cdd6") : "#229af0", text_color: off ? (dark ? "#8a98a8" : "#ffffff") : "#ffffff", is_visible: true, is_active: !off, ...(at("7.10") ? { has_shine_effect: Boolean(main.shine) && !off } : {}) });
     wa.MainButton.onClick(main.onClick);
     if (secondary && at("7.10") && wa.SecondaryButton) {
       wa.SecondaryButton.setParams({ text: secondary.text, position: secondary.position ?? "left", color: dark ? "#1e3a52" : "#dbeefd", text_color: dark ? "#cbe6fc" : "#1f73c2", is_visible: true, is_active: true });

@@ -52,7 +52,7 @@ export function Search() {
   return (
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
-      <label className="topSearch" style={{ viewTransitionName: "top-search" }}>
+      <label className="topSearch pinned" style={{ viewTransitionName: "top-search" }}>
         <img src={searchIcon} alt="" />
         <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Іздеу..." enterKeyHint="search" autoCapitalize="none" autoCorrect="off" onKeyDown={(e) => { if (e.key === "Enter") { addRecent(query); input.current?.blur(); } }} />
       </label>

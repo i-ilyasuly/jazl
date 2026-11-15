@@ -25,6 +25,8 @@ export function Scan() {
   const [found, setFound] = useState(() => params.get("via") === "code");
   const [busy, setBusy] = useState(false);
   const [torch, setTorch] = useState(false);
+  // Нативті сканер QR оқымай жабылса — «Қайта сканерлеу / Код енгізу» таңдауы (Figma 23 «Код енгізу»)
+  const [nativeClosed, setNativeClosed] = useState(false);
   const lock = useSettings().lock;
   const demo = params.get("scan") ?? "";
   const demoKind = (scanStates as readonly string[]).includes(demo) ? (demo as ScanKind) : null;
@@ -63,7 +65,7 @@ export function Scan() {
   }, [found, demoKind, pack, toState]);
 
   useEffect(() => {
-    if (found) return;
+    if (found || nativeClosed) return;
     if (!pack && params.get("via") === "code") { toState("nopack"); return; }
     // Компьютердегі Telegram-да нативті сканер жоқ: «Сканерді телефонда аш»
     if (inTelegram && !(tg?.isVersionAtLeast?.("6.4") && tg.showScanQrPopup)) { toState("desktop"); return; }
@@ -71,14 +73,14 @@ export function Scan() {
       let got = false;
       tg.showScanQrPopup({ text: "Кассадағы терминал экранындағы QR-ды рамкаға келтір" }, () => { got = true; detect(); return true; });
       // Пайдаланушы нативті сканерді өзі жапса, алдыңғы бетке қайтамыз
-      const onClosed = () => { if (!got) close(); };
+      const onClosed = () => { if (!got) { haptic.soft(); setNativeClosed(true); } };
       const w = tg as unknown as { onEvent?: (e: string, cb: () => void) => void; offEvent?: (e: string, cb: () => void) => void };
       w.onEvent?.("scanQrPopupClosed", onClosed);
       return () => { w.offEvent?.("scanQrPopupClosed", onClosed); if (!got) tg?.closeScanQrPopup?.(); };
     }
     const t = setTimeout(detect, 2600); // браузерде: QR «оқылды» деп еліктеу
     return () => clearTimeout(t);
-  }, [found, detect, close, toState]);
+  }, [found, detect, close, toState, nativeClosed]);
 
   const pay = useMemo(() => ({
     text: pack ? `💳 Төлеу · ${unitLabel(pack)}` : "Төлеу",
@@ -102,12 +104,21 @@ export function Scan() {
   const cancel = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: () => { haptic.soft(); close(); } }), [close]);
   const payMain = useMemo(() => (extra ? { ...pay, text: "Растау" } : pay), [extra, pay]);
   useBottomButtons(payMain, extra ? cancel : undefined, found && Boolean(pack));
+  const again = useMemo(() => ({ text: "Қайта сканерлеу", onClick: () => { haptic.medium(); setNativeClosed(false); } }), []);
+  const byCode = useMemo(() => ({ text: "Код енгізу", position: "left" as const, onClick: () => { haptic.tap(); go("/scan/code", "forward", { replace: true }); } }), [go]);
+  useBottomButtons(again, byCode, nativeClosed && !found);
 
   const o = pack ? offerOf(pack) : null;
   const native = inTelegram && Boolean(tg?.showScanQrPopup);
   return (
     <div className={`${s.page} ${found ? s.found : ""} ${native ? s.native : ""}`}>
       {/* Telegram-да камера көрінісін нативті сканердің өзі көрсетеді; мына жасанды нұсқа тек браузер үшін */}
+      {native && nativeClosed && !found && (
+        <div className={s.closedBox}>
+          <h1 className={s.closedTitle}>QR оқылмады ма?</h1>
+          <p className={`t-text ${s.closedText}`}>Қайта сканерле немесе кассир экранындағы 6 таңбалы кодты енгіз.</p>
+        </div>
+      )}
       {!native && <>
       <TelegramChrome mode="close" onBack={close} onDark />
       <h1 className={s.title}>Төлем QR-ын сканерле</h1>

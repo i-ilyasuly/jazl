@@ -76,3 +76,6 @@
 .bar2 .btn { width: auto; flex: 1; }
 .btn2 { background: var(--chip-tint); color: var(--link); }
 :global(:root[data-theme="dark"]) .extraChip { color: #fff; }
+.closedBox { position: absolute; left: 32px; top: calc(320px + var(--top-shift, 0px)); width: 348px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.closedTitle { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
+.closedText { color: var(--text-secondary); }

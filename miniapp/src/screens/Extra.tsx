@@ -16,7 +16,7 @@ import b from "./Booking.module.css";
 import s from "./Extra.module.css";
 
 function Bar({ left, main }: { left: BottomAction; main: BottomAction & { disabled?: boolean } }) {
-  useBottomButtons(main, left, !main.disabled);
+  useBottomButtons(main, left);
   if (inTelegram) return null;
   return (
     <div className={b.bar}>
