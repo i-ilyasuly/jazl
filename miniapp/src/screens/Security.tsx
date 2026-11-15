@@ -38,7 +38,7 @@ export function Security() {
         <Row inset={16} title="Экран құлпы" sub="PIN-код немесе биометрия" right={<Switch on={st.lock} onChange={toggleLock} />} />
         <Row inset={16} dim={off} title="PIN-ді өзгерту" onClick={() => go("/profile/pin/change", "up")} />
         <Row inset={16} dim={off} title="Биометрия" sub={bioSub} right={<Switch on={st.bio} onChange={toggleBio} />} />
-        <Row inset={16} dim={off} title="Автоқұлып" onClick={pickTime} right={<span key={st.autolock} className={`t-sub1 ${s.value}`}>{lockTimes.find((t) => t.id === st.autolock)?.text}</span>} />
+        <Row inset={16} dim={off} title="Автоқұлып" onClick={pickTime} right={<span key={st.autolock} className={`t-text ${s.value}`}>{lockTimes.find((t) => t.id === st.autolock)?.text}</span>} />
       </Group>
       <h2 className={`t-sub2 w-600 ${s.section} rise`} style={{ ["--i" as string]: 1 }}>Қашан сұралады</h2>
       <Group i={1}>

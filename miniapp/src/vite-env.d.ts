@@ -40,6 +40,7 @@ interface TelegramWebApp {
   requestContact?: (cb?: (shared: boolean, res?: { responseUnsafe?: { contact?: { phone_number?: string } } }) => void) => void;
   showAlert?: (message: string, cb?: () => void) => void;
   showPopup?: (p: { title?: string; message: string; buttons?: { id?: string; type?: "default" | "ok" | "close" | "cancel" | "destructive"; text?: string }[] }, cb?: (id: string) => void) => void;
+  close?: () => void;
   requestWriteAccess?: (cb?: (granted: boolean) => void) => void;
   BiometricManager?: {
     isInited: boolean; isBiometricAvailable: boolean; biometricType: "finger" | "face" | "unknown"; isAccessRequested: boolean; isAccessGranted: boolean;

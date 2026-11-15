@@ -10,12 +10,12 @@
   box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 var(--glass-lo), 0 6px 20px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .activeBg {
-  position: absolute; left: 6.5px; top: 3px; width: 86px; height: 56px; border-radius: 28px;
+  position: absolute; left: 5px; top: 3px; width: 86px; height: 56px; border-radius: 28px;
   background: var(--glass-active);
   box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 0 0 0.5px var(--glass-active-edge);
   transition: translate 0.42s cubic-bezier(0.3, 1.25, 0.4, 1); will-change: translate, scale;
 }
-.tab { position: absolute; top: 3px; width: 93px; height: 56px; padding: 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; -webkit-tap-highlight-color: transparent; }
+.tab { position: absolute; top: 3px; width: 94px; height: 56px; padding: 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; -webkit-tap-highlight-color: transparent; }
 .tab:active .iconBox { transform: scale(0.88); }
 .iconBox { width: 64px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
 .icon { width: 28px; height: 28px; background: var(--nav-label); mask-size: 28px 28px; -webkit-mask-size: 28px 28px; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transition: background 0.25s ease; }

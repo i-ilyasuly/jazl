@@ -56,11 +56,11 @@ export function NavBar({ active }: { active: TabKey }) {
   const shown = active === "home" && tip >= 0 ? tips[tip] : null;
   return (
     <nav className={s.nav}>
-      <div ref={pill} className={s.activeBg} style={{ translate: `${idx * 93}px 0` }} />
+      <div ref={pill} className={s.activeBg} style={{ translate: `${idx * 94}px 0` }} />
       {tabs.map((t, i) => {
         const on = t.key === active;
         return (
-          <button key={t.key} className={s.tab} style={{ left: 3 + i * 93 }} onClick={() => { if (!on) { haptic.select(); go(t.to, "fade"); } }}>
+          <button key={t.key} className={s.tab} style={{ left: 1 + i * 94 }} onClick={() => { if (!on) { haptic.select(); go(t.to, "fade"); } }}>
             <span className={`${s.iconBox} ${on && !first.current ? s["play_" + t.key] : ""}`}>
               {t.key === "profile" ? (
                 <span className={s.avatar}>
@@ -76,7 +76,7 @@ export function NavBar({ active }: { active: TabKey }) {
       })}
       {unread && <span className={s.unread} />}
       {shown && (
-        <div key={tip} className={s.tip} role="note" style={{ left: shown.left, ["--caret" as string]: `${50 + shown.tab * 93 - shown.left - 6}px` }}>
+        <div key={tip} className={s.tip} role="note" style={{ left: shown.left, ["--caret" as string]: `${50 + shown.tab * 94 - shown.left - 6}px` }}>
           <p>{shown.text}</p>
           <button onClick={nextTip}>Түсінікті</button>
         </div>
