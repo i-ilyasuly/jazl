@@ -11,11 +11,12 @@ import { Paid, Success } from "./screens/Success";
 import { Packs } from "./screens/Packs";
 import { PackPage } from "./screens/PackPage";
 import { Scan } from "./screens/Scan";
+import { ScanState } from "./screens/ScanState";
 import { Profile } from "./screens/Profile";
 import { Savings } from "./screens/Savings";
 import { History } from "./screens/History";
 import { Notifications } from "./screens/Notifications";
-import { Receipt } from "./screens/Receipt";
+import { Receipt, UseReceipt } from "./screens/Receipt";
 import { PayResult } from "./screens/PayResult";
 import { CardAdd } from "./screens/CardAdd";
 import { Order } from "./screens/Order";
@@ -90,6 +91,8 @@ const router = createHashRouter([
       { path: "/packs", element: <Packs /> },
       { path: "/pack/:id", element: <PackPage /> },
       { path: "/scan", element: <Scan /> },
+      { path: "/scan/state/:kind", element: <ScanState /> },
+      { path: "/receipt/use/:id", element: <UseReceipt /> },
       { path: "/paid/:id", element: <Paid /> },
       { path: "/profile", element: <Profile /> },
       { path: "/profile/savings", element: <Savings /> },

@@ -17,29 +17,47 @@
 
 .scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); animation: fade 0.24s ease both; }
 @keyframes fade { from { opacity: 0; } }
-.sheet { position: absolute; left: 0; bottom: 0; width: 412px; height: 388px; padding: 36px 16px 84px; border-radius: 16px 16px 0 0; background: #fff; color: var(--text-strong); display: flex; flex-direction: column; gap: 14px; animation: up 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
-:global(:root[data-env="telegram"]) .sheet { height: auto; padding-bottom: 24px; }
+.sheet { position: absolute; left: 0; bottom: 0; width: 412px; padding: 28px 16px 82px; border-radius: 16px 16px 0 0; background: #fff; color: var(--text-strong); display: flex; flex-direction: column; gap: 12px; animation: up 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+:global(:root[data-env="telegram"]) .sheet { padding-bottom: 24px; }
 @keyframes up { from { transform: translateY(100%); } }
-.grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+.grabber { position: absolute; left: 188px; top: 8px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
 .venue { display: flex; align-items: center; gap: 12px; height: 48px; }
 .avatar { width: 44px; height: 44px; border-radius: 50%; background: #eef1f5; flex: none; }
-.venueText { flex: 1; display: flex; flex-direction: column; white-space: nowrap; }
+.venueText { flex: 1; min-width: 0; display: flex; flex-direction: column; white-space: nowrap; overflow: hidden; }
+.venueText span { overflow: hidden; text-overflow: ellipsis; }
 .amount { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 700; white-space: nowrap; }
 .muted { color: var(--text-secondary); }
 .link { color: var(--link); }
-.pack { display: flex; align-items: center; gap: 12px; padding: 10px 0; height: 66px; }
+/* Пакет жолы: биіктігі 60, таңдалғаны жиексіз — фоны ғана боялады (04, 7-ереже) */
+.opts { display: flex; flex-direction: column; gap: 4px; margin: 0 -8px; }
+.pack { display: flex; align-items: center; gap: 12px; width: 100%; height: 60px; padding: 0 8px; border-radius: 12px; text-align: left; color: var(--text-strong); transition: background 0.2s ease; }
+.packOn { background: var(--chip-tint); }
+.pack:disabled { opacity: 0.5; }
+.packSub { font-size: 15px; line-height: 20px; letter-spacing: 0.15px; color: var(--text-secondary); }
+.packPrice { font-size: 17px; line-height: 22px; font-weight: 600; white-space: nowrap; }
+.sheetTitle { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 700; }
+.quote { position: relative; padding: 12px 40px 12px 16px; border-radius: 12px; background: rgba(34, 154, 240, 0.12); font-size: 15px; line-height: 20px; letter-spacing: 0.15px; overflow: hidden; }
+.quote::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #229af0; }
+.quote i { position: absolute; right: 12px; top: -4px; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: #229af0; }
+/* Төлем өңделуде */
+.wait { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 24px 20px; text-align: center; }
+.wait h2 { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 700; }
+.wait p { font-size: 15px; line-height: 20px; letter-spacing: 0.15px; color: var(--text-secondary); }
+.wait b { font-size: 17px; line-height: 22px; font-weight: 600; }
+.btnWait { background: rgba(95, 107, 122, 0.16) !important; color: var(--text-secondary) !important; }
 .emoji { width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 28px; flex: none; }
 .packText { flex: 1; display: flex; flex-direction: column; white-space: nowrap; }
 .packTitle { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; }
-.radio { width: 22px; height: 22px; border-radius: 11px; border: 2px solid #229af0; display: flex; align-items: center; justify-content: center; flex: none; }
+.radio { width: 24px; height: 24px; border-radius: 12px; border: 2px solid #229af0; display: flex; align-items: center; justify-content: center; flex: none; }
 .radio span { width: 12px; height: 12px; border-radius: 50%; background: #229af0; animation: pop 0.3s 0.25s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
 @keyframes pop { from { transform: scale(0); } }
 .rows { display: flex; flex-direction: column; gap: 8px; }
-.rows p { display: flex; justify-content: space-between; }
+.rows p { display: flex; justify-content: space-between; font-size: 15px; line-height: 20px; letter-spacing: 0.15px; }
+.rows b { font-weight: 600; }
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 66px; padding: 8px 10px; background: #fff; }
 .btn { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .btn:active { opacity: 0.8; }
-.spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 :global(:root[data-theme="dark"]) .sheet, :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
 .native { background: var(--surface-page) !important; }

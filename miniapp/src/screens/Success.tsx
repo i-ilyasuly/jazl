@@ -80,7 +80,7 @@ export function Paid() {
   const go = useGo();
   const pack = getPack(id);
   const toPacks = useCallback(() => go("/packs", "fade", { replace: true }), [go]);
-  const receipt = useCallback(() => go("/pack/" + id, "forward", { replace: true }), [go, id]);
+  const receipt = useCallback(() => go("/receipt/use/" + id, "forward"), [go, id]);
   if (!pack) return null;
   const o = offerOf(pack);
   return (
