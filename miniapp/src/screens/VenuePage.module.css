@@ -85,3 +85,13 @@
 :global(:root[data-theme="dark"]) .miniPin { background: var(--surface-card); }
 :global(:root[data-theme="dark"]) .shot { background: rgba(92, 180, 244, 0.2); }
 :global(:root[data-theme="dark"]) .bars i { background: rgba(255, 255, 255, 0.09); }
+.meta { font-size: 15px; line-height: 20px; color: var(--text-strong); }
+.closed { color: #e53935; font-weight: 600; }
+.closed i { background: #e53935 !important; }
+.badgeNew { display: inline-block; height: 26px; padding: 3px 10px; border-radius: 13px; background: #34c759; color: #000; font-size: 13px; line-height: 20px; font-weight: 700; }
+.badge247 { height: 24px; padding: 2px 8px; border-radius: 12px; background: #229af0; color: #fff; font-size: 13px; line-height: 20px; font-weight: 800; letter-spacing: 0.3px; }
+.nopay { position: relative; margin-bottom: 4px; padding: 12px 40px 12px 16px; border-radius: 14px; background: rgba(255, 184, 0, 0.12); border-left: 4px solid #ffb800; font-size: 15px; line-height: 20px; color: var(--text-strong); }
+.nopay i { position: absolute; right: 12px; top: -6px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b301; font-style: normal; }
+:global(:root[data-theme="dark"]) .badgeNew { background: #1f9a41; }
+:global(:root[data-theme="dark"]) .closed { color: #ff6b6b !important; }
+:global(:root[data-theme="dark"]) .nopay { background: rgba(255, 184, 0, 0.16); }

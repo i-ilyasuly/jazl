@@ -1,6 +1,7 @@
 // Қосымшаның жергілікті күйі (бэкендсіз): сатып алынған пакеттер және қолдану тарихы.
 // Бэкенд қосылғанда осы файлдың ішкі жағы API шақыруларына ауысады, экрандар өзгермейді.
 import { kv } from "./telegram";
+import { venues } from "./mocks/venues";
 import { useSyncExternalStore } from "react";
 import { findOffer, fmt, unitPrice, type Offer } from "./mocks/offers";
 
@@ -172,7 +173,7 @@ const branchesOf: Record<string, Branch[]> = {
     { id: "b3", address: "Бухар-Жырау, 52", hours: "10:00–22:00", km: 4.1, open: false },
   ],
 };
-export const branches = (venue: string, address: string): Branch[] => branchesOf[venue] ?? [{ id: "b1", address, hours: "09:00–22:00", km: 1.2, open: true }];
+export const branches = (venue: string, address: string): Branch[] => branchesOf[venue] ?? [{ id: "b1", address, hours: "09:00–22:00", km: 1.2, open: venues.find((v) => v.name === venue)?.status !== "closed" }];
 let orders: Order[] = [
   { id: "o104", no: 104, packId: "p1", title: "Бургер комбо · 1 бірлік", venue: "Bahandi", emoji: "🍔", branch: "Бұқар жырау 59", time: "14:00", code: "3071", status: "sent", created: "бүгін, 12:40" },
 ];
