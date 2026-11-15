@@ -19,7 +19,7 @@ interface ResultProps {
   onClose: () => void;
 }
 
-function ResultScreen(p: ResultProps) {
+export function ResultScreen(p: ResultProps) {
   const main = useMemo(() => p.main, [p.main.text, p.main.onClick]); // eslint-disable-line
   const secondary = useMemo(() => ({ ...p.secondary, position: "bottom" as const }), [p.secondary.text, p.secondary.onClick]); // eslint-disable-line
   useBottomButtons(main, secondary);

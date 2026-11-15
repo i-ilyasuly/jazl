@@ -55,9 +55,9 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
 
   const close = useMemo(() => () => { haptic.soft(); setClosing(true); setTimeout(onClose, 220); }, [onClose]);
   const back = useMemo(() => () => {
-    if (step === "method" || step === "kaspi") { haptic.soft(); setStep("sum"); return; }
+    if ((step === "method" || step === "kaspi") && start === "sum") { haptic.soft(); setStep("sum"); return; }
     close();
-  }, [step, close]);
+  }, [step, close, start]);
   useBackButton(back);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -82,6 +82,8 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
     timers.current.push(window.setTimeout(() => { haptic.select(); setStage(2); }, 4200));
     timers.current.push(window.setTimeout(() => { haptic.success(); onPaid(); }, 5600));
   };
+  // Сырттан бірден «күту» қадамымен ашылса (Kaspi нөмірі сақталған) — шот жіберілді деп бастаймыз
+  useEffect(() => { if (start === "wait") startWait(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const pay = () => {
     if (!agree || busy) return;
     haptic.medium();
@@ -97,12 +99,13 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
   };
 
   const main: Btn = useMemo(() => {
-    if (step === "method") return { text: "Дайын", onClick: () => { haptic.medium(); setDefaultMethod(method); setStep("sum"); } };
+    // Тек тәсіл таңдау үшін ашылса (мысалы, «Қайта алу» бетінен) — «Дайын» парақты жабады
+    if (step === "method") return { text: "Дайын", onClick: () => { haptic.medium(); setDefaultMethod(method); if (start === "method") close(); else setStep("sum"); } };
     if (step === "kaspi") return { text: "Шот жіберу", onClick: sendBill };
     if (step === "wait") return { text: "Kaspi.kz ашу", onClick: () => { haptic.medium(); openExternal("https://kaspi.kz/"); } };
     if (step === "price") return { text: `💳 Төлеу · ${fmt(newPrice)}`, shine: true, onClick: () => { haptic.medium(); if (m?.id === "kaspi") startWait(); else finish(); } };
     return { text: `Төлеу · ${fmt(offer.price)}`, shine: true, onClick: pay };
-  }, [step, method, phone, keep, agree, busy, m?.id, saved, offer.price, newPrice]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, method, phone, keep, agree, busy, m?.id, saved, offer.price, newPrice, start, close]); // eslint-disable-line react-hooks/exhaustive-deps
   const second: Btn | undefined = useMemo(() => (step === "wait" || step === "price" ? { text: "Бас тарту", position: "left", onClick: close } : undefined), [step, close]);
   useBottomButtons(main, second);
 

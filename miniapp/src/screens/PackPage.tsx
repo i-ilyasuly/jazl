@@ -1,13 +1,17 @@
 // Figma «09 · Пакеттерім»: «Пакет беті / Белсенді» 13886:29335, «Мерзімі жақын» 13886:29489,
 // «Толық пайдаланылды» 13886:29723, «Мерзімі өтті» 13886:29947. Жаңа бөліктер — UI kit шкаласы + 4/8px тор.
-import { useCallback, useMemo } from "react";
+// «11 · Мерзімін ұзарту»: «Тегін» 13886:32051, «Ақылы» 13886:32347, «Ұзартылды» 13886:32643, «Мүмкін емес» 13886:32881.
+// Демо: ?extend=no — мекеме ұзартуға рұқсат бермейді.
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
 import { useGo } from "../nav";
 import { findVenue, venues } from "../mocks/venues";
-import { getPack, offerOf, packState, usePacks } from "../store";
+import { carryOf, CARRY_DAYS, getPack, offerOf, packState, rateActivityOf, usePacks, type Activity } from "../store";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
+import { ExtendSheet } from "../ui/ExtendSheet";
+import { RateSheet } from "../ui/RateSheet";
 import { Timeline } from "../ui/Timeline";
 import burger from "../assets/icons/burger36.svg";
 import chev from "../assets/icons/chevRight.svg";
@@ -19,21 +23,27 @@ export function PackPage() {
   usePacks();
   const go = useGo();
   const pack = getPack(id);
+  const [extending, setExtending] = useState(false);
+  const [rating, setRating] = useState<Activity | null>(null);
+  const [toast, setToast] = useState("");
+  const sheet = extending || Boolean(rating);
   const back = useCallback(() => go(-1, "back"), [go]);
-  useBackButton(back);
+  useBackButton(back, !sheet);
   // Figma «Пакет беті: екі әрекет» 13913:8091: мекемеде — сканерлеу, үйде — тапсырыс беру (шаштаразда — жазылу)
   const hairPack = pack ? offerOf(pack).kind === "hair" : false;
   const scan = useMemo(() => ({ text: "Сканерлеу", position: "left" as const, onClick: () => { haptic.medium(); go("/scan?pack=" + id, "up"); } }), [go, id]);
   const order = useMemo(() => ({ text: hairPack ? "Жазылу" : "Тапсырыс беру", shine: true, onClick: () => { haptic.medium(); go("/order/" + id); } }), [go, id, hairPack]);
   // Біткен не мерзімі өткен пакетте жалғыз негізгі әрекет — «Қайта алу»
   const usable = Boolean(pack && pack.left > 0 && !pack.expired);
-  const offerId = pack?.offerId;
-  const rebuy = useMemo(() => ({ text: "Қайта алу", shine: true, onClick: () => { haptic.medium(); go("/offer/" + offerId); } }), [go, offerId]);
-  useBottomButtons(usable ? order : rebuy, usable ? scan : undefined, Boolean(pack));
+  const rebuy = useMemo(() => ({ text: "Қайта алу", shine: true, onClick: () => { haptic.medium(); go("/rebuy/" + id); } }), [go, id]);
+  useBottomButtons(usable ? order : rebuy, usable ? scan : undefined, Boolean(pack) && !sheet);
+  const onExtended = useCallback((until: string) => { setExtending(false); setToast(`Мерзімі ұзартылды: ${until}`); window.setTimeout(() => setToast(""), 2600); }, []);
   if (!pack) return null;
   const o = offerOf(pack);
   const state = packState(pack);
   const soon = state === "soon";
+  const noExtend = pack.noExtend || /[?&]extend=no/.test(window.location.hash);
+  const late = state === "expired" && carryOf(pack) === 0;
   const venueId = venues.find((v) => v.name === o.venue)?.id;
   const chip = { active: "Белсенді", soon: `${pack.daysLeft} күн қалды`, used: "Толық пайдаланылды", expired: "Мерзімі өтті" }[state];
   const dateLine = state === "expired" ? `${pack.endedOn ?? pack.until} аяқталды` : state === "used" ? `Мерзімі: ${pack.until}` : `${pack.until} · ${pack.daysLeft} күн қалды`;
@@ -58,12 +68,15 @@ export function PackPage() {
           {soon && (
             <div className={s.note}>
               <p>Қайта алсаң, қалған бірлік <b>келесі айға көшеді</b></p>
-              <button className={s.noteBtn} onClick={() => go("/offer/" + o.id)}>Қайта алу</button>
+              <button className={s.noteBtn} onClick={() => go("/rebuy/" + pack.id)}>Қайта алу</button>
             </div>
           )}
           {state === "expired" && (
             <div className={`${s.note} ${s.noteWarn}`}>
-              <p>Пакеттің мерзімі өтті. 3 күн ішінде қайта алсаң, пайдаланылмаған {pack.left} бірлік жаңа пакетке көшеді.<button className={s.noteLink} onClick={() => go("/profile/terms")}>Көшіру ережесі туралы толығырақ</button></p>
+              <p>{late
+                ? <>Мерзімі өткеніне {CARRY_DAYS} күннен асты, сондықтан пайдаланылмаған {pack.left} бірлік жаңа пакетке көшпейді.</>
+                : <>Пакеттің мерзімі өтті. {CARRY_DAYS} күн ішінде қайта алсаң, пайдаланылмаған {pack.left} бірлік жаңа пакетке көшеді.</>}
+                <button className={s.noteLink} onClick={() => go("/rules/carry")}>Көшіру ережесі туралы толығырақ</button></p>
             </div>
           )}
           {usable && <p className={s.howUse}>{o.kind === "hair" ? <>Салонда шеберге QR-ды сканерлейсің, не үйден <b>«Жазылу»</b> арқылы уақыт таңдайсың.</> : <>Кассада «Jazl бойынша» деп айтып, QR-ды сканерле. Не мекемеге бармай <b>«Тапсырыс беру»</b> батырмасын бас — ақша төленбейді, бірлік пакеттен шегеріледі.</>}</p>}
@@ -75,7 +88,7 @@ export function PackPage() {
             <div key={i} className={s.row}>
               <span className={s.emoji}>{x.emoji}</span>
               <span className={s.rowText}><span className={s.rowTitle}>{x.title}</span><span className={`t-sub2 ${s.muted}`}>{x.sub}</span></span>
-              <span className={`t-sub1 w-600 ${s.muted}`}>{x.right}</span>
+              <span className={`t-sub2 w-600 ${s.muted}`}>{x.right}</span>
               {i < pack.history.length - 1 && <span className={s.line68} />}
             </div>
           ))}
@@ -83,17 +96,18 @@ export function PackPage() {
 
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 2 }}>
           <h2 className={`t-sub2 w-600 ${s.groupTitle}`}>Ақпарат</h2>
+          {pack.extendedTo && <div className={`t-text ${s.kv}`}><span className={s.muted}>Мерзімі ұзартылды</span><span className="w-600">{pack.extendedTo}</span><span className={s.line16} /></div>}
           <div className={`t-text ${s.kv}`}><span className={s.muted}>Бағасы</span><span className="w-600">{fmt(o.price)}</span><span className={s.line16} /></div>
           <div className={`t-text ${s.kv}`}><span className={s.muted}>Төлем тәсілі</span><span className="w-600">Kaspi Pay</span><span className={s.line16} /></div>
           <button className={s.cell} onClick={() => haptic.tap()}><span className={s.rowTitle}>Чек</span><img src={chev} width={18} height={18} alt="" /></button>
-          {state === "used" && <button className={`${s.cell} ${s.cellTop}`} onClick={() => go("/rate/" + pack.id)}><span className={s.rowTitle}>Бағалау</span><span className={s.cellAction}>Бағала</span></button>}
+          {state === "used" && <button className={`${s.cell} ${s.cellTop}`} onClick={() => { haptic.medium(); setRating(rateActivityOf(pack.id)); }}><span className={s.rowTitle}>Бағалау</span><span className={s.cellAction}>Бағала</span></button>}
         </section>
 
-        {soon && (
+        {usable && (soon || pack.extendedTo) && (
           <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 3 }}>
-            <button className={`${s.cell} ${s.cell2}`} onClick={() => go("/extend/" + pack.id)}>
-              <span className={s.rowText}><span className={s.rowTitle}>Мерзімін ұзарту</span><span className={s.cellSub}>Бір рет тегін, кейін ақылы</span></span>
-              <img src={chev} width={18} height={18} alt="" />
+            <button className={`${s.cell} ${s.cell2} ${noExtend ? s.cellOff : ""}`} disabled={noExtend} onClick={() => { haptic.medium(); setExtending(true); }}>
+              <span className={s.rowText}><span className={s.rowTitle}>Мерзімін ұзарту</span><span className={s.cellSub}>{noExtend ? "Мекеме ұзартуға рұқсат бермейді" : pack.freeExtendUsed ? "Тегін мүмкіндік пайдаланылды, ақылы 14 не 30 күн" : "Бір рет тегін, кейін ақылы"}</span></span>
+              {!noExtend && <img src={chev} width={18} height={18} alt="" />}
             </button>
           </section>
         )}
@@ -103,6 +117,9 @@ export function PackPage() {
         </section>
       </div>
 
+      {extending && <ExtendSheet pack={pack} onClose={() => setExtending(false)} onDone={onExtended} />}
+      {rating && <RateSheet act={rating} onClose={() => setRating(null)} />}
+      {toast && <div className={s.toast} role="status"><span>📅</span>{toast}</div>}
       {!inTelegram && (
         <div className={s.bar}>
           {usable && <button className={`${s.btn} ${s.btn2}`} onClick={scan.onClick}><img src={qr} width={22} height={22} alt="" />Сканерлеу</button>}

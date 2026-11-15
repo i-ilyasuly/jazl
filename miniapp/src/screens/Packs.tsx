@@ -1,10 +1,11 @@
 // Figma: «Пакеттерім (жаңа навигация) / Light» (13905:8147); «09 · Пакеттерім»: «Алғашқы кіру (көрсеткіш)» 13886:28960,
 // «Бос күй» 13886:29133, «Тарих» 13886:29206. Жаңа бөліктердің өлшемі — UI kit шкаласы + 4/8px тор.
+// «12 · Бағалау»: «Пакеттерім жолағы» 13886:33115 (Белсенді табының басында), бағалау парағы — ui/RateSheet.
 import { useEffect, useState } from "react";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
 import { useGo } from "../nav";
-import { getPack, offerOf, useActivity, useOrders, usePacks, type Pack } from "../store";
+import { getPack, hideRate, offerOf, useActivity, useOrders, usePacks, useRateHidden, type Activity, type Pack } from "../store";
 import { haptic, kv } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Timeline } from "../ui/Timeline";
@@ -12,6 +13,8 @@ import searchIcon from "../assets/icons/search.svg";
 import burger from "../assets/icons/offerBurger.svg";
 import scissors from "../assets/icons/offerScissors.svg";
 import { UseSheet } from "../ui/UseSheet";
+import { RateSheet, Stars } from "../ui/RateSheet";
+import close from "../assets/icons/close.svg";
 import s from "./Packs.module.css";
 
 const icon = { food: burger, coffee: burger, hair: scissors };
@@ -33,7 +36,7 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
       <hr className={s.sep} />
       <Timeline total={pack.total} used={pack.total - pack.left} warn={soon} width={348} />
       <div className={s.bottom}>
-        <p className={s.left}><span className="t-sub1 w-600">{pack.left} / {pack.total}</span><span className={`t-sub2 ${s.sub}`}>қалды</span></p>
+        <p className={s.left}><span className="t-text w-600">{pack.left} / {pack.total}</span><span className={`t-sub2 ${s.sub}`}>қалды</span></p>
         <button className={`t-sub2 w-600 ${s.use}`} disabled={pack.left < 1} onClick={(e) => { e.stopPropagation(); haptic.medium(); onUse(pack); }}>Қолдану</button>
         {hint && (
           <div className={s.tip} role="note" onClick={(e) => e.stopPropagation()}>
@@ -45,8 +48,8 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
       {soon && (
         <div className={s.renew}>
           <span className={s.renewBar} />
-          <p className={`t-cap1 ${s.renewText}`}>Қайта алсаң, қалған бірлік <b>келесі айға көшеді</b></p>
-          <button className={`t-sub2 w-600 ${s.renewBtn}`} onClick={(e) => { e.stopPropagation(); go("/offer/" + o.id); }}>Қайта алу</button>
+          <p className={`t-sub2 ${s.renewText}`}>Қайта алсаң, қалған бірлік <b>келесі айға көшеді</b></p>
+          <button className={`t-sub2 w-600 ${s.renewBtn}`} onClick={(e) => { e.stopPropagation(); haptic.medium(); go("/rebuy/" + pack.id); }}>Қайта алу</button>
         </div>
       )}
       {soon && <span className={s.quoteMark} aria-hidden>”</span>}
@@ -67,6 +70,9 @@ export function Packs() {
   const active = packs.filter((p) => p.left > 0 && !p.expired);
   const allActs = useActivity();
   const acts = demoEmpty() ? [] : allActs;
+  const [rating, setRating] = useState<{ act: Activity; stars: number } | null>(null);
+  const hidden = useRateHidden();
+  const pending = acts.find((a) => a.action === "rate" && !hidden.includes(a.id));
   // Алғашқы кіру көрсеткіші: бір рет көрсетіледі («Түсінікті» басылғанша). Демо: ?hint=1
   const [hint, setHint] = useState(false);
   useEffect(() => {
@@ -109,16 +115,25 @@ export function Packs() {
                       <span className={s.actText}><b>{a.title}</b><small>{a.sub}</small></span>
                       {a.action === "rated"
                         ? <span className={s.actStars}>★ {a.stars}</span>
-                        : <button className={s.actBtn} onClick={(e) => { e.stopPropagation(); go(a.action === "rate" ? "/rate/" + a.id : "/offer/" + a.offerId); }}>{a.action === "rate" ? "Бағала" : "Қайта алу"}</button>}
+                        : <button className={s.actBtn} onClick={(e) => { e.stopPropagation(); if (a.action === "rate") { haptic.medium(); setRating({ act: a, stars: 0 }); } else go(getPack(a.packId) ? "/rebuy/" + a.packId : "/offer/" + a.offerId); }}>{a.action === "rate" ? "Бағала" : "Қайта алу"}</button>}
                     </div>
                   ))}
                 </section>
               ) : <p className={`t-sub2 rise ${s.empty}`}>Пайдаланған пакеттерің осында шығады</p>)
           : active.length
-            ? active.map((p, i) => <PackCard key={p.id} pack={p} i={i} onUse={setUsing} hint={hint && i === 0} onHint={closeHint} />)
+            ? [pending && (
+                <section key="rate" className={`${s.rate} rise`}>
+                  <div className={s.rateHead}>
+                    <span className={s.rateText}><b>{pending.title.split(" · ")[0]} қалай болды?</b><small>{pending.sub.replace(" · ", "  •  ")}</small></span>
+                    <button className={s.rateClose} aria-label="Жабу" onClick={() => { haptic.soft(); hideRate(pending.id); }}><img src={close} width={24} height={24} alt="" /></button>
+                  </div>
+                  <Stars value={0} onPick={(n) => { haptic.select(); setRating({ act: pending, stars: n }); }} />
+                </section>
+              ), ...active.map((p, i) => <PackCard key={p.id} pack={p} i={i} onUse={setUsing} hint={hint && i === 0} onHint={closeHint} />)]
             : <p className={`t-sub2 rise ${s.empty}`}>Белсенді пакет жоқ</p>}
       </main>}
       {using && <UseSheet pack={using} onClose={() => setUsing(null)} />}
+      {rating && <RateSheet act={rating.act} initial={rating.stars} onClose={() => setRating(null)} />}
     </div>
   );
 }
