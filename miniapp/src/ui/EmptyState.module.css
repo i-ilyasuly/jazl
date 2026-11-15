@@ -1,5 +1,5 @@
 .box { position: absolute; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
-.title { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; color: var(--text-strong); animation: up 0.4s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.title { align-self: stretch; padding: 0 16px; font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; color: var(--text-strong); animation: up 0.4s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .text { width: 300px; color: var(--text-secondary); white-space: pre-line; animation: up 0.4s 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes up { from { transform: translateY(10px); opacity: 0; } }
 .inline { gap: 16px; }

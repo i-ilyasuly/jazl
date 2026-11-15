@@ -168,6 +168,9 @@ export function askWriteAccess(): Promise<boolean> {
   });
 }
 
+/** Бот пайдаланушыға жаза ала ма (initDataUnsafe.user.allows_write_to_pm). Telegram-нан тыс — null (белгісіз). */
+export const botCanWrite = (): boolean | null => (inTelegram ? Boolean(wa?.initDataUnsafe?.user?.allows_write_to_pm) : null);
+
 /** Нативті биометрия (BiometricManager, 7.2+): Face ID / саусақ ізі.
  *  Қайтарады: "ok" — расталды, "denied" — пайдаланушы бас тартты, "none" — құрылғыда жоқ, "browser" — Telegram-нан тыс. */
 export function biometricAuth(reason: string): Promise<"ok" | "denied" | "none" | "browser"> {
