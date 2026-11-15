@@ -21,7 +21,8 @@ export function Scan() {
   const packs = usePacks();
   const go = useGo();
   const pack = getPack(params.get("pack") ?? undefined) ?? packs.find((p) => p.left > 0 && !p.expired);
-  const [found, setFound] = useState(false);
+  // «Код енгізу» (Figma 23) дұрыс код берсе, камерасыз бірден төлем парағы ашылады
+  const [found, setFound] = useState(() => params.get("via") === "code");
   const [busy, setBusy] = useState(false);
   const [torch, setTorch] = useState(false);
   const lock = useSettings().lock;
@@ -63,6 +64,7 @@ export function Scan() {
 
   useEffect(() => {
     if (found) return;
+    if (!pack && params.get("via") === "code") { toState("nopack"); return; }
     // Компьютердегі Telegram-да нативті сканер жоқ: «Сканерді телефонда аш»
     if (inTelegram && !(tg?.isVersionAtLeast?.("6.4") && tg.showScanQrPopup)) { toState("desktop"); return; }
     if (inTelegram && tg?.isVersionAtLeast?.("6.4") && tg.showScanQrPopup) {
@@ -95,7 +97,11 @@ export function Scan() {
       }, 1600);
     },
   }), [pack, busy, go, chosen, lock, demoKind, toState]);
-  useBottomButtons(pay, undefined, found && Boolean(pack));
+  // Figma 23 «Төлем парағы: кассада қосымша»: таңдалған ас пакет бағасынан қымбат — айырмасы кассада төленеді. Демо: ?scan=extra
+  const extra = demo === "extra" ? 500 : 0;
+  const cancel = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: () => { haptic.soft(); close(); } }), [close]);
+  const payMain = useMemo(() => (extra ? { ...pay, text: "Растау" } : pay), [extra, pay]);
+  useBottomButtons(payMain, extra ? cancel : undefined, found && Boolean(pack));
 
   const o = pack ? offerOf(pack) : null;
   const native = inTelegram && Boolean(tg?.showScanQrPopup);
@@ -109,6 +115,7 @@ export function Scan() {
       <button className={s.frame} onClick={detect} aria-label="QR рамкасы"><img src={frame} width={260} height={260} alt="" /></button>
       {!found && <span className={s.line} />}
       <p className={`t-cap1 ${s.tip}`}>Төлеу үшін кассирге «Jazl бойынша» деп айт</p>
+      <button className={`t-sub2 w-600 ${s.codeBtn}`} onClick={() => { haptic.tap(); go("/scan/code"); }}>Код енгізу</button>
       <button className={`${s.round} ${s.flash} ${torch ? s.on : ""}`} onClick={() => { haptic.tap(); setTorch(!torch); }} aria-label="Фонарь"><img src={flash} width={24} height={24} alt="" /></button>
       <button className={`${s.round} ${s.gallery}`} onClick={() => haptic.tap()} aria-label="Галерея"><img src={gallery} width={28} height={28} alt="" /></button>
 
@@ -124,7 +131,14 @@ export function Scan() {
                 <p>Банк растауын күтеміз. Қолданбаны жаппа және қайта төлеме.</p>
                 <b>{fmt(amount)} • {o.venue}</b>
               </div>
-            ) : <>
+            ) : extra ? <>
+            <h2 className={s.sheetTitle}>Төлемді растаңыз</h2>
+            <div className={s.kvList}>
+              {([["Мекеме", o.venue], ["Пакеттен", `1 дана · ${unitLabel(pack)}`], ["Таңдалған ас", "Донер + Айран"], ["Қосымша", fmt(extra)]] as const).map(([k, v]) => <p key={k}><span className={s.muted}>{k}</span><b>{v}</b></p>)}
+            </div>
+            <p className={`t-sub2 w-600 ${s.extraChip}`}>Қосымша {fmt(extra)} кассада төленеді</p>
+            <p className={s.quote}>Пакет баламасынан бір дана ғана шегеріледі. Қосымша сома пакеттен тыс, мекеменің кассасында төленеді.<i>”</i></p>
+            </> : <>
             <h2 className={s.sheetTitle}>Төлем</h2>
             <div className={s.venue}>
               <span className={s.avatar} />
@@ -150,7 +164,10 @@ export function Scan() {
                 </div>}
             </>}
             {!inTelegram && (
-              <div className={s.bar}><button className={`${s.btn} ${busy ? s.btnWait : ""}`} disabled={busy} onClick={pay.onClick}>{busy ? "Өңделуде…" : pay.text}</button></div>
+              <div className={`${s.bar} ${extra ? s.bar2 : ""}`}>
+                {extra > 0 && !busy && <button className={`${s.btn} ${s.btn2}`} onClick={cancel.onClick}>Бас тарту</button>}
+                <button className={`${s.btn} ${busy ? s.btnWait : ""}`} disabled={busy} onClick={pay.onClick}>{busy ? "Өңделуде…" : payMain.text}</button>
+              </div>
             )}
           </div>
         </>

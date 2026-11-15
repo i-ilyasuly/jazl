@@ -6,7 +6,7 @@ import chev from "../assets/icons/chevRight.svg";
 import s from "./LinkSheet.module.css";
 
 /** emoji — түссіз тақташадағы белгі; glyph + tint — түрлі түсті тақташадағы ақ белгіше (2ГИС: жасыл тақташа, ақ нүкте). */
-export interface LinkRow { emoji?: string; glyph?: "pin"; tint?: string; title: string; sub: string; onClick: () => void }
+export interface LinkRow { emoji?: string; glyph?: "pin"; tint?: string; title: string; sub: string; onClick: () => void; badge?: { text: string; ok: boolean } }
 
 const Pin = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -15,7 +15,7 @@ const Pin = () => (
   </svg>
 );
 
-export function LinkSheet({ title, rows, onClose }: { title: string; rows: LinkRow[]; onClose: () => void }) {
+export function LinkSheet({ title, rows, onClose, note, extra, cancel = "Бас тарту" }: { title: string; rows: LinkRow[]; onClose: () => void; note?: string; extra?: { text: string; onClick: () => void }; cancel?: string }) {
   const [closing, setClosing] = useState(false);
   const close = useMemo(() => (after?: () => void) => { setClosing(true); setTimeout(() => { onClose(); after?.(); }, 200); }, [onClose]);
   useBackButton(() => close());
@@ -26,14 +26,16 @@ export function LinkSheet({ title, rows, onClose }: { title: string; rows: LinkR
       <div className={s.sheet}>
         <span className={s.grabber} />
         <h2 className={s.title}>{title}</h2>
+        {note && <p className={`t-sub2 ${s.note}`}>{note}</p>}
         {rows.map((r, i) => (
           <button key={r.title} className={s.row} style={{ ["--i" as string]: i }} onClick={() => { haptic.tap(); close(r.onClick); }}>
             <span className={`${s.tile} ${r.glyph ? "keepIcon" : ""}`} style={r.tint ? { background: r.tint } : undefined}>{r.glyph === "pin" ? <Pin /> : r.emoji}</span>
             <span className={s.text}><b>{r.title}</b><small>{r.sub}</small></span>
-            <img src={chev} width={20} height={20} alt="" />
+            {r.badge ? <span className={`t-cap1 ${s.badge} ${r.badge.ok ? s.ok : ""}`}>{r.badge.text}</span> : <img src={chev} width={20} height={20} alt="" />}
           </button>
         ))}
-        <button className={s.cancel} onClick={() => close()}>Бас тарту</button>
+        {extra && <button className={`${s.cancel} ${s.extra}`} onClick={() => { haptic.tap(); close(extra.onClick); }}>{extra.text}</button>}
+        <button className={s.cancel} onClick={() => close()}>{cancel}</button>
       </div>
     </div>
   );

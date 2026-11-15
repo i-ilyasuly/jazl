@@ -10,7 +10,7 @@ import { galleryOf } from "../mocks/photos";
 import { venues } from "../mocks/venues";
 import { HowSheet } from "../ui/HowSheet";
 import { LinkSheet, type LinkRow } from "../ui/LinkSheet";
-import { askWriteAccess, haptic, inTelegram, nativePick, openChat, openExternal, useBackButton, useBottomButtons } from "../telegram";
+import { askWriteAccess, haptic, inTelegram, nativeAlert, nativePick, openChat, openExternal, useBackButton, useBottomButtons } from "../telegram";
 import { ActionSheet } from "../ui/ActionSheet";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import heroBurger from "../assets/icons/heroBurger.svg";
@@ -146,8 +146,9 @@ function OfferView({ id }: { id?: string }) {
 
         <dl className={s.params}>
           <div><dt>Бірлік</dt><dd>{offer.units} {offer.unitWord}, әрқайсысы бөлек</dd></div>
-          <div><dt>Мерзімі</dt><dd>30 күн, сатып алған сәттен</dd></div>
-          <div><dt>Алу</dt><dd>{d.take}</dd></div>
+          <div><dt>Мерзімі</dt><dd>{d.days ?? 30} күн, сатып алған сәттен</dd></div>
+          {d.duration && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
+          {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
           <div><dt>Қолдану</dt><dd>{d.use}</dd></div>
         </dl>
 
@@ -171,7 +172,8 @@ function OfferView({ id }: { id?: string }) {
 
         <section className={s.card}>
           <button className={s.rule} onClick={() => { haptic.tap(); setSheet("how"); }}><span>Қалай қолданамын?</span><i className={s.chev} /></button>
-          <button className={s.rule} onClick={() => haptic.tap()}><span>Мерзімі және көшіру</span><span className={s.ruleHint}>қайта төлесе</span><i className={s.chev} /></button>
+          {offer.kind === "hair" && <button className={s.rule} onClick={() => { haptic.tap(); nativeAlert("Жазылуға 2 сағат қалғанға дейін уақытты тегін ауыстырып не бас тарта аласың. Кейін бас тартсаң не келмесең, пакеттен бір рет жұмсалады."); }}><span>Жазылу және бас тарту</span><i className={s.chev} /></button>}
+          <button className={s.rule} onClick={() => { haptic.tap(); go("/rules/carry"); }}><span>Мерзімі және көшіру</span><span className={s.ruleHint}>қайта төлесе</span><i className={s.chev} /></button>
           <button className={s.rule} onClick={() => haptic.tap()}><span>Қайтару және мәселелер</span><i className={s.chev} /></button>
         </section>
 

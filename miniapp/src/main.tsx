@@ -33,6 +33,7 @@ import { Payment } from "./screens/Payment";
 import { Gifts } from "./screens/Gifts";
 import { Pin } from "./screens/Pin";
 import { AppError } from "./screens/AppError";
+import { CodeEntry, Complaint, ComplaintDone } from "./screens/Extra";
 import { BookConfirm, BookDone, BookingView, BookMissed, BookMove, BookTime } from "./screens/Booking";
 import { OfflineBar } from "./ui/OfflineBar";
 import { About, DeleteData, Faq } from "./screens/Help";
@@ -120,6 +121,9 @@ const router = createHashRouter([
       { path: "/receipt/use/:id", element: <UseReceipt /> },
       { path: "/receipt/order/:id", element: <OrderReceipt /> },
       { path: "/book/:packId", element: <BookTime /> },
+      { path: "/complaint/done", element: <ComplaintDone /> },
+      { path: "/complaint/:packId", element: <Complaint /> },
+      { path: "/scan/code", element: <CodeEntry /> },
       { path: "/book/:packId/confirm", element: <BookConfirm /> },
       { path: "/book/done/:id", element: <BookDone /> },
       { path: "/booking/missed/:packId", element: <BookMissed /> },

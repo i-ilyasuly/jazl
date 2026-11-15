@@ -8,7 +8,7 @@ import { offersOfVenue } from "../mocks/offers";
 import { findVenue, kindEmoji, kindLabel, venues } from "../mocks/venues";
 import { coverPhoto } from "../mocks/photos";
 import { useGo } from "../nav";
-import { appLink, toggleVenueSub, useVenueSubs } from "../store";
+import { appLink, branches, toggleVenueSub, useVenueSubs } from "../store";
 import { askWriteAccess, haptic, inTelegram, openExternal, tg, useBackButton } from "../telegram";
 import { Confirm } from "../ui/Confirm";
 import { LinkSheet } from "../ui/LinkSheet";
@@ -47,7 +47,7 @@ function VenueView({ id }: { id?: string }) {
   const [tab, setTab] = useState(0);
   const [coverBroken, setCoverBroken] = useState(false);
   const [prev, setPrev] = useState(0);
-  const [sheet, setSheet] = useState<"route" | "call" | "perm" | null>(null);
+  const [sheet, setSheet] = useState<"route" | "call" | "perm" | "branches" | null>(null);
   const [snack, setSnack] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
   const [line, setLine] = useState({ left: 16, width: 95 });
@@ -117,6 +117,7 @@ function VenueView({ id }: { id?: string }) {
           <section className={s.card}>
             <h2 className={`t-headline ${s.cardTitle}`}>Мекенжайы</h2>
             <p className={s.addr}>Қарағанды, {v.address}</p>
+            {branches(v.name, v.address).length > 1 && <button className={`t-sub2 w-600 ${s.branchesBtn}`} onClick={() => { haptic.tap(); setSheet("branches"); }}>Барлық филиалдар · {branches(v.name, v.address).length}</button>}
             <button className={s.miniMap} onClick={() => go("/map")} aria-label="Картада"><span className={s.miniPin}>{kindEmoji[v.kind]}</span></button>
             <button className={`t-sub2 w-600 ${s.routeBtn}`} onClick={() => { haptic.tap(); setSheet("route"); }}>🧭 Бағыт</button>
           </section>
@@ -140,6 +141,11 @@ function VenueView({ id }: { id?: string }) {
       </main>
       {snack && <div className={s.snack} role="status"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round" /><path d="M10 20.5a2 2 0 0 0 4 0" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg><span>Жаңа ұсыныс шықса, хабарлаймыз</span></div>}
       {sheet === "route" && <LinkSheet title="Бағыт" rows={[{ glyph: "pin", tint: "#31d158", title: "2ГИС", sub: `${v.name} мекенжайын 2ГИС-те ашу`, onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(v.name)) }]} onClose={() => setSheet(null)} />}
+      {sheet === "branches" && <LinkSheet title="Филиалдар" note="Пакет барлық филиалда жарамды. Қалағанында ал." cancel="Жабу"
+        extra={{ text: "Картада көру", onClick: () => go("/map") }}
+        rows={branches(v.name, v.address).map((b) => ({ glyph: "pin" as const, tint: b.open ? "#31d158" : "#8e98a4", title: b.address, sub: `${b.km.toFixed(1).replace(".", ",")} км • ${b.open ? b.hours : "уақытша жабық"}`, badge: { text: b.open ? "Ашық" : "Жабық", ok: b.open },
+          onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(v.name + " " + b.address)) }))}
+        onClose={() => setSheet(null)} />}
       {sheet === "call" && <Confirm title="Қоңырау шалу" text={`${v.name} мекемесіне қоңырау шалынсын ба?`} cancel="Бас тарту" ok="Қоңырау шалу" onClose={() => setSheet(null)} onOk={() => { window.location.href = "tel:+77000000000"; }} />}
       {sheet === "perm" && <Confirm title="Хабарламаға рұқсат" text="Jazl+ ботына сізге хабарлама жіберуге рұқсат бересіз бе?" cancel="Бас тарту" ok="Рұқсат ету" onClose={() => setSheet(null)} onOk={subDone} />}
     </div>
