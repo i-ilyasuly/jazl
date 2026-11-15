@@ -5,7 +5,7 @@ import { askWriteAccess, haptic, inTelegram, useBackButton, useBottomButtons } f
 import { Confirm } from "./Confirm";
 import s from "./SoonSheet.module.css";
 
-export function SoonSheet({ pct, venues, onClose }: { pct: number; venues: number; onClose: () => void }) {
+export function SoonSheet({ pct, onClose }: { pct: number; venues?: number; onClose: () => void }) {
   const on = useSoon().includes(pct);
   const [closing, setClosing] = useState(false);
   const [ask, setAsk] = useState(false);
@@ -25,20 +25,15 @@ export function SoonSheet({ pct, venues, onClose }: { pct: number; venues: numbe
         <span className={s.grabber} />
         <div className={s.card}>
           <span className={s.fill} style={{ width: `${pct}%` }} />
-          <p className={`t-headline ${s.cardTitle}`}>Жаңа санат</p>
+          <p className={s.cardTitle}>Жаңа санат</p>
           <p className={s.pct}>{pct}%</p>
-          <span className={`t-cap1 ${s.tag}`}>жуырда</span>
+          <span className={s.tag}>жуырда</span>
+          <span className={s.bar2}><i style={{ width: `${pct}%` }} /></span>
         </div>
-        <p className={`t-sub2 ${s.text}`}>
-          <span>Бұл</span><span>санат</span><span>дайындалып</span><span>жатыр:</span><span>мекемелермен</span><span>келісім</span><span>жүріп</span><span>жатыр.</span><span>Ашылғанда</span><span className={s.nogap}><b>хабарлаймыз</b>.</span>
-        </p>
-        <div className={s.rows}>
-          <p className="t-sub2"><span>Дайындық</span><b>{pct}%</b></p>
-          <p className="t-sub2"><span>Келісілген мекеме</span><b>{venues}</b></p>
-        </div>
+        <p className={s.text}>Бұл санатты дайындап жатырмыз. Ашылғанда бірінші болып <b>хабарлаймыз</b>.</p>
         {!inTelegram && <div className={s.bar}><button key={String(on)} className={`${s.btn} ${on ? s.btnDone : ""}`} onClick={on ? undefined : subscribe.onClick}>{on ? "Хабарланады" : "Ашылғанда хабарла"}</button></div>}
       </div>
-      {snack && <div className={`t-sub2 ${s.snack}`}>Санат ашылғанда хабарлаймыз</div>}
+      {snack && <div className={s.snack}>Санат ашылғанда хабарлаймыз</div>}
       {ask && <Confirm title="Хабарламаға рұқсат" text="Jazl+ ботына сізге хабарлама жіберуге рұқсат бересіз бе?" cancel="Бас тарту" ok="Рұқсат ету" onClose={() => setAsk(false)} onOk={done} />}
     </div>
   );

@@ -70,7 +70,7 @@ function CategoryPage({ kind }: { kind: OfferKind }) {
         <div className={`${s.subs} rise`} style={{ ["--i" as string]: 2 }}>
           {c.subs.map(([e, t, key]) => (
             <button key={t} className={`${s.sub} ${sub === key ? s.subOn : ""}`} onClick={() => { haptic.select(); setSub(sub === key ? "" : key); }}>
-              <span className={s.subTile}>{e}</span><span className="t-cap1 w-600">{t}</span>
+              <span className={s.subTile}><i>{e}</i></span><span className="t-sub2 w-600">{t}</span>
             </button>
           ))}
         </div>

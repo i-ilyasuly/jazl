@@ -26,11 +26,11 @@ export function Favorites() {
   const total = live.length + ended.length;
   return (
     <div className={s.page}>
+      <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу">
+          <img src={searchIcon} alt="" /><span>Іздеу...</span>
+        </button>
       <header className={s.top}>
         <TelegramChrome mode="back" onBack={back} />
-        <button className={s.searchHit} onClick={() => go("/search")} aria-label="Іздеу">
-          <span className={s.search}><img src={searchIcon} className={s.searchIcon} alt="" /><span className={`t-sub2 ${s.searchText}`}>Іздеу...</span></span>
-        </button>
         <h1 className={s.title}>Таңдаулы{total ? ` · ${total}` : ""}</h1>
         <div className={s.seg}>
           <span className={s.thumb} style={{ translate: `${sort * 125.33}px 0` }} />

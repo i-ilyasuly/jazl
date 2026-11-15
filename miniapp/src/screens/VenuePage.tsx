@@ -95,23 +95,23 @@ function VenueView({ id }: { id?: string }) {
         {tab === 1 && <>
           <section className={s.card}>
             <div className={s.quote}><span className={s.qBar} />
-              {v.id === "damdi" ? <p className={`t-sub2 ${s.rich}`}><b className={s.green}>Жаңа піскен лаваш</b><span>мен</span><span>үй</span><span>соусы.</span><span>Донерді</span><b className={s.blue}>5 жылдан бері</b><span>дайындаймыз,</span><span>ет</span><span>күн</span><span>сайын</span><span>жаңа</span><span>келеді.</span></p>
-                : <p className="t-sub2">{v.name} — Jazl+ серіктесі. Пакет сатып алып, мекемеде сканерлеп қолдан.</p>}
+              {v.id === "damdi" ? <p className={`t-text ${s.rich}`}><b className={s.green}>Жаңа піскен лаваш</b><span>мен</span><span>үй</span><span>соусы.</span><span>Донерді</span><b className={s.blue}>5 жылдан бері</b><span>дайындаймыз,</span><span>ет</span><span>күн</span><span>сайын</span><span>жаңа</span><span>келеді.</span></p>
+                : <p className="t-text">{v.name} — Jazl+ серіктесі. Пакет сатып алып, мекемеде сканерлеп қолдан.</p>}
             </div>
           </section>
           <section className={s.card}>
-            <h2 className={`t-sub2 w-600 ${s.cardTitle}`}>Жұмыс кестесі</h2>
-            {days.map((d, i) => <p key={d} className={`t-sub2 ${s.kv}`}><span className={i === today ? "w-600" : ""}>{d}</span><b>{hoursOf(i)}</b></p>)}
+            <h2 className={`t-headline ${s.cardTitle}`}>Жұмыс кестесі</h2>
+            {days.map((d, i) => <p key={d} className={`t-text ${s.kv}`}><span className={i === today ? "w-600" : ""}>{d}</span><b>{hoursOf(i)}</b></p>)}
           </section>
           <section className={s.card}>
-            <h2 className={`t-sub2 w-600 ${s.cardTitle}`}>Мекенжайы</h2>
+            <h2 className={`t-headline ${s.cardTitle}`}>Мекенжайы</h2>
             <p className={s.addr}>Қарағанды, {v.address}</p>
             <button className={s.miniMap} onClick={() => go("/map")} aria-label="Картада"><span className={s.miniPin}>{kindEmoji[v.kind]}</span></button>
             <button className={`t-sub2 w-600 ${s.routeBtn}`} onClick={() => { haptic.tap(); setSheet("route"); }}>🧭 Бағыт</button>
           </section>
         </>}
         {tab === 2 && <section className={s.card}>
-          <h2 className={`t-sub2 w-600 ${s.cardTitle}`}>Суреттер</h2>
+          <h2 className={`t-headline ${s.cardTitle}`}>Суреттер</h2>
           <div className={s.grid}>{[0, 1, 2, 3].map((i) => <span key={i} className={s.shot} style={{ ["--i" as string]: i }}><img src={offers[i % Math.max(1, offers.length)]?.photo ?? coverPhoto[v.kind]} className={s.shotImg} alt="" loading="lazy" /></span>)}</div>
         </section>}
         {tab === 3 && (v.reviews < 3 ? (
@@ -122,7 +122,7 @@ function VenueView({ id }: { id?: string }) {
             <div className={s.bars}>{bars.map((w, i) => <p key={i} className="t-cap1"><span>{5 - i}</span><i><u style={{ width: `${w}%`, ["--i" as string]: i }} /></i></p>)}</div>
           </section>
           <section className={`${s.card} ${s.reviews}`}>
-            {reviews.map(([n, d, t]) => <div key={n}><p className={s.rHead}><b className="t-sub2 w-600">{n}</b><span className={`t-cap1 w-600 ${s.star}`}>★ 5</span><small className="t-cap1">{d}</small></p><p className="t-sub2">{t}</p></div>)}
+            {reviews.map(([n, d, t]) => <div key={n}><p className={s.rHead}><b className="t-sub2 w-600">{n}</b><span className={`t-cap1 w-600 ${s.star}`}>★ 5</span><small className="t-cap1">{d}</small></p><p className="t-text">{t}</p></div>)}
           </section>
         </>)}
         <button className={`t-sub2 w-600 ${s.report}`} onClick={() => go("/profile/report")}>Мәселе туралы жазу</button>

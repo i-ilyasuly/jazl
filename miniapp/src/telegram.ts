@@ -52,14 +52,14 @@ export function useBackButton(onBack: () => void, enabled = true) {
   }, [onBack, enabled]);
 }
 
-export interface BottomAction { text: string; onClick: () => void; position?: "left" | "bottom" }
+export interface BottomAction { text: string; onClick: () => void; position?: "left" | "bottom"; shine?: boolean }
 
 /** Нативті төменгі батырмалар: Main оң жақта, Secondary сол жақта (Figma: биіктігі 50, радиусы 8). */
 export function useBottomButtons(main: BottomAction, secondary?: BottomAction, enabled = true) {
   useEffect(() => {
     if (!enabled || !inTelegram || !wa?.MainButton) return;
     const dark = wa.colorScheme === "dark";
-    wa.MainButton.setParams({ text: main.text, color: "#229af0", text_color: "#ffffff", is_visible: true, is_active: true });
+    wa.MainButton.setParams({ text: main.text, color: "#229af0", text_color: "#ffffff", is_visible: true, is_active: true, ...(at("7.10") ? { has_shine_effect: Boolean(main.shine) } : {}) });
     wa.MainButton.onClick(main.onClick);
     if (secondary && at("7.10") && wa.SecondaryButton) {
       wa.SecondaryButton.setParams({ text: secondary.text, position: secondary.position ?? "left", color: dark ? "#1e3a52" : "#dbeefd", text_color: dark ? "#cbe6fc" : "#1f73c2", is_visible: true, is_active: true });

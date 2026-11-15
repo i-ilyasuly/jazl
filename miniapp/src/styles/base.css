@@ -19,10 +19,11 @@ img { display: block; }
 
 /* Мәтін стильдері: UI Kit, Android Roboto */
 .t-large-title { font-size: 34px; line-height: 42px; letter-spacing: 0.25px; font-weight: 700; }
-.t-title1 { font-size: 28px; line-height: 36px; letter-spacing: 0.1px; font-weight: 400; }
+.t-title1 { font-size: 28px; line-height: 34px; letter-spacing: 0.1px; font-weight: 700; }
 .t-title3 { font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; }
-.t-headline { font-size: 19px; line-height: 28px; letter-spacing: 0.15px; font-weight: 600; }
-.t-text { font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 500; }
+.t-headline { font-size: 19px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; }
+.t-text { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 400; }
+.t-title2 { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 700; }
 .t-sub1 { font-size: 16px; line-height: 24px; letter-spacing: 0.15px; font-weight: 400; }
 .t-sub2 { font-size: 15px; line-height: 22px; letter-spacing: 0.15px; font-weight: 400; }
 .t-cap1 { font-size: 13px; line-height: 20px; letter-spacing: 0.1px; font-weight: 400; }
@@ -31,7 +32,9 @@ img { display: block; }
 
 /* Жоғарғы аймақ. Figma-да Telegram батырмалары top 52-де, мазмұн 96-дан басталады.
    Telegram ішінде нақты қауіпсіз аймақ мәндері қолданылады (Bot API 8.0). */
-:root { --top-shift: 0px; --safe-b: 0px; }
+:root { --top-shift: 0px; --safe-b: 0px; --bar-c: 68px; --bar-l: 100px; --bar-r: 96px; }
+/* Telegram жүйелік батырмалар жолының ортасы (--bar-c) және олардың арасындағы бос орын (--bar-l/--bar-r). */
+:root[data-env="telegram"] { --bar-c: calc((var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) / 2) * var(--k, 1)); --bar-l: calc(92px * var(--k, 1) + 8px); --bar-r: calc(88px * var(--k, 1) + 8px); }
 /* --k: бет масштабының еселігі (412 / телефон ені). Telegram шегіністерді телефон өлшемімен береді,
    ал макет 412-ге созылған, сондықтан оларды --k-ға көбейтеміз. 93 = макеттегі жоғарғы аймақ (96) − 3. */
 :root[data-env="telegram"] { --top-shift: calc((var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)) * var(--k, 1) - 93px); --safe-b: calc(var(--tg-safe-area-inset-bottom, 0px) * var(--k, 1)); }
@@ -42,3 +45,16 @@ img { display: block; }
 /* Қара не сұр сызылған белгішелер түнде ақ болады (түсі SVG ішінде жазылған) */
 :root[data-theme="dark"] .app img[src*="111A26" i], :root[data-theme="dark"] .app img[src*="5F6B7A" i], :root[data-theme="dark"] .app img[src*="17212B" i],
 :root[data-theme="dark"] .app img[src*="9AA5B1" i], :root[data-theme="dark"] .app img[src*="B8BEC4" i], :root[data-theme="dark"] .app img[src*="626A72" i] { filter: brightness(0) invert(1); }
+
+/* Басты бет пен іздеу бетіндегі ортақ іздеу жолағы: Telegram батырмаларының дәл ортасында, 48px биік */
+.topSearch { position: absolute; z-index: 21; left: var(--bar-l); right: var(--bar-r); top: calc(var(--bar-c) - 24px); height: 48px; border-radius: 24px; background: var(--search-bg); border: 1px solid var(--search-border); display: flex; align-items: center; gap: 8px; padding: 0 14px; text-align: left; transition: box-shadow 0.2s ease, transform 0.12s ease; }
+.topSearch:focus-within { box-shadow: 0 0 0 2px rgba(34, 154, 240, 0.3); }
+.topSearch > img { width: 20px; height: 20px; flex: none; }
+.topSearch > span, .topSearch > input { flex: 1; min-width: 0; font-size: 17px; line-height: 22px; color: var(--text-secondary); border: 0; outline: 0; background: none; padding: 0; font-family: inherit; caret-color: #229af0; white-space: nowrap; }
+.topSearch > input { color: var(--text-strong); }
+.topSearch > input::placeholder { color: var(--text-secondary); }
+button.topSearch:active { transform: scale(0.98); }
+/* Беттің атауы: «Артқа» мен ⌄⋯ батырмаларының арасында, сол жолдың ортасында */
+.pageTitle { position: absolute; z-index: 19; left: var(--bar-l); right: var(--bar-r); top: calc(var(--bar-c) - 12px); height: 24px; text-align: center; font-size: 19px; line-height: 24px; font-weight: 600; letter-spacing: 0.1px; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+/* Фото үстіндегі әйнек батырмалар: иконкасы әр режимде қара болып қалады */
+:root[data-theme="dark"] .app .keepIcon img { filter: none !important; }

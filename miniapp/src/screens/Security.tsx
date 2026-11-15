@@ -33,7 +33,7 @@ export function Security() {
     if (id) { haptic.select(); setSettings({ autolock: id }); }
   }
   return (
-    <SubPage title="Қауіпсіздік" variant="settings" top={160}>
+    <SubPage title="Қауіпсіздік" variant="settings">
       <Group i={0}>
         <Row inset={16} title="Экран құлпы" sub="PIN-код немесе биометрия" right={<Switch on={st.lock} onChange={toggleLock} />} />
         <Row inset={16} dim={off} title="PIN-ді өзгерту" onClick={() => go("/profile/pin/change", "up")} />

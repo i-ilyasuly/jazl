@@ -1,6 +1,6 @@
 .root { position: fixed; inset: 0; z-index: 50; }
 .scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
-.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: calc(380px + var(--safe-b, 0px)); padding: 36px 16px 0; background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 14px; animation: slideUp 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 36px 16px calc(90px + var(--safe-b, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 18px; animation: slideUp 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
 .closing .scrim { animation: fadeOut 0.22s ease both; }
 .closing .sheet { animation: slideDown 0.22s ease-in both; }
 @keyframes fadeIn { from { opacity: 0; } }
@@ -8,13 +8,16 @@
 @keyframes slideUp { from { transform: translateY(100%); } }
 @keyframes slideDown { to { transform: translateY(100%); } }
 .grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
-.card { position: relative; flex: none; width: 380px; height: 96px; border-radius: 20px; background: #eef1f5; overflow: hidden; color: var(--text-strong); }
-.fill { position: absolute; left: 0; top: 0; height: 96px; background: rgba(34, 154, 240, 0.2); transform-origin: left; animation: grow 0.8s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.card { position: relative; flex: none; width: 380px; height: 112px; border-radius: 20px; background: #eef1f5; overflow: hidden; color: var(--text-strong); }
+.fill { position: absolute; left: 0; top: 0; height: 112px; opacity: 0.6; background: rgba(34, 154, 240, 0.2); transform-origin: left; animation: grow 0.8s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes grow { from { transform: scaleX(0); } }
-.cardTitle { position: absolute; left: 16px; top: 12px; }
-.pct { position: absolute; left: 16px; top: 40px; font-size: 34px; line-height: 42px; letter-spacing: 0.25px; }
-.tag { position: absolute; right: 16px; top: 16px; color: var(--text-secondary); }
-.text { display: flex; flex-wrap: wrap; gap: 2px 4px; width: 380px; color: var(--text-strong); }
+.cardTitle { position: absolute; left: 16px; top: 14px; font-size: 17px; line-height: 22px; font-weight: 600; }
+.pct { position: absolute; left: 16px; top: 40px; font-size: 34px; line-height: 41px; font-weight: 700; }
+.bar2 { position: absolute; left: 16px; right: 16px; bottom: 14px; height: 6px; border-radius: 3px; background: rgba(34, 154, 240, 0.18); overflow: hidden; }
+.bar2 i { display: block; height: 100%; border-radius: 3px; background: #229af0; transform-origin: left; animation: grow 0.8s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.tag { position: absolute; right: 16px; top: 14px; height: 26px; padding: 3px 10px; border-radius: 13px; background: #ffd633; color: #000; font-size: 13px; line-height: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+:global(:root[data-theme="dark"]) .tag { background: #b8860b; }
+.text { width: 380px; color: var(--text-strong); font-size: 17px; line-height: 24px; padding: 0 4px; }
 .text b { padding: 0 5px; border-radius: 6px; background: #dcebfb; color: #1f5fa8; font-weight: 600; }
 .nogap { display: flex; }
 .rows { display: flex; flex-direction: column; gap: 10px; }
@@ -25,9 +28,10 @@
 .btn:active { transform: scale(0.98); }
 .btnDone { background: rgba(95, 107, 122, 0.16); color: #5f6b7a; }
 @keyframes swap { from { opacity: 0.4; } }
-.snack { position: absolute; z-index: 2; left: 50%; margin-left: -190px; bottom: calc(87px + var(--safe-b, 0px)); width: 380px; height: 50px; padding: 14px 16px; border-radius: 8px; background: #2b3645; color: #fff; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.snack { position: absolute; z-index: 2; left: 50%; margin-left: -190px; bottom: calc(87px + var(--safe-b, 0px)); width: 380px; height: 50px; padding: 14px 16px; font-size: 15px; line-height: 22px; border-radius: 8px; background: #2b3645; color: #fff; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes snack { 0% { transform: translateY(20px); opacity: 0; } 8%, 88% { transform: none; opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
 :global(:root[data-theme="dark"]) .card { background: var(--surface-soon); }
 :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .text b { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-env="telegram"]) .sheet { padding-bottom: calc(28px + var(--safe-b, 0px)); }

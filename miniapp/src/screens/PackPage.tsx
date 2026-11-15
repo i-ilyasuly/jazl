@@ -27,7 +27,7 @@ export function PackPage() {
   return (
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
-      <h1 className={s.title}>Пакет</h1>
+      <h1 className="pageTitle">Пакет</h1>
       <div className={s.col}>
         <section className={`${s.card} ${s.main} rise`}>
           <div className={s.head}>
@@ -49,7 +49,7 @@ export function PackPage() {
           {pack.history.map((x, i) => (
             <div key={i} className={s.row}>
               <span className={s.emoji}>{x.emoji}</span>
-              <span className={s.rowText}><span className={s.rowTitle}>{x.title}</span><span className={`t-cap1 ${s.muted}`}>{x.sub}</span></span>
+              <span className={s.rowText}><span className={s.rowTitle}>{x.title}</span><span className={`t-sub2 ${s.muted}`}>{x.sub}</span></span>
               <span className={`t-sub1 w-600 ${s.muted}`}>{x.right}</span>
               {i < pack.history.length - 1 && <span className={s.line68} />}
             </div>
@@ -58,8 +58,8 @@ export function PackPage() {
 
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 2 }}>
           <h2 className={`t-sub2 w-600 ${s.groupTitle}`}>Ақпарат</h2>
-          <div className={`t-sub2 ${s.kv}`}><span className={s.muted}>Бағасы</span><span className="w-600">{fmt(o.price)}</span><span className={s.line16} /></div>
-          <div className={`t-sub2 ${s.kv}`}><span className={s.muted}>Төлем тәсілі</span><span className="w-600">Kaspi Pay</span><span className={s.line16} /></div>
+          <div className={`t-text ${s.kv}`}><span className={s.muted}>Бағасы</span><span className="w-600">{fmt(o.price)}</span><span className={s.line16} /></div>
+          <div className={`t-text ${s.kv}`}><span className={s.muted}>Төлем тәсілі</span><span className="w-600">Kaspi Pay</span><span className={s.line16} /></div>
           <button className={s.cell} onClick={() => haptic.tap()}><span className={s.rowTitle}>Чек</span><img src={chev} width={18} height={18} alt="" /></button>
         </section>
 

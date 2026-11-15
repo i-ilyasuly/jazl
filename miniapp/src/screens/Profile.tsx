@@ -80,7 +80,7 @@ export function Profile() {
             ) : (
               <button key={r.title} className={`${s.row} ${r.sub ? "" : s.short}`} onClick={() => open(r)}>
                 <img src={r.icon} width={32} height={32} alt="" />
-                <span className={s.text}><span className={s.title}>{r.title}</span>{r.sub && <span className={`t-cap1 ${s.sub}`}>{subOf(r)}</span>}</span>
+                <span className={s.text}><span className={s.title}>{r.title}</span>{r.sub && <span className={`t-sub2 ${s.sub}`}>{subOf(r)}</span>}</span>
                 {r.value && <span className={`t-sub1 w-600 ${s.value}`}>{r.value}</span>}
                 {r.badge && unread ? <span className={`t-cap1 w-600 ${s.badge}`}>{unread}</span> : null}
                 {i < g.rows.length - 1 && <span className={s.line} />}

@@ -16,3 +16,10 @@ export const photoOf: Record<string, string> = {
 };
 export const tilePhoto = { food: u("1568901346375-23c9450c58cd", 500), coffee: u("1509042239860-f550ce710b93", 600), hair: u("1503951914875-452162b0f3f1", 600) };
 export const coverPhoto = { food: u("1699728088614-7d1d4277414b", 900), coffee: u("1554118811-1e0d58224f24", 900), hair: u("1585747860715-2ba37e788b70", 900) };
+
+/** Ұсыныс бетіндегі сырғытылатын галерея: өз фотосы, сол санаттағы басқа фотолар, мекеме мұқабасы. */
+export function galleryOf(id: string, kind: "food" | "coffee" | "hair"): string[] {
+  const same: Record<string, string[]> = { food: ["doner", "lamb-doner", "doner-drink", "burger-combo", "pizza"], coffee: ["latte", "cappuccino", "americano"], hair: ["haircut", "mens-cut"] };
+  const list = [photoOf[id], ...same[kind].filter((k) => k !== id).map((k) => photoOf[k]), coverPhoto[kind]].filter(Boolean) as string[];
+  return [...new Set(list)].slice(0, 5);
+}

@@ -7,7 +7,7 @@
 .id { display: flex; align-items: center; gap: 14px; height: 72px; }
 .avatar { flex: none; width: 72px; height: 72px; border-radius: 36px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 36px; animation: pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
 @keyframes pop { from { transform: scale(0.5); opacity: 0; } }
-.name { font-size: 24px; line-height: 32px; letter-spacing: 0.1px; font-weight: 600; margin-bottom: 2px; }
+.name { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 700; margin-bottom: 2px; }
 .gray { color: var(--text-secondary); }
 .open { display: flex; align-items: center; gap: 8px; }
 .open i { width: 8px; height: 8px; border-radius: 50%; background: #22a559; }
@@ -31,14 +31,14 @@
 @keyframes inL { from { transform: translateX(-24px); opacity: 0; } }
 @keyframes inR { from { transform: translateX(24px); opacity: 0; } }
 .card { width: 380px; padding: 14px 16px; border-radius: 20px; background: #fff; display: flex; flex-direction: column; gap: 10px; }
-.cardTitle { color: var(--link); }
+.cardTitle { color: var(--text-strong); font-weight: 700; }
 .quote { position: relative; padding: 10px 14px; border-radius: 8px; background: #edf4fb; }
 .qBar { position: absolute; left: 0; top: 0; width: 3px; height: 40px; border-radius: 8px 0 0 0; background: #1f73c2; }
 .rich { display: flex; flex-wrap: wrap; gap: 2px 4px; }
 .rich b { padding: 0 5px; border-radius: 6px; font-weight: 600; }
 .green { background: #ddf3e4; color: #1b6b2e; }
 .blue { background: #dcebfb; color: #1f5fa8; }
-.kv { display: flex; justify-content: space-between; height: 22px; }
+.kv { display: flex; justify-content: space-between; height: 24px; }
 .kv span { color: var(--text-secondary); }
 .kv b { font-weight: 600; }
 .addr { font-size: 17px; line-height: 26px; letter-spacing: 0.1px; }

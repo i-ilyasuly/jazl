@@ -10,7 +10,6 @@ import { Timeline } from "../ui/Timeline";
 import searchIcon from "../assets/icons/search.svg";
 import burger from "../assets/icons/offerBurger.svg";
 import scissors from "../assets/icons/offerScissors.svg";
-import h from "./Home.module.css";
 import s from "./Packs.module.css";
 
 const icon = { food: burger, coffee: burger, hair: scissors };
@@ -58,13 +57,13 @@ export function Packs() {
   const list = tab === 0 ? active : done;
   return (
     <div className={s.page}>
+      <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>
       <header className={s.top}>
         <TelegramChrome mode="close" />
-        <button className={h.searchHit} onClick={() => go("/search")} aria-label="Іздеу"><span className={h.search}><img src={searchIcon} className={h.searchIcon} alt="" /><span className={`t-sub2 ${h.searchText}`}>Іздеу...</span></span></button>
         <div className={s.seg}>
           <span className={s.segThumb} style={{ transform: `translateX(${tab * 188}px)` }} />
           {["Белсенді", "Тарих"].map((t, i) => (
-            <button key={t} className={`t-sub2 ${s.segBtn} ${tab === i ? s.segOn : ""}`} onClick={() => { haptic.select(); setTab(i); }}>{t}</button>
+            <button key={t} className={`${s.segBtn} ${tab === i ? s.segOn : ""}`} onClick={() => { haptic.select(); setTab(i); }}>{t}</button>
           ))}
         </div>
       </header>

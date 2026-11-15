@@ -13,7 +13,7 @@ export function SubPage({ title, children, variant, top }: { title: string; chil
   return (
     <div className={`${s.page} ${variant ? s[variant] : ""}`} style={top ? { ["--body-top" as string]: top + "px" } : undefined}>
       <TelegramChrome mode="back" onBack={back} />
-      <h1 className={s.title}>{title}</h1>
+      <h1 className="pageTitle">{title}</h1>
       <div className={s.body}>{children}</div>
     </div>
   );
@@ -33,7 +33,7 @@ export function Row({ left, title, sub, right, onClick, inset = 68, wrap, dim }:
   return (
     <Tag className={`${s.row} ${onClick ? s.tap : ""} ${dim ? s.dim : ""}`} style={{ ["--inset" as string]: inset + "px" }} onClick={onClick}>
       {left}
-      <span className={`${s.text} ${wrap ? s.wrap : ""}`}><span className={s.rowTitle}>{title}</span>{sub && <span className={`t-cap1 ${s.sub}`}>{sub}</span>}</span>
+      <span className={`${s.text} ${wrap ? s.wrap : ""}`}><span className={s.rowTitle}>{title}</span>{sub && <span className={`t-sub2 ${s.sub}`}>{sub}</span>}</span>
       {right}
     </Tag>
   );

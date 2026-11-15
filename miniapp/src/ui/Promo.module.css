@@ -1,0 +1,19 @@
+.wrap { position: relative; margin: 0 -16px; }
+.track { display: flex; gap: 12px; padding: 0 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.track::-webkit-scrollbar { display: none; }
+.card { position: relative; flex: none; width: 380px; height: 108px; padding: 16px 0 0 18px; border-radius: 20px; overflow: hidden; scroll-snap-align: center; text-align: left; display: flex; flex-direction: column; gap: 6px; transition: transform 0.15s ease; }
+.card:active { transform: scale(0.98); }
+.title { position: relative; z-index: 1; white-space: pre-line; font-size: 19px; line-height: 23px; font-weight: 700; letter-spacing: 0.1px; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.link { position: relative; z-index: 1; font-size: 15px; line-height: 20px; font-weight: 500; color: rgba(255, 255, 255, 0.92); }
+.art { position: absolute; right: 14px; top: 50%; height: 112px; width: auto; translate: 0 -50%; rotate: -6deg; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.22)); animation: float 4s ease-in-out infinite; }
+@keyframes float { 50% { translate: 0 calc(-50% - 4px); } }
+.violet { background: radial-gradient(120% 140% at 85% 30%, #b79cff 0%, #8f6bf6 45%, #7a55ee 100%); }
+.teal { background: radial-gradient(120% 140% at 85% 30%, #63f0d2 0%, #22c6b2 45%, #149e9a 100%); }
+.blue { background: radial-gradient(120% 140% at 85% 30%, #8cc8ff 0%, #4b98f5 45%, #2f74e3 100%); }
+.spark { position: absolute; z-index: 1; right: 150px; top: 18px; width: 12px; height: 12px; background: #fff; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); opacity: 0.9; animation: tw 2.4s ease-in-out infinite; }
+.spark2 { right: 18px; top: auto; bottom: 16px; width: 9px; height: 9px; animation-delay: 1.2s; }
+@keyframes tw { 50% { scale: 0.5; opacity: 0.4; } }
+.dots { position: absolute; left: 18px; bottom: 10px; display: none; }
+.dots { display: flex; position: static; justify-content: center; gap: 6px; padding-top: 10px; }
+.dots span { width: 6px; height: 6px; border-radius: 3px; background: var(--text-secondary); opacity: 0.35; transition: width 0.25s ease, opacity 0.25s ease; }
+.dots .on { width: 16px; opacity: 0.9; background: var(--action); }
