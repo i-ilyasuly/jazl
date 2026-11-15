@@ -45,7 +45,7 @@
 .wait p { font-size: 15px; line-height: 20px; letter-spacing: 0.15px; color: var(--text-secondary); }
 .wait b { font-size: 17px; line-height: 22px; font-weight: 600; }
 .btnWait { background: rgba(95, 107, 122, 0.16) !important; color: var(--text-secondary) !important; }
-.emoji { width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 28px; flex: none; }
+.emoji { width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 24px; flex: none; }
 .packText { flex: 1; display: flex; flex-direction: column; white-space: nowrap; }
 .packTitle { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; }
 .radio { width: 24px; height: 24px; border-radius: 12px; border: 2px solid #229af0; display: flex; align-items: center; justify-content: center; flex: none; }

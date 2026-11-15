@@ -122,7 +122,7 @@ export function MapScreen() {
               {list.map((v) => (
                 <button key={v.id} className={s.row} onClick={() => pick(v)}>
                   <span className={s.rAvatar} style={{ background: kindTint[v.kind] + "4d" }}>{kindEmoji[v.kind]}</span>
-                  <span className={s.rText}><b className="t-sub1 w-600">{v.name}</b><small className="t-cap1" style={{ whiteSpace: "pre" }}>{kindLabel[v.kind]}{st.geo === "denied" ? "" : `  •  ${kmText(v)}`}  •  Ашық</small></span>
+                  <span className={s.rText}><b className="t-text w-600">{v.name}</b><small className="t-cap1" style={{ whiteSpace: "pre" }}>{kindLabel[v.kind]}{st.geo === "denied" ? "" : `  •  ${kmText(v)}`}  •  Ашық</small></span>
                   <span className={`t-cap1 ${s.gray}`}>{v.offers.length} ұсыныс</span>
                 </button>
               ))}

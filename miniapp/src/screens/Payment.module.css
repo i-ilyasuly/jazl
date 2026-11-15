@@ -1,4 +1,4 @@
-.emoji { flex: none; width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 28px; transition: transform 0.3s ease, opacity 0.3s ease; }
+.emoji { flex: none; width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 24px; transition: transform 0.3s ease, opacity 0.3s ease; }
 .leave { transform: scale(0.4); opacity: 0; }
 .plus { background: #f0f2f6; }
 .def { flex: none; padding: 3px 10px; border-radius: 12px; background: #e3f5e6; color: #1b6b2e; animation: pop 0.35s cubic-bezier(0.3, 1.5, 0.5, 1); }

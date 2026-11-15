@@ -46,6 +46,7 @@ import { Category } from "./screens/Category";
 import { MapScreen } from "./screens/MapScreen";
 import { VenuePage } from "./screens/VenuePage";
 import { Stub } from "./screens/Stub";
+import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
 
 const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
@@ -153,7 +154,9 @@ const router = createHashRouter([
       { path: "/welcome/lang", element: <WelcomeLang /> },
       { path: "/welcome/city", element: <WelcomeCity /> },
       { path: "/welcome/terms", element: <WelcomeTerms /> },
-      { path: "/welcome/doc/:id", element: <Stub /> },
+      { path: "/welcome/doc/:id", element: <Doc /> },
+      { path: "/profile/doc/:id", element: <Doc /> },
+      { path: "/kyc", element: <Kyc /> },
       { path: "/profile/venue", element: <VenueApply /> },
       { path: "/profile/venue/done", element: <VenueDone /> },
       { path: "/profile/report", element: <Report /> },
