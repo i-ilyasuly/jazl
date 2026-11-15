@@ -16,6 +16,7 @@ import { Savings } from "./screens/Savings";
 import { History } from "./screens/History";
 import { Notifications } from "./screens/Notifications";
 import { Receipt } from "./screens/Receipt";
+import { HapticTest } from "./screens/HapticTest";
 import { Security } from "./screens/Security";
 import { City, Language } from "./screens/Choice";
 import { Favorites } from "./screens/Favorites";
@@ -86,6 +87,7 @@ const router = createHashRouter([
       { path: "/profile/notifications", element: <Notifications /> },
       { path: "/profile/receipt/:id", element: <Receipt /> },
       { path: "/profile/security", element: <Security /> },
+      { path: "/profile/haptics", element: <HapticTest /> },
       { path: "/profile/language", element: <Language /> },
       { path: "/profile/city", element: <City /> },
       { path: "/profile/favorites", element: <Favorites /> },

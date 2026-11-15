@@ -2,7 +2,7 @@
 // Main/Secondary/Back/Settings батырмалары бар), сондықтан жолақты өзіміз саламыз:
 // әйнек (glass) фон, сырғитын «тамшы», басқанда ойнайтын белгіше анимациясы.
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { tg } from "../telegram";
+import { haptic, tg } from "../telegram";
 import { useGo } from "../nav";
 import { useUnread } from "../store";
 import homeIcon from "../assets/icons/navHome.svg";
@@ -43,7 +43,7 @@ export function NavBar({ active }: { active: TabKey }) {
       {tabs.map((t, i) => {
         const on = t.key === active;
         return (
-          <button key={t.key} className={s.tab} style={{ left: 3 + i * 93 }} onClick={() => { if (!on) go(t.to, "fade"); }}>
+          <button key={t.key} className={s.tab} style={{ left: 3 + i * 93 }} onClick={() => { if (!on) { haptic.select(); go(t.to, "fade"); } }}>
             <span className={`${s.iconBox} ${on && !first.current ? s["play_" + t.key] : ""}`}>
               {t.key === "profile" ? (
                 <span className={s.avatar}>

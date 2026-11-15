@@ -42,15 +42,30 @@ export function initTelegram() {
  * heavy — сирек маңызды сәт (QR оқылды); rigid — PIN толық енгізілді, қатаң растау;
  * select — сегмент, таб, чип, көлем, галерея; success/warning/error — нәтиже.
  */
-const impact = (k: "light" | "medium" | "heavy" | "rigid" | "soft") => () => wa?.HapticFeedback?.impactOccurred(k);
-const notify = (k: "success" | "warning" | "error") => () => wa?.HapticFeedback?.notificationOccurred(k);
+type Impact = "light" | "medium" | "heavy" | "rigid" | "soft";
+// Telegram Android клиенті «light» дірілін 7 мс және әлсіз амплитудамен (65/255), «selection»-ды 1 мс-пен береді:
+// көп Android (әсіресе Huawei, Xiaomi) телефонында мүлде сезілмейді. Сондықтан Android-та сол нативті
+// әдістердің ішінен бір саты күштірегін аламыз: light→soft (10 мс, 175), selection→rigid (3 мс, 225), medium→heavy.
+// iOS-та Taptic Engine нәзік дірілдерді жақсы береді, онда түпнұсқа күйі қалады.
+const android = wa?.platform === "android";
+const boost: Record<Impact, Impact> = android ? { light: "soft", soft: "soft", medium: "heavy", heavy: "heavy", rigid: "rigid" } : { light: "light", soft: "soft", medium: "medium", heavy: "heavy", rigid: "rigid" };
+const hf = () => (at("6.1") ? wa?.HapticFeedback : undefined);
+const impact = (k: Impact) => () => { hf()?.impactOccurred(boost[k]); };
+const notify = (k: "success" | "warning" | "error") => () => { hf()?.notificationOccurred(k); };
+/** Сынақ беті үшін: нативті әдісті ешбір күшейтусіз тікелей шақыру. */
+export const rawHaptic = (kind: "impact" | "notification" | "selection", v?: string) => {
+  const h = hf(); if (!h) return false;
+  if (kind === "impact") h.impactOccurred(v as Impact); else if (kind === "notification") h.notificationOccurred(v as "success"); else h.selectionChanged();
+  return true;
+};
+export const hapticInfo = () => ({ inTelegram, platform: wa?.platform ?? "—", version: wa?.version ?? "—", has: Boolean(wa?.HapticFeedback), ok: at("6.1") });
 export const haptic = {
   tap: impact("light"),
   soft: impact("soft"),
   medium: impact("medium"),
   heavy: impact("heavy"),
   rigid: impact("rigid"),
-  select: () => wa?.HapticFeedback?.selectionChanged(),
+  select: () => { if (android) hf()?.impactOccurred("rigid"); else hf()?.selectionChanged(); },
   success: notify("success"),
   warning: notify("warning"),
   error: notify("error"),

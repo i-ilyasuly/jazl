@@ -37,6 +37,7 @@ const groups: { header?: string; rows: RowDef[] }[] = [
   { rows: [
     { icon: globe, title: "Тіл", sub: "Қазақша", to: "/profile/language" },
     { icon: city, title: "Қала", sub: "Қарағанды", to: "/profile/city" },
+    { icon: bell, title: "Діріл сынағы", sub: "Нативті дірілдерді тексеру", to: "/profile/haptics" },
   ] },
   { header: "Көмек", rows: [
     { icon: ask, title: "Сұрақ қою", to: "/profile/ask" },
