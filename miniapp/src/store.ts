@@ -16,6 +16,15 @@ export interface Pack {
   /** Мерзімі өткен пакет (Figma «Пакет беті / Мерзімі өтті» 13886:29947); endedOn — «2 қарашада». */
   expired?: boolean;
   endedOn?: string;
+  /** Мерзімі өткеннен бері өткен күн (3 күннен асса, қалған бірлік жаңа пакетке көшпейді). */
+  expiredAgo?: number;
+  /** Мекеменің бір реттік тегін ұзартуы пайдаланылды ма; extendedTo — соңғы ұзартудан кейінгі мерзім. */
+  freeExtendUsed?: boolean;
+  extendedTo?: string;
+  /** Мекеме ұзартуға рұқсат бермейді (Figma «Мерзімін ұзарту / Мүмкін емес»). */
+  noExtend?: boolean;
+  /** Қайта алғанда бұрынғы пакеттен көшкен бірлік саны. */
+  carried?: number;
   history: HistoryItem[];
 }
 /** Пакеттің күйі: белсенді, мерзімі жақын (≤3 күн), толық пайдаланылды, мерзімі өтті. */
@@ -43,7 +52,7 @@ let packs: Pack[] = [
       { emoji: "🛒", title: "Пакет сатып алынды", sub: "20 қазан • Kaspi Pay", right: "4 бірлік" },
     ] },
   // Figma «Пакет беті / Мерзімі өтті» 13886:29947
-  { id: "p4", offerId: "latte", total: 12, left: 1, daysLeft: 0, until: "2 қарашаға дейін", expired: true, endedOn: "2 қарашада",
+  { id: "p4", offerId: "latte", total: 12, left: 1, daysLeft: 0, until: "2 қарашаға дейін", expired: true, endedOn: "2 қарашада", expiredAgo: 13,
     history: [
       { emoji: "☕", title: "1 бірлік пайдаланылды", sub: "30 қазан, 09:10 • Coffee Lab", right: "Қалды: 1" },
       { emoji: "☕", title: "10 бірлік пайдаланылды", sub: "қазан • Coffee Lab", right: "Қалды: 2" },
@@ -65,6 +74,19 @@ export const useActivity = () => useSyncExternalStore(subscribe, () => acts);
 const subs = new Set<() => void>();
 const emit = () => subs.forEach((f) => f());
 const subscribe = (f: () => void) => { subs.add(f); return () => { subs.delete(f); }; };
+
+// ── Күндер: «16 қарашаға дейін» пішімі ─────────────────────────────────────
+const DAT = ["қаңтарға", "ақпанға", "наурызға", "сәуірге", "мамырға", "маусымға", "шілдеге", "тамызға", "қыркүйекке", "қазанға", "қарашаға", "желтоқсанға"];
+export const untilText = (d: Date) => `${d.getDate()} ${DAT[d.getMonth()]} дейін`;
+/** «16 қарашаға дейін» + N күн → «23 қарашаға дейін» (жыл — ағымдағы). */
+export function shiftUntil(until: string, days: number): string {
+  const m = until.match(/^(\d+)\s+(\S+)/);
+  const mi = m ? DAT.indexOf(m[2]) : -1;
+  if (!m || mi < 0) return until;
+  const d = new Date(new Date().getFullYear(), mi, Number(m[1]) + days);
+  return untilText(d);
+}
+const inDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return untilText(d); };
 
 export const usePacks = () => useSyncExternalStore(subscribe, () => packs);
 export const offerOf = (p: Pack): Offer => findOffer(p.offerId);
@@ -90,6 +112,63 @@ export function redeem(packId: string): boolean {
   acts = [{ id: "a" + Date.now(), emoji: o.kind === "hair" ? "✂️" : o.kind === "coffee" ? "☕" : "🍴", title: o.title.replace(/· \d+/, "· 1"), sub: `${o.venue} · бүгін, ${hh}`, packId, offerId: o.id, action: "rate" }, ...acts];
   emit();
   return true;
+}
+
+// ── 11 · Қайта алу және мерзімін ұзарту ─────────────────────────────────────
+/** Мерзімі өткеннен кейін қалған бірлік осы күн ішінде ғана көшеді (Figma «Көшіру ережесі»). */
+export const CARRY_DAYS = 3;
+/** Жаңа пакетке көшетін бірлік: мерзімі өткеніне 3 күннен асса — 0. */
+export const carryOf = (p: Pack) => (p.expired && (p.expiredAgo ?? 0) > CARRY_DAYS ? 0 : p.left);
+/** Ұзарту нұсқалары: біріншісі — мекеменің бір реттік тегін мүмкіндігі. */
+export const EXTEND_OPTIONS = [{ days: 7, price: 0 }, { days: 14, price: 1000 }, { days: 30, price: 2000 }];
+
+/** Пакетті қайта алу: ескі пакеттің орнына жаңасы, қалған бірлік (ереже бойынша) қосылады. */
+export function rebuyPack(packId: string, paid: number, method = "Kaspi Pay"): string | null {
+  const old = getPack(packId);
+  if (!old) return null;
+  const o = offerOf(old);
+  const carry = carryOf(old);
+  const id = "p" + (Date.now() % 100000);
+  const fresh: Pack = { id, offerId: o.id, total: o.units + carry, left: o.units + carry, daysLeft: 30, until: inDays(30), carried: carry,
+    history: [
+      { emoji: "🛒", title: "Пакет қайта алынды", sub: `бүгін • ${method} • ${fmt(paid)}`, right: `${o.units} бірлік` },
+      ...(carry ? [{ emoji: "↪️", title: "Бұрынғы пакеттен көшті", sub: `${old.until.replace(" дейін", "")} мерзімінен`, right: `+${carry} бірлік` }] : []),
+    ] };
+  packs = [fresh, ...packs.filter((p) => p.id !== packId)];
+  acts = acts.filter((a) => !(a.packId === packId && a.action === "renew"));
+  emit();
+  return id;
+}
+
+/** Мерзімін ұзарту: days күнге; price 0 болса — бір реттік тегін мүмкіндік жұмсалады. */
+export function extendPack(packId: string, days: number, price: number): string | null {
+  const p = getPack(packId);
+  if (!p || p.noExtend) return null;
+  const until = shiftUntil(p.until, days);
+  packs = packs.map((x) => x.id !== packId ? x : { ...x, until, extendedTo: until, daysLeft: x.daysLeft + days, freeExtendUsed: x.freeExtendUsed || price === 0,
+    history: [{ emoji: "📅", title: "Мерзімі ұзартылды", sub: `бүгін • ${price ? fmt(price) : "тегін"}`, right: `+${days} күн` }, ...x.history] });
+  emit();
+  return until;
+}
+
+// ── 12 · Бағалау ────────────────────────────────────────────────────────────
+/** Бағалау жолағын (Пакеттерім) жабу — сессия ішінде қайта шықпайды. */
+let rateHidden: string[] = [];
+export const useRateHidden = () => useSyncExternalStore(subscribe, () => rateHidden);
+export function hideRate(id: string) { rateHidden = [...rateHidden, id]; emit(); }
+export const getActivity = (id?: string) => acts.find((a) => a.id === id);
+/** Пакетке қатысты бағаланбаған әрекет (жоқ болса — соңғы әрекеттің негізінде жаңасы жасалады). */
+export function rateActivityOf(packId: string): Activity {
+  const a = acts.find((x) => x.packId === packId && x.action === "rate");
+  if (a) return a;
+  const p = getPack(packId); const o = findOffer(p?.offerId);
+  const fresh: Activity = { id: "a" + Date.now(), emoji: o.kind === "hair" ? "✂️" : o.kind === "coffee" ? "☕" : "🍴", title: o.title.replace(/· \d+/, "· 1"), sub: `${o.venue} · ${p?.history[0]?.sub.split(" • ")[0] ?? "бүгін"}`, packId, offerId: o.id, action: "rate" };
+  acts = [fresh, ...acts]; emit();
+  return fresh;
+}
+/** Баға жіберу (бэкенд қосылғанда: POST /ratings). Пікір мәтіні мен себептер әзірге жадта ғана. */
+export function rateActivity(id: string, stars: number, _tags: string[], _text: string) {
+  acts = acts.map((a) => (a.id === id ? { ...a, action: "rated", stars } : a)); emit();
 }
 
 export const unitLabel = (p: Pack) => fmt(unitPrice(offerOf(p)));

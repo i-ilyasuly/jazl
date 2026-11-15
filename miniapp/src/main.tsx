@@ -10,6 +10,7 @@ import { OfferPage } from "./screens/Offer";
 import { Paid, Success } from "./screens/Success";
 import { Packs } from "./screens/Packs";
 import { PackPage } from "./screens/PackPage";
+import { CarryRules, Rebuy, RebuyDone } from "./screens/Rebuy";
 import { Scan } from "./screens/Scan";
 import { ScanState } from "./screens/ScanState";
 import { Profile } from "./screens/Profile";
@@ -90,6 +91,9 @@ const router = createHashRouter([
       { path: "/orders/:id", element: <OrderView /> },
       { path: "/packs", element: <Packs /> },
       { path: "/pack/:id", element: <PackPage /> },
+      { path: "/rebuy/:id", element: <Rebuy /> },
+      { path: "/rebuy/done/:id", element: <RebuyDone /> },
+      { path: "/rules/carry", element: <CarryRules /> },
       { path: "/scan", element: <Scan /> },
       { path: "/scan/state/:kind", element: <ScanState /> },
       { path: "/receipt/use/:id", element: <UseReceipt /> },

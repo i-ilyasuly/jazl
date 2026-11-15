@@ -111,7 +111,7 @@ export function OrderState() {
     haptic.medium();
     if (k === "fail") go("/order/" + packId, "forward", { replace: true });
     else if (k === "noaccept") go("/scan?pack=" + packId, "up", { replace: true });
-    else if (k === "nounits") go("/offer/" + (offer?.id ?? ""), "forward", { replace: true, state: { buy: "sum" } });
+    else if (k === "nounits") go(packId && getPack(packId) ? "/rebuy/" + packId : "/offer/" + (offer?.id ?? ""), "forward", { replace: true, state: { buy: "sum" } });
     else go("/venue/" + (venues.find((v) => v.name === offer?.venue)?.id ?? ""), "forward", { replace: true });
   } }), [c.main, k, go, packId, offer]);
   const left = useMemo(() => ({ text: c.left, position: "left" as const, onClick: () => { if (k === "fail") { haptic.tap(); go("/profile/report"); } else { haptic.soft(); close(); } } }), [c.left, k, go, close]);
