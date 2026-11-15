@@ -29,7 +29,7 @@ interface TelegramWebApp {
   SecondaryButton?: TgBottomButton;
   HapticFeedback?: { impactOccurred(s: "light" | "medium" | "heavy" | "rigid" | "soft"): void; notificationOccurred(t: "error" | "success" | "warning"): void; selectionChanged(): void };
   CloudStorage?: { setItem(key: string, value: string, cb?: (err: string | null, ok?: boolean) => void): void; getItem(key: string, cb: (err: string | null, value?: string) => void): void };
-  initDataUnsafe?: { start_param?: string; user?: { first_name?: string; last_name?: string; username?: string; photo_url?: string; language_code?: string } };
+  initDataUnsafe?: { start_param?: string; user?: { first_name?: string; last_name?: string; username?: string; photo_url?: string; language_code?: string; allows_write_to_pm?: boolean } };
   openTelegramLink?: (url: string) => void;
   /** Bot API 8.0: бот дайындаған хабарламаны Telegram-ның нативті чат/контакт таңдау терезесімен жіберу. */
   shareMessage?: (msgId: string, cb?: (sent: boolean) => void) => void;

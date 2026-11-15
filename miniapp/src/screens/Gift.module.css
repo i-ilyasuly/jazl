@@ -1,13 +1,13 @@
 .hero { position: absolute; left: 0; top: calc(100px + var(--top-shift)); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .title { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); animation: up 0.4s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .sub { color: var(--text-secondary); animation: up 0.4s 0.14s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.chip { padding: 3px 10px; border-radius: 12px; animation: up 0.4s 0.14s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.chip { height: 24px; padding: 4px 8px; border-radius: 12px; animation: up 0.4s 0.14s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes up { from { transform: translateY(8px); opacity: 0; } }
 .orange { background: rgba(254, 149, 0, 0.13); color: #a86400; }
 .gray { background: rgba(95, 107, 122, 0.1); color: #5f6b7a; }
-.quote { position: relative; width: 338px; height: 42px; padding: 10px 14px; border-radius: 8px; background: #edf4fb; overflow: visible; color: var(--text-strong); white-space: nowrap; }
-.bar { position: absolute; left: 0; top: 0; width: 4px; height: 42px; border-radius: 8px 0 0 8px; background: #1f73c2; }
-.mark { position: absolute; left: 308px; top: -10px; font-size: 56px; line-height: 56px; font-weight: 700; color: #1f73c2; pointer-events: none; }
+.quote { position: relative; width: 380px; height: 44px; padding: 12px 48px 12px 16px; border-radius: 8px; background: #edf4fb; overflow: visible; color: var(--text-strong); white-space: nowrap; }
+.bar { position: absolute; left: 0; top: 0; width: 4px; height: 44px; border-radius: 8px 0 0 8px; background: #1f73c2; }
+.mark { position: absolute; right: 12px; top: -12px; font-size: 48px; line-height: 48px; font-weight: 700; color: #1f73c2; pointer-events: none; }
 .kv { position: relative; display: flex; justify-content: space-between; height: 48px; padding: 14px 16px; white-space: nowrap; color: var(--text-secondary); }
 .kv:not(:last-child) { margin-bottom: 1px; }
 .kv:not(:last-child)::after { content: ""; position: absolute; left: 16px; right: 0; bottom: -1px; height: 1px; background: var(--separator); }
