@@ -320,6 +320,14 @@ void kv.get("jazl_recent").then((v) => { if (v) { try { recent = JSON.parse(v); 
 // null — әлі оқылып жатыр (бастапқы экран көрсетіледі), false — таныстыру керек, true — өткен.
 let onboarded: boolean | null = null;
 export const useOnboarded = () => useSyncExternalStore(subscribe, () => onboarded);
+/** «Деректерді жою» (Figma 18): құрылғыдағы барлық Jazl+ деректерін тазартып, онбордингке қайтарады.
+ *  Бэкенд қосылғанда: DELETE /me (аккаунт пен пакеттер серверде жойылады). */
+export function resetAll() {
+  for (const k of ["jazl_onboarded", "jazl_settings", "jazl_pin_h", "jazl_favs", "jazl_kaspi_phone", "jazl_notice_prefs", "jazl_read", "jazl_bot_ok", "jazl_nav_hints", "jazl_packs_hint"]) kv.set(k, "");
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith("jazl_")) localStorage.removeItem(k); } catch { /* жеке режим */ }
+  window.location.replace(window.location.pathname + "#/welcome");
+  setTimeout(() => window.location.reload(), 50);
+}
 export function finishOnboarding() { onboarded = true; emit(); kv.set("jazl_onboarded", "1"); }
 void Promise.all([kv.get("jazl_onboarded"), new Promise((r) => setTimeout(r, 500))]).then(([v]) => { onboarded = v === "1"; emit(); });
 

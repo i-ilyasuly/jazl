@@ -32,7 +32,7 @@ export function Report() {
       <label className={`${s.area} rise`} style={{ ["--i" as string]: 2 }}>
         <textarea value={text} rows={1} placeholder="Не болғанын жаз (міндетті емес)" onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }} />
       </label>
-      <button className={`t-sub1 w-600 ${s.attach} rise`} style={{ ["--i" as string]: 3 }} onClick={() => file.current?.click()}>
+      <button className={`t-text w-600 ${s.attach} rise`} style={{ ["--i" as string]: 3 }} onClick={() => file.current?.click()}>
         <img src={attach} width={22} height={22} alt="" /><span key={files.length} className={s.swap}>{files.length ? `${files.length} файл қосылды` : "Скриншот не фото қосу"}</span>
       </button>
       <input ref={file} type="file" accept="image/*" multiple hidden onChange={(e) => { const f = [...(e.target.files ?? [])].map((x) => x.name); if (f.length) { haptic.success(); setFiles(f); } }} />
