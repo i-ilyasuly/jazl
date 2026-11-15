@@ -39,6 +39,9 @@ function VenueView({ id }: { id?: string }) {
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back);
   const offers = offersOfVenue(v.name);
+  // Figma «08»: «Қазір жабық» 13886:26401, «Жаңа мекеме» 13886:26641, «Төлем уақытша жоқ» 13886:27185, «24/7» 14018:11491.
+  // Демо: ?venue=closed|new|nopay|247
+  const status = (window.location.hash.match(/[?&]venue=(\w+)/)?.[1] as typeof v.status) || v.status;
   const subscribed = useVenueSubs().includes(v.id);
   const [tab, setTab] = useState(0);
   const [coverBroken, setCoverBroken] = useState(false);
@@ -60,7 +63,7 @@ function VenueView({ id }: { id?: string }) {
   };
   const subDone = () => { haptic.success(); toggleVenueSub(v.id); setSnack(true); };
   const notify = async () => { haptic.medium(); if (subscribed) return toggleVenueSub(v.id); if (!inTelegram) return setSheet("perm"); if (await askWriteAccess()) subDone(); };
-  const tabs: [string, number?][] = [["Ұсыныстар", offers.length], ["Туралы"], ["Суреттер", 4], ["Пікірлер", v.reviews]];
+  const tabs: [string, number?][] = [["Ұсыныстар", offers.length], ["Туралы"], ["Суреттер", 4], ["Пікірлер", status === "new" ? undefined : v.reviews]];
   return (
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
@@ -73,8 +76,14 @@ function VenueView({ id }: { id?: string }) {
           <span className={s.avatar}>{kindEmoji[v.kind]}</span>
           <div><h1 className={s.name}>{v.name}</h1><p className={`t-sub2 ${s.gray}`} style={{ whiteSpace: "pre" }}>{kindLabel[v.kind]}  •  Қарағанды</p></div>
         </div>
-        <p className="t-sub2" style={{ whiteSpace: "pre" }}>★ {String(v.rating).replace(".", ",")} ({v.reviews})  •  {v.km.toFixed(1).replace(".", ",")} км  •  48 клиент</p>
-        <p className={`t-sub2 ${s.open}`} style={{ whiteSpace: "pre" }}><i />Ашық  •  бүгін {v.hours}</p>
+        {status === "new"
+          ? <p className={s.meta}><span className={s.badgeNew}>Жаңа мекеме</span></p>
+          : <p className={s.meta} style={{ whiteSpace: "pre" }}>★ {String(v.rating).replace(".", ",")} ({v.reviews})  •  {v.km.toFixed(1).replace(".", ",")} км  •  48 клиент</p>}
+        {status === "closed"
+          ? <p className={`${s.meta} ${s.open} ${s.closed}`} style={{ whiteSpace: "pre" }}><i />Қазір жабық  •  {v.opensAt ?? v.hours.split("–")[0]}-де ашылады</p>
+          : status === "247"
+            ? <p className={`${s.meta} ${s.open}`}><span className={s.badge247}>24/7</span>Тәулік бойы ашық</p>
+            : <p className={`${s.meta} ${s.open}`} style={{ whiteSpace: "pre" }}><i />Ашық  •  бүгін {v.hours}</p>}
         <div className={s.actions}>
           <button className={s.action} onClick={() => { haptic.tap(); setSheet("route"); }}><img src={routeIcon} width={24} height={24} alt="" /><span className="t-cap1 w-600">Бағыт</span></button>
           <button className={s.action} onClick={() => { haptic.tap(); setSheet("call"); }}><img src={callIcon} width={24} height={24} alt="" /><span className="t-cap1 w-600">Қоңырау</span></button>
@@ -89,6 +98,7 @@ function VenueView({ id }: { id?: string }) {
         <span className={s.line} style={{ translate: `${line.left}px 0`, width: line.width }} />
       </nav>
       <main key={tab} className={`${s.body} ${tab > prev ? s.fromRight : s.fromLeft}`}>
+        {tab === 0 && status === "nopay" && offers.length > 0 && <p className={s.nopay}>Мекеме уақытша Jazl+ төлемін қабылдамайды. Пакетті сатып алуға болады, пайдалану кейінірек.<i>”</i></p>}
         {tab === 0 && (offers.length ? offers.map((o) => <OfferCard key={o.id} offer={o} />) : (
           <div className={s.empty}><h2 className="t-headline">Қазір ұсыныс жоқ</h2><p className={`t-sub2 ${s.gray}`}>Жаңа ұсыныс шықса, хабарлаймыз</p><button className={`t-sub2 w-600 ${s.emptyBtn}`} onClick={notify}>{subscribed ? "✓ Қосулы" : "🔔 Хабарла"}</button></div>
         ))}
@@ -114,7 +124,7 @@ function VenueView({ id }: { id?: string }) {
           <h2 className={`t-headline ${s.cardTitle}`}>Суреттер</h2>
           <div className={s.grid}>{[0, 1, 2, 3].map((i) => <span key={i} className={s.shot} style={{ ["--i" as string]: i }}><img src={offers[i % Math.max(1, offers.length)]?.photo ?? coverPhoto[v.kind]} className={s.shotImg} alt="" loading="lazy" /></span>)}</div>
         </section>}
-        {tab === 3 && (v.reviews < 3 ? (
+        {tab === 3 && (v.reviews < 3 || status === "new" ? (
           <div className={s.empty}><h2 className="t-headline">Пікірлер әлі жоқ</h2><p className={`t-sub2 ${s.gray}`}>Пікірлер 3 бағалаудан кейін көрінеді</p></div>
         ) : <>
           <section className={`${s.card} ${s.rating}`}>
