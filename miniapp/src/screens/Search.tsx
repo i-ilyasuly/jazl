@@ -52,9 +52,9 @@ export function Search() {
   return (
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
-      <label className={s.search}>
-        <img src={searchIcon} className={s.searchIcon} alt="" />
-        <input ref={input} className="t-sub2" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Іздеу..." enterKeyHint="search" autoCapitalize="none" autoCorrect="off" onKeyDown={(e) => { if (e.key === "Enter") { addRecent(query); input.current?.blur(); } }} />
+      <label className="topSearch" style={{ viewTransitionName: "top-search" }}>
+        <img src={searchIcon} alt="" />
+        <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Іздеу..." enterKeyHint="search" autoCapitalize="none" autoCorrect="off" onKeyDown={(e) => { if (e.key === "Enter") { addRecent(query); input.current?.blur(); } }} />
       </label>
       {!query ? (
         <div className={s.body} key="idle">

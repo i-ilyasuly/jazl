@@ -4,7 +4,7 @@
 .searchIcon { position: absolute; left: 9px; top: 7px; width: 16px; height: 16px; }
 .search input { position: absolute; left: 32px; top: 4px; width: 170px; height: 22px; border: 0; outline: 0; background: none; padding: 0; font-family: inherit; color: var(--text-strong); caret-color: #229af0; }
 .search input::placeholder { color: #626a72; }
-.body { padding: calc(104px + var(--top-shift)) 16px 0; display: flex; flex-direction: column; gap: 12px; }
+.body { padding: calc(var(--bar-c) + 40px) 16px 0; display: flex; flex-direction: column; gap: 12px; }
 .head { display: flex; justify-content: space-between; height: 22px; padding: 0 4px; color: var(--link); }
 .head button { color: var(--link); }
 .recent { width: 380px; padding: 4px 0; border-radius: 20px; background: #fff; overflow: hidden; }
@@ -19,7 +19,7 @@
 .chips { display: flex; flex-wrap: wrap; gap: 8px; width: 380px; }
 .chip { height: 36px; padding: 7px 14px; border-radius: 18px; background: #fff; color: var(--text-strong); white-space: nowrap; transition: transform 0.12s ease, background 0.15s ease; }
 .chip:active { transform: scale(0.94); background: #e4f1fd; }
-.results { padding: calc(100px + var(--top-shift)) 16px 0; }
+.results { padding: calc(var(--bar-c) + 40px) 16px 0; }
 .tools { display: flex; gap: 8px; height: 36px; }
 .tool { height: 36px; padding: 7px 14px; border-radius: 18px; background: #fff; color: var(--text-strong); display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: transform 0.12s ease; }
 .tool:active { transform: scale(0.95); }

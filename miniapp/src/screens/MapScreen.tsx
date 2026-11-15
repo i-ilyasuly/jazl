@@ -83,7 +83,7 @@ export function MapScreen() {
         </div>
       </div>
       <TelegramChrome mode="back" onBack={back} />
-      <button className={s.search} onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span className="t-sub2">Іздеу...</span></button>
+      <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>
       <div className={s.chips}>
         {chips.map(([id, t]) => <button key={id} className={`t-sub2 w-600 ${s.chip} ${kind === id ? s.chipOn : ""}`} onClick={() => { if (kind !== id) { haptic.select(); setKind(id); setSel(null); } }}>{t}</button>)}
       </div>

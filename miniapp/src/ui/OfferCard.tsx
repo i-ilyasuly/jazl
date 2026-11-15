@@ -24,9 +24,9 @@ export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
   const moving = useViewTransitionState(to);
   return (
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
-      <p className={`t-headline ${s.title}`}>{offer.title}</p>
-      <p className={`t-sub2 ${s.venue}`}>{offer.venue} · {offer.distance}</p>
-      {!ended && <span className={`t-cap1 ${s.discount}`}>▼ {discount(offer)}%</span>}
+      <p className={s.title}>{offer.title}</p>
+      <p className={s.venue}>{offer.venue} · {offer.distance}</p>
+      {!ended && <span className={s.discount}>▼ {discount(offer)}%</span>}
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
@@ -49,8 +49,8 @@ export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
           <img src={bell} width={20} height={20} alt="" className={waiting ? s.ring : undefined} />{waiting ? "Қосылды" : "Хабарла"}
         </button>
       </> : <>
-        <span className={`t-cap1 ${s.unit}`}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
-        <span className={`t-cap1 ${s.saving}`}>{fmt(saving(offer))} үнем</span>
+        <span className={s.unit}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
+        <span className={s.saving}>{fmt(saving(offer))} үнем</span>
       </>}
     </Link>
   );
