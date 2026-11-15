@@ -1,50 +1,27 @@
 // Figma «13 · Сыйлау»: «Сыйлау / Алушы таңдалмаған» 13886:33966, «Алушы таңдалды» 13886:34102.
 // Өлшемдер Figma-дан емес, 18-ереже бойынша: UI kit шкаласы + 4/8px тор (шет 16, жол 48/68, блок арасы 12).
-// «Сыйлау» — алушыға; «Сілтеме» — төлеп, сілтемені кез келген чатқа жіберу (Telegram-ның нативті бөлісу терезесі).
+// «Сыйлау» — төлем → Telegram-ның нативті контакт/чат таңдау терезесі (WebApp.shareMessage, жоқ болса t.me/share).
+// Mini App контактілер тізімін өзі оқи алмайды: таңдау тек Telegram терезесінде. «Сілтеме» — төлеп, сілтемені көшіру.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
-import { contacts, sendGift, type Contact } from "../store";
-import { haptic, inTelegram, tg, useBackButton, useBottomButtons } from "../telegram";
+import { giftLink, prepareGift, sendGift } from "../store";
+import { haptic, inTelegram, shareToChat, useBackButton, useBottomButtons } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { Switch } from "../ui/SubPage";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { usePayFlow } from "../ui/usePayFlow";
 import chev from "../assets/icons/chevRight.svg";
+import tgIcon from "../assets/icons/vTg.svg";
 import s from "./GiftSend.module.css";
 
 const MAX = 120;
 
-/** Сыйлық сілтемесін Telegram чатына жіберу (нативті бөлісу терезесі). */
-export function shareGift(id: string, pack: string) {
-  const link = `${window.location.origin}/#/gift/open/${id}`;
-  const url = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent(`🎁 Саған Jazl+ сыйлығы: ${pack}`);
-  if (inTelegram && tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
-}
-
-function ContactSheet({ onPick, onClose }: { onPick: (c: Contact) => void; onClose: () => void }) {
-  const [closing, setClosing] = useState(false);
-  const close = useCallback(() => { haptic.soft(); setClosing(true); setTimeout(onClose, 220); }, [onClose]);
-  useBackButton(close);
-  return (
-    <div className={`${s.root} ${closing ? s.closing : ""}`}>
-      <div className={s.scrim} onClick={close} />
-      <div className={s.sheet} role="dialog" aria-label="Алушы">
-        <span className={s.grabber} />
-        <h2 className="t-title3 w-700">Кімге сыйлайсың?</h2>
-        <p className={`t-sub2 ${s.muted}`}>Telegram контактілерің</p>
-        <div className={s.list}>
-          {contacts.map((c) => (
-            <button key={c.username} className={s.contact} onClick={() => { haptic.select(); onPick(c); }}>
-              <span className={s.avatar} style={{ background: c.color }}>{c.name[0]}</span>
-              <span className={s.cText}><span className="t-text">{c.name}</span><span className={`t-sub2 ${s.muted}`}>@{c.username}</span></span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+/** Сыйлықты Telegram контактісіне/чатына жіберу — нативті таңдау терезесі. */
+export async function shareGift(id: string, pack: string): Promise<boolean> {
+  const preparedId = await prepareGift(id);
+  return shareToChat({ preparedId, url: giftLink(id), text: `🎁 Саған Jazl+ сыйлығы: ${pack}` });
 }
 
 export function GiftSend() {
@@ -52,24 +29,27 @@ export function GiftSend() {
   const o = findOffer(id);
   const go = useGo();
   const flow = usePayFlow();
-  const [to, setTo] = useState<Contact | null>(null);
   const [msg, setMsg] = useState("");
   const [anon, setAnon] = useState(false);
-  const [picking, setPicking] = useState(false);
-  const busy = flow.sheetOpen || picking;
+  const [snack, setSnack] = useState("");
+  const busy = flow.sheetOpen;
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back, !busy);
-  useEffect(() => { if (/[?&]to=1/.test(window.location.hash)) { setTo(contacts[0]); setMsg("Туған күніңмен! Донер менің атымнан 🎉"); } }, []);
+  useEffect(() => { if (!snack) return; const t = window.setTimeout(() => setSnack(""), 2400); return () => clearTimeout(t); }, [snack]);
 
-  const done = useCallback((gid: string, link: boolean) => {
+  const gift = { ...o, title: `Сыйлық · ${o.title}` };
+  // Төлем → сыйлық жасалады → Telegram-ның контакт/чат тізімі ашылады → сыйлық беті
+  const send = useCallback(() => flow.pay(gift, async () => {
+    const gid = sendGift(o.id, msg.trim(), anon);
+    await shareGift(gid, o.title);
     go("/profile/gift/" + gid, "fade", { replace: true });
-    if (link) window.setTimeout(() => shareGift(gid, o.title), 350);
-  }, [go, o.title]);
-  const send = useCallback(() => {
-    if (!to) { haptic.warning(); setPicking(true); return; }
-    flow.pay({ ...o, title: `Сыйлық · ${o.title}` }, () => done(sendGift(o.id, to, msg.trim(), anon), false));
-  }, [to, flow, o, msg, anon, done]);
-  const byLink = useCallback(() => flow.pay({ ...o, title: `Сыйлық · ${o.title}` }, () => done(sendGift(o.id, null, msg.trim(), anon), true)), [flow, o, msg, anon, done]);
+  }), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
+  // «Сілтеме»: төлем → сілтеме көшіріледі (кез келген мессенджерге жіберуге болады)
+  const byLink = useCallback(() => flow.pay(gift, async () => {
+    const gid = sendGift(o.id, msg.trim(), anon);
+    try { await navigator.clipboard.writeText(giftLink(gid)); haptic.success(); setSnack("Сілтеме көшірілді"); } catch { await shareGift(gid, o.title); }
+    window.setTimeout(() => go("/profile/gift/" + gid, "fade", { replace: true }), 900);
+  }), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
   const main = useMemo(() => ({ text: `Сыйлау · ${fmt(o.price)}`, shine: true, onClick: send }), [o.price, send]);
   const second = useMemo(() => ({ text: "Сілтеме", position: "left" as const, onClick: byLink }), [byLink]);
   useBottomButtons(main, second, !busy);
@@ -86,11 +66,11 @@ export function GiftSend() {
 
         <section className={`${s.card} rise`}>
           <h2 className={`t-sub2 w-600 ${s.head}`}>Кімге</h2>
-          <button className={s.row} onClick={() => { haptic.tap(); setPicking(true); }}>
-            {to ? <span className={s.avatar} style={{ background: to.color }}>{to.name[0]}</span> : <span className={`${s.avatar} ${s.plus}`}>+</span>}
+          <button className={s.row} onClick={send}>
+            <span className={`${s.avatar} ${s.tg}`}><img src={tgIcon} width={24} height={24} alt="" /></span>
             <span className={s.cText}>
-              <span className={`t-text ${to ? "w-600" : s.link}`}>{to ? to.name : "Алушыны таңда"}</span>
-              <span className={`t-sub2 ${s.muted}`}>{to ? "@" + to.username : "Telegram контактілерінен"}</span>
+              <span className={`t-text ${s.link}`}>Telegram контактілерінен таңда</span>
+              <span className={`t-sub2 ${s.muted}`}>Төлемнен кейін тізім ашылады</span>
             </span>
             <img src={chev} width={18} height={18} alt="" />
           </button>
@@ -121,7 +101,7 @@ export function GiftSend() {
           <button className={`${s.btn} ${s.shine}`} disabled={flow.busy} onClick={send}>{flow.busy ? <span className={s.spinner} /> : main.text}</button>
         </div>
       )}
-      {picking && <ContactSheet onPick={(c) => { setTo(c); setPicking(false); }} onClose={() => setPicking(false)} />}
+      {snack && <div className={`t-sub2 ${s.snack}`} role="status">{snack}</div>}
       {flow.node}
     </div>
   );

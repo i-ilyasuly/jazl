@@ -33,21 +33,10 @@ button.row:active { background: rgba(34, 154, 240, 0.08); }
 .spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Контакт таңдау парағы */
-.root { position: fixed; inset: 0; z-index: 50; }
-.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
-.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 32px 16px calc(24px + var(--safe-b, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 4px; color: var(--text-strong); animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
-.closing .scrim { animation: fadeOut 0.22s ease both; }
-.closing .sheet { animation: slideDown 0.22s ease-in both; }
-@keyframes fadeIn { from { opacity: 0; } }
-@keyframes fadeOut { to { opacity: 0; } }
-@keyframes slideUp { from { transform: translateY(100%); } }
-@keyframes slideDown { to { transform: translateY(100%); } }
-.grabber { position: absolute; left: 188px; top: 12px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
-.list { display: flex; flex-direction: column; margin-top: 8px; }
-.contact { position: relative; display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 12px 0; text-align: left; color: var(--text-strong); }
-.contact + .contact::before { content: ""; position: absolute; left: 52px; right: 0; top: 0; height: 1px; background: var(--separator); }
-.contact:active { opacity: 0.7; }
+.tg { background: #2aabee; }
+.snack { position: fixed; z-index: 60; left: 50%; margin-left: -190px; bottom: calc(82px + var(--safe-b, 0px)); width: 380px; min-height: 48px; padding: 14px 16px; border-radius: 12px; background: rgba(17, 26, 38, 0.92); color: #fff; animation: snackIn 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+:global(:root[data-env="telegram"]) .snack { bottom: calc(16px + var(--safe-b, 0px)); }
+@keyframes snackIn { from { opacity: 0; transform: translateY(12px); } }
 
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
 :global(:root[data-theme="dark"]) .card, :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
