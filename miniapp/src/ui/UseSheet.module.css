@@ -23,7 +23,7 @@
 .on .radio { border: 7px solid #229af0; }
 .note { padding: 6px 4px 0; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: calc(70px + var(--safe-b, 0px)); padding: 10px 10px 0; display: flex; gap: 8px; background: var(--surface-white); }
-.btn { flex: 1; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; font-weight: 600; position: relative; overflow: hidden; }
+.btn { flex: 1; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; position: relative; overflow: hidden; }
 .second { background: var(--chip-tint); color: var(--link); }
 .shine::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: shine 2.6s ease-in-out infinite; }
 @keyframes shine { 0%, 45% { left: -60%; } 100% { left: 130%; } }

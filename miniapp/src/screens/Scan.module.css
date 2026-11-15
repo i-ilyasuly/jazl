@@ -1,6 +1,6 @@
 .page { position: relative; height: var(--app-h, 100vh); min-height: 917px; overflow: hidden; background: linear-gradient(168deg, #1c2733 0%, #05080b 100%); color: #fff; }
 .page > h1, .page > p, .page > button, .page > .line { translate: 0 var(--top-shift); }
-.title { position: absolute; left: 0; top: 150px; width: 100%; text-align: center; font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; }
+.title { position: absolute; left: 0; top: 150px; width: 100%; text-align: center; font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; }
 .hint { position: absolute; left: 56px; top: 186px; width: 300px; text-align: center; opacity: 0.7; }
 .frame { position: absolute; left: 76px; top: 290px; width: 260px; height: 260px; animation: breathe 2.4s ease-in-out infinite; }
 .found .frame { animation: lock 0.35s cubic-bezier(0.3, 1.5, 0.5, 1) both; filter: drop-shadow(0 0 10px rgba(52, 209, 122, 0.9)); }
@@ -24,20 +24,20 @@
 .venue { display: flex; align-items: center; gap: 12px; height: 48px; }
 .avatar { width: 44px; height: 44px; border-radius: 50%; background: #eef1f5; flex: none; }
 .venueText { flex: 1; display: flex; flex-direction: column; white-space: nowrap; }
-.amount { font-size: 24px; line-height: 32px; letter-spacing: 0.1px; font-weight: 700; white-space: nowrap; }
+.amount { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 700; white-space: nowrap; }
 .muted { color: var(--text-secondary); }
 .link { color: var(--link); }
 .pack { display: flex; align-items: center; gap: 12px; padding: 10px 0; height: 66px; }
 .emoji { width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 28px; flex: none; }
 .packText { flex: 1; display: flex; flex-direction: column; white-space: nowrap; }
-.packTitle { font-size: 17px; line-height: 26px; letter-spacing: 0.1px; }
+.packTitle { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; }
 .radio { width: 22px; height: 22px; border-radius: 11px; border: 2px solid #229af0; display: flex; align-items: center; justify-content: center; flex: none; }
 .radio span { width: 12px; height: 12px; border-radius: 50%; background: #229af0; animation: pop 0.3s 0.25s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
 @keyframes pop { from { transform: scale(0); } }
 .rows { display: flex; flex-direction: column; gap: 8px; }
 .rows p { display: flex; justify-content: space-between; }
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 66px; padding: 8px 10px; background: #fff; }
-.btn { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .btn:active { opacity: 0.8; }
 .spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

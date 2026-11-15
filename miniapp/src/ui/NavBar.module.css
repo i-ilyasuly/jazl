@@ -20,11 +20,11 @@
 .iconBox { width: 64px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
 .icon { width: 28px; height: 28px; background: var(--nav-label); mask-size: 28px 28px; -webkit-mask-size: 28px 28px; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transition: background 0.25s ease; }
 .iconActive { background: var(--action); }
-.label { font-size: 12px; line-height: 14px; letter-spacing: 0.1px; font-weight: 700; color: var(--nav-label); white-space: nowrap; transition: color 0.25s ease; }
+.label { font-size: 11px; line-height: 13px; letter-spacing: 0.1px; font-weight: 700; color: var(--nav-label); white-space: nowrap; transition: color 0.25s ease; }
 .labelActive { color: var(--action); }
-.avatar { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: rgba(67, 120, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--action); }
+.avatar { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: rgba(67, 120, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 16px; font-weight: 700; color: var(--action); }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
-.unread { position: absolute; left: 335.5px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b30; border: 2px solid #fff; animation: dot 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+.unread { position: absolute; left: 336px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b30; border: 2px solid #fff; animation: dot 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
 @keyframes dot { from { transform: scale(0); } }
 
 /* Таб таңдалғанда белгіше бір рет «ойнайды» (Telegram таб-жолағындағыдай), әр белгішенің өз қимылы бар */

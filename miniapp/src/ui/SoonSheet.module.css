@@ -15,20 +15,20 @@
 .pct { position: absolute; left: 16px; top: 40px; font-size: 34px; line-height: 41px; font-weight: 700; }
 .bar2 { position: absolute; left: 16px; right: 16px; bottom: 14px; height: 6px; border-radius: 3px; background: rgba(34, 154, 240, 0.18); overflow: hidden; }
 .bar2 i { display: block; height: 100%; border-radius: 3px; background: #229af0; transform-origin: left; animation: grow 0.8s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.tag { position: absolute; right: 16px; top: 14px; height: 26px; padding: 3px 10px; border-radius: 13px; background: #ffd633; color: #000; font-size: 13px; line-height: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+.tag { position: absolute; right: 16px; top: 14px; height: 26px; padding: 3px 10px; border-radius: 13px; background: #ffd633; color: #000; font-size: 13px; line-height: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
 :global(:root[data-theme="dark"]) .tag { background: #b8860b; }
-.text { width: 380px; color: var(--text-strong); font-size: 17px; line-height: 24px; padding: 0 4px; }
+.text { width: 380px; color: var(--text-strong); font-size: 17px; line-height: 22px; padding: 0 4px; }
 .text b { padding: 0 5px; border-radius: 6px; background: #dcebfb; color: #1f5fa8; font-weight: 600; }
 .nogap { display: flex; }
 .rows { display: flex; flex-direction: column; gap: 10px; }
 .rows p { display: flex; justify-content: space-between; color: var(--text-secondary); }
 .rows b { font-weight: 600; color: var(--text-strong); }
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: calc(66px + var(--safe-b, 0px)); padding: 8px 10px; background: #fff; }
-.btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; animation: swap 0.3s ease; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; animation: swap 0.3s ease; }
 .btn:active { transform: scale(0.98); }
 .btnDone { background: rgba(95, 107, 122, 0.16); color: #5f6b7a; }
 @keyframes swap { from { opacity: 0.4; } }
-.snack { position: absolute; z-index: 2; left: 50%; margin-left: -190px; bottom: calc(87px + var(--safe-b, 0px)); width: 380px; height: 50px; padding: 14px 16px; font-size: 15px; line-height: 22px; border-radius: 8px; background: #2b3645; color: #fff; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.snack { position: absolute; z-index: 2; left: 50%; margin-left: -190px; bottom: calc(87px + var(--safe-b, 0px)); width: 380px; height: 50px; padding: 14px 16px; font-size: 15px; line-height: 20px; border-radius: 8px; background: #2b3645; color: #fff; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes snack { 0% { transform: translateY(20px); opacity: 0; } 8%, 88% { transform: none; opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
 :global(:root[data-theme="dark"]) .card { background: var(--surface-soon); }
 :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }

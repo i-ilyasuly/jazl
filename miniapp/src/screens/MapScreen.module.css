@@ -7,7 +7,7 @@
 .pin { position: absolute; width: 42px; height: 42px; margin: -21px 0 0 -21px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(17, 26, 38, 0.16); transition: width 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), height 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), margin 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.2s ease, scale 0.25s ease, opacity 0.25s ease; animation: drop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both; animation-delay: calc(150ms + var(--i) * 45ms); -webkit-tap-highlight-color: transparent; }
 @keyframes drop { from { transform: translateY(-18px) scale(0.3); opacity: 0; } }
 .pinDot { position: absolute; inset: 4px; border-radius: 50%; background: color-mix(in srgb, var(--tint) 35%, transparent); display: flex; align-items: center; justify-content: center; }
-.pinDot i { font-style: normal; font-size: 16px; line-height: 24px; }
+.pinDot i { font-style: normal; font-size: 16px; line-height: 21px; }
 .pin:active { scale: 0.9; }
 .pinOn { width: 57px; height: 57px; margin: -28.5px 0 0 -28.5px; box-shadow: inset 0 0 0 3px #229af0, 0 3px 10px rgba(34, 154, 240, 0.35); z-index: 2; }
 .pinHidden { scale: 0; opacity: 0; pointer-events: none; }
@@ -53,7 +53,7 @@
 .venue { display: flex; flex-direction: column; gap: 10px; animation: swap 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes swap { from { transform: translateY(10px); opacity: 0; } }
 .vHead { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; text-align: left; }
-.vAvatar { flex: none; width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 24px; }
+.vAvatar { flex: none; width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 25px; }
 .vText { flex: 1; display: flex; flex-direction: column; }
 .vText b { color: var(--link); }
 .vText small { color: var(--text-secondary); }
@@ -65,7 +65,7 @@
 .none { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: -6px; color: var(--text-strong); }
 .none p:first-of-type { margin-top: 8px; }
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 66px; padding: 8px 10px; background: var(--surface-white); display: flex; gap: 8px; }
-.btn { width: 192px; height: 50px; border-radius: 8px; font-size: 17px; line-height: 26px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; }
+.btn { width: 192px; height: 50px; border-radius: 8px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; }
 .btn:active { transform: scale(0.97); }
 .second { color: var(--link); }
 .main { background: #229af0; color: #fff; }

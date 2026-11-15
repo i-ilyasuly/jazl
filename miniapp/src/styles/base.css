@@ -17,16 +17,17 @@ img { display: block; }
 
 .app { position: relative; width: 100%; max-width: var(--app-width); min-height: 100%; margin: 0 auto; }
 
-/* Мәтін стильдері: UI Kit, Android Roboto */
-.t-large-title { font-size: 34px; line-height: 42px; letter-spacing: 0.25px; font-weight: 700; }
+/* Мәтін стильдері: Telegram Mini Apps UI Kit шкаласы (04 файлы, 18-ереже): 34/41, 28/34, 24/30, 20/25, 19/24, 17/22, 16/21, 15/20, 13/16, 11/13 */
+.t-large-title { font-size: 34px; line-height: 41px; letter-spacing: 0.25px; font-weight: 700; }
 .t-title1 { font-size: 28px; line-height: 34px; letter-spacing: 0.1px; font-weight: 700; }
-.t-title3 { font-size: 20px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; }
+.t-title3 { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; }
 .t-headline { font-size: 19px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; }
 .t-text { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 400; }
 .t-title2 { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 700; }
-.t-sub1 { font-size: 16px; line-height: 24px; letter-spacing: 0.15px; font-weight: 400; }
-.t-sub2 { font-size: 15px; line-height: 22px; letter-spacing: 0.15px; font-weight: 400; }
-.t-cap1 { font-size: 13px; line-height: 20px; letter-spacing: 0.1px; font-weight: 400; }
+.t-sub1 { font-size: 16px; line-height: 21px; letter-spacing: 0.15px; font-weight: 400; }
+.t-sub2 { font-size: 15px; line-height: 20px; letter-spacing: 0.15px; font-weight: 400; }
+.t-cap1 { font-size: 13px; line-height: 16px; letter-spacing: 0.1px; font-weight: 400; }
+.t-cap2 { font-size: 11px; line-height: 13px; letter-spacing: 0.1px; font-weight: 400; }
 .w-600 { font-weight: 600; }
 .w-700 { font-weight: 700; }
 
