@@ -113,7 +113,7 @@ function OfferView({ id }: { id?: string }) {
 
       {loading ? <OfferSkeleton /> : (
       <div className={`${s.content} ${s.contentIn}`}>
-        <section className={s.head}>
+        <section className={`${s.head} ${s.blk}`}>
           <h1 className={s.h1}>{offer.title}</h1>
           <p className={s.venueLine}>
             <button className={s.link} onClick={toVenue}>{offer.venue}</button>
@@ -132,7 +132,7 @@ function OfferView({ id }: { id?: string }) {
         </section>
 
         {base.sizes && (
-          <section className={s.sizes}>
+          <section className={`${s.sizes} ${s.blk}`}>
             <h2 className={s.blockTitle}>Пакет көлемі</h2>
             <div className={s.sizeRow}>
               {base.sizes.map((z, i) => (
@@ -144,6 +144,8 @@ function OfferView({ id }: { id?: string }) {
           </section>
         )}
 
+        <section className={`${s.block} ${s.blk}`}>
+        <h2 className={s.blockTitle}>Шарттары</h2>
         <dl className={s.params}>
           <div><dt>Бірлік</dt><dd>{offer.units} {offer.unitWord}, әрқайсысы бөлек</dd></div>
           <div><dt>Мерзімі</dt><dd>{d.days ?? 30} күн, сатып алған сәттен</dd></div>
@@ -151,15 +153,14 @@ function OfferView({ id }: { id?: string }) {
           {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
           <div><dt>Қолдану</dt><dd>{d.use}</dd></div>
         </dl>
+        </section>
 
-        <hr className={s.sep} />
-
-        <section className={s.block}>
+        <section className={`${s.block} ${s.blk}`}>
           <h2 className={s.blockTitle}>Пакетке не кіреді</h2>
           <ul className={s.bullets}>{d.includes.map((x, i) => <li key={i}><Segs list={[x]} /></li>)}</ul>
         </section>
 
-        <section className={s.block} style={{ position: "relative" }}>
+        <section className={`${s.block} ${s.blk}`} style={{ position: "relative" }}>
           <h2 className={s.blockTitle}>Сипаттама</h2>
           <button className={`${s.quote} ${open ? s.quoteOpen : ""}`} onClick={() => { haptic.tap(); setOpen(!open); }}>
             <span className={s.quoteBar} />
@@ -170,16 +171,16 @@ function OfferView({ id }: { id?: string }) {
           <span className={s.quoteMark} aria-hidden>”</span>
         </section>
 
-        <section className={s.card}>
+        <section className={`${s.blk} ${s.rules}`}>
           <button className={s.rule} onClick={() => { haptic.tap(); setSheet("how"); }}><span>Қалай қолданамын?</span><i className={s.chev} /></button>
           {offer.kind === "hair" && <button className={s.rule} onClick={() => { haptic.tap(); nativeAlert("Жазылуға 2 сағат қалғанға дейін уақытты тегін ауыстырып не бас тарта аласың. Кейін бас тартсаң не келмесең, пакеттен бір рет жұмсалады."); }}><span>Жазылу және бас тарту</span><i className={s.chev} /></button>}
           <button className={s.rule} onClick={() => { haptic.tap(); go("/rules/carry"); }}><span>Мерзімі және көшіру</span><span className={s.ruleHint}>қайта төлесе</span><i className={s.chev} /></button>
-          <button className={s.rule} onClick={() => haptic.tap()}><span>Қайтару және мәселелер</span><i className={s.chev} /></button>
+          <button className={s.rule} onClick={() => { haptic.tap(); go("/profile/faq"); }}><span>Қайтару және мәселелер</span><i className={s.chev} /></button>
         </section>
 
-        <section className={s.block}>
+        <section className={`${s.block} ${s.blk}`}>
           <h2 className={s.blockTitle}>Мекеме</h2>
-          <div className={s.card}>
+          <div className={s.inner}>
             <button className={s.venue} onClick={toVenue}>
               <span className={s.venueAvatar}>{offer.venue.slice(0, 1)}</span>
               <span className={s.venueText}>
@@ -196,9 +197,9 @@ function OfferView({ id }: { id?: string }) {
           </div>
         </section>
 
-        <section className={s.block}>
-          <h2 className={s.blockTitle}>Пікірлер</h2>
-          <div className={s.card}>
+        <section className={`${s.block} ${s.blk}`}>
+          <h2 className={s.blockTitle}>Пікірлер · {offer.ratingCount}</h2>
+          <div className={s.inner}>
             <div className={s.score}>
               <b>{String(offer.rating).replace(".", ",")}</b>
               <span><span className={s.stars}>★★★★★</span><span className={s.venueAddr}>{offer.ratingCount} бағалау</span></span>
