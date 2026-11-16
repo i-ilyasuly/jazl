@@ -87,13 +87,26 @@ export const haptic = {
 };
 
 /** Нативті «Артқа» батырмасы (толық экранда Telegram оны сол жақ жоғарғы бұрышқа өзі салады). */
+let backOwners = 0;
+let hideCount = 0;
 export function useBackButton(onBack: () => void, enabled = true) {
   useEffect(() => {
     if (!enabled || !inTelegram || !wa?.BackButton) return;
-    wa.BackButton.show();
+    backOwners++;
+    if (!hideCount) wa.BackButton.show();
     wa.BackButton.onClick(onBack);
-    return () => { wa.BackButton?.offClick(onBack); wa.BackButton?.hide(); };
+    return () => { backOwners--; wa.BackButton?.offClick(onBack); if (!backOwners) wa.BackButton?.hide(); };
   }, [onBack, enabled]);
+}
+
+/** Құлып экраны сияқты толық беттер: астыңғы беттің нативті батырмаларын (Main, Secondary, Back) уақытша жасырады
+ *  (Патша, 2026-11-16: «құлыптаулы бетте нативті батырмалар қыдырып жүр»). Жабылғанда — бұрынғысы қалпына келеді. */
+export function useHideNativeButtons(active = true) {
+  useEffect(() => {
+    if (!active || !inTelegram || !wa) return;
+    hideCount++; applyButtons(); wa.BackButton?.hide();
+    return () => { hideCount--; applyButtons(); if (!hideCount && backOwners > 0) wa?.BackButton?.show(); };
+  }, [active]);
 }
 
 /** disabled — батырма жасырылмайды, сұр түсте белсенді емес болып тұрады (форма толмағанда). */
@@ -113,6 +126,7 @@ function applyButtons() {
   if (!wa?.MainButton) return;
   const top = btnStack[btnStack.length - 1];
   clearTimeout(hideTimer);
+  if (hideCount) { wa.MainButton.hide(); wa.SecondaryButton?.hide(); return; }
   if (!top) { hideTimer = window.setTimeout(() => { if (!btnStack.length) { wa?.MainButton?.hide(); wa?.SecondaryButton?.hide(); } }, 200); return; } // келесі бет батырманы алса — жасырмаймыз
   const m = top.main.current, sc = top.sec.current;
   const dark = wa.colorScheme === "dark";

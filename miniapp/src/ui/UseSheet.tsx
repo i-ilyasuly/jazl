@@ -8,26 +8,29 @@ import { offerOf, type Pack } from "../store";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import s from "./UseSheet.module.css";
 
-type Way = "scan" | "order";
+type Way = "plan" | "scan" | "order";
 
 export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void }) {
   const go = useGo();
   const o = offerOf(pack);
   const hair = o.kind === "hair";
-  const [way, setWay] = useState<Way>("order");
+  const [way, setWay] = useState<Way>("plan");
   const [closing, setClosing] = useState(false);
   const close = useMemo(() => () => { haptic.soft(); setClosing(true); setTimeout(onClose, 220); }, [onClose]);
   useBackButton(close);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
+  // Патша (2026-11-16): тамақ пен кофеге де жоспарлау — күнтізбеден күн мен уақыт; үш жол: Жоспарлау · Тапсырыс · Сканер.
   const opts: { id: Way; icon: string; title: string; sub: string }[] = hair
-    ? [{ id: "order", icon: "📅", title: "Жазылу", sub: "Күн мен уақытты алдын ала таңда" },
-       { id: "scan", icon: "▦", title: "Сканерлеу", sub: "Мекемеге келдің: кассирдің QR-ын сканерле" }]
-    : [{ id: "order", icon: "🛍️", title: "Алдын ала тапсырыс беру", sub: "Үйде отырып: дайын болғанда барып аласың немесе курьер жібересің" },
-       { id: "scan", icon: "▦", title: "Кассадағы QR-ды сканерлеу", sub: "Мекемеде кассада тұрсаң" }];
+    ? [{ id: "plan", icon: "📅", title: "Жазылу", sub: "Күн мен уақытты күнтізбеден таңда" },
+       { id: "scan", icon: "▦", title: "Сканер", sub: "Мекемеге келдің: кассирдің QR-ын сканерле" }]
+    : [{ id: "plan", icon: "📅", title: "Жоспарлау", sub: "Күн мен уақытты таңда — мекеме дәл сол уақытқа дайындайды" },
+       { id: "order", icon: "🛍️", title: "Тапсырыс", sub: "Қазір: дайын болғанда барып аласың не курьер жібересің" },
+       { id: "scan", icon: "▦", title: "Сканер", sub: "Мекемедесің: кассаның QR-ын сканерле" }];
   const next = useMemo(() => ({ text: "Жалғастыру", shine: true, onClick: () => {
     haptic.medium();
     if (way === "scan") go("/scan?pack=" + pack.id, "up", { replace: false });
+    else if (way === "plan") go("/book/" + pack.id, "forward");
     else go("/order/" + pack.id, "forward");
   } }), [way, go, pack.id]);
   const cancel = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: close }), [close]);
@@ -49,7 +52,7 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
             </button>
           ))}
         </div>
-        <p className={s.note}>Екі жағдайда да ақша төленбейді: пакеттен бір бірлік шегеріледі.</p>
+        <p className={s.note}>{hair ? "Екі" : "Үш"} жағдайда да ақша төленбейді: пакеттен бір бірлік шегеріледі.</p>
         {!inTelegram && (
           <div className={s.bar}>
             <button className={`${s.btn} ${s.second}`} onClick={cancel.onClick}>{cancel.text}</button>

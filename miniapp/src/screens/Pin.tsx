@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { checkPin, redeem, savePin, setSettings, unlockApp, useSettings } from "../store";
-import { biometricAuth, haptic, inTelegram, tg, useBackButton } from "../telegram";
+import { biometricAuth, haptic, inTelegram, tg, useBackButton, useHideNativeButtons } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import finger from "../assets/icons/keyLeft.svg";
@@ -41,6 +41,7 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
   // Құлып экранында «Жабу» — Mini App-ты жабады (артқа өтуге болмайды)
   const back = useCallback(() => { if (unlocking) { if (inTelegram) tg?.close?.(); return; } go(-1, "back"); }, [go, unlocking]);
   useBackButton(back, !unlocking);
+  useHideNativeButtons(unlocking); // құлып экранында астыңғы беттің батырмалары көрінбейді
   useEffect(() => { if (!wait) return; const t = setTimeout(() => { if (wait === 1) { setTries(MAX_TRIES); setError(""); } setWait(wait - 1); }, 1000); return () => clearTimeout(t); }, [wait]);
   // Құлып ашылғанда биометрия бірден сұралады (Figma «5 Биометрия сұрауы»)
   useEffect(() => { if (unlocking && st.bio) void biometricAuth("Jazl+ қолданбасын ашу").then((r) => { if (r === "ok") { haptic.success(); unlockApp(); } }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
