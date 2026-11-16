@@ -1,0 +1,58 @@
+// HTTP API (Hono). Маршруттар: /health — тексеру; /v1/* — тек дұрыс Telegram initData-мен.
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { sql } from "drizzle-orm";
+import type { Config } from "./config.js";
+import type { Db } from "./db/client.js";
+import { users } from "./db/schema.js";
+import { validateInitData } from "./auth/telegram.js";
+import { z } from "zod";
+
+type User = typeof users.$inferSelect;
+export type Env = { Variables: { user: User } };
+
+export function createApp(cfg: Config, db: Db) {
+  const app = new Hono<Env>();
+  const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
+  app.use("/v1/*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type"], allowMethods: ["GET", "POST", "PATCH", "DELETE"], maxAge: 600 }));
+
+  app.get("/health", async (c) => {
+    await db.execute(sql`select 1`);
+    return c.json({ ok: true });
+  });
+
+  // Аутентификация: Authorization: tma <initData>. Пайдаланушы бірінші рет кірсе — жазылады, әйтпесе деректері жаңарады.
+  app.use("/v1/*", async (c, next) => {
+    if (c.req.method === "OPTIONS") return next();
+    const h = c.req.header("Authorization") ?? "";
+    const raw = h.startsWith("tma ") ? h.slice(4) : "";
+    const r = validateInitData(raw, cfg.BOT_TOKEN, cfg.INIT_DATA_TTL);
+    if (!r.ok) return c.json({ ok: false, error: "unauthorized", reason: r.reason }, 401);
+    const u = r.user;
+    const [row] = await db.insert(users).values({
+      telegramId: u.id, firstName: u.first_name, lastName: u.last_name, username: u.username, photoUrl: u.photo_url,
+      lang: u.language_code === "ru" ? "ru" : "kk",
+    }).onConflictDoUpdate({
+      target: users.telegramId,
+      set: { firstName: u.first_name, lastName: u.last_name ?? null, username: u.username ?? null, photoUrl: u.photo_url ?? null, lastSeenAt: sql`now()` },
+    }).returning();
+    c.set("user", row);
+    await next();
+  });
+
+  const publicUser = (u: User) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, username: u.username, photoUrl: u.photoUrl, lang: u.lang, city: u.city, hasPin: Boolean(u.pinHash) });
+
+  app.get("/v1/me", (c) => c.json({ ok: true, user: publicUser(c.get("user")) }));
+
+  const Patch = z.object({ lang: z.enum(["kk", "ru"]).optional(), city: z.string().min(2).max(40).optional() }).strict();
+  app.patch("/v1/me", async (c) => {
+    const body = Patch.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [row] = await db.update(users).set(body.data).where(sql`${users.id} = ${c.get("user").id}`).returning();
+    return c.json({ ok: true, user: publicUser(row) });
+  });
+
+  app.notFound((c) => c.json({ ok: false, error: "not_found" }, 404));
+  app.onError((err, c) => { console.error(err); return c.json({ ok: false, error: "internal" }, 500); });
+  return app;
+}
