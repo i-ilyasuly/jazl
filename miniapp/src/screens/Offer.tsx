@@ -282,16 +282,20 @@ function OfferView({ id }: { id?: string }) {
 }
 
 function OfferSkeleton() {
-  const bar = (w: number, h: number, r = 6) => <span className="sk" style={{ display: "block", width: w, height: h, borderRadius: r }} />;
+  // Жүктелу кезіндегі қаңқа нақты беттің блоктарымен бірдей (Патша, 2026-11-16: «артық тіктөртбұрыш секіріп кетеді»)
+  const bar = (w: number | string, h: number, r = 6) => <span className="sk" style={{ display: "block", width: w, height: h, borderRadius: r }} />;
   return (
     <div className={s.content} aria-busy>
-      {bar(230, 22)}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>{bar(150, 38, 8)}<div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>{bar(120, 28, 14)}{bar(104, 28, 14)}</div></div>
-      {bar(250, 18)}
-      {[300, 280, 180, 320].map((w) => <div key={w}>{bar(w, 18)}</div>)}
-      {bar(380, 1, 0)}
-      {bar(140, 18)}
-      {bar(380, 120, 8)}
+      <section className={`${s.head} ${s.blk}`} style={{ gap: 12 }}>
+        {bar(260, 30, 8)}
+        {bar(180, 20)}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>{bar(150, 40, 8)}<div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>{bar(120, 32, 8)}{bar(104, 32, 8)}</div></div>
+        <div style={{ display: "flex", gap: 8 }}>{bar("33%", 64, 8)}{bar("33%", 64, 8)}{bar("33%", 64, 8)}</div>
+      </section>
+      <section className={s.blk} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {bar(140, 24)}
+        {[300, 260, 280, 220].map((w) => <div key={w}>{bar(w, 20)}</div>)}
+      </section>
     </div>
   );
 }

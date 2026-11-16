@@ -1,4 +1,5 @@
 // Figma: «Сыйлықтарым / Жіберілген» (13886:37243) және «Алынған» (13886:37343)
+import { useTabSwipe } from "../ui/useTabSwipe";
 import { useMemo, useState } from "react";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
@@ -12,6 +13,7 @@ export function Gifts() {
   const go = useGo();
   const { loading } = useMock("gifts", true, 450);
   const [tab, setTab] = useState(0);
+  const sw = useTabSwipe(tab, 2, (i) => { haptic.select(); setTab(i); });
   const all = useGifts();
   const list = all.filter((x) => x.dir === (tab === 0 ? "sent" : "got"));
   const toGift = useMemo(() => ({ text: "Пакетті сыйлау", onClick: () => go("/packs", "fade") }), [go]);
@@ -19,11 +21,12 @@ export function Gifts() {
   return (
     <SubPage title="Сыйлықтарым">
       <div className={`${s.seg} rise`}>
-        <span className={s.thumb} style={{ translate: `${tab * 189}px 0` }} />
+        <span className={s.thumb} style={{ translate: `${Math.max(0, Math.min(189, tab * 189 - sw.drag * 0.5))}px 0` }} />
         {["Жіберілген", "Алынған"].map((t, i) => (
           <button key={t} className={`t-sub2 w-600 ${s.segBtn} ${tab === i ? s.on : ""}`} onClick={() => { if (tab !== i) { haptic.select(); setTab(i); } }}>{t}</button>
         ))}
       </div>
+      <div {...sw.handlers} style={{ ...sw.style, minHeight: 400 }}>
       <div key={tab} className={`${s.pane} ${tab ? s.fromRight : s.fromLeft}`}>
         <Group i={1}>
           {loading ? <SkRows n={list.length} /> : list.map((g) => (
@@ -33,6 +36,7 @@ export function Gifts() {
           ))}
         </Group>
         <Note>{tab === 0 ? "Сыйлықты алушы 7 күн ішінде қабылдамаса, пакет өзіңе қайтады." : "Сыйлықты алған соң пакет Пакеттерімде көрінеді."}</Note>
+      </div>
       </div>
     </SubPage>
   );
