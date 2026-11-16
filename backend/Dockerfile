@@ -14,6 +14,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
+COPY seed ./seed
 USER node
 EXPOSE 8080
 CMD ["node", "dist/server.js"]

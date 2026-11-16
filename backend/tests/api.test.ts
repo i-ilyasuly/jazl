@@ -6,6 +6,7 @@ import { createDb } from "../src/db/client.js";
 import { runMigrations } from "../src/db/migrate.js";
 import { signInitData } from "../src/auth/telegram.js";
 import { loadConfig } from "../src/config.js";
+import { seedCatalog } from "../src/db/seed.js";
 
 const URL = process.env.TEST_DATABASE_URL;
 const TOKEN = "123456:TEST-token-not-real";
@@ -63,6 +64,18 @@ d("API", () => {
     expect(good.headers.get("access-control-allow-origin")).toBe("https://miniapp.example");
     const evil = await appx.request("/v1/me", { method: "OPTIONS", headers: { Origin: "https://evil.example", "Access-Control-Request-Method": "GET" } });
     expect(evil.headers.get("access-control-allow-origin")).toBeNull();
+  });
+  it("B1 каталог: кірусіз ашық, seed екі рет іске қосылса да екі еселенбейді", async () => {
+    await seedCatalog(dbh.db); await seedCatalog(dbh.db);
+    const res = await createApp(cfg, dbh.db).request("/v1/catalog");
+    expect(res.status).toBe(200);
+    const j = await res.json();
+    expect(j.venues).toHaveLength(10);
+    expect(j.offers).toHaveLength(11);
+    const doner = j.offers.find((o: { slug: string }) => o.slug === "doner");
+    expect(doner).toMatchObject({ venueSlug: "damdi", price: 6000, units: 4, regularUnitPrice: 2000, status: "active" });
+    expect(j.venues.find((v: { slug: string }) => v.slug === "damdi").branches[0].address).toBe("Нұркен Әбдіров, 24");
+    expect(j.offers.find((o: { slug: string }) => o.slug === "burger").status).toBe("ended");
   });
   it("ескі боттың public.users кестесі өзгеріссіз", async () => {
     const r = await dbh.pool.query("select first_name from public.users");

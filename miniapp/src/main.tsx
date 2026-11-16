@@ -27,6 +27,7 @@ import { Order } from "./screens/Order";
 import { OrderDone, OrderState, OrderView } from "./screens/OrderResult";
 import { HapticTest } from "./screens/HapticTest";
 import { FontTest } from "./screens/FontTest";
+import { SystemStatus } from "./screens/SystemStatus";
 import { Security } from "./screens/Security";
 import { City, Language } from "./screens/Choice";
 import { Favorites } from "./screens/Favorites";
@@ -52,6 +53,7 @@ import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
 import { warmImages } from "./ui/imageCache";
 import { EdgeBack } from "./ui/EdgeBack";
+import { loadCatalog } from "./catalog";
 
 const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
 
@@ -92,6 +94,8 @@ function FirstVisit({ children }: { children: ReactNode }) {
 // белсенді «тамшы» бір табтан екіншісіне сырғып өтеді.
 function Shell() {
   const path = useLocation().pathname;
+  const [, setCatalogTick] = useState(0);
+  useEffect(() => { const on = () => setCatalogTick((n) => n + 1); window.addEventListener("jazl:catalog", on); return () => window.removeEventListener("jazl:catalog", on); }, []);
   const tab = tabOf[path] ?? (path.startsWith("/category/") ? "home" : undefined);
   const onboarded = useOnboarded();
   const locked = useLocked();
@@ -169,6 +173,7 @@ const router = createHashRouter([
       { path: "/profile/security", element: <Security /> },
       { path: "/profile/haptics", element: <HapticTest /> },
       { path: "/profile/fonts", element: <FontTest /> },
+      { path: "/profile/system", element: <SystemStatus /> },
       { path: "/profile/language", element: <Language /> },
       { path: "/profile/city", element: <City /> },
       { path: "/profile/favorites", element: <Favorites /> },
@@ -203,6 +208,8 @@ const router = createHashRouter([
 ]);
 
 warmImages();
+// B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
+void loadCatalog().then(() => window.dispatchEvent(new Event("jazl:catalog")));
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />
