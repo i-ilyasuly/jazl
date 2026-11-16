@@ -1,6 +1,8 @@
 /* Ұсыныс карточкасы: 412×204, r20 — экран еніне дейін (Патша, 2026-11-16: Krisha/Kolesa сияқты екі жаққа созылған) */
 .card { position: relative; display: block; width: 412px; margin: 0 -16px; height: 204px; border-radius: 20px; background: var(--surface-card); overflow: hidden; flex: none; transition: transform 0.12s ease; }
 .card:active { transform: scale(0.985); }
+/* Өнімділік (Патша, 2026-11-16: скролл қатып қалды): экраннан тыс карточкалар салынбайды, әр карточка өз қабатында оқшауланады */
+.card { content-visibility: auto; contain-intrinsic-size: auto 204px; contain: layout paint style; }
 .title { position: absolute; left: 16px; top: 15px; max-width: 272px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: 0.1px; color: var(--text-primary); }
 .venue { position: absolute; left: 16px; top: 42px; font-size: 15px; line-height: 20px; white-space: nowrap; color: var(--hint); }
 .discount { position: absolute; right: 60px; top: 16px; height: 24px; padding: 4px 9px 4px 8px; border-radius: 6px; font-size: 13px; line-height: 16px; font-weight: 700 !important; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
@@ -10,7 +12,7 @@
 .thumb { position: absolute; left: 16px; top: 72px; width: 176px; height: 116px; border-radius: 12px; background: var(--thumb-bg); overflow: hidden; }
 .thumbIcon { position: absolute; left: 40px; top: 10px; object-fit: contain; }
 .photo { width: 100%; height: 100%; object-fit: cover; }
-.buyers { position: absolute; left: 8px; top: 80px; height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.28); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: flex; align-items: center; gap: 4px; color: #fff; font-weight: 600; }
+.buyers { position: absolute; left: 8px; top: 80px; height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.36); display: flex; align-items: center; gap: 4px; color: #fff; font-weight: 600; }
 .buyers img { filter: brightness(0) invert(1); }
 .deadline { position: absolute; left: 80px; top: 80px; height: 24px; padding: 4px 8px; border-radius: 6px; background: var(--orange-bg); color: var(--orange-text); font-weight: 600; white-space: nowrap; }
 .price { position: absolute; right: 16px; top: 72px; font-size: 24px; line-height: 30px; letter-spacing: 0.15px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
@@ -25,7 +27,7 @@
 .ring { animation: ring 0.6s ease; transform-origin: 50% 10%; }
 @keyframes ring { 20% { transform: rotate(-18deg); } 45% { transform: rotate(14deg); } 70% { transform: rotate(-8deg); } 100% { transform: none; } }
 .unit, .saving { font-weight: 400; } /* Figma ережесі + Krisha: белгі мәтіні Regular */
-:global(:root[data-theme="dark"]) .buyers { background: rgba(0, 0, 0, 0.32); color: #fff; }
+:global(:root[data-theme="dark"]) .buyers { background: rgba(0, 0, 0, 0.4); color: #fff; }
 :global(:root[data-theme="dark"]) .buyers img { filter: brightness(0) invert(1); }
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .over { background: rgba(255, 255, 255, 0.09); }

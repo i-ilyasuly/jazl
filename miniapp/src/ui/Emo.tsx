@@ -2,12 +2,12 @@
 // Түр белгілері (тағам/кофе/шаштараз, сыйлық, орын) — басты беттегі плиткалардың фонсыз суреттері;
 // қалғаны — Microsoft Fluent Emoji 3D (MIT лицензиясы, Telegram эмодзилеріне ұқсас көлемді стиль), 128px webp.
 import type { OfferKind } from "../mocks/offers";
-import food from "../assets/tiles/food.webp";
-import coffee from "../assets/tiles/coffee.webp";
-import hair from "../assets/tiles/hair.webp";
-import giftTile from "../assets/tiles/b_gift.webp";
-import pinTile from "../assets/tiles/b_pin.webp";
-import coinsTile from "../assets/tiles/b_coins.webp";
+import food from "../assets/tiles/sm_food.webp";
+import coffee from "../assets/tiles/sm_coffee.webp";
+import hair from "../assets/tiles/sm_hair.webp";
+import giftTile from "../assets/tiles/sm_b_gift.webp";
+import pinTile from "../assets/tiles/sm_b_pin.webp";
+import coinsTile from "../assets/tiles/sm_b_coins.webp";
 import s from "./Emo.module.css";
 
 const fluent = import.meta.glob("../assets/emoji/*.webp", { eager: true, import: "default" }) as Record<string, string>;
@@ -33,5 +33,5 @@ export const emoSrc = (e?: string, asItem = false) => (asItem ? item[norm(e)] : 
 export function Emo({ e, kind, size = 28, asItem, className }: { e?: string; kind?: OfferKind; size?: number; asItem?: boolean; className?: string }) {
   const src = kind ? kindPic[kind] : emoSrc(e, asItem);
   if (!src) return <>{e}</>;
-  return <img src={src} width={size} height={size} alt="" draggable={false} className={`${s.emo} ${className ?? ""}`} />;
+  return <img src={src} width={size} height={size} alt="" draggable={false} decoding="async" loading="lazy" className={`${s.emo} ${className ?? ""}`} />;
 }
