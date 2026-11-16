@@ -2,7 +2,7 @@
 .lead { display: flex; flex-wrap: wrap; gap: 2px 4px; width: 380px; font-size: 16px; line-height: 21px; letter-spacing: 0.15px; color: var(--text-strong); }
 .lead b { height: 22px; padding: 0 5px; border-radius: 6px; font-size: 15px; line-height: 20px; letter-spacing: 0.1px; font-weight: 600; }
 .blue { background: #dcebfb; color: #1f5fa8; }
-.green { background: #ddf3e4; color: #1b6b2e; }
+.green { background: #ddf3e4; color: #1b6b2e;  --dark-fg: var(--tone-ok); }
 .nogap { display: flex; }
 .points { width: 356px; display: flex; flex-direction: column; gap: 6px; list-style: none; }
 .points li { position: relative; padding-left: 16px; width: 356px; font-size: 15px; line-height: 20px; letter-spacing: 0.1px; color: var(--text-strong); min-height: 24px; }
@@ -23,7 +23,7 @@
 .app { height: 32px; padding: 6px 12px 6px 10px; border-radius: 10px; background: #f0f2f6; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; transition: background 0.2s ease, color 0.2s ease, transform 0.12s ease; }
 .app:active { transform: scale(0.95); }
 .appOn { background: rgba(34, 154, 240, 0.14); color: var(--link); }
-.appOnWa { background: rgba(49, 209, 88, 0.15); color: #1b6b2e; }
+.appOnWa { background: rgba(49, 209, 88, 0.15); color: #1b6b2e;  --dark-fg: var(--tone-ok); }
 .tick { animation: tick 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
 .tickWa { width: 14px; text-align: center; animation: tick 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
 @keyframes tick { from { transform: scale(0); } }

@@ -22,7 +22,7 @@
 .lead { position: absolute; left: 38px; top: 482px; width: 336px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; color: var(--text-secondary); animation: up 0.5s 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .lead b { height: 22px; padding: 0 6px; border-radius: 6px; font-weight: 600; }
 .blue { background: #dcebfb; color: #1f5fa8; }
-.green { background: #ddf3e4; color: #1b6b2e; }
+.green { background: #ddf3e4; color: #1b6b2e;  --dark-fg: var(--tone-ok); }
 .nogap { display: flex; }
 @keyframes up { from { transform: translateY(12px); opacity: 0; } }
 .perks { position: absolute; left: 16px; top: 563px; width: 380px; height: 194px; padding: 16px; border-radius: 20px; background: #fff; border: 1px solid #e3e7ed; display: flex; flex-direction: column; gap: 14px; animation: up 0.5s 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }

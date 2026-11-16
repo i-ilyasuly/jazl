@@ -43,3 +43,6 @@
 .listTitle { margin: 8px 0 0; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); scroll-margin-top: 100px; }
 .map span { font-size: 15px; line-height: 20px; font-weight: 600; }
 :global(:root[data-theme="dark"]) .map { background: #2481cc; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
+/* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
+.soon { transition: transform 0.12s ease; }
+.soon:active { transform: scale(0.96); }

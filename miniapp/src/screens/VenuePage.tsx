@@ -2,6 +2,7 @@
 // «Пікірлер» 13886:26155, «Ұсыныс жоқ» 13886:27031, «Жаңа мекеме: пікірлер» 13886:26881,
 // «Бағыт: 2ГИС» 13886:27429, «Қоңырау: растау» 13886:27703, «Бөлісу: Telegram чаттары» 13886:27961 (нативті чат таңдау),
 // «Хабарла: рұқсат диалогы» 13886:28289 (нативті requestWriteAccess), «Хабарла: қосылды» 13886:28547
+import { Photo } from "../ui/Photo";
 import { kindPic } from "../ui/Emo";
 import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -71,7 +72,7 @@ function VenueView({ id }: { id?: string }) {
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
       <div className={s.cover}>
-        {coverBroken ? <img src={kindPic[v.kind]} width={160} height={160} className={s.coverIcon} alt="" style={{ objectFit: "contain" }} /> : <img src={coverPhoto[v.kind]} className={s.coverPhoto} alt="" onError={() => setCoverBroken(true)} />}
+        {coverBroken ? <img src={kindPic[v.kind]} width={160} height={160} className={s.coverIcon} alt="" style={{ objectFit: "contain" }} /> : <Photo src={coverPhoto[v.kind]} kind={v.kind} className={s.coverPhoto} alt="" onError={() => setCoverBroken(true)} />}
       </div>
       <header className={s.head}>
         <div className={s.id}>
@@ -102,7 +103,7 @@ function VenueView({ id }: { id?: string }) {
       <main key={tab} className={`${s.body} ${tab > prev ? s.fromRight : s.fromLeft}`}>
         {tab === 0 && status === "nopay" && offers.length > 0 && <p className={`${s.nopay} infoBox infoWarn`}>Мекеме уақытша Jazl+ төлемін қабылдамайды. Пакетті сатып алуға болады, пайдалану кейінірек.<i>”</i></p>}
         {tab === 0 && (offers.length ? offers.map((o) => <OfferCard key={o.id} offer={o} />) : (
-          <div className={s.empty}><h2 className="t-headline">Қазір ұсыныс жоқ</h2><p className={`t-sub2 ${s.gray}`}>Жаңа ұсыныс шықса, хабарлаймыз</p><button className={`t-sub2 w-600 ${s.emptyBtn}`} onClick={notify}>{subscribed ? "✓ Қосулы" : "🔔 Хабарла"}</button></div>
+          <div className={s.empty}><h2 className="t-headline">Қазір ұсыныс жоқ</h2><p className={`t-sub2 ${s.gray}`}>Жаңа ұсыныс шықса, хабарлаймыз</p><button className={`t-sub2 w-600 ${s.emptyBtn} ${subscribed ? s.actionOn : ""}`} onClick={notify}><span className={`${s.bell} ${subscribed ? s.ring : ""}`} style={{ maskImage: `url("${bellIcon}")`, WebkitMaskImage: `url("${bellIcon}")` }} />{subscribed ? "Қосулы" : "Хабарла"}</button></div>
         ))}
         {tab === 1 && <>
           <section className={s.card}>
@@ -125,7 +126,7 @@ function VenueView({ id }: { id?: string }) {
         </>}
         {tab === 2 && <section className={s.card}>
           <h2 className={`t-headline ${s.cardTitle}`}>Суреттер</h2>
-          <div className={s.grid}>{[0, 1, 2, 3].map((i) => <span key={i} className={s.shot} style={{ ["--i" as string]: i }}><img src={offers[i % Math.max(1, offers.length)]?.photo ?? coverPhoto[v.kind]} className={s.shotImg} alt="" loading="lazy" /></span>)}</div>
+          <div className={s.grid}>{[0, 1, 2, 3].map((i) => <span key={i} className={s.shot} style={{ ["--i" as string]: i }}><Photo src={offers[i % Math.max(1, offers.length)]?.photo ?? coverPhoto[v.kind]} kind={v.kind} className={s.shotImg} alt="" loading="lazy" /></span>)}</div>
         </section>}
         {tab === 3 && (v.reviews < 3 || status === "new" ? (
           <div className={s.empty}><h2 className="t-headline">Пікірлер әлі жоқ</h2><p className={`t-sub2 ${s.gray}`}>Пікірлер 3 бағалаудан кейін көрінеді</p></div>

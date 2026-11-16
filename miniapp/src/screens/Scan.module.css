@@ -71,7 +71,7 @@
 .kvList p { display: flex; align-items: center; justify-content: space-between; height: 44px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; }
 .kvList p + p { box-shadow: inset 0 1px 0 var(--separator); }
 .kvList b { font-weight: 600; }
-.extraChip { align-self: flex-start; height: 28px; padding: 4px 8px; border-radius: 8px; background: rgba(49, 209, 88, 0.16); color: #1b6b2e; }
+.extraChip { align-self: flex-start; height: 28px; padding: 4px 8px; border-radius: 8px; background: rgba(49, 209, 88, 0.16); color: #1b6b2e;  --dark-fg: var(--tone-ok); }
 .bar2 { display: flex; gap: 8px; }
 .bar2 .btn { width: auto; flex: 1; }
 .btn2 { background: var(--chip-tint); color: var(--link); }

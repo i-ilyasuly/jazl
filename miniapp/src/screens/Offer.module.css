@@ -164,3 +164,8 @@
 .slide .photoImg { object-position: center 40%; }
 .barTitle { left: 92px !important; right: 92px !important; opacity: 0; transform: translateY(6px); transition: opacity 0.22s ease, transform 0.22s ease; }
 .topBarOn .barTitle { opacity: 1; transform: none; }
+/* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
+.quote, .venue { transition: transform 0.12s ease, opacity 0.12s ease; }
+.quote:active { transform: scale(0.98); }
+.venue:active { opacity: 0.6; }
+button.link:active, .link button:active { opacity: 0.55; }

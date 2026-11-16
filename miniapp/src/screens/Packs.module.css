@@ -29,7 +29,7 @@
 .renewText { flex: 1; color: var(--text-strong); line-height: 20px; word-spacing: 0.4px; }
 .renewText b { display: inline-block; padding: 0 6px; border-radius: 6px; background: var(--hl-green-bg); color: var(--hl-green-text); font-weight: 600; line-height: 20px; }
 .renewBtn { height: 36px; padding: 8px 12px; border-radius: 8px; background: rgba(67, 120, 255, 0.1); color: #007aff; white-space: nowrap; flex: none; }
-.quoteMark { position: absolute; left: 334px; top: 185px; font-size: 56px; line-height: 56px; font-weight: 700; color: #31d158; pointer-events: none; }
+.quoteMark { position: absolute; left: 334px; top: 185px; font-size: 56px; line-height: 56px; font-weight: 700; color: #31d158; pointer-events: none;  --dark-fg: var(--tone-ok); }
 .empty { padding: 48px 16px; text-align: center; color: var(--text-secondary); }
 :global(:root[data-theme="dark"]) .seg { background: rgba(118, 118, 128, 0.24); }
 :global(:root[data-theme="dark"]) .segThumb { background: #3b4a5d; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
@@ -101,3 +101,6 @@
 .fromLeft { animation: inL 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes inR { from { transform: translateX(48px); opacity: 0; } }
 @keyframes inL { from { transform: translateX(-48px); opacity: 0; } }
+/* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
+.segBtn:active { opacity: 0.6; }
+.rateClose:active { opacity: 0.5; }

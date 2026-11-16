@@ -22,6 +22,6 @@
 /* Figma 23 «Мекеме: филиалдар парағы»: түсініктеме 15/20, белгі 24 (Ашық — жасыл, Жабық — сұр) */
 .note { padding: 0 16px 8px; color: var(--text-secondary); }
 .badge { flex: none; height: 24px; padding: 4px 8px; border-radius: 8px; background: rgba(95, 107, 122, 0.12); color: #5f6b7a; }
-.badge.ok { background: rgba(49, 209, 88, 0.16); color: #1b6b2e; }
+.badge.ok { background: rgba(49, 209, 88, 0.16); color: #1b6b2e;  --dark-fg: var(--tone-ok); }
 .extra { margin-top: 8px; border-radius: 12px; background: var(--chip-tint); }
 :global(:root[data-theme="dark"]) .badge { color: #fff; }

@@ -24,7 +24,7 @@
 .star { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
 .star svg { fill: #e3e7ec; transition: fill 0.18s ease, transform 0.18s ease; }
 .starOn svg { fill: #ffb800; animation: starPop 0.32s var(--d) cubic-bezier(0.3, 1.6, 0.5, 1) both; }
-.star:active svg { transform: scale(0.88); }
+.star:active svg, .star:active { opacity: 0.7; }
 @keyframes starPop { 40% { transform: scale(1.22); } }
 .label { min-height: 21px; animation: stepIn 0.2s ease both; }
 
@@ -46,3 +46,5 @@
 :global(:root[data-theme="dark"]) .star svg { fill: #3a4756; }
 :global(:root[data-theme="dark"]) .starOn svg { fill: #ffb800; }
 :global(:root[data-theme="dark"]) .chipOn { background: rgba(92, 180, 244, 0.24); }
+/* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
+.star:active svg, .star:active { opacity: 0.7; }

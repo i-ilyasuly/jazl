@@ -32,8 +32,8 @@
 .bRow { border-radius: 14px; padding-left: 10px; padding-right: 10px; transition: background 0.2s ease; }
 .bOn { background: var(--chip-tint); }
 .bOn::before, .bOn + .bRow::before { display: none; }
-.green { color: #1f9a41; }
-.red { color: #e53935; }
+.green { color: #1f9a41;  --dark-fg: var(--tone-ok); }
+.red { color: #e53935;  --dark-fg: var(--tone-bad); }
 .sendSheet { align-items: center; text-align: center; gap: 8px; padding-top: 36px; padding-bottom: calc(40px + var(--safe-b, 0px)); }
 .sendSheet .sheetTitle { padding-bottom: 0; }
 .sendText { font-size: 17px; line-height: 22px; color: var(--text-secondary); }

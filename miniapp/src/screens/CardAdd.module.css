@@ -7,7 +7,7 @@
 .input::placeholder { color: var(--text-secondary); opacity: 0.5; }
 .brand { height: 24px; padding: 2px 8px; border-radius: 6px; background: var(--chip-tint); color: var(--link); font-size: 13px; line-height: 16px; font-weight: 800; letter-spacing: 0.5px; animation: pop 0.25s cubic-bezier(0.3, 1.5, 0.5, 1); }
 @keyframes pop { from { transform: scale(0.5); opacity: 0; } }
-.err { font-size: 13px; line-height: 16px; color: #e53935; }
+.err { font-size: 13px; line-height: 16px; color: #e53935;  --dark-fg: var(--tone-bad); }
 .pair { display: grid; grid-template-columns: 1fr 120px; }
 .pair .field:first-child::after { right: 0; }
 .bar { position: fixed; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: calc(70px + var(--safe-b, 0px)); padding: 10px 10px 0; background: var(--surface-white); }

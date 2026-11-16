@@ -5,7 +5,7 @@
 .on { background: rgba(34, 154, 240, 0.18); color: #1f73c2; font-weight: 600; }
 .busy { background: rgba(118, 118, 128, 0.12); color: var(--text-secondary); text-decoration: line-through; opacity: 0.6; }
 .picked { display: flex; align-items: center; gap: 8px; height: 28px; color: var(--text-strong); }
-.pickedChip { height: 28px; padding: 4px 8px; border-radius: 6px; background: rgba(49, 209, 88, 0.16); color: #1b6b2e; animation: pop 0.3s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.pickedChip { height: 28px; padding: 4px 8px; border-radius: 6px; background: rgba(49, 209, 88, 0.16); color: #1b6b2e; animation: pop 0.3s cubic-bezier(0.3, 1.4, 0.5, 1) both;  --dark-fg: var(--tone-ok); }
 @keyframes pop { from { transform: scale(0.85); opacity: 0; } }
 .legend { color: var(--text-secondary); }
 .kv { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 52px; padding: 0 16px; color: var(--text-strong); white-space: nowrap; }

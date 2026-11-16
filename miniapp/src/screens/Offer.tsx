@@ -1,4 +1,5 @@
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
+import { Photo } from "../ui/Photo";
 import { kindPic } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
@@ -6,7 +7,7 @@ import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { UseSheet } from "../ui/UseSheet";
-import { detailsOf, discount, findOffer, fmt, isEnded, saving, unitPrice, type OfferDetails } from "../mocks/offers";
+import { detailsOf, discount, findOffer, fmt, isEnded, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
 import { venues } from "../mocks/venues";
 import { HowSheet } from "../ui/HowSheet";
@@ -24,7 +25,7 @@ import s from "./Offer.module.css";
 const Segs = ({ list }: { list: OfferDetails["includes"] }) => <>{list.map((x, i) => typeof x === "string" ? <span key={i}>{x}</span> : "g" in x ? <span key={i} className={s.hlGreen}>{x.g}</span> : <span key={i} className={s.hlBlue}>{x.b}</span>)}</>;
 
 /** Сырғытылатын фото галерея: нүктелері қай суретте тұрғаныңды көрсетеді. */
-function Gallery({ photos, fallback, onIndex }: { photos: string[]; fallback: string; onIndex?: (i: number) => void }) {
+function Gallery({ photos, fallback, kind, onIndex }: { photos: string[]; fallback: string; kind?: OfferKind; onIndex?: (i: number) => void }) {
   const [at, setAt] = useState(0);
   const [bad, setBad] = useState<Record<number, true>>({});
   return (
@@ -32,7 +33,7 @@ function Gallery({ photos, fallback, onIndex }: { photos: string[]; fallback: st
       <div className={s.gallery} onScroll={(e) => { const el = e.currentTarget; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== at) { setAt(i); haptic.select(); onIndex?.(i); } }}>
         {photos.map((src, i) => (
           <div key={src} className={s.slide}>
-            {bad[i] ? <img src={fallback} className={s.heroIcon} width={180} height={180} alt="" /> : <img src={src} className={s.photoImg} alt="" loading={i ? "lazy" : "eager"} onError={() => setBad((b) => ({ ...b, [i]: true }))} />}
+            {bad[i] ? <img src={fallback} className={s.heroIcon} width={180} height={180} alt="" /> : <Photo src={src} kind={kind} className={s.photoImg} alt="" loading={i ? "lazy" : "eager"} onError={() => setBad((b) => ({ ...b, [i]: true }))} />}
           </div>
         ))}
       </div>
@@ -127,7 +128,7 @@ function OfferView({ id }: { id?: string }) {
       <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`}><p className={`pageTitle ${s.barTitle}`}>{offer.title}</p></div>
       <TelegramChrome mode="back" onBack={back} />
       <div className={`${s.photo} ${ended ? s.photoEnded : ""} ${springing ? s.spring : ""}`} style={{ viewTransitionName: "offer-photo", height: 412 + pull }} onTransitionEnd={() => setSpringing(false)}>
-        <Gallery photos={photos} fallback={kindPic[offer.kind]} />
+        <Gallery photos={photos} fallback={kindPic[offer.kind]} kind={offer.kind} />
       </div>
 
       {loading ? <OfferSkeleton /> : (
