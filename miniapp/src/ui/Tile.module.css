@@ -1,0 +1,4 @@
+/* Профиль иконкаларымен бірдей: 36 өлшемде ішкі шаршы 32 (жан-жағынан 2px), бұрышы 9px */
+.tile { position: relative; display: flex; flex: none; align-items: center; justify-content: center; }
+.tile::before { content: ""; position: absolute; inset: 2px; border-radius: var(--r); background: var(--tile); }
+.glyph { position: relative; background: #fff; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }

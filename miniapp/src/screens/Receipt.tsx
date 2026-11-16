@@ -110,7 +110,7 @@ export function OrderReceipt() {
         <span className={`t-cap1 ${s.chip} ${s.sent}`}>Жіберілді</span>
       </div>
       <Group i={1}>
-        {rows.map(([k, v]) => <div key={k} className={`t-sub2 ${s.kv}`}><span>{k}</span>{k === "Код" ? <CopyCode code={v} className={s.copy}>{v} ⧉</CopyCode> : <b>{v}</b>}</div>)}
+        {rows.map(([k, v]) => <div key={k} className={`t-sub2 ${s.kv}`}><span>{k}</span>{k === "Код" ? <CopyCode code={v} className={`${s.copy} mono`}>{v} ⧉</CopyCode> : <b className={/№|референс/i.test(k) ? "mono" : undefined}>{v}</b>}</div>)}
       </Group>
       <Group i={2}>
         <button className={s.action} onClick={download.onClick}>Чекті жүктеу</button>

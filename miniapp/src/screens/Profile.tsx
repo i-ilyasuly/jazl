@@ -21,6 +21,7 @@ import ask from "../assets/icons/p_ask.svg";
 import how from "../assets/icons/p_how.svg";
 import terms from "../assets/icons/p_terms.svg";
 import venue from "../assets/icons/p_venue.svg";
+import font from "../assets/icons/p_font.svg";
 import s from "./Profile.module.css";
 
 interface RowDef { icon: string; title: string; sub?: string; value?: string; badge?: number; to: string }
@@ -39,6 +40,7 @@ const groups: { header?: string; rows: RowDef[] }[] = [
     { icon: globe, title: "Тіл", sub: "Қазақша", to: "/profile/language" },
     { icon: city, title: "Қала", sub: "Қарағанды", to: "/profile/city" },
     { icon: bell, title: "Діріл сынағы", sub: "Нативті дірілдерді тексеру", to: "/profile/haptics" },
+    { icon: font, title: "Шрифт: Medeo", sub: "Барлық стильдер мен салмақтар", to: "/profile/fonts" },
   ] },
   { header: "Көмек", rows: [
     { icon: ask, title: "Сұрақ қою", to: "/profile/ask" },

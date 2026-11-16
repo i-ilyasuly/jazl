@@ -1,7 +1,8 @@
 // Figma «07 · Сатып алу және төлем»: «Сатып алу парағы» 13886:23425, «Төлем тәсілі / Тізім» 13886:23847,
 // «Kaspi Pay нөмірі» 13886:24239, «Kaspi растауын күту» 13886:24623, «Баға өзгерді» 13940:8187.
 // Бір парақтың ішінде қадамдар ауысады; төменгі батырмалар — Telegram-ның нативті MainButton/SecondaryButton.
-import { Emo, kindPic } from "./Emo";
+import { Tile } from "./Tile";
+import { kindPic } from "./Emo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, saving, type Offer } from "../mocks/offers";
 import { useGo } from "../nav";
@@ -145,7 +146,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
           <div className={s.list}>
             {methods.map((x) => (
               <button key={x.id} className={`${s.opt} ${method === x.id ? s.optOn : ""}`} onClick={() => { if (method !== x.id) { haptic.select(); setMethod(x.id); } }}>
-                <span className={s.optIcon}><Emo e={x.emoji} size={30} /></span>
+                <Tile e={x.emoji} size={44} />
                 <span className={s.itemText}><span className={s.itemTitle}>{x.title}</span><span className={s.itemSub}>{x.card ? `Қосылған карта · ${x.sub.replace(/.*(\d\d\/\d\d).*/, "$1")}` : x.sub}</span></span>
                 <span className={`${s.radio} ${method === x.id ? s.radioOn : ""}`} />
               </button>
@@ -158,7 +159,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
         </>}
 
         {step === "kaspi" && <>
-          <div className={s.kaspiHead}><span className={s.optIcon}><Emo e="🏦" size={30} /></span><h2 className={s.title}>Kaspi Pay</h2></div>
+          <div className={s.kaspiHead}><Tile e="🏦" size={44} /><h2 className={s.title}>Kaspi Pay</h2></div>
           <p className={s.lead}>Шот жіберілетін, Kaspi.kz-ке тіркелген нөмірді көрсет</p>
           <label className={s.field}>
             <span className={s.fieldLabel}>Kaspi.kz нөмірі</span>
