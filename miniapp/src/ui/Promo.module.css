@@ -3,7 +3,7 @@
 .track::-webkit-scrollbar { display: none; }
 .card { position: relative; flex: none; width: 380px; height: 108px; padding: 16px 0 0 16px; border-radius: 20px; overflow: hidden; scroll-snap-align: center; text-align: left; display: flex; flex-direction: column; gap: 8px; transition: transform 0.15s ease; }
 .card:active { transform: scale(0.98); }
-.title { position: relative; z-index: 1; white-space: pre-line; font-size: 19px; line-height: 24px; font-weight: 700; letter-spacing: 0.1px; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.title { position: relative; z-index: 1; white-space: pre-line; font-size: 19px; line-height: 24px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
 .link { position: relative; z-index: 1; font-size: 15px; line-height: 20px; font-weight: 500; color: rgba(255, 255, 255, 0.92); }
 .art { position: absolute; right: 14px; top: 50%; height: 112px; width: auto; translate: 0 -50%; rotate: -6deg; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.22)); animation: float 4s ease-in-out infinite; }
 @keyframes float { 50% { translate: 0 calc(-50% - 4px); } }

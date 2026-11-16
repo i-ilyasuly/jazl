@@ -3,7 +3,7 @@
 .card:active { transform: scale(0.985); }
 /* Өнімділік (Патша, 2026-11-16: скролл қатып қалды): экраннан тыс карточкалар салынбайды, әр карточка өз қабатында оқшауланады */
 .card { content-visibility: auto; contain-intrinsic-size: auto 204px; contain: layout paint style; }
-.title { position: absolute; left: 16px; top: 15px; max-width: 272px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: 0.1px; color: var(--text-primary); }
+.title { position: absolute; left: 16px; top: 15px; max-width: 272px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-primary); }
 .venue { position: absolute; left: 16px; top: 42px; font-size: 15px; line-height: 20px; white-space: nowrap; color: var(--hint); }
 .discount { position: absolute; right: 60px; top: 16px; height: 24px; padding: 4px 9px 4px 8px; border-radius: 6px; font-size: 13px; line-height: 16px; font-weight: 700 !important; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
 .fav { position: absolute; right: 6px; top: 6px; width: 44px; height: 44px; border-radius: 8px; background: transparent; display: flex; align-items: center; justify-content: center; }
@@ -15,7 +15,7 @@
 .buyers { position: absolute; left: 8px; top: 80px; height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.36); display: flex; align-items: center; gap: 4px; color: #fff; font-weight: 600; }
 .buyers img { filter: brightness(0) invert(1); }
 .deadline { position: absolute; left: 80px; top: 80px; height: 24px; padding: 4px 8px; border-radius: 6px; background: var(--orange-bg); color: var(--orange-text); font-weight: 600; white-space: nowrap; }
-.price { position: absolute; right: 16px; top: 72px; font-size: 24px; line-height: 30px; letter-spacing: 0.15px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.price { position: absolute; right: 16px; top: 72px; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
 .unit, .saving { position: absolute; height: 28px; padding: 4px 12px; border-radius: 6px; white-space: nowrap; font-size: 15px; line-height: 20px; }
 .unit { right: 16px; top: 114px; background: var(--orange-bg); color: var(--orange-text); }
 .saving { right: 16px; top: 150px; background: var(--green-bg); color: var(--green-text); }

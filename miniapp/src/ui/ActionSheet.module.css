@@ -8,8 +8,8 @@
 @keyframes slideUp { from { transform: translateY(100%); } }
 @keyframes slideDown { to { transform: translateY(100%); } }
 .grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
-.title { height: 32px; padding: 0 16px 8px; font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; color: var(--text-strong); }
-.row { display: block; width: 100%; height: 46px; padding: 10px 16px; text-align: left; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; color: var(--text-strong); transition: background 0.15s ease; }
+.title { height: 32px; padding: 0 16px 8px; font-size: 20px; line-height: 25px; font-weight: 600; color: var(--text-strong); }
+.row { display: block; width: 100%; height: 46px; padding: 10px 16px; text-align: left; font-size: 17px; line-height: 22px; color: var(--text-strong); transition: background 0.15s ease; }
 .row:active { background: rgba(34, 154, 240, 0.08); }
 .danger { color: #d8434b; }
 .cancel { display: block; width: 100%; height: 42px; padding: 14px 0 4px; text-align: center; color: var(--link); }

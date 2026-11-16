@@ -25,15 +25,29 @@ import s from "./Offer.module.css";
 const Segs = ({ list }: { list: OfferDetails["includes"] }) => <>{list.map((x, i) => typeof x === "string" ? <span key={i}>{x}</span> : "g" in x ? <span key={i} className={s.hlGreen}>{x.g}</span> : <span key={i} className={s.hlBlue}>{x.b}</span>)}</>;
 
 /** Сырғытылатын фото галерея: нүктелері қай суретте тұрғаныңды көрсетеді. */
+/** Сипаттаманы жолдарға бөледі: «• » деп басталған жол — тізім (екінші жолы шегініспен), қалғаны — абзац. */
+function Lines({ list }: { list: OfferDetails["about"] }) {
+  const lines: OfferDetails["about"][] = [[]];
+  for (const x of list) {
+    if (typeof x !== "string") { lines[lines.length - 1].push(x); continue; }
+    x.split("\n").forEach((part, i) => { if (i) lines.push([]); if (part) lines[lines.length - 1].push(part); });
+  }
+  return <>{lines.map((l, i) => {
+    const bullet = typeof l[0] === "string" && l[0].startsWith("• ");
+    const body = bullet ? [(l[0] as string).slice(2), ...l.slice(1)] : l;
+    return <span key={i} className={bullet ? s.li : s.para}>{bullet && <i className={s.dot}>•</i>}<Segs list={body} /></span>;
+  })}</>;
+}
+
 /** Сипаттама: мәтін блоктың ішінде екі жағынан бірдей шегініспен тұрады; 4 жолдан ұзын болса ғана жиылады. */
 function About({ list, open, onToggle }: { list: OfferDetails["about"]; open: boolean; onToggle: () => void }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [long, setLong] = useState(true);
   useLayoutEffect(() => { const el = ref.current; if (el) setLong(el.scrollHeight > 90); }, [list]);
-  if (!long) return <div className={`${s.quote} ${s.quoteShort} infoBox`}><span ref={ref} className={s.quoteText}><Segs list={list} /></span></div>;
+  if (!long) return <div className={`${s.quote} ${s.quoteShort} infoBox`}><span ref={ref} className={s.quoteText}><Lines list={list} /></span></div>;
   return (
     <button className={`${s.quote} infoBox ${open ? s.quoteOpen : ""}`} onClick={onToggle} aria-expanded={open}>
-      <span ref={ref} className={s.quoteText}><Segs list={list} /></span>
+      <span ref={ref} className={s.quoteText}><Lines list={list} /></span>
       {!open && <span className={s.fade} />}
       <img src={expand} className={s.expand} width={22} height={22} alt="" />
     </button>
@@ -155,7 +169,7 @@ function OfferView({ id }: { id?: string }) {
             <div className={s.titleActs}>
               <button className={s.act} aria-label="Бөлісу" onClick={shareIt}><span className={s.ico} style={{ maskImage: `url("${share}")`, WebkitMaskImage: `url("${share}")` }} /></button>
               <button className={s.act} aria-label="Таңдаулы" onClick={() => { haptic.medium(); toggleFav(offer.id); }}>
-                {fav ? <img src={heartFill} width={26} height={26} alt="" key="on" className={s.pop} /> : <span key="off" className={`${s.ico} ${s.pop}`} style={{ maskImage: `url("${heartLine}")`, WebkitMaskImage: `url("${heartLine}")` }} />}
+                {fav ? <img src={heartFill} width={32} height={32} alt="" key="on" className={s.pop} /> : <span key="off" className={`${s.ico} ${s.pop}`} style={{ maskImage: `url("${heartLine}")`, WebkitMaskImage: `url("${heartLine}")` }} />}
               </button>
             </div>
           </div>

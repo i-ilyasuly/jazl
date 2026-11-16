@@ -1,5 +1,5 @@
 .page { position: relative; min-height: var(--app-h, 100vh); background: #fff; }
-.title { position: absolute; left: 20px; top: 258px; width: 372px; text-align: center; font-size: 19px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; color: #000; animation: in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.title { position: absolute; left: 20px; top: 258px; width: 372px; text-align: center; font-size: 19px; line-height: 24px; font-weight: 600; color: #000; animation: in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes in { from { transform: translateY(8px); opacity: 0; } }
 .boxes { position: absolute; left: 102px; top: 302px; width: 208px; height: 44px; display: flex; gap: 16px; }
 .box { position: relative; width: 40px; height: 44px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 2.4px rgba(0, 0, 0, 0.15); transition: box-shadow 0.18s ease; }
@@ -21,6 +21,6 @@
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .box { background: var(--surface-card); }
 :global(:root[data-theme="dark"]) .key { background: rgba(255, 255, 255, 0.09); }
-.sum { position: absolute; left: 16px; top: 408px; width: 380px; text-align: center; font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 700; color: var(--text-strong); }
+.sum { position: absolute; left: 16px; top: 408px; width: 380px; text-align: center; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
 .lock { position: fixed; z-index: 100; inset: 0; min-height: 0; overflow: hidden; animation: lockIn 0.25s ease both; }
 @keyframes lockIn { from { opacity: 0; } }

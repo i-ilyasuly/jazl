@@ -24,7 +24,7 @@
 .rows p { display: flex; justify-content: space-between; color: var(--text-secondary); }
 .rows b { font-weight: 600; color: var(--text-strong); }
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: calc(66px + var(--safe-b, 0px)); padding: 8px 10px; background: #fff; }
-.btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; animation: swap 0.3s ease; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: transform 0.12s ease; animation: swap 0.3s ease; }
 .btn:active { transform: scale(0.98); }
 .btnDone { background: rgba(95, 107, 122, 0.16); color: #5f6b7a; }
 @keyframes swap { from { opacity: 0.4; } }

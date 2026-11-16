@@ -5,7 +5,7 @@
 @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
 .add { display: flex; align-items: center; gap: 12px; width: 100%; height: 60px; padding: 10px 16px; text-align: left; transition: background 0.15s ease; }
 .add:active { background: rgba(34, 154, 240, 0.08); }
-.addText { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 500; color: var(--link); }
+.addText { font-size: 17px; line-height: 22px; font-weight: 500; color: var(--link); }
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .emoji { background: rgba(92, 180, 244, 0.2); }
 :global(:root[data-theme="dark"]) .plus { background: rgba(255, 255, 255, 0.09); }
