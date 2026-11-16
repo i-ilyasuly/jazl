@@ -30,7 +30,7 @@ export function Promo() {
           <button key={x.id} className={`${s.card} ${x.cls}`} onClick={() => open(x.to)}>
             <span className={s.title}>{x.title}</span>
             <span className={s.link}>{x.link} ›</span>
-            <img src={x.img} className={s.art} alt="" />
+            <img src={x.img} className={s.art} alt="" decoding="sync" draggable={false} />
             <i className={s.spark} /><i className={`${s.spark} ${s.spark2}`} />
           </button>
         ))}

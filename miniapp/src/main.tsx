@@ -49,6 +49,7 @@ import { VenuePage } from "./screens/VenuePage";
 import { Stub } from "./screens/Stub";
 import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
+import { warmImages } from "./ui/imageCache";
 
 const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
 
@@ -196,6 +197,7 @@ const router = createHashRouter([
   },
 ]);
 
+warmImages();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />
