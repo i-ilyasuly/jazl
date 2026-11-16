@@ -2,7 +2,7 @@
 // «жазылу расталды» 14035:15133, «менің жазылуларым» 14035:15177 (Пакеттерім), «жазылуды ауыстыру» 14035:15333,
 // «бас тарту (тегін)» 14035:15433, «бас тарту (кеш)» 14035:15491, «келмедің» 14035:15549.
 // Өлшемдер: UI kit шкаласы (17/22, 15/20, 13/16, 24/30) және 4/8px тор; таңдалған чип — жиексіз, фоны ғана.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { atOf, book, bookLabel, cancelBooking, dayWord, freeCancel, getBooking, getPack, moveBooking, offerOf, useBookings, usePacks } from "../store";
@@ -34,14 +34,31 @@ function Bar({ left, main }: { left: BottomAction; main: BottomAction & { disabl
 }
 
 const MONTHS = ["Қаңтар", "Ақпан", "Наурыз", "Сәуір", "Мамыр", "Маусым", "Шілде", "Тамыз", "Қыркүйек", "Қазан", "Қараша", "Желтоқсан"];
-const WEEK = ["Дс", "Сс", "Ср", "Бс", "Жм", "Сб", "Жс"];
+const WEEK = ["ДС", "СС", "СР", "БС", "ЖМ", "СБ", "ЖС"];
 const dayDate = (off: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return d; };
 const offOf = (d: Date) => Math.round((d.getTime() - dayDate(0).getTime()) / 86400000);
 const freeTimes = (off: number) => TIMES.filter((t) => !busy(off, t));
 
-/** Күнтізбе + астында сол күннің бос уақыттары (Патша, 2026-11-16).
- *  days — пакет мерзімі ішіндегі таңдауға болатын күндер саны (бүгіннен бастап). Бос уақыты жоқ күн сұр. */
-function SlotPicker({ dayTitle, days, value, onChange }: { dayTitle: string; days: number; value: { day: number; time: string }; onChange: (v: { day: number; time: string }) => void }) {
+/** Жоспар нүктесінің түсі: түріне қарай (тамақ — қызғылт сары, кофе — индиго, шаштараз — күлгін) */
+const kindDot = { food: "#FE9500", coffee: "#4378FF", hair: "#B00FB4" } as const;
+type DayPlan = { id: string; color: string; title: string; sub: string; time: string };
+function plansByDay(list: ReturnType<typeof useBookings>): Map<number, DayPlan[]> {
+  const m = new Map<number, DayPlan[]>();
+  for (const b of list) {
+    if (b.status !== "ok") continue;
+    const p = getPack(b.packId); const kind = p ? offerOf(p).kind : "hair";
+    const d = new Date(b.at); const off = offOf(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+    const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const arr = m.get(off) ?? []; arr.push({ id: b.id, color: kindDot[kind], title: b.service + (b.master ? ` · ${b.master}` : ""), sub: b.venue, time }); m.set(off, arr);
+  }
+  return m;
+}
+
+/** Күнтізбе (Патша, 2026-11-16, Pinterest үлгілері): жоғарыда ай, астында көлденең бос уақыттар, ең астында — таңдалған
+ *  күннің жоспарлары (түсті нүкте + атауы + уақыты, iOS күнтізбесіндегідей). Жоспары бар күнде — сонша түсті нүкте.
+ *  days — пакет мерзімі ішіндегі күндер (бүгіннен бастап). Мерзімнен тыс — бозғылт, бос уақыты жоқ — сызылған. */
+function SlotPicker({ days, value, onChange }: { dayTitle?: string; days: number; value: { day: number; time: string }; onChange: (v: { day: number; time: string }) => void }) {
+  const plans = plansByDay(useBookings());
   const first = dayDate(0);
   const last = dayDate(days - 1);
   const monthsTotal = (last.getFullYear() - first.getFullYear()) * 12 + last.getMonth() - first.getMonth() + 1;
@@ -55,34 +72,60 @@ function SlotPicker({ dayTitle, days, value, onChange }: { dayTitle: string; day
     if (off === value.day) return; haptic.select();
     onChange({ day: off, time: busy(off, value.time) || !value.time ? (freeTimes(off)[0] ?? "") : value.time });
   };
-  const times = TIMES;
+  const timesRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { // таңдалған уақыт көлденең жолақта көрініп тұрсын
+    const el = timesRef.current?.querySelector<HTMLElement>("[data-on]"); el?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
+  }, [value.day, value.time]);
+  const dayPlans = [...(plans.get(value.day) ?? [])].sort((x, y) => x.time.localeCompare(y.time));
+  const sd = dayDate(value.day);
   return <>
-    <h2 className={`t-sub2 w-600 ${s.h2} rise`}>{dayTitle}</h2>
     <div className={`${s.cal} rise`}>
       <div className={s.calHead}>
-        <button className={s.calNav} disabled={m <= 0} aria-label="Алдыңғы ай" onClick={() => { haptic.select(); setM(m - 1); }}><i className={s.chevL} /></button>
-        <b key={m} className={`t-headline ${s.calTitle}`}>{MONTHS[view.getMonth()]} {view.getFullYear()}</b>
-        <button className={s.calNav} disabled={m >= monthsTotal - 1} aria-label="Келесі ай" onClick={() => { haptic.select(); setM(m + 1); }}><i className={s.chevR} /></button>
+        <b key={m} className={s.calTitle}>{MONTHS[view.getMonth()]}<small>{view.getFullYear()}</small></b>
+        <span className={s.calNavs}>
+          <button className={s.calNav} disabled={m <= 0} aria-label="Алдыңғы ай" onClick={() => { haptic.select(); setM(m - 1); }}><i className={s.chevL} /></button>
+          <button className={s.calNav} disabled={m >= monthsTotal - 1} aria-label="Келесі ай" onClick={() => { haptic.select(); setM(m + 1); }}><i className={s.chevR} /></button>
+        </span>
       </div>
-      <div className={s.week}>{WEEK.map((w, i) => <span key={w} className={`t-cap1 ${i > 4 ? s.weekend : ""}`}>{w}</span>)}</div>
+      <div className={s.week}>{WEEK.map((w) => <span key={w}>{w}</span>)}</div>
       <div key={m} className={s.grid}>
         {cells.map((d, i) => {
           if (!d) return <span key={"e" + i} />;
           const off = offOf(d);
-          const can = off >= 0 && off < days && freeTimes(off).length > 0;
+          const inTerm = off >= 0 && off < days;
+          const full = inTerm && freeTimes(off).length === 0;
           const on = off === value.day;
-          return <button key={i} disabled={!can} className={`t-text ${s.day} ${on ? s.dayOn : ""} ${off === 0 ? s.today : ""}`} onClick={() => pick(off)} aria-label={`${d.getDate()} ${MONTHS[d.getMonth()]}${can ? "" : ", бос емес"}`}>{d.getDate()}</button>;
+          const dots = plans.get(off) ?? [];
+          return (
+            <button key={i} disabled={!inTerm || full} className={`${s.day} ${on ? s.dayOn : ""} ${off === 0 ? s.today : ""} ${full ? s.full : ""}`} onClick={() => pick(off)}
+              aria-label={`${d.getDate()} ${MONTHS[d.getMonth()]}${dots.length ? `, ${dots.length} жоспар` : ""}${full ? ", бос уақыт жоқ" : ""}`}>
+              <span className={s.num}>{d.getDate()}</span>
+              <span className={s.dots}>{dots.slice(0, 3).map((x) => <i key={x.id} style={{ background: x.color }} />)}</span>
+            </button>
+          );
         })}
       </div>
     </div>
-    <h2 className={`t-sub2 w-600 ${s.h2} rise`} style={{ ["--i" as string]: 1 }}>{dayWord(value.day)} · бос уақыт</h2>
-    <div key={value.day} className={`${s.times} rise`} style={{ ["--i" as string]: 1 }}>
-      {times.map((t) => {
+    <div className={`${s.timesHead} rise`} style={{ ["--i" as string]: 1 }}><b className="t-sub2 w-600">{dayWord(value.day)}</b><span className="t-cap1">бос уақыт · {freeTimes(value.day).length}</span></div>
+    <div ref={timesRef} key={value.day} className={`${s.times} rise`} style={{ ["--i" as string]: 1 }}>
+      {TIMES.map((t) => {
         const off = busy(value.day, t);
-        return <button key={t} disabled={off} aria-label={off ? `${t}, бос емес` : t} className={`t-text ${s.chip} ${off ? s.busy : ""} ${value.time === t ? s.on : ""}`}
-          onClick={() => { if (value.time !== t) { haptic.select(); onChange({ ...value, time: t }); } }}>{t}</button>;
+        const on = value.time === t;
+        return <button key={t} disabled={off} data-on={on || undefined} aria-label={off ? `${t}, бос емес` : t} className={`t-text ${s.slot} ${off ? s.busy : ""} ${on ? s.slotOn : ""}`}
+          onClick={() => { if (!on) { haptic.select(); onChange({ ...value, time: t }); } }}>{t}</button>;
       })}
     </div>
+    {dayPlans.length > 0 && (
+      <div key={"p" + value.day} className={`${s.plans} rise`} style={{ ["--i" as string]: 2 }}>
+        <p className={s.plansHead}><b>{sd.getDate()} {MONTHS[sd.getMonth()].toLowerCase()}</b><span>{dayPlans.length} жоспар бар</span></p>
+        {dayPlans.map((x) => (
+          <div key={x.id} className={s.plan}>
+            <i style={{ background: x.color }} />
+            <span><b>{x.title}</b><small>{x.time} · {x.sub}</small></span>
+          </div>
+        ))}
+      </div>
+    )}
   </>;
 }
 
@@ -98,10 +141,10 @@ export function BookTime() {
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); back(); } }), [back]);
   const main = useMemo(() => ({ text: "Жалғастыру", disabled: !v.time, onClick: () => { haptic.medium(); go(`/book/${packId}/confirm`, "forward", { state: { at: atOf(v.day, v.time) } }); } }), [go, packId, v]);
   return (
-    <SubPage title="Күн мен уақыт" top={92}>
-      <SlotPicker dayTitle="Күні" days={days} value={v} onChange={setV} />
-      {v.time && <p className={`t-text ${s.picked} rise`} style={{ ["--i" as string]: 2 }}>Таңдалған: <span key={v.day + v.time} className={`t-sub2 w-600 ${s.pickedChip}`}>{dayWord(v.day)}, {v.time}</span></p>}
-      <p className={`t-cap1 ${s.legend} rise`} style={{ ["--i" as string]: 2 }}>Сызылған уақыт — бос емес (басқа клиент жазылған)</p>
+    <SubPage title={pack && offerOf(pack).kind !== "hair" ? "Жоспарлау" : "Күн мен уақыт"} top={92}>
+      <SlotPicker days={days} value={v} onChange={setV} />
+      {v.time && <p className={`t-text ${s.picked} rise`} style={{ ["--i" as string]: 3 }}>Таңдалған: <span key={v.day + v.time} className={`t-sub2 w-600 ${s.pickedChip}`}>{dayWord(v.day)}, {v.time}</span></p>}
+      <p className={`t-cap1 ${s.legend} rise`} style={{ ["--i" as string]: 3 }}>Сызылған күн не уақыт — бос емес. Түсті нүкте — сол күнгі жоспарың.</p>
       <Bar left={left} main={main} />
     </SubPage>
   );
@@ -128,11 +171,12 @@ export function BookConfirm() {
     }, 900);
   } }), [busyNow, go, packId, at]);
   if (!pack || !o) return <SubPage title="Растау"><p className={`t-sub2 ${s.empty}`}>Пакет табылмады</p></SubPage>;
-  const rows: [string, string][] = [["Мекеме", o.venue], ["Қызмет", o.title.split(" · ")[0]], ["Күні мен уақыты", bookLabel(at)], ["Жазылымнан", "1 рет жұмсалады"]];
+  const hair = o.kind === "hair";
+  const rows: [string, string][] = [["Мекеме", o.venue], [hair ? "Қызмет" : "Өнім", o.title.split(" · ")[0]], ["Күні мен уақыты", bookLabel(at)], [hair ? "Жазылымнан" : "Пакеттен", hair ? "1 рет жұмсалады" : "1 бірлік жұмсалады"]];
   return (
     <SubPage title="Растау" top={92}>
       <Group i={0}>{rows.map(([k, v]) => <div key={k} className={`t-text ${s.kv}`}><span>{k}</span><b className="t-sub2 w-600">{v}</b></div>)}</Group>
-      <p className={`t-sub2 ${s.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 1 }}>Жазылуға 2 сағат қалғанға дейін тегін бас тарта аласың. Кейін немесе келмесең, жазылымнан бір рет жұмсалады.<i>”</i></p>
+      <p className={`t-sub2 ${s.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 1 }}>{hair ? "Жазылуға 2 сағат қалғанға дейін тегін бас тарта аласың. Кейін немесе келмесең, жазылымнан бір рет жұмсалады." : "Мекеме дәл осы уақытқа дайындап қояды. 2 сағат қалғанға дейін тегін ауыстыруға не бас тартуға болады, кейін бірлік жұмсалады."}<i>”</i></p>
       <Bar left={left} main={main} />
     </SubPage>
   );
@@ -152,7 +196,7 @@ export function BookDone() {
       <TelegramChrome mode="close" onBack={close} />
       <div className={r.body}>
         <Sticker name="party" size={120} className={r.sticker} />
-        <h1 className={r.title}>Жазылу расталды</h1>
+        <h1 className={r.title}>{b && getPack(b.packId) && offerOf(getPack(b.packId)!).kind !== "hair" ? "Жоспарланды" : "Жазылу расталды"}</h1>
         <p className={r.text}>{b ? bookLabel(b.at) : ""}. Ескерту жазылуға 2 сағат қалғанда келеді.</p>
       </div>
       <Bar left={left} main={main} />
@@ -200,7 +244,7 @@ export function BookMove() {
   const main = useMemo(() => ({ text: "Ауыстыру", disabled: !v.time, onClick: () => { if (!b) return; haptic.success(); moveBooking(b.id, atOf(v.day, v.time)); go(-1, "back"); } }), [go, b, v]);
   return (
     <SubPage title="Уақытты ауыстыру" top={92}>
-      <SlotPicker dayTitle="Жаңа күні" days={days} value={v} onChange={setV} />
+      <SlotPicker days={days} value={v} onChange={setV} />
       <p className={`t-sub2 ${s.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 2 }}>Уақытты 2 сағатқа дейін тегін ауыстыруға болады.<i>”</i></p>
       <Bar left={left} main={main} />
     </SubPage>

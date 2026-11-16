@@ -401,8 +401,11 @@ export function bookLabel(at: number) {
 let bookings: Booking[] = [
   { id: "bk1", packId: "p2", venue: "Qala Barber", service: "Шаш қию", at: atOf(1, "14:00"), status: "ok" },
   { id: "bk2", packId: "p2", venue: "Qala Barber", service: "Шаш + сақал", master: "Дана", at: atOf(4, "11:00"), status: "ok" },
+  // Тамаққа да жоспарлау бар (Патша, 2026-11-16): пакеттен бір бірлік белгіленген күні мен уақытқа дайындалады
+  { id: "bk3", packId: "p1", venue: "Dämdi Doner", service: "Тауық донері", at: atOf(1, "13:00"), status: "ok" },
+  { id: "bk4", packId: "p1", venue: "Dämdi Doner", service: "Тауық донері", at: atOf(6, "19:00"), status: "ok" },
 ];
-let bookNo = 3;
+let bookNo = 5;
 export const useBookings = () => useSyncExternalStore(subscribe, () => bookings);
 export const getBooking = (id?: string) => bookings.find((b) => b.id === id);
 export const freeCancel = (b: Booking) => b.at - Date.now() > FREE_CANCEL_MS;
@@ -413,7 +416,7 @@ export function book(packId: string, at: number): Booking | null {
   const b: Booking = { id: "bk" + bookNo++, packId, venue: o.venue, service: o.title.split(" · ")[0], at, status: "ok" };
   bookings = [...bookings, b].sort((x, y) => x.at - y.at);
   packs = packs.map((x) => x.id !== packId ? x : { ...x, left: x.left - 1,
-    history: [{ emoji: "📅", title: `Жазылу: ${bookLabel(at)}`, sub: `${o.venue} • расталды`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
+    history: [{ emoji: "📅", title: `${o.kind === "hair" ? "Жазылу" : "Жоспар"}: ${bookLabel(at)}`, sub: `${o.venue} • расталды`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
   emit();
   return b;
 }
