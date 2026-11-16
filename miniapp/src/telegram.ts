@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 const wa = window.Telegram?.WebApp;
 export const tg = wa;
 export const inTelegram = Boolean(wa && wa.initData);
+export const isIOS = inTelegram ? wa?.platform === "ios" : /iPhone|iPad|iPod/.test(navigator.userAgent);
 const at = (v: string) => Boolean(wa?.isVersionAtLeast?.(v));
 
 function applyTheme() {
@@ -89,7 +90,14 @@ export const haptic = {
 /** Нативті «Артқа» батырмасы (толық экранда Telegram оны сол жақ жоғарғы бұрышқа өзі салады). */
 let backOwners = 0;
 let hideCount = 0;
+/** Ағымдағы беттің «артқа» әрекеттері (соңғысы — белсенді). iOS-тағы шеттен сипау қимылы осыны шақырады. */
+export const backHandlers: (() => void)[] = [];
 export function useBackButton(onBack: () => void, enabled = true) {
+  useEffect(() => {
+    if (!enabled) return;
+    backHandlers.push(onBack);
+    return () => { const i = backHandlers.lastIndexOf(onBack); if (i >= 0) backHandlers.splice(i, 1); };
+  }, [onBack, enabled]);
   useEffect(() => {
     if (!enabled || !inTelegram || !wa?.BackButton) return;
     backOwners++;
@@ -269,4 +277,17 @@ export async function copyText(text: string): Promise<boolean> {
     const t = document.createElement("textarea"); t.value = text; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
     document.body.appendChild(t); t.select(); const ok = document.execCommand("copy"); t.remove(); return ok;
   } catch { return false; }
+}
+
+/** Нативті QR сканерін бірден ашады — бет ауыспай тұрып (Патша, 2026-11-16: «QR бірден ашылсын, бет қайта шығып кіргендей болмасын»).
+ *  null — нативті сканер жоқ (браузер не компьютер); true — QR оқылды; false — пайдаланушы жапты. */
+export function scanQrNative(text = "Кассадағы терминал экранындағы QR-ды рамкаға келтір"): Promise<boolean> | null {
+  if (!inTelegram || !wa?.showScanQrPopup || !at("6.4")) return null;
+  const w = wa as unknown as { onEvent?: (e: string, cb: () => void) => void; offEvent?: (e: string, cb: () => void) => void };
+  return new Promise((res) => {
+    let got = false;
+    const onClosed = () => { w.offEvent?.("scanQrPopupClosed", onClosed); if (!got) res(false); };
+    w.onEvent?.("scanQrPopupClosed", onClosed);
+    wa.showScanQrPopup!({ text }, () => { got = true; w.offEvent?.("scanQrPopupClosed", onClosed); res(true); return true; });
+  });
 }

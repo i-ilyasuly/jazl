@@ -51,6 +51,7 @@ import { Stub } from "./screens/Stub";
 import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
 import { warmImages } from "./ui/imageCache";
+import { EdgeBack } from "./ui/EdgeBack";
 
 const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
 
@@ -103,6 +104,7 @@ function Shell() {
       {tab && <OfflineBar />}
       {locked && <Pin lock />}
       <Toast />
+      <EdgeBack />
       <ScrollRestoration />
     </div>
   );
@@ -184,6 +186,7 @@ const router = createHashRouter([
       { path: "/welcome/city", element: <WelcomeCity /> },
       { path: "/welcome/terms", element: <WelcomeTerms /> },
       { path: "/welcome/doc/:id", element: <Doc /> },
+      { path: "/welcome/carry", element: <CarryRules /> }, // тіркелмеген адамға да ашылады (бұрын /welcome-ге қайта лақтыратын)
       { path: "/profile/doc/:id", element: <Doc /> },
       { path: "/kyc", element: <Kyc /> },
       { path: "/profile/venue", element: <VenueApply /> },

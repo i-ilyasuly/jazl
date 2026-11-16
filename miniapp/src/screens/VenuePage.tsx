@@ -2,6 +2,7 @@
 // «Пікірлер» 13886:26155, «Ұсыныс жоқ» 13886:27031, «Жаңа мекеме: пікірлер» 13886:26881,
 // «Бағыт: 2ГИС» 13886:27429, «Қоңырау: растау» 13886:27703, «Бөлісу: Telegram чаттары» 13886:27961 (нативті чат таңдау),
 // «Хабарла: рұқсат диалогы» 13886:28289 (нативті requestWriteAccess), «Хабарла: қосылды» 13886:28547
+import { useTabSwipe } from "../ui/useTabSwipe";
 import { Photo } from "../ui/Photo";
 import { kindPic } from "../ui/Emo";
 import { Emo } from "../ui/Emo";
@@ -59,6 +60,7 @@ function VenueView({ id }: { id?: string }) {
   const today = (new Date().getDay() + 6) % 7;
   const hoursOf = (i: number) => { const [a, b] = v.hours.split("–"); return i === 4 ? `${a}–23:00` : i === 5 ? `10:00–23:00` : i === 6 ? `10:00–${b}` : v.hours; };
   const pick = (i: number) => { if (i === tab) return; haptic.select(); setPrev(tab); setTab(i); };
+  const sw = useTabSwipe(tab, 4, pick); // 4 таб: Ұсыныстар, Туралы, Суреттер, Пікірлер
   const share = () => {
     haptic.tap();
     // Нативті бөлісу: Telegram өзінің чат таңдау терезесін ашады
@@ -100,6 +102,7 @@ function VenueView({ id }: { id?: string }) {
         </div>
         <span className={s.line} style={{ translate: `${line.left}px 0`, width: line.width }} />
       </nav>
+      <div {...sw.handlers} style={{ ...sw.style, minHeight: 360 }}>
       <main key={tab} className={`${s.body} ${tab > prev ? s.fromRight : s.fromLeft}`}>
         {tab === 0 && status === "nopay" && offers.length > 0 && <p className={`${s.nopay} infoBox infoWarn`}>Мекеме уақытша Jazl+ төлемін қабылдамайды. Пакетті сатып алуға болады, пайдалану кейінірек.<i>”</i></p>}
         {tab === 0 && (offers.length ? offers.map((o) => <OfferCard key={o.id} offer={o} />) : (
@@ -141,6 +144,7 @@ function VenueView({ id }: { id?: string }) {
         </>)}
         <button className={`t-sub2 w-600 ${s.report}`} onClick={() => go("/profile/report")}>Мәселе туралы жазу</button>
       </main>
+      </div>
       {snack && <div className={s.snack} role="status"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round" /><path d="M10 20.5a2 2 0 0 0 4 0" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg><span>Жаңа ұсыныс шықса, хабарлаймыз</span></div>}
       {sheet === "route" && <LinkSheet title="Бағыт" rows={[{ glyph: "pin", tint: "#31d158", title: "2ГИС", sub: `${v.name} мекенжайын 2ГИС-те ашу`, onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(v.name)) }]} onClose={() => setSheet(null)} />}
       {sheet === "branches" && <LinkSheet title="Филиалдар" note="Пакет барлық филиалда жарамды. Қалағанында ал." cancel="Жабу"

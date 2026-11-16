@@ -23,7 +23,9 @@ export function Scan() {
   const go = useGo();
   const pack = getPack(params.get("pack") ?? undefined) ?? packs.find((p) => p.left > 0 && !p.expired);
   // «Код енгізу» (Figma 23) дұрыс код берсе, камерасыз бірден төлем парағы ашылады
-  const [found, setFound] = useState(() => params.get("via") === "code");
+  // via=qr — QR нативті сканермен бұрын (Навигация не «Қолдану» парағынан) оқылды: бет бірден төлем парағымен ашылады
+  const via = params.get("via");
+  const [found, setFound] = useState(() => (via === "code" || via === "qr") && navigator.onLine && Boolean(pack));
   const [busy, setBusy] = useState(false);
   const [torch, setTorch] = useState(false);
   // Нативті сканер QR оқымай жабылса — «Қайта сканерлеу / Код енгізу» таңдауы (Figma 23 «Код енгізу»)
@@ -67,7 +69,7 @@ export function Scan() {
 
   useEffect(() => {
     if (found || nativeClosed) return;
-    if (!pack && params.get("via") === "code") { toState("nopack"); return; }
+    if (via === "code" || via === "qr") { if (!navigator.onLine) { toState("offline"); return; } if (!pack) { toState("nopack"); return; } }
     // Компьютердегі Telegram-да нативті сканер жоқ: «Сканерді телефонда аш»
     if (inTelegram && !(tg?.isVersionAtLeast?.("6.4") && tg.showScanQrPopup)) { toState("desktop"); return; }
     if (inTelegram && tg?.isVersionAtLeast?.("6.4") && tg.showScanQrPopup) {

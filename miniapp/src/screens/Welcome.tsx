@@ -138,7 +138,7 @@ export function WelcomeTerms() {
   return (
     <Step title="Бастау алдында" sub="Шарттармен танысып, келіс" button="Келісемін және бастау" onNext={next}>
       <div className={`${s.group} rise`} style={{ ["--i" as string]: 1 }}>
-        {docs.map(([t, id]) => <button key={id} className={s.row} onClick={() => go(id === "carry" ? "/rules/carry" : "/welcome/doc/" + id)}><span className={s.rowText}><span>{t}</span></span><img src={arrow} width={18} height={18} alt="" /></button>)}
+        {docs.map(([t, id]) => <button key={id} className={s.row} onClick={() => go(id === "carry" ? "/welcome/carry" : "/welcome/doc/" + id)}><span className={s.rowText}><span>{t}</span></span><img src={arrow} width={18} height={18} alt="" /></button>)}
       </div>
       <button key={bad} className={`${s.agree} ${bad && !agree ? s.shake : ""} rise`} style={{ ["--i" as string]: 2 }} onClick={() => { haptic.select(); setAgree(!agree); }} role="checkbox" aria-checked={agree}>
         <span className={`${s.box} ${agree ? s.boxOn : ""}`}><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M7.33325 12.3333L10.3333 15.3333L16.6666 8.66663" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></span>

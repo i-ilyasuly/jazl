@@ -1,4 +1,5 @@
 // Figma: «Таңдаулы» (13886:17711) және «Таңдаулы / Бос күй» (13886:17840)
+import { useTabSwipe } from "../ui/useTabSwipe";
 import { useCallback, useState } from "react";
 import { endedOffers, offers } from "../mocks/offers";
 import { useGo } from "../nav";
@@ -19,6 +20,7 @@ export function Favorites() {
   useBackButton(back);
   const favs = useFavs();
   const [sort, setSort] = useState(0);
+  const sw = useTabSwipe(sort, 3, (i) => { haptic.select(); setSort(i); }); // сұрыптауды да саусақпен ауыстыруға болады
   const order = <T extends { id: string; price: number; distance: string }>(list: T[]) =>
     [...list].sort((a, b) => (sort === 1 ? a.price - b.price : sort === 2 ? km(a.distance) - km(b.distance) : favs.indexOf(a.id) - favs.indexOf(b.id)));
   const live = order(offers.filter((o) => favs.includes(o.id)));
@@ -33,7 +35,7 @@ export function Favorites() {
         <TelegramChrome mode="back" onBack={back} />
         <h1 className={s.title}>Таңдаулы{total ? ` · ${total}` : ""}</h1>
         <div className={s.seg}>
-          <span className={s.thumb} style={{ translate: `${sort * 125.33}px 0` }} />
+          <span className={s.thumb} style={{ translate: `${Math.max(0, Math.min(250.66, sort * 125.33 - (sw.drag / 380) * 125.33))}px 0` }} />
           {sorts.map((t, i) => <button key={t} className={`t-sub2 ${s.segBtn} ${sort === i ? s.on : ""}`} onClick={() => { if (sort !== i) { haptic.select(); setSort(i); } }}>{t}</button>)}
           <span className={s.divider} style={{ left: 252.67, opacity: sort === 0 ? 1 : 0 }} />
           <span className={s.divider} style={{ left: 127.33, opacity: sort === 2 ? 1 : 0 }} />
@@ -42,7 +44,7 @@ export function Favorites() {
       {total === 0 ? (
         <EmptyState inline top={340} sticker="love" title="Әзірге таңдаулы жоқ" text={"Ұнаған ұсыныстың жүрегін басып,\nоны осында сақта"} action={{ text: "Ұсыныстарды көру", onClick: () => go("/", "fade") }} />
       ) : (
-        <main className={s.list}>
+        <main className={s.list} {...sw.handlers} style={sw.style}>
           {live.length > 0 && <h2 className={`t-sub2 w-600 ${s.section}`} style={{ paddingTop: 12 }}><b>Қолжетімді</b> · {live.length}</h2>}
           {live.map((o, i) => <div key={o.id} className="rise" style={{ ["--i" as string]: i }}><OfferCard offer={o} /></div>)}
           {ended.length > 0 && <h2 className={`t-sub2 w-600 ${s.section}`} style={{ paddingTop: live.length ? 16 : 12 }}><b>Аяқталған</b> · {ended.length}</h2>}
