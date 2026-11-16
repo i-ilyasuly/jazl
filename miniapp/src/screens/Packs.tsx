@@ -29,7 +29,7 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
   return (
     <article className={`${s.card} ${hint ? s.hinted : ""} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/pack/" + pack.id)}>
       <div className={s.info}>
-        <span className={s.thumb}><img src={kindPic[o.kind]} width={60} height={60} alt="" style={{ objectFit: "contain" }} /></span>
+        <span className={s.thumb}><img src={kindPic[o.kind]} width={60} height={60} alt="" decoding="sync" style={{ objectFit: "contain" }} /></span>
         <div className={s.text}>
           <p className="t-headline">{o.title}</p>
           <p className={`t-sub2 ${s.sub}`}>{o.venue} · {o.distance}</p>

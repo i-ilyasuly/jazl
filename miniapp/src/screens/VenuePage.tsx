@@ -72,7 +72,6 @@ function VenueView({ id }: { id?: string }) {
       <TelegramChrome mode="back" onBack={back} />
       <div className={s.cover}>
         {coverBroken ? <img src={kindPic[v.kind]} width={160} height={160} className={s.coverIcon} alt="" style={{ objectFit: "contain" }} /> : <img src={coverPhoto[v.kind]} className={s.coverPhoto} alt="" onError={() => setCoverBroken(true)} />}
-        <button className={`t-cap1 w-600 ${s.photos}`} onClick={() => pick(2)}>4 сурет</button>
       </div>
       <header className={s.head}>
         <div className={s.id}>
@@ -91,7 +90,7 @@ function VenueView({ id }: { id?: string }) {
           <button className={s.action} onClick={() => { haptic.tap(); setSheet("route"); }}><img src={routeIcon} width={24} height={24} alt="" /><span className="t-cap1 w-600">Бағыт</span></button>
           <button className={s.action} onClick={() => { haptic.tap(); setSheet("call"); }}><img src={callIcon} width={24} height={24} alt="" /><span className="t-cap1 w-600">Қоңырау</span></button>
           <button className={s.action} onClick={share}><img src={shareIcon} width={24} height={24} alt="" /><span className="t-cap1 w-600">Бөлісу</span></button>
-          <button className={`${s.action} ${subscribed ? s.actionOn : ""}`} onClick={notify}><img src={bellIcon} width={24} height={24} alt="" className={subscribed ? s.ring : undefined} /><span key={String(subscribed)} className="t-cap1 w-600">{subscribed ? "Қосулы" : "Хабарла"}</span></button>
+          <button className={`${s.action} ${subscribed ? s.actionOn : ""}`} onClick={notify}><span className={`${s.bell} ${subscribed ? s.ring : ""}`} style={{ maskImage: `url("${bellIcon}")`, WebkitMaskImage: `url("${bellIcon}")` }} /><span key={String(subscribed)} className="t-cap1 w-600">{subscribed ? "Қосулы" : "Хабарла"}</span></button>
         </div>
       </header>
       <nav className={s.tabs}>

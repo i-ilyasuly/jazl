@@ -2,7 +2,7 @@
 // Telegram ішінде: толық экран, нативті «Артқа», нативті төменгі батырмалар, хаптика.
 // Браузерде (Telegram-нан тыс): сол элементтердің көшірмесін өзіміз саламыз,
 // сонда экранды Figma кадрымен пиксельдеп салыстыруға болады.
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const wa = window.Telegram?.WebApp;
 export const tg = wa;
@@ -100,22 +100,44 @@ export function useBackButton(onBack: () => void, enabled = true) {
 export interface BottomAction { text: string; onClick: () => void; position?: "left" | "bottom"; shine?: boolean; disabled?: boolean }
 
 /** Нативті төменгі батырмалар: Main оң жақта, Secondary сол жақта (Figma: биіктігі 50, радиусы 8). */
+// ШЕШІМ (Патша, 2026-11-16: «төлем әдісін ауыстырғанда қатып барып ауысады»): бұрын батырманың мәтіні/әрекеті өзгерген сайын
+// MainButton мен SecondaryButton жасырылып, қайта көрсетілетін — Telegram терезенің биіктігін екі рет өзгертіп, бет секіретін.
+// Енді: басу өңдегіші бір рет тіркеледі (ref арқылы соңғы әрекетті шақырады), тек мәтін/күй өзгергенде setParams,
+// жасыру — бет шынымен жабылғанда ғана (келесі бет батырманы алса, жасырылмайды → беттер арасында да жыпылықтамайды).
+// Бір уақытта бірнеше иесі болуы мүмкін (бет + үстіндегі парақ): соңғы ашылғаны ғана басқарады, ол жабылса — алдыңғысы қалпына келеді.
+type BtnEntry = { main: { current: BottomAction }; sec: { current: BottomAction | undefined } };
+const btnStack: BtnEntry[] = [];
+let btnBound = false;
+let hideTimer = 0;
+function applyButtons() {
+  if (!wa?.MainButton) return;
+  const top = btnStack[btnStack.length - 1];
+  clearTimeout(hideTimer);
+  if (!top) { hideTimer = window.setTimeout(() => { if (!btnStack.length) { wa?.MainButton?.hide(); wa?.SecondaryButton?.hide(); } }, 200); return; } // келесі бет батырманы алса — жасырмаймыз
+  const m = top.main.current, sc = top.sec.current;
+  const dark = wa.colorScheme === "dark";
+  const off = Boolean(m.disabled);
+  wa.MainButton.setParams({ text: m.text, color: off ? (dark ? "#3b4a5d" : "#c4cdd6") : "#229af0", text_color: off ? (dark ? "#8a98a8" : "#ffffff") : "#ffffff", is_visible: true, is_active: !off, ...(at("7.10") ? { has_shine_effect: Boolean(m.shine) && !off } : {}) });
+  if (sc && at("7.10") && wa.SecondaryButton) wa.SecondaryButton.setParams({ text: sc.text, position: sc.position ?? "left", color: dark ? "#1e3a52" : "#dbeefd", text_color: dark ? "#cbe6fc" : "#1f73c2", is_visible: true, is_active: true });
+  else wa.SecondaryButton?.hide();
+}
 export function useBottomButtons(main: BottomAction, secondary?: BottomAction, enabled = true) {
+  const mainRef = useRef(main); mainRef.current = main;
+  const secRef = useRef(secondary); secRef.current = secondary;
+  const entry = useRef<BtnEntry>({ main: mainRef, sec: secRef }).current;
+  const live = enabled && inTelegram && Boolean(wa?.MainButton);
   useEffect(() => {
-    if (!enabled || !inTelegram || !wa?.MainButton) return;
-    const dark = wa.colorScheme === "dark";
-    const off = Boolean(main.disabled);
-    wa.MainButton.setParams({ text: main.text, color: off ? (dark ? "#3b4a5d" : "#c4cdd6") : "#229af0", text_color: off ? (dark ? "#8a98a8" : "#ffffff") : "#ffffff", is_visible: true, is_active: !off, ...(at("7.10") ? { has_shine_effect: Boolean(main.shine) && !off } : {}) });
-    wa.MainButton.onClick(main.onClick);
-    if (secondary && at("7.10") && wa.SecondaryButton) {
-      wa.SecondaryButton.setParams({ text: secondary.text, position: secondary.position ?? "left", color: dark ? "#1e3a52" : "#dbeefd", text_color: dark ? "#cbe6fc" : "#1f73c2", is_visible: true, is_active: true });
-      wa.SecondaryButton.onClick(secondary.onClick);
-    } else wa.SecondaryButton?.hide();
-    return () => {
-      wa.MainButton?.offClick(main.onClick); wa.MainButton?.hide();
-      if (secondary) { wa.SecondaryButton?.offClick(secondary.onClick); wa.SecondaryButton?.hide(); }
-    };
-  }, [main, secondary, enabled]);
+    if (!live || !wa?.MainButton) return;
+    if (!btnBound) {
+      btnBound = true;
+      wa.MainButton.onClick(() => btnStack[btnStack.length - 1]?.main.current.onClick());
+      if (at("7.10")) wa.SecondaryButton?.onClick(() => btnStack[btnStack.length - 1]?.sec.current?.onClick());
+    }
+    btnStack.push(entry); applyButtons();
+    return () => { const i = btnStack.indexOf(entry); if (i >= 0) btnStack.splice(i, 1); applyButtons(); };
+  }, [live, entry]);
+  useEffect(() => { if (live && btnStack[btnStack.length - 1] === entry) applyButtons(); },
+    [live, entry, main.text, main.shine, main.disabled, secondary?.text, secondary?.position, Boolean(secondary)]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /** Кілт-мән қоймасы: Telegram ішінде нативті CloudStorage (6.9+, құрылғылар арасында синхрондалады),

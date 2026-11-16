@@ -38,15 +38,15 @@ export function Home() {
 
         <button className={`${s.tile} ${s.food}`} onClick={() => go("/category/food")}>
           <span className={s.tileTitle}>Тағамдар</span>
-          <img src={artFood} className={s.art} alt="" />
+          <img src={artFood} className={s.art} alt="" decoding="sync" draggable={false} />
         </button>
         <button className={`${s.tile} ${s.coffee}`} onClick={() => go("/category/coffee")}>
           <span className={s.tileTitle}>Кофе</span>
-          <img src={artCoffee} className={s.art} alt="" />
+          <img src={artCoffee} className={s.art} alt="" decoding="sync" draggable={false} />
         </button>
         <button className={`${s.tile} ${s.hair}`} onClick={() => go("/category/hair")}>
           <span className={s.tileTitle}>Шаштараз</span>
-          <img src={artHair} className={s.art} alt="" />
+          <img src={artHair} className={s.art} alt="" decoding="sync" draggable={false} />
         </button>
 
         <div className={s.soonRow}>

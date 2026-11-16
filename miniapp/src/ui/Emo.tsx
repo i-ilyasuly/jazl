@@ -33,5 +33,5 @@ export const emoSrc = (e?: string, asItem = false) => (asItem ? item[norm(e)] : 
 export function Emo({ e, kind, size = 28, asItem, className }: { e?: string; kind?: OfferKind; size?: number; asItem?: boolean; className?: string }) {
   const src = kind ? kindPic[kind] : emoSrc(e, asItem);
   if (!src) return <>{e}</>;
-  return <img src={src} width={size} height={size} alt="" draggable={false} decoding="async" loading="lazy" className={`${s.emo} ${className ?? ""}`} />;
+  return <img src={src} width={size} height={size} alt="" draggable={false} decoding="sync" className={`${s.emo} ${className ?? ""}`} />;
 }
