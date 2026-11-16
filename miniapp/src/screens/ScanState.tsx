@@ -16,10 +16,10 @@ import { Sticker, type StickerName } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import s from "./PayResult.module.css";
 
-export const scanStates = ["fail", "pending", "limit", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc"] as const;
+export const scanStates = ["fail", "pending", "limit", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "othervenue"] as const;
 export type ScanKind = (typeof scanStates)[number];
 /** QR оқылған бойда белгілі болатын күйлер (төлемге дейін). Қалғаны төлемнен кейін шығады. */
-export const scanEarly: ScanKind[] = ["amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc"];
+export const scanEarly: ScanKind[] = ["othervenue", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc"];
 
 interface Copy { sticker: StickerName; title: string; text: string; note?: string; left?: string; main: string }
 const copy: Record<ScanKind, Copy> = {
@@ -36,6 +36,8 @@ const copy: Record<ScanKind, Copy> = {
   paidbefore: { sticker: "party", title: "Бұл QR бұрын төленген", text: "Төлем жасалған. Қолдану тарихынан көруге болады.", left: "Тарихқа өту", main: "Түсінікті" },
   desktop: { sticker: "phone", title: "Сканерді телефонда аш", text: "Компьютерде камера қолжетімсіз. Jazl+ қолданбасын телефоннан аш.", left: "Код енгізу", main: "Түсінікті" },
   pinintro: { sticker: "lock", title: "Төлем үшін PIN орнат", text: "PIN әр төлемді растайды. Саусақ ізін де қосуға болады.", main: "PIN орнату" },
+  // Патша (2026-11-17): басқа мекеменің QR-ы — сол мекемеде пакет болмаса
+  othervenue: { sticker: "stop", title: "Бұл QR басқа мекеменікі", text: "Бұл мекемеде белсенді пакетің жоқ. Пакет таңдаған мекеменің кассасындағы QR-ды сканерле.", main: "Түсінікті" },
   kyc: { sticker: "lock", title: "Төлеу үшін жеке басыңды растау керек", text: "Банк талабы бойынша бір рет. Деректер банкте сақталады.", note: "Бұл қадам тек банк-серіктес талап етсе көрсетіледі.", left: "Кейін", main: "Растау" },
 };
 
@@ -70,7 +72,8 @@ export function ScanState() {
     else go("/profile/report");
   } }) : undefined, [c.left, k, go, close]);
   useBottomButtons(main, left);
-  const text = k === "nopack" && o ? `${o.venue} пакетін сатып алсаң, келесі жолы төлей аласың.` : c.text;
+  const qv = params.get("v");
+  const text = k === "othervenue" && qv ? `QR — ${qv} мекемесінікі, ал онда белсенді пакетің жоқ. Пакетің бар мекеменің кассасындағы QR-ды сканерле.` : k === "nopack" && o ? `${o.venue} пакетін сатып алсаң, келесі жолы төлей аласың.` : c.text;
   const price = o ? unitPrice(o) : 1500;
 
   return (

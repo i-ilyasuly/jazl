@@ -22,6 +22,13 @@
       "when": 1794871466375,
       "tag": "0002_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794873054608,
+      "tag": "0003_redemption_units",
+      "breakpoints": true
     }
   ]
 }

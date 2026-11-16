@@ -48,6 +48,7 @@ export function Order() {
   useEffect(() => { if (!times.includes(time)) setTime(times[0] ?? ""); }, [times]); // eslint-disable-line react-hooks/exhaustive-deps
   // Бүгін уақыт қалмаса — бірден ертеңге ауысамыз
   useEffect(() => { if (day === 0 && times.length === 0) setDay(1); }, [day, times.length]);
+  const nowOk = times.includes("now");
   const [sending, setSending] = useState(false);
   const b = list.find((x) => x.id === branch);
   // Figma 23 «Тапсырыс: мерзім алу уақытынан ерте бітеді» (14043:12912): мерзімнен кейінгі күндер сызылған,
@@ -72,7 +73,7 @@ export function Order() {
     tg?.MainButton?.showProgress?.(false);
     setTimeout(() => {
       tg?.MainButton?.hideProgress?.();
-      const label = time === "now" ? "≈15 мин" : (day > 0 ? `${dayLabel(day)}, ${time}` : time);
+      const label = "≈15 мин";
       const order = placeOrder(pack.id, b.address, label);
       if (!order) { haptic.error(); go(`/order/state/nounits/${pack.id}`, "up", { replace: true }); return; }
       if (demo() === "fail") { haptic.error(); go(`/order/state/fail/${pack.id}?o=${order.id}`, "up", { replace: true }); return; }
@@ -80,7 +81,7 @@ export function Order() {
       go("/order/done/" + order.id, "up", { replace: true });
     }, 1400);
   } }), [pack, b, sending, time, hair, day, go]);
-  const sendOk = useMemo(() => (tooLate || !time ? { ...send, disabled: true, onClick: () => { haptic.error(); setShake((n) => n + 1); } } : send), [tooLate, send]);
+  const sendOk = useMemo(() => (!nowOk ? { ...send, disabled: true, onClick: () => { haptic.error(); setShake((n) => n + 1); } } : send), [nowOk, send]);
   useBottomButtons(sendOk, undefined, Boolean(pack) && !picking);
 
   // Шаштараз — Figma «22»: жеке «Күн мен уақыт» ағыны
@@ -100,18 +101,19 @@ export function Order() {
         {list.length > 1 && <i className={s.chev} />}
       </button>
 
-      {tooLate && pack && <p key={shake} className={`t-sub2 ${s.warn} infoBox infoWarn ${shake ? s.shake : ""}`} role="alert">Пакет мерзімі бітетін күн: {dayLabel(lastDay)}. Таңдаған алу күнің: {dayLabel(day)}. Бұл күнге тапсырыс беру мүмкін емес.<i>”</i></p>}
-      {<>
-        <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 2 }}>{tooLate ? "Қолжетімді күндер" : "Қай күні"}</h2>
-        <div className={`${s.chips} rise`} style={{ ["--i" as string]: 2 }}>
-          {Array.from({ length: days }, (_, i) => <button key={i} className={`${s.chip} ${i > lastDay ? s.off : ""} ${day === i ? s.on : ""}`} onClick={() => { if (day !== i) { haptic.select(); setDay(i); } }}>{dayLabel(i)}</button>)}
-        </div>
-        {tooLate && pack && <div className={`${s.kvCard} rise`}><p><span>Пакет мерзімі</span><b className={s.amber}>{demo() === "late" ? dayLabel(lastDay) : pack.until}</b></p><p><span>Қалды</span><b>{pack.left} {o.unitWord}</b></p></div>}
-      </>}
-
-      <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 3 }}>{hair ? "Қай уақытта" : "Қашан аласың"}</h2>
-      <div className={`${s.chips} rise`} style={{ ["--i" as string]: 3 }}>
-        {times.map((t) => <button key={t} className={`${s.chip} ${time === t ? s.on : ""}`} onClick={() => { if (time !== t) { haptic.select(); setTime(t); } }}>{t === "now" ? "Қазір · ≈15 мин" : t}</button>)}
+      {/* Патша (2026-11-17): «Тапсырыс» басылғанда — «Қазір» не «Күнін таңдау» (күнтізбе → жоспар ағыны) */}
+      <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 2 }}>Қашан аласың</h2>
+      <div className={`${s.whenList} rise`} style={{ ["--i" as string]: 2 }}>
+        <button className={`${s.when} ${s.whenOn}`} disabled={!nowOk}>
+          <Tile e="🛍" size={40} />
+          <span className={s.packText}><b>Қазір · ≈15 мин</b><small>{nowOk ? "Дайын болғанда барып аласың не курьер жібересің" : "Мекеме қазір қабылдамайды — күнін таңда"}</small></span>
+          <span className={`${s.radio} ${nowOk ? s.radioOn : ""}`} />
+        </button>
+        <button className={s.when} onClick={() => { haptic.tap(); go("/book/" + pack.id, "forward"); }}>
+          <Tile e="📅" size={40} />
+          <span className={s.packText}><b>Күнін таңдау</b><small>Күнтізбеден күн мен уақытты белгіле — мекеме дәл сол уақытқа дайындайды</small></span>
+          <i className={s.chev} />
+        </button>
       </div>
 
       <p className={`${s.quote} infoBox rise`} style={{ ["--i" as string]: 4 }}>

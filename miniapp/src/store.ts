@@ -139,13 +139,24 @@ export async function syncServerPacks() {
 const newKey = () => (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + Date.now());
 const srvError = (e: unknown) => ((e as { body?: { error?: string } }).body?.error ?? "network");
 /** Кассадағы QR арқылы бір бірлік (серверде). Қате болса — себебі (other_venue, no_units, not_jazl_qr, …). */
-export async function redeemOnServer(packId: string, qr: string): Promise<{ ok: true; receiptId?: string } | { ok: false; error: string } | null> {
+export async function redeemOnServer(packId: string, qr: string, units = 1): Promise<{ ok: true; receiptId?: string } | { ok: false; error: string; expectedUnits?: number; venue?: string } | null> {
   const p = getPack(packId); if (!p?.serverId || !qr) return null;
-  try { const j = await api<{ receipt?: { id: string } }>("/v1/redeem", { method: "POST", body: JSON.stringify({ packId: p.serverId, qr, idempotencyKey: newKey() }) }, 12000); return { ok: true, receiptId: j.receipt?.id }; }
-  catch (e) { return { ok: false, error: srvError(e) }; }
+  try { const j = await api<{ receipt?: { id: string } }>("/v1/redeem", { method: "POST", body: JSON.stringify({ packId: p.serverId, qr, units, idempotencyKey: newKey() }) }, 12000); return { ok: true, receiptId: j.receipt?.id }; }
+  catch (e) { const b = (e as { body?: { error?: string; expectedUnits?: number; venue?: string } }).body; return { ok: false, error: b?.error ?? "network", expectedUnits: b?.expectedUnits, venue: b?.venue }; }
+}
+/** QR-ды тану (сервер): мекеме, кассир енгізген дана, банк сомасы, мерзімі. Сервер жоқ болса — null. */
+export interface QrInfo { kind: "dynamic" | "amount" | "static"; venue: { slug: string; name: string }; branch: { id: string; address: string }; units: number | null; amount: number | null; valid: boolean; expired: boolean }
+export async function resolveQr(qr: string): Promise<QrInfo | { error: string } | null> {
+  if (!qr) return null;
+  try { return await api<QrInfo>("/v1/qr/resolve", { method: "POST", body: JSON.stringify({ qr }) }, 8000); }
+  catch (e) { const st = (e as { status?: number }).status; return st && st < 500 && st !== 401 ? { error: srvError(e) } : null; }
 }
 
-export function redeem(packId: string): boolean {
+export function redeem(packId: string, n = 1): boolean {
+  for (let i = 1; i < n; i++) redeemOne(packId);
+  return redeemOne(packId);
+}
+function redeemOne(packId: string): boolean {
   const p = getPack(packId);
   if (!p || p.left < 1) return false;
   const o = offerOf(p);

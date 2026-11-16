@@ -1,0 +1,1 @@
+ALTER TABLE "app"."redemptions" ADD COLUMN "units" smallint DEFAULT 1 NOT NULL;

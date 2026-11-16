@@ -9,7 +9,7 @@ import { validateInitData } from "./auth/telegram.js";
 import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
 import { purchaseRoutes, receiptFileRoutes } from "./routes/purchases.js";
-import { usageRoutes } from "./routes/usage.js";
+import { devQrRoutes, usageRoutes } from "./routes/usage.js";
 
 type User = typeof users.$inferSelect;
 export type Env = { Variables: { user: User; auth: { authDate: number; startParam?: string } } };
@@ -26,6 +26,7 @@ export function createApp(cfg: Config, db: Db) {
 
   // Ашық маршруттар (кірусіз): чек PDF (қолтаңбалы сілтеме), каталог
   app.route("/files", receiptFileRoutes(cfg, db));
+  app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db));
 
   // Аутентификация: Authorization: tma <initData>. Пайдаланушы бірінші рет кірсе — жазылады, әйтпесе деректері жаңарады.

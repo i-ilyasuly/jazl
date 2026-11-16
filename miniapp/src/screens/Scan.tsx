@@ -9,7 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { catalogState } from "../catalog";
 import { fmt, unitPrice } from "../mocks/offers";
-import { getPack, hasPin, offerOf, redeem, redeemOnServer, unitLabel, usePacks, useSettings } from "../store";
+import { getPack, hasPin, offerOf, redeem, redeemOnServer, resolveQr, unitLabel, usePacks, useSettings, type QrInfo } from "../store";
 import { scanEarly, scanStates, type ScanKind } from "./ScanState";
 import { haptic, inTelegram, tg, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -22,9 +22,24 @@ export function Scan() {
   const [params] = useSearchParams();
   const packs = usePacks();
   const go = useGo();
-  // B3: QR филиалды анықтайды → сол мекеменің пакеті таңдалады (Сканер табынан ашылса, пакет белгісіз)
-  const qrVenue = (() => { const id = (params.get("qr") ?? "").match(/(?:JZB1:|br_)([0-9a-f-]{36})/i)?.[1]; return id ? catalogState.branches.find((b) => b.branchId === id)?.venue : undefined; })();
-  const pack = getPack(params.get("pack") ?? undefined) ?? (qrVenue ? packs.find((p) => p.left > 0 && !p.expired && offerOf(p).venue === qrVenue) : undefined) ?? packs.find((p) => p.left > 0 && !p.expired);
+  // B3.1 (Патша, 2026-11-17): QR мекемені анықтайды. Таңдалған пакет басқа мекемеден болса — сол QR мекемесіндегі пакетке
+  // ауысамыз (ескертумен), ол мекемеде пакет жоқ болса — «Бұл QR басқа мекеменікі» беті. Ешқашан бөтен пакеттен шегерілмейді.
+  const qr = params.get("qr") ?? "";
+  const qrLocal = useMemo(() => {
+    const dyn = qr.match(/^JZQ2\.([0-9a-f-]{36})\.(\d{1,2})\./i);
+    const branchId = dyn?.[1] ?? qr.match(/(?:JZB1:|br_)([0-9a-f-]{36})/i)?.[1];
+    return { branchId, units: dyn ? Number(dyn[2]) : null, amount: Number(qr.match(/[?&]amount=(\d+)/)?.[1] ?? 0) || null };
+  }, [qr]);
+  const [qrInfo, setQrInfo] = useState<QrInfo | { error: string } | null>(null);
+  useEffect(() => { if (qr) void resolveQr(qr).then(setQrInfo); }, [qr]);
+  const info = qrInfo && "venue" in qrInfo ? qrInfo : null;
+  const qrVenue = info?.venue.name ?? (qrLocal.branchId ? catalogState.branches.find((b) => b.branchId === qrLocal.branchId)?.venue : undefined);
+  const wanted = getPack(params.get("pack") ?? undefined);
+  const venuePacks = qrVenue ? packs.filter((p) => p.left > 0 && !p.expired && offerOf(p).venue === qrVenue) : [];
+  const pack = qrVenue ? (wanted && offerOf(wanted).venue === qrVenue && wanted.left > 0 ? wanted : venuePacks[0]) : (wanted ?? packs.find((p) => p.left > 0 && !p.expired));
+  const switched = Boolean(qrVenue && wanted && pack && wanted.id !== pack.id);
+  const qrUnits = info?.units ?? qrLocal.units;
+  const qrAmount = info?.amount ?? qrLocal.amount;
   // «Код енгізу» (Figma 23) дұрыс код берсе, камерасыз бірден төлем парағы ашылады
   // via=qr — QR нативті сканермен бұрын (Навигация не «Қолдану» парағынан) оқылды: бет бірден төлем парағымен ашылады
   const via = params.get("via");
@@ -36,7 +51,17 @@ export function Scan() {
   const lock = useSettings().lock;
   const demo = params.get("scan") ?? "";
   const demoKind = (scanStates as readonly string[]).includes(demo) ? (demo as ScanKind) : null;
-  const toState = useCallback((k: ScanKind) => go(`/scan/state/${k}${pack ? "?pack=" + pack.id : ""}`, "up", { replace: true }), [go, pack]);
+  const toState = useCallback((k: ScanKind, extra = "") => go(`/scan/state/${k}?${pack ? "pack=" + pack.id : ""}${extra}`, "up", { replace: true }), [go, pack]);
+  // QR басқа мекеменікі және онда пакет жоқ; QR мерзімі өткен; Jazl QR емес — бірден тиісті бет
+  useEffect(() => {
+    if (via !== "qr" || !qr) return;
+    if (qrInfo && "error" in qrInfo) { toState(qrInfo.error === "not_jazl_qr" ? "notqr" : qrInfo.error === "branch_not_found" ? "notpartner" : "fail"); return; }
+    if (info?.expired) { toState("expired"); return; }
+    if (qrVenue && venuePacks.length === 0) toState("othervenue", "&v=" + encodeURIComponent(qrVenue));
+  }, [qrInfo, qrVenue, venuePacks.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Дана саны: кассир енгізгені (динамикалық QR) — өзгермейді; банк сомасынан — клиент «+» басып теңестіреді
+  const [units, setUnits] = useState(1);
+  useEffect(() => { setUnits(qrUnits ?? 1); }, [qr, qrUnits]);
 
   // Сол мекемедегі белсенді пакеттер: QR сомасына бағасы сәйкес келетіндерін ғана таңдауға болады
   const amount = pack ? unitPrice(offerOf(pack)) : 0;
@@ -56,6 +81,11 @@ export function Scan() {
   const [sel, setSel] = useState("");
   const chosen = opts.find((x) => x.id === sel && x.ok) ?? opts[0];
   const multi = opts.length > 1;
+  // Банк терминалы: кассадағы сома → неше дана (1 бірлік бағасына бөлінсе)
+  const chosenPrice = chosen?.price ?? amount;
+  const needUnits = qrAmount && chosenPrice ? (qrAmount % chosenPrice === 0 ? qrAmount / chosenPrice : -1) : null;
+  const unitsOk = needUnits === null ? true : needUnits === units;
+  const maxUnits = Math.min(10, chosen?.left ?? pack?.left ?? 1);
 
   const close = useCallback(() => go(-1, "back"), [go]);
   useBackButton(close);
@@ -66,13 +96,13 @@ export function Scan() {
     // QR оқылған бойда белгілі болатын күйлер: желі жоқ, белсенді пакет жоқ, демо күйлері
     if (demoKind && scanEarly.includes(demoKind)) return toState(demoKind);
     if (!navigator.onLine) return toState("offline");
-    if (!pack) return toState("nopack");
+    if (!pack) return qrVenue ? toState("othervenue", "&v=" + encodeURIComponent(qrVenue)) : toState("nopack");
     setFound(true);
   }, [found, demoKind, pack, toState]);
 
   useEffect(() => {
     if (found || nativeClosed) return;
-    if (via === "code" || via === "qr") { if (!navigator.onLine) { toState("offline"); return; } if (!pack) { toState("nopack"); return; } }
+    if (via === "code" || via === "qr") { if (!navigator.onLine) { toState("offline"); return; } if (!pack) { if (qrVenue) toState("othervenue", "&v=" + encodeURIComponent(qrVenue)); else if (!qr) toState("nopack"); return; } }
     // Компьютердегі Telegram-да нативті сканер жоқ: «Сканерді телефонда аш»
     if (inTelegram && !(tg?.isVersionAtLeast?.("6.4") && tg.showScanQrPopup)) { toState("desktop"); return; }
     if (inTelegram && tg?.isVersionAtLeast?.("6.4") && tg.showScanQrPopup) {
@@ -89,9 +119,12 @@ export function Scan() {
   }, [found, detect, close, toState, nativeClosed]);
 
   const pay = useMemo(() => ({
-    text: pack ? `Төлеу · ${unitLabel(pack)}` : "Төлеу",
+    text: !pack ? "Төлеу" : !unitsOk ? `Алдымен ${needUnits} дана таңдаңыз` : units > 1 ? `Төлеу · ${units} дана` : `Төлеу · ${unitLabel(pack)}`,
+    disabled: !unitsOk,
     onClick: () => {
       if (!pack || busy) return;
+      if (needUnits === -1) { haptic.error(); toState("amount"); return; }
+      if (!unitsOk) { haptic.warning(); return; }
       haptic.medium();
       const packId = chosen && getPack(chosen.id) ? chosen.id : pack.id;
       // PIN қосулы болса, төлем PIN-мен расталады (Figma «PIN: төлемді растау»)
@@ -102,18 +135,20 @@ export function Scan() {
       const finish = (err?: ScanKind) => {
         tg?.MainButton?.hideProgress?.();
         if (err) { setBusy(false); haptic.error(); toState(err); return; }
-        redeem(packId); haptic.success(); go("/paid/" + packId, "up", { replace: true });
+        redeem(packId, units); haptic.success(); go("/paid/" + packId, "up", { replace: true });
       };
       if (demoKind) { setTimeout(() => finish(demoKind), 1600); return; }
       // B3: пакет серверде болса — бірлік серверде шегеріледі (QR мекемені анықтайды); қате болса — тиісті күй беті
-      void redeemOnServer(packId, qr).then((r) => {
+      void redeemOnServer(packId, qr, units).then((r) => {
         if (!r) { setTimeout(() => finish(), 1200); return; }
         if (r.ok) { finish(); return; }
-        const map: Record<string, ScanKind> = { not_jazl_qr: "notqr", other_venue: "notpartner", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "expired", pack_used: "nopack", network: "fail" };
+        if (r.error === "units_mismatch" && r.expectedUnits) { tg?.MainButton?.hideProgress?.(); setBusy(false); haptic.warning(); setUnits(r.expectedUnits); return; }
+        if (r.error === "other_venue") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/othervenue?v=${encodeURIComponent(r.venue ?? "")}`, "up", { replace: true }); return; }
+        const map: Record<string, ScanKind> = { not_jazl_qr: "notqr", bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
         finish(map[r.error] ?? "fail");
       });
     },
-  }), [pack, busy, go, chosen, lock, demoKind, toState, params]);
+  }), [pack, busy, go, chosen, lock, demoKind, toState, params, units, unitsOk, needUnits, qr]);
   // Figma 23 «Төлем парағы: кассада қосымша»: таңдалған ас пакет бағасынан қымбат — айырмасы кассада төленеді. Демо: ?scan=extra
   const extra = demo === "extra" ? 500 : 0;
   const cancel = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: () => { haptic.soft(); close(); } }), [close]);
@@ -171,6 +206,7 @@ export function Scan() {
               <span className={s.venueText}><span className="t-headline">{o.venue}</span><span className={s.packSub}>Нұркен Әбдіров, 24 • Бірыңғай QR</span></span>
               <span className={s.amount}>{unitLabel(pack)}</span>
             </div>
+            {switched && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Бұл QR — {qrVenue} мекемесінікі. Сол мекемедегі пакетің таңдалды.<i>”</i></p>}
             <p className={`t-sub2 w-600 ${s.link}`}>{multi ? "Қай пакеттен шегереміз?" : "Пакетті таңда"}</p>
             <div className={s.opts}>
               {opts.map((x) => (
@@ -182,12 +218,23 @@ export function Scan() {
                 </button>
               ))}
             </div>
-            {multi
-              ? <p className={`${s.quote} infoBox`}>Таңдаған пакетіңнен 1 бірлік шегеріледі. Бағасы бірдей пакеттердің кез келгенін таңдауға болады.<i>”</i></p>
-              : <div className={s.rows}>
-                  <p><span className={s.muted}>Шегеріледі</span><b>1 бірлік</b></p>
-                  <p><span className={s.muted}>Қалады</span><b>{pack.left - 1} / {pack.total}</b></p>
-                </div>}
+            {/* Дана саны: кассир енгізген (өзгермейді) не банк сомасы бойынша клиент таңдайды */}
+            <div className={s.units}>
+              <span className={s.unitsText}><b>Дана</b><small>{qrUnits ? "Кассир енгізді" : needUnits ? `Кассадағы сома: ${fmt(qrAmount ?? 0)}` : "Бір сканерлеуде"}</small></span>
+              {qrUnits ? <b className={s.unitsFixed}>{units}</b> : (
+                <span className={s.stepper}>
+                  <button aria-label="Азайту" disabled={units <= 1} onClick={() => { haptic.select(); setUnits(units - 1); }}>−</button>
+                  <b>{units}</b>
+                  <button aria-label="Көбейту" disabled={units >= maxUnits} onClick={() => { haptic.select(); setUnits(units + 1); }}>+</button>
+                </span>
+              )}
+            </div>
+            {needUnits !== null && needUnits > 0 && !unitsOk && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Кассадағы сома {fmt(qrAmount ?? 0)} = {needUnits} × {fmt(chosenPrice)}. «+» батырмасымен {needUnits} дана таңдап, сосын төле — әйтпесе төлем өтпейді.<i>”</i></p>}
+            {needUnits === -1 && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Кассадағы сома {fmt(qrAmount ?? 0)} пакеттің 1 бірлік бағасына ({fmt(chosenPrice)}) еселі емес. Кассирден соманы түзетуін сұра.<i>”</i></p>}
+            <div className={s.rows}>
+              <p><span className={s.muted}>Шегеріледі</span><b>{units} бірлік</b></p>
+              <p><span className={s.muted}>Қалады</span><b>{Math.max(0, (chosen?.left ?? pack.left) - units)} / {chosen?.total ?? pack.total}</b></p>
+            </div>
             </>}
             {!inTelegram && (
               <div className={`${s.bar} ${extra ? s.bar2 : ""}`}>
