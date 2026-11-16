@@ -148,7 +148,7 @@ export function Scan() {
               {([["Мекеме", o.venue], ["Пакеттен", `1 дана · ${unitLabel(pack)}`], ["Таңдалған ас", "Донер + Айран"], ["Қосымша", fmt(extra)]] as const).map(([k, v]) => <p key={k}><span className={s.muted}>{k}</span><b>{v}</b></p>)}
             </div>
             <p className={`t-sub2 w-600 ${s.extraChip}`}>Қосымша {fmt(extra)} кассада төленеді</p>
-            <p className={s.quote}>Пакет баламасынан бір дана ғана шегеріледі. Қосымша сома пакеттен тыс, мекеменің кассасында төленеді.<i>”</i></p>
+            <p className={`${s.quote} infoBox`}>Пакет баламасынан бір дана ғана шегеріледі. Қосымша сома пакеттен тыс, мекеменің кассасында төленеді.<i>”</i></p>
             </> : <>
             <h2 className={s.sheetTitle}>Төлем</h2>
             <div className={s.venue}>
@@ -168,7 +168,7 @@ export function Scan() {
               ))}
             </div>
             {multi
-              ? <p className={s.quote}>Таңдаған пакетіңнен 1 бірлік шегеріледі. Бағасы бірдей пакеттердің кез келгенін таңдауға болады.<i>”</i></p>
+              ? <p className={`${s.quote} infoBox`}>Таңдаған пакетіңнен 1 бірлік шегеріледі. Бағасы бірдей пакеттердің кез келгенін таңдауға болады.<i>”</i></p>
               : <div className={s.rows}>
                   <p><span className={s.muted}>Шегеріледі</span><b>1 бірлік</b></p>
                   <p><span className={s.muted}>Қалады</span><b>{pack.left - 1} / {pack.total}</b></p>

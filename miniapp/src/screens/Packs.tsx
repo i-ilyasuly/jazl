@@ -46,13 +46,12 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
         )}
       </div>
       {soon && (
-        <div className={s.renew}>
+        <div className={`${s.renew} infoBox infoOk`}>
           <span className={s.renewBar} />
           <p className={`t-sub2 ${s.renewText}`}>Қайта алсаң, қалған бірлік <b>келесі айға көшеді</b></p>
           <button className={`t-sub2 w-600 ${s.renewBtn}`} onClick={(e) => { e.stopPropagation(); haptic.medium(); go("/rebuy/" + pack.id); }}>Қайта алу</button>
         </div>
       )}
-      {soon && <span className={s.quoteMark} aria-hidden>”</span>}
     </article>
   );
 }
@@ -115,7 +114,7 @@ export function Packs() {
                       </button>
                     ))}
                   </div>
-                  <p className={`t-sub2 ${s.bookNote}`}>Ауыстыру немесе бас тарту үшін жазылуды ашып қара.<i>”</i></p>
+                  <p className={`t-sub2 ${s.bookNote} infoBox`}>Ауыстыру немесе бас тарту үшін жазылуды ашып қара.<i>”</i></p>
                 </section>
               ), orders.length > 0 && bookings.length > 0 && <p key="oh" className={`t-sub2 w-600 ${s.header}`}>Тапсырыстар<span> · {orders.length}</span></p>, ...orders.map((o, i) => (
                 <button key={o.id} className={`${s.order} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/orders/" + o.id)}>

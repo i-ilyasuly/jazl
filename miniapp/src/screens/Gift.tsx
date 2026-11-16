@@ -49,7 +49,7 @@ export function Gift() {
         {v.chip && <span className={`t-cap1 ${s.chip} ${v.chipCls}`}>{v.chip}</span>}
         {v.sub && <p className={`t-sub1 ${s.sub}`}>{v.sub}</p>}
       </div>
-      {g.status !== "cancelled" && <div className={`${s.quote} rise`}><span className={s.bar} /><p className="t-sub2">{g.msg || MESSAGE}</p><span className={s.mark} aria-hidden>”</span></div>}
+      {g.status !== "cancelled" && <div className={`${s.quote} infoBox rise`}><span className={s.bar} /><p className="t-sub2">{g.msg || MESSAGE}</p><span className={s.mark} aria-hidden>”</span></div>}
       {g.status === "wait" ? <>
         <Group i={1}>{kv([["Кімге", g.name], ["Пакет", g.pack], ["Жіберілді", g.sentAt], ["Қабылдау мерзімі", g.until]])}</Group>
         <Group i={2}><button className={s.cancel} onClick={() => { haptic.warning(); setAsk(true); }}>Сыйлықты болдырмау</button></Group>

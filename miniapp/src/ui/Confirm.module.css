@@ -10,6 +10,6 @@
 .title { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; color: var(--text-strong); }
 .text { color: var(--text-strong); }
 .btns { display: flex; justify-content: flex-end; gap: 8px; }
-.btn { height: 44px; padding: 10px 12px; border-radius: 12px; color: var(--link); transition: background 0.15s ease; }
+.btn { height: 44px; padding: 10px 12px; border-radius: 8px; color: var(--link); transition: background 0.15s ease; }
 .btn:active { background: rgba(34, 154, 240, 0.1); }
 .danger { color: #d8434b; }

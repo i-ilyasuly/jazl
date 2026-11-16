@@ -62,7 +62,7 @@ export function GiftOpen() {
             <h1 className="t-title2 w-700">Саған сыйлық!</h1>
             <p className={`t-sub2 ${s.muted}`}>{anon ? "Жіберуші өз атын жасырды" : `${g.name} сыйлады`}</p>
           </div>
-          {g.msg && <div className={`${s.quote} rise`}><p className="t-sub2">{g.msg}</p><i aria-hidden>”</i></div>}
+          {g.msg && <div className={`${s.quote} infoBox rise`}><p className="t-sub2">{g.msg}</p><i aria-hidden>”</i></div>}
           <section className={`${s.card} rise`} style={{ ["--i" as string]: 1 }}>
             <div className={s.row}>
               <span className={s.emoji}>{g.emoji}</span>

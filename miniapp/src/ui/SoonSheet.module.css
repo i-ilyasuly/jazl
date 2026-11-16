@@ -15,7 +15,7 @@
 .pct { position: absolute; left: 16px; top: 40px; font-size: 34px; line-height: 41px; font-weight: 700; }
 .bar2 { position: absolute; left: 16px; right: 16px; bottom: 14px; height: 6px; border-radius: 3px; background: rgba(34, 154, 240, 0.18); overflow: hidden; }
 .bar2 i { display: block; height: 100%; border-radius: 3px; background: #229af0; transform-origin: left; animation: grow 0.8s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.tag { position: absolute; right: 16px; top: 14px; height: 26px; padding: 3px 10px; border-radius: 13px; background: #ffd633; color: #000; font-size: 13px; line-height: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+.tag { position: absolute; right: 16px; top: 14px; height: 26px; padding: 3px 10px; border-radius: 6px; background: var(--orange-bg); color: var(--orange-text); font-size: 13px; line-height: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
 :global(:root[data-theme="dark"]) .tag { background: #b8860b; }
 .text { width: 380px; color: var(--text-strong); font-size: 17px; line-height: 22px; padding: 0 4px; }
 .text b { padding: 0 5px; border-radius: 6px; background: #dcebfb; color: #1f5fa8; font-weight: 600; }

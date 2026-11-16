@@ -86,7 +86,7 @@ export function ScanState() {
             <p><span>Пакет бағасы:</span><b>{fmt(price)}</b></p>
           </div>
         )}
-        {c.note && <p className={`${s.reason} ${s.note}`}>{c.note}<i>”</i></p>}
+        {c.note && <p className={`${s.reason} ${s.note} infoBox infoWarn`}>{c.note}<i>”</i></p>}
       </div>
       {!inTelegram && (
         <div className={s.bar}>

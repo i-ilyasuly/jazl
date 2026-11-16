@@ -3,29 +3,29 @@
 .card:active { transform: scale(0.985); }
 .title { position: absolute; left: 16px; top: 15px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: 0.1px; color: var(--text-primary); }
 .venue { position: absolute; left: 16px; top: 42px; font-size: 15px; line-height: 20px; white-space: nowrap; color: var(--hint); }
-.discount { position: absolute; right: 60px; top: 16px; height: 24px; padding: 4px 9px 4px 8px; border-radius: 12px; font-size: 13px; line-height: 16px; font-weight: 700 !important; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
+.discount { position: absolute; right: 60px; top: 16px; height: 24px; padding: 4px 9px 4px 8px; border-radius: 6px; font-size: 13px; line-height: 16px; font-weight: 700 !important; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
 .fav { position: absolute; left: 330px; top: 6px; width: 44px; height: 44px; border-radius: 22px; background: rgba(241, 243, 245, 0.8); display: flex; align-items: center; justify-content: center; }
 .pop { animation: pop 0.28s cubic-bezier(0.3, 1.6, 0.5, 1); }
 @keyframes pop { from { transform: scale(0.6); } to { transform: scale(1); } }
 .thumb { position: absolute; left: 16px; top: 72px; width: 176px; height: 116px; border-radius: 12px; background: var(--thumb-bg); overflow: hidden; }
 .thumbIcon { position: absolute; left: 64px; top: 24px; }
 .photo { width: 100%; height: 100%; object-fit: cover; }
-.buyers { position: absolute; left: 8px; top: 80px; height: 22px; padding: 0 8px 0 8px; border-radius: 11px; background: #ffffff; display: flex; align-items: center; gap: 4px; color: #000; font-weight: 600; }
-.deadline { position: absolute; left: 80px; top: 80px; height: 24px; padding: 4px 8px; border-radius: 12px; background: var(--orange-bg); color: var(--orange-text); font-weight: 600; white-space: nowrap; }
+.buyers { position: absolute; left: 8px; top: 80px; height: 22px; padding: 0 8px 0 8px; border-radius: 6px; background: #ffffff; display: flex; align-items: center; gap: 4px; color: #000; font-weight: 600; }
+.deadline { position: absolute; left: 80px; top: 80px; height: 24px; padding: 4px 8px; border-radius: 6px; background: var(--orange-bg); color: var(--orange-text); font-weight: 600; white-space: nowrap; }
 .price { position: absolute; right: 16px; top: 72px; font-size: 24px; line-height: 30px; letter-spacing: 0.15px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
-.unit, .saving { position: absolute; height: 28px; padding: 4px 12px; border-radius: 14px; white-space: nowrap; font-size: 15px; line-height: 20px; }
+.unit, .saving { position: absolute; height: 28px; padding: 4px 12px; border-radius: 6px; white-space: nowrap; font-size: 15px; line-height: 20px; }
 .unit { right: 16px; top: 114px; background: var(--orange-bg); color: var(--orange-text); }
 .saving { right: 16px; top: 150px; background: var(--green-bg); color: var(--green-text); }
 :global(:root[data-theme="dark"]) .fav { background: rgba(45, 53, 66, 0.8); }
 :global(:root[data-theme="dark"]) .buyers { background: rgba(29, 39, 51, 0.85); color: #8cc4f5; }
 .ended .title, .ended .venue, .ended .thumb, .ended .price { opacity: 0.5; }
-.over { position: absolute; left: 95px; top: 152px; height: 24px; padding: 4px 12px 4px 14px; border-radius: 12px; background: #f4f4f7; color: #000; font-weight: 700; white-space: nowrap; }
-.notify { position: absolute; right: 16px; top: 152px; height: 36px; padding: 7px 12px; border-radius: 18px; background: rgba(67, 120, 255, 0.1); color: #007aff; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.25s ease, transform 0.12s ease; }
+.over { position: absolute; left: 95px; top: 152px; height: 24px; padding: 4px 12px 4px 14px; border-radius: 6px; background: #f4f4f7; color: #000; font-weight: 700; white-space: nowrap; }
+.notify { position: absolute; right: 16px; top: 152px; height: 36px; padding: 7px 12px; border-radius: 8px; background: rgba(67, 120, 255, 0.1); color: #007aff; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.25s ease, transform 0.12s ease; }
 .notify:active { transform: scale(0.95); }
 .waiting { background: rgba(49, 209, 88, 0.15); color: #1f7a38; }
 .ring { animation: ring 0.6s ease; transform-origin: 50% 10%; }
 @keyframes ring { 20% { transform: rotate(-18deg); } 45% { transform: rotate(14deg); } 70% { transform: rotate(-8deg); } 100% { transform: none; } }
-.unit, .saving { font-weight: 600; }
+.unit, .saving { font-weight: 400; } /* Figma ережесі + Krisha: белгі мәтіні Regular */
 :global(:root[data-theme="dark"]) .buyers { background: rgba(0, 0, 0, 0.6); }
 :global(:root[data-theme="dark"]) .buyers img { filter: brightness(0) invert(1); }
 /* Түнгі режим фондары (автоматты түрде қосылған) */

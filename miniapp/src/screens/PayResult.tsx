@@ -38,7 +38,7 @@ export function PayResult() {
         <Sticker name={c.sticker} size={132} className={s.sticker} />
         <h1 className={s.title}>{c.title}</h1>
         <p className={s.text}>{c.text}</p>
-        {c.reason && <p className={s.reason}>{c.reason}<i>”</i></p>}
+        {c.reason && <p className={`${s.reason} infoBox infoWarn`}>{c.reason}<i>”</i></p>}
       </div>
       {!inTelegram && (
         <div className={s.bar}>

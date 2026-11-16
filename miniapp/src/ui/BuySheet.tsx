@@ -188,7 +188,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
           <h2 className={s.title}>Баға өзгерді</h2>
           <div className={s.row}><span className={s.muted}>Бұрынғы баға</span><span className="w-600">{fmt(offer.price)}</span></div>
           <div className={s.row}><span className={s.muted}>Жаңа баға</span><span className={s.method}><span className={s.up}>▲ {Math.round((newPrice / offer.price - 1) * 100)}%</span><span className="w-600">{fmt(newPrice)}</span></span></div>
-          <p className={s.warn}>Мекеме бағаны жаңартты. Төлемге дейін тексеріп ал.<i>”</i></p>
+          <p className={`${s.warn} infoBox infoWarn`}>Мекеме бағаны жаңартты. Төлемге дейін тексеріп ал.<i>”</i></p>
         </>}
 
         {!inTelegram && (

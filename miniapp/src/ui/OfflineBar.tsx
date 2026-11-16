@@ -22,7 +22,7 @@ export function OfflineBar() {
     setTimeout(() => { setBusy(false); if (navigator.onLine && !demo()) { haptic.success(); setOff(false); } else haptic.error(); }, 700);
   };
   return (
-    <div className={s.bar} role="status">
+    <div className={`${s.bar} infoBox infoWarn`} role="status">
       <span className={s.edge} />
       <p className={`t-sub2 ${s.text}`}>Желі жоқ • деректер ескі болуы мүмкін</p>
       <button className={`t-sub2 w-600 ${s.btn}`} disabled={busy} onClick={retry}>Қайта көру</button>

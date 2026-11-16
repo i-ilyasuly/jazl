@@ -55,7 +55,7 @@ export function Rebuy() {
       <h1 className="pageTitle">Қайта алу</h1>
       <div className={s.col}>
         {changed && (
-          <div className={`${s.note} ${s.warn} rise`}>
+          <div className={`${s.note} ${s.warn} infoBox infoWarn rise`}>
             <p className={s.noteTitle}>Баға өзгерді: {fmt(o.price).replace(" ₸", "")} → {fmt(price)}</p>
             <p className={s.noteSub}>Мекеме бағаны жаңартты. Төлемге дейін тексеріп ал.</p>
             <i aria-hidden>”</i>
@@ -71,13 +71,13 @@ export function Rebuy() {
         </section>
 
         {carry > 0 && (
-          <div className={`${s.note} rise`} style={{ ["--i" as string]: 2 }}>
+          <div className={`${s.note} infoBox infoOk rise`} style={{ ["--i" as string]: 2 }}>
             <p>Қалған <b>{carry} бірлік</b> жаңа пакетке <b>қосылады</b>, мерзімі де жаңарады.</p>
             <i aria-hidden>”</i>
           </div>
         )}
         {late && (
-          <div className={`${s.note} ${s.warn} rise`} style={{ ["--i" as string]: 2 }}>
+          <div className={`${s.note} ${s.warn} infoBox infoWarn rise`} style={{ ["--i" as string]: 2 }}>
             <p>Бұрынғы пакеттің мерзімі өткеніне {CARRY_DAYS} күннен асты, сондықтан пайдаланылмаған {pack.left} бірлік жаңа пакетке көшпейді.</p>
             <button className={s.noteLink} onClick={() => go("/rules/carry")}>Көшіру ережесі туралы толығырақ</button>
             <i aria-hidden>”</i>
@@ -162,7 +162,7 @@ export function CarryRules() {
             <li>Мерзімін өткізбеу үшін тегін ұзартуды қолдануға болады, егер мекеме рұқсат етсе.</li>
           </ul>
         </section>
-        <div className={`${s.note} ${s.info} rise`} style={{ ["--i" as string]: 2 }}>
+        <div className={`${s.note} ${s.info} infoBox rise`} style={{ ["--i" as string]: 2 }}>
           <p>Нақты шарттар мекеменің ұсыныс бетінде көрсетіледі.</p>
           <i aria-hidden>”</i>
         </div>

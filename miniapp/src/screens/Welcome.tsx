@@ -121,7 +121,7 @@ export function WelcomeCity() {
         <Choice title="Астана" sub="жуырда" dim on={false} onClick={soon} />
         <Choice title="Алматы" sub="жуырда" dim on={false} onClick={soon} />
       </div>
-      <div className={`${s.quote} rise`} style={{ ["--i" as string]: 2 }}><span className={s.bar} /><p className="t-sub2">Басқа қалалар ашылғанда хабарлаймыз.</p><span className={s.mark} aria-hidden>”</span></div>
+      <div className={`${s.quote} infoBox rise`} style={{ ["--i" as string]: 2 }}><span className={s.bar} /><p className="t-sub2">Басқа қалалар ашылғанда хабарлаймыз.</p><span className={s.mark} aria-hidden>”</span></div>
     </Step>
   );
 }

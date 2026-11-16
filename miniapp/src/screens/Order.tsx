@@ -98,7 +98,7 @@ export function Order() {
         {list.length > 1 && <i className={s.chev} />}
       </button>
 
-      {tooLate && pack && <p key={shake} className={`t-sub2 ${s.warn} ${shake ? s.shake : ""}`} role="alert">Пакет мерзімі бітетін күн: {dayLabel(lastDay)}. Таңдаған алу күнің: {dayLabel(day)}. Бұл күнге тапсырыс беру мүмкін емес.<i>”</i></p>}
+      {tooLate && pack && <p key={shake} className={`t-sub2 ${s.warn} infoBox infoWarn ${shake ? s.shake : ""}`} role="alert">Пакет мерзімі бітетін күн: {dayLabel(lastDay)}. Таңдаған алу күнің: {dayLabel(day)}. Бұл күнге тапсырыс беру мүмкін емес.<i>”</i></p>}
       {<>
         <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 2 }}>{tooLate ? "Қолжетімді күндер" : "Қай күні"}</h2>
         <div className={`${s.chips} rise`} style={{ ["--i" as string]: 2 }}>
@@ -112,7 +112,7 @@ export function Order() {
         {times.map((t) => <button key={t} className={`${s.chip} ${time === t ? s.on : ""}`} onClick={() => { if (time !== t) { haptic.select(); setTime(t); } }}>{t === "now" ? "Қазір · ≈15 мин" : t}</button>)}
       </div>
 
-      <p className={`${s.quote} rise`} style={{ ["--i" as string]: 4 }}>
+      <p className={`${s.quote} infoBox rise`} style={{ ["--i" as string]: 4 }}>
         {hair
           ? "Таңдаған уақытта салонға кел, шеберге QR-ды көрсет. Жазылуды 3 сағат бұрын тегін ауыстыруға болады."
           : "Ақша төленбейді: пакеттен 1 бірлік шегеріледі. Тапсырысты өзің аласың — кассирге «Jazl, тапсырыс нөмірі» және 4 таңбалы кодты айт. Қаласаң, курьер жалдап, жеткенде кодты айтқыз."}

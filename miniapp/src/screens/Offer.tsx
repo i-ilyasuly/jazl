@@ -162,13 +162,12 @@ function OfferView({ id }: { id?: string }) {
 
         <section className={`${s.block} ${s.blk}`} style={{ position: "relative" }}>
           <h2 className={s.blockTitle}>Сипаттама</h2>
-          <button className={`${s.quote} ${open ? s.quoteOpen : ""}`} onClick={() => { haptic.tap(); setOpen(!open); }}>
+          <button className={`${s.quote} infoBox ${open ? s.quoteOpen : ""}`} onClick={() => { haptic.tap(); setOpen(!open); }}>
             <span className={s.quoteBar} />
             <span className={s.quoteText}><Segs list={d.about} /></span>
             {!open && <span className={s.fade} />}
             <img src={expand} className={s.expand} width={22} height={22} alt="" />
           </button>
-          <span className={s.quoteMark} aria-hidden>”</span>
         </section>
 
         <section className={`${s.blk} ${s.rules}`}>

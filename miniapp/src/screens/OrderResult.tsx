@@ -56,7 +56,7 @@ export function OrderDone() {
         <h1 className={p.title}>{o.title.startsWith("Шаш") ? "Жазылу расталды" : "Тапсырыс жіберілді"}</h1>
         <p className={p.text}>№{o.no} • мекеменің тапсырыс жүйесіне түсті</p>
         <OrderCard id={id} />
-        <p className={s.note}>Мекемеге келгенде кассирге «Jazl, тапсырыс {o.no}» және кодты айт. Курьер жалдасаң, ол кодты айтады.<i>”</i></p>
+        <p className={`${s.note} infoBox infoWarn`}>Мекемеге келгенде кассирге «Jazl, тапсырыс {o.no}» және кодты айт. Курьер жалдасаң, ол кодты айтады.<i>”</i></p>
       </div>
       <Bar left={left} main={main} />
     </div>
@@ -81,7 +81,7 @@ export function OrderView() {
           <div className={s.kv}><span>Төлем</span><b>пакеттен 1 бірлік</b></div>
           <button className={`${s.kv} ${s.kvBtn}`} onClick={() => { haptic.tap(); go("/receipt/order/" + o.id); }}><span>Чек</span><b className={s.link}>Ашу</b></button>
         </div>
-        <p className={s.note}>Мекемеге тапсырыс жіберілді. Орындалу барысын қолданба көрсетпейді.<i>”</i></p>
+        <p className={`${s.note} infoBox infoWarn`}>Мекемеге тапсырыс жіберілді. Орындалу барысын қолданба көрсетпейді.<i>”</i></p>
       </>}
       <Bar left={help} main={close} />
     </SubPage>
@@ -124,7 +124,7 @@ export function OrderState() {
         <Sticker name={c.sticker} size={132} className={p.sticker} />
         <h1 className={p.title}>{c.title}</h1>
         <p className={p.text}>{c.text}</p>
-        {c.note && <p className={p.reason}>{c.note}<i>”</i></p>}
+        {c.note && <p className={`${p.reason} infoBox infoWarn`}>{c.note}<i>”</i></p>}
       </div>
       <Bar left={left} main={main} />
     </div>

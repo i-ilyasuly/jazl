@@ -14,7 +14,7 @@
 .sec { display: flex; flex-direction: column; gap: 8px; height: 68px; }
 .sec h3, .priceHead h3 { color: var(--link); }
 .chips { display: flex; gap: 8px; }
-.chip { height: 38px; padding: 8px 14px; border-radius: 18px; background: #f0f2f6; color: var(--text-strong); white-space: nowrap; transition: background 0.2s ease, color 0.2s ease, transform 0.12s ease; }
+.chip { height: 38px; padding: 8px 14px; border-radius: 8px; background: #f0f2f6; color: var(--text-strong); white-space: nowrap; transition: background 0.2s ease, color 0.2s ease, transform 0.12s ease; }
 .chip:active { transform: scale(0.94); }
 .on { background: rgba(34, 154, 240, 0.16); color: var(--link); font-weight: 600; }
 .price { display: flex; flex-direction: column; gap: 10px; height: 60px; }

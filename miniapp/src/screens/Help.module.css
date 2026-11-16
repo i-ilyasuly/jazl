@@ -26,7 +26,7 @@
 .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; background: #f5b800; }
 .quote { position: absolute; right: 12px; top: -12px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b800; }
 .btns { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 8px 10px calc(8px + var(--safe-b, 0px)); background: #fff; display: flex; gap: 8px; }
-.btn { flex: 1; height: 48px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.12s ease; }
+.btn { flex: 1; height: 48px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.12s ease; }
 .btn:active { opacity: 0.8; }
 .btn2 { background: var(--chip-tint); color: var(--link); }
 :global(:root[data-theme="dark"]) .btns { background: var(--surface-card); }

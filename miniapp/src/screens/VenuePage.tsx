@@ -99,13 +99,13 @@ function VenueView({ id }: { id?: string }) {
         <span className={s.line} style={{ translate: `${line.left}px 0`, width: line.width }} />
       </nav>
       <main key={tab} className={`${s.body} ${tab > prev ? s.fromRight : s.fromLeft}`}>
-        {tab === 0 && status === "nopay" && offers.length > 0 && <p className={s.nopay}>Мекеме уақытша Jazl+ төлемін қабылдамайды. Пакетті сатып алуға болады, пайдалану кейінірек.<i>”</i></p>}
+        {tab === 0 && status === "nopay" && offers.length > 0 && <p className={`${s.nopay} infoBox infoWarn`}>Мекеме уақытша Jazl+ төлемін қабылдамайды. Пакетті сатып алуға болады, пайдалану кейінірек.<i>”</i></p>}
         {tab === 0 && (offers.length ? offers.map((o) => <OfferCard key={o.id} offer={o} />) : (
           <div className={s.empty}><h2 className="t-headline">Қазір ұсыныс жоқ</h2><p className={`t-sub2 ${s.gray}`}>Жаңа ұсыныс шықса, хабарлаймыз</p><button className={`t-sub2 w-600 ${s.emptyBtn}`} onClick={notify}>{subscribed ? "✓ Қосулы" : "🔔 Хабарла"}</button></div>
         ))}
         {tab === 1 && <>
           <section className={s.card}>
-            <div className={s.quote}><span className={s.qBar} />
+            <div className={`${s.quote} infoBox`}><span className={s.qBar} />
               {v.id === "damdi" ? <p className={`t-text ${s.rich}`}><b className={s.green}>Жаңа піскен лаваш</b><span>мен</span><span>үй</span><span>соусы.</span><span>Донерді</span><b className={s.blue}>5 жылдан бері</b><span>дайындаймыз,</span><span>ет</span><span>күн</span><span>сайын</span><span>жаңа</span><span>келеді.</span></p>
                 : <p className="t-text">{v.name} — Jazl+ серіктесі. Пакет сатып алып, мекемеде сканерлеп қолдан.</p>}
             </div>

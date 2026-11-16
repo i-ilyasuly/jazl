@@ -31,7 +31,7 @@
 .more { display: flex; align-items: center; justify-content: space-between; min-height: 48px; color: var(--link); }
 .ask { margin-top: 4px; color: var(--link); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { height: 36px; padding: 8px 16px; border-radius: 18px; background: var(--search-bg); color: var(--text-strong); font-size: 15px; line-height: 20px; transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease; }
+.chip { height: 36px; padding: 8px 16px; border-radius: 8px; background: var(--search-bg); color: var(--text-strong); font-size: 15px; line-height: 20px; transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease; }
 .chip:active { transform: scale(0.95); }
 .chipOn { background: var(--chip-tint); color: var(--link); font-weight: 600; }
 .input { width: 100%; min-height: 76px; padding: 12px 16px; border: 0; outline: 0; resize: none; border-radius: 12px; background: var(--search-bg); color: var(--text-strong); font: inherit; font-size: 17px; line-height: 22px; caret-color: #229af0; transition: box-shadow 0.2s ease; }
@@ -40,7 +40,7 @@
 .sticker { align-self: center; }
 
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; padding: 8px 10px calc(8px + var(--safe-b, 0px)); background: var(--surface-white); }
-.btn { width: 392px; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.15s ease; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.15s ease; }
 .btn:active { opacity: 0.8; }
 .btn:disabled { opacity: 0.45; }
 :global(:root[data-theme="dark"]) .star svg { fill: #3a4756; }

@@ -87,7 +87,7 @@ export function DeleteData() {
         <Sticker name="clean" />
         <h2 className={s.delTitle}>Деректерді жою</h2>
         <p className={`t-sub2 ${s.delText}`}>Аккаунтың мен пакеттерің жойылады. Бұл әрекетті қайтару мүмкін емес.</p>
-        <div className={s.warn}><span className={s.bar} /><p className="t-sub2">Қалған бірліктің ақшасы қайтарылмайды. Алдымен бірліктерді пайдалан.</p><span className={s.quote} aria-hidden>”</span></div>
+        <div className={`${s.warn} infoBox infoWarn`}><span className={s.bar} /><p className="t-sub2">Қалған бірліктің ақшасы қайтарылмайды. Алдымен бірліктерді пайдалан.</p><span className={s.quote} aria-hidden>”</span></div>
       </div>
       {!inTelegram && (
         <div className={s.btns}>

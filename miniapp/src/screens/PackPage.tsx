@@ -66,13 +66,13 @@ export function PackPage() {
           <Timeline total={pack.total} used={pack.total - pack.left} warn={soon} width={348} />
           <p className={s.dateLine}>{dateLine}</p>
           {soon && (
-            <div className={s.note}>
+            <div className={`${s.note} infoBox infoOk`}>
               <p>Қайта алсаң, қалған бірлік <b>келесі айға көшеді</b></p>
               <button className={s.noteBtn} onClick={() => go("/rebuy/" + pack.id)}>Қайта алу</button>
             </div>
           )}
           {state === "expired" && (
-            <div className={`${s.note} ${s.noteWarn}`}>
+            <div className={`${s.note} ${s.noteWarn} infoBox infoWarn`}>
               <p>{late
                 ? <>Мерзімі өткеніне {CARRY_DAYS} күннен асты, сондықтан пайдаланылмаған {pack.left} бірлік жаңа пакетке көшпейді.</>
                 : <>Пакеттің мерзімі өтті. {CARRY_DAYS} күн ішінде қайта алсаң, пайдаланылмаған {pack.left} бірлік жаңа пакетке көшеді.</>}
