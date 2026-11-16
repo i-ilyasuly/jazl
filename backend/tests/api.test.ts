@@ -42,13 +42,19 @@ d("API", () => {
     const res = await createApp(cfg, dbh.db).request("/v1/me", { headers: { Authorization: "tma " + raw } });
     expect(res.status).toBe(401);
   });
+  it("мини апп басқа ботта ашылса: MINIAPP_BOT_TOKEN-мен қол қойылғаны да өтеді", async () => {
+    const cfg2 = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, MINIAPP_BOT_TOKEN: "777:MINIAPP", DB_SSL: "disable", NODE_ENV: "test" });
+    const raw = signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: 77, first_name: "Мини" }) }, "777:MINIAPP");
+    const res = await createApp(cfg2, dbh.db).request("/v1/me", { headers: { Authorization: "tma " + raw } });
+    expect(res.status).toBe(200);
+  });
   it("кіру: пайдаланушы бір рет жазылады, аты жаңарады", async () => {
     const appx = createApp(cfg, dbh.db);
     const a = await (await appx.request("/v1/me", { headers: auth(42, "Айгерім") })).json();
     const b = await (await appx.request("/v1/me", { headers: auth(42, "Айгерім Н.") })).json();
     expect(a.user.id).toBe(b.user.id);
     expect(b.user.firstName).toBe("Айгерім Н.");
-    const n = await dbh.pool.query("select count(*)::int as n from app.users");
+    const n = await dbh.pool.query("select count(*)::int as n from app.users where telegram_id = 42");
     expect(n.rows[0].n).toBe(1);
   });
   it("PATCH /v1/me: тіл мен қала; артық өріс — 400", async () => {

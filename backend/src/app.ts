@@ -30,7 +30,10 @@ export function createApp(cfg: Config, db: Db) {
     if (c.req.method === "OPTIONS" || c.req.path.startsWith("/v1/catalog")) return next();
     const h = c.req.header("Authorization") ?? "";
     const raw = h.startsWith("tma ") ? h.slice(4) : "";
-    const r = validateInitData(raw, cfg.BOT_TOKEN, cfg.INIT_DATA_TTL);
+    // Мини апп ашылған ботың токенімен қол қойылады: негізгі бот пен мини апп боты әртүрлі болуы мүмкін
+    const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));
+    let r = validateInitData(raw, tokens[0], cfg.INIT_DATA_TTL);
+    for (const t of tokens.slice(1)) { if (r.ok || r.reason !== "bad_hash") break; r = validateInitData(raw, t, cfg.INIT_DATA_TTL); }
     if (!r.ok) return c.json({ ok: false, error: "unauthorized", reason: r.reason }, 401);
     const u = r.user;
     const [row] = await db.insert(users).values({
