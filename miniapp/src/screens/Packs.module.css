@@ -4,7 +4,7 @@
 .top > * { translate: 0 var(--top-shift); }
 /* Segmented Control (Android): 380×44, r44, ішкі шегініс 2 */
 .seg { position: absolute; left: 16px; top: 110px; width: 380px; height: 44px; padding: 2px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); display: flex; }
-.segThumb { position: absolute; left: 2px; top: 2px; width: 125.33px; height: 40px; border-radius: 10px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04); transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.segThumb { position: absolute; left: 2px; top: 2px; width: 125.33px; height: 40px; border-radius: 10px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04); transition: translate 0.42s cubic-bezier(0.3, 1.25, 0.4, 1); }
 .segBtn { position: relative; flex: 1; height: 40px; border-radius: 10px; color: var(--text-secondary); font-size: 17px !important; line-height: 22px !important; font-weight: 500; transition: color 0.2s ease; }
 .segOn { font-weight: 700; color: var(--text-strong); }
 .list { padding: 8px 16px 0; display: flex; flex-direction: column; gap: 8px; }
@@ -94,3 +94,10 @@
 .bookNote::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; background: #229af0; }
 .bookNote i { position: absolute; right: 12px; top: -12px; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: #229af0; }
 :global(:root[data-theme="dark"]) .bookNote { background: rgba(34, 154, 240, 0.18); }
+/* Таб свайпы: тамшы саусақпен бірге, мазмұн бағытына қарай кіреді */
+.segDrag { transition: none !important; }
+.list { touch-action: pan-y; transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.fromRight { animation: inR 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.fromLeft { animation: inL 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes inR { from { transform: translateX(48px); opacity: 0; } }
+@keyframes inL { from { transform: translateX(-48px); opacity: 0; } }
