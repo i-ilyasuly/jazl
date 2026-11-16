@@ -23,7 +23,7 @@ export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
   const to = `/offer/${offer.id}`;
   const moving = useViewTransitionState(to);
   return (
-    <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
+    <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       <p className={s.title}>{offer.title}</p>
       <p className={s.venue}>{offer.venue} · {offer.distance}</p>
       {!ended && <span className={s.discount}>▼ {discount(offer)}%</span>}
