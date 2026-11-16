@@ -9,32 +9,30 @@ import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import { branches, offers, orders, packEvents, packs, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
+import { makeDynamicQr, parseQr } from "../qr.js";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type User = typeof users.$inferSelect;
 const almaty = (d: Date) => d.toLocaleString("ru-RU", { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const FREE_CANCEL_MS = 2 * 3600_000;
 
-/** Кассадағы QR мазмұны: «JZB1:<branchId>» немесе t.me/<бот>?startapp=br_<branchId> сілтемесі. */
-export function parseBranchQr(raw: string): string | null {
-  const m = raw.trim().match(/(?:^JZB1:|startapp=br_)([0-9a-f-]{36})/i);
-  return m ? m[1].toLowerCase() : null;
-}
 export const branchQr = (cfg: Config, branchId: string) => `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=br_${branchId}`;
 
-class UseError extends Error { constructor(public code: string, public status: 400 | 404 | 409 = 409) { super(code); } }
+class UseError extends Error { constructor(public code: string, public status: 400 | 404 | 409 = 409, public extra: Record<string, unknown> = {}) { super(code); } }
 
-/** Пакеттен бір бірлік алады (жолды бұғаттап). Қате болса UseError. */
-async function takeUnit(tx: Tx, packId: string, userId: string) {
+/** Пакеттен n бірлік алады (жолды бұғаттап). Қате болса UseError. check — бұғаттан кейінгі қосымша тексеру (мекеме, сома). */
+async function takeUnit(tx: Tx, packId: string, userId: string, n = 1, check?: (p: { venueId: string; unitPrice: number; units_left: number }) => void) {
   const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${packId} and p.user_id = ${userId} for update of p`);
   const p = res.rows[0] as { id: string; units_left: number; units_total: number; price_paid: number; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string } | undefined;
   if (!p) throw new UseError("pack_not_found", 404);
   if (p.status !== "active") throw new UseError("pack_" + p.status);
   if (new Date(p.valid_until).getTime() < Date.now()) throw new UseError("pack_expired");
-  if (p.units_left < 1) throw new UseError("no_units");
-  const left = p.units_left - 1;
+  const unitPrice = Math.round(p.price_paid / p.units_total);
+  check?.({ venueId: p.venueId, unitPrice, units_left: p.units_left });
+  if (p.units_left < n) throw new UseError("no_units", 409, { left: p.units_left });
+  const left = p.units_left - n;
   await tx.update(packs).set({ unitsLeft: left, status: left === 0 ? "used" : "active" }).where(eq(packs.id, packId));
-  return { ...p, left, unitPrice: Math.round(p.price_paid / p.units_total) };
+  return { ...p, left, unitPrice };
 }
 
 function meta(c: Context<Env>, user: User) {
@@ -49,35 +47,61 @@ function meta(c: Context<Env>, user: User) {
 export function usageRoutes(cfg: Config, db: Db) {
   const r = new Hono<Env>();
   const fail = (c: Context<Env>, e: unknown) => {
-    if (e instanceof UseError) return c.json({ ok: false, error: e.code }, e.status);
+    if (e instanceof UseError) return c.json({ ok: false, error: e.code, ...e.extra }, e.status);
     throw e;
   };
 
   // ── Кассадағы QR ──────────────────────────────────────────────
-  const Redeem = z.object({ packId: z.string().uuid(), qr: z.string().min(5).max(300), idempotencyKey: z.string().min(8).max(64) }).strict();
+  // QR-ды алдын ала тану: қай мекеме, неше дана, мерзімі өтпеді ме (клиент төлем парағында көрсетеді)
+  r.post("/qr/resolve", async (c) => {
+    const raw = String((await c.req.json().catch(() => ({})))?.qr ?? "");
+    const q = parseQr(raw, cfg.BOT_TOKEN);
+    if (!q) return c.json({ ok: false, error: "not_jazl_qr" }, 400);
+    if (q.kind === "static" && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
+    const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, q.branchId)).limit(1);
+    if (!br) return c.json({ ok: false, error: "branch_not_found" }, 404);
+    return c.json({ ok: true, kind: q.kind, venue: { slug: br.v.slug, name: br.v.name }, branch: { id: br.b.id, address: br.b.address },
+      units: q.kind === "dynamic" ? q.units : null, amount: q.kind === "amount" ? q.amount : null,
+      valid: q.kind === "dynamic" ? q.valid : true, expired: q.kind === "dynamic" ? q.expired : false });
+  });
+
+  const Redeem = z.object({ packId: z.string().uuid(), qr: z.string().min(5).max(300), units: z.number().int().min(1).max(20).default(1), idempotencyKey: z.string().min(8).max(64) }).strict();
   r.post("/redeem", async (c) => {
     const b = Redeem.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const user = c.get("user");
-    const branchId = parseBranchQr(b.data.qr);
-    if (!branchId) return c.json({ ok: false, error: "not_jazl_qr" }, 400);
+    const q = parseQr(b.data.qr, cfg.BOT_TOKEN);
+    if (!q) return c.json({ ok: false, error: "not_jazl_qr" }, 400);
+    if (q.kind === "dynamic" && !q.valid) return c.json({ ok: false, error: "bad_qr" }, 400);
+    if (q.kind === "dynamic" && q.expired) return c.json({ ok: false, error: "qr_expired" }, 409);
+    if (q.kind === "static" && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
+    const units = b.data.units;
+    if (q.kind === "dynamic" && units !== q.units) return c.json({ ok: false, error: "units_mismatch", expectedUnits: q.units }, 409);
+    const branchId = q.branchId;
     const prev = await db.select().from(redemptions).where(and(eq(redemptions.packId, b.data.packId), eq(redemptions.idempotencyKey, b.data.idempotencyKey))).limit(1);
     if (prev[0]) { const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.packId, b.data.packId), eq(receipts.kind, "use"), sql`${receipts.internal}->>'redemptionId' = ${prev[0].id}`)).limit(1); return c.json({ ok: true, repeated: true, receipt: rc ? { id: rc.id, no: "JZ-" + rc.no } : null }); }
     const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, branchId)).limit(1);
     if (!br || !br.b.active) return c.json({ ok: false, error: "branch_not_found" }, 404);
     try {
       const out = await db.transaction(async (tx) => {
-        const p = await takeUnit(tx, b.data.packId, user.id);
-        if (p.venueId !== br.v.id) throw new UseError("other_venue");
-        const [rd] = await tx.insert(redemptions).values({ packId: p.id, branchId, idempotencyKey: b.data.idempotencyKey }).returning();
-        await tx.insert(packEvents).values({ packId: p.id, type: "use", unitsDelta: -1, meta: { via: "scan", branchId, redemptionId: rd.id } });
+        const p = await takeUnit(tx, b.data.packId, user.id, units, (x) => {
+          if (x.venueId !== br.v.id) throw new UseError("other_venue", 409, { venue: br.v.name });
+          if (q.kind === "amount") {
+            // Банк терминалы: сома = дана × 1 бірлік бағасы болуы керек
+            if (q.amount % x.unitPrice !== 0) throw new UseError("amount_mismatch", 409, { amount: q.amount, unitPrice: x.unitPrice });
+            const k = q.amount / x.unitPrice;
+            if (k !== units) throw new UseError("units_mismatch", 409, { expectedUnits: k, amount: q.amount, unitPrice: x.unitPrice });
+          }
+        });
+        const [rd] = await tx.insert(redemptions).values({ packId: p.id, branchId, units, idempotencyKey: b.data.idempotencyKey }).returning();
+        await tx.insert(packEvents).values({ packId: p.id, type: "use", unitsDelta: -units, meta: { via: "scan", qr: q.kind, branchId, redemptionId: rd.id } });
         const now = new Date();
-        const [rc] = await tx.insert(receipts).values({ kind: "use", userId: user.id, packId: p.id, venueId: br.v.id, branchId, total: p.unitPrice,
-          public: { title: "Бірлік пайдаланылды", status: "Расталды", dateLocal: almaty(now), seller: { name: br.v.name, address: br.b.address, bin: null },
-            item: { title: p.title, units: 1, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: "Кассадағы QR" },
-          internal: { version: 1, redemptionId: rd.id, ...meta(c, user), item: { title: p.title, units: 1, unitName: p.unitName, packSlug: p.slug },
-            fulfillment: { type: "scan", slot: null, code: null, branchId }, status: { current: "done", history: [{ status: "done", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
-        return { left: p.left, receipt: { id: rc.id, no: "JZ-" + rc.no } };
+        const [rc] = await tx.insert(receipts).values({ kind: "use", userId: user.id, packId: p.id, venueId: br.v.id, branchId, total: p.unitPrice * units,
+          public: { title: units > 1 ? `${units} бірлік пайдаланылды` : "Бірлік пайдаланылды", status: "Расталды", dateLocal: almaty(now), seller: { name: br.v.name, address: br.b.address, bin: null },
+            item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : "Кассадағы Jazl QR" },
+          internal: { version: 1, redemptionId: rd.id, ...meta(c, user), item: { title: p.title, units, unitName: p.unitName, packSlug: p.slug },
+            fulfillment: { type: "scan", slot: null, code: null, branchId, qr: q.kind, qrAmount: q.kind === "amount" ? q.amount : null }, status: { current: "done", history: [{ status: "done", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
+        return { left: p.left, units, receipt: { id: rc.id, no: "JZ-" + rc.no } };
       });
       return c.json({ ok: true, repeated: false, ...out });
     } catch (e) { return fail(c, e); }
@@ -187,6 +211,17 @@ export function usageRoutes(cfg: Config, db: Db) {
     return c.json({ ok: true, order: { no: row.o.no, title: row.off.title, customer: row.u.firstName, type: row.o.type } });
   });
 
+  // Кассирдің динамикалық QR-ы: дана санын енгізеді → 30 с жарамды QR (экранда әр 30 с жаңарады)
+  const MakeQr = z.object({ branchId: z.string().uuid(), units: z.number().int().min(1).max(20) }).strict();
+  r.post("/venue/qr", async (c) => {
+    const b = MakeQr.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const vs = await staffVenues(c.get("user").id);
+    const [br] = await db.select().from(branches).where(eq(branches.id, b.data.branchId)).limit(1);
+    if (!br || !vs.includes(br.venueId)) return c.json({ ok: false, error: "not_found" }, 404);
+    return c.json({ ok: true, ...makeDynamicQr(cfg.BOT_TOKEN, br.id, b.data.units) });
+  });
+
   // Филиалдың касса QR-ы (басып шығаруға): тек осы мекеменің персоналына
   r.get("/venue/branches/:id/qr", async (c) => {
     const vs = await staffVenues(c.get("user").id);
@@ -200,3 +235,18 @@ export function usageRoutes(cfg: Config, db: Db) {
 
 type OrderRow = typeof orders.$inferSelect;
 const orderDto = (o: OrderRow) => ({ id: o.id, no: o.no, type: o.type, packId: o.packId, branchId: o.branchId, scheduledAt: o.scheduledAt, code: o.code, courier: o.courier, status: o.status, createdAt: o.createdAt });
+
+/** Сынақ режиміндегі ашық маршрут: кассирсіз сынау үшін динамикалық не банк QR-ын жасайды (нақты режимде өшірулі). */
+export function devQrRoutes(cfg: Config, db: Db) {
+  const r = new Hono();
+  r.post("/qr", async (c) => {
+    if (cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "disabled" }, 404);
+    const b = z.object({ branchId: z.string().uuid(), units: z.number().int().min(1).max(20).default(1), amount: z.number().int().min(100).max(1_000_000).optional() }).safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [br] = await db.select({ id: branches.id }).from(branches).where(eq(branches.id, b.data.branchId)).limit(1);
+    if (!br) return c.json({ ok: false, error: "not_found" }, 404);
+    if (b.data.amount) return c.json({ ok: true, payload: `${branchQr(cfg, br.id)}&amount=${b.data.amount}`, exp: null, ttl: null });
+    return c.json({ ok: true, ...makeDynamicQr(cfg.BOT_TOKEN, br.id, b.data.units) });
+  });
+  return r;
+}

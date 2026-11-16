@@ -7,6 +7,7 @@ import { runMigrations } from "../src/db/migrate.js";
 import { seedCatalog } from "../src/db/seed.js";
 import { signInitData } from "../src/auth/telegram.js";
 import { loadConfig } from "../src/config.js";
+import { makeDynamicQr } from "../src/qr.js";
 
 const URL = process.env.TEST_DATABASE_URL;
 const TOKEN = "123456:TEST-token-not-real";
@@ -58,6 +59,38 @@ d("B3 қолдану", () => {
     const again = await (await post("/v1/redeem", { packId: p, qr: "JZB1:" + damdiBranch, idempotencyKey: k })).json();
     expect(again.repeated).toBe(true);
     expect((await left(p)).units_left).toBe(3);
+  });
+  it("динамикалық QR: кассир 2 дана енгізді — клиент 1 жіберсе 409 (expectedUnits 2), 2 жіберсе өтеді", async () => {
+    const p = await buy();
+    const qr = makeDynamicQr(TOKEN, damdiBranch, 2).payload;
+    const res = await (await post("/v1/qr/resolve", { qr })).json();
+    expect(res).toMatchObject({ ok: true, kind: "dynamic", units: 2, venue: { name: "Dämdi Doner" }, valid: true, expired: false });
+    const one = await post("/v1/redeem", { packId: p, qr, units: 1, idempotencyKey: key() });
+    expect(one.status).toBe(409); expect(await one.json()).toMatchObject({ error: "units_mismatch", expectedUnits: 2 });
+    const two = await (await post("/v1/redeem", { packId: p, qr, units: 2, idempotencyKey: key() })).json();
+    expect(two).toMatchObject({ ok: true, units: 2, left: 2 });
+  });
+  it("динамикалық QR: 45 с өтсе — мерзімі өтті; қолтаңба бұрмаланса — 400", async () => {
+    const p = await buy();
+    const old = makeDynamicQr(TOKEN, damdiBranch, 1, Math.floor(Date.now() / 1000) - 60).payload;
+    expect((await (await post("/v1/redeem", { packId: p, qr: old, idempotencyKey: key() })).json()).error).toBe("qr_expired");
+    const bad = makeDynamicQr(TOKEN, damdiBranch, 1).payload.replace(/.$/, (ch) => (ch === "0" ? "1" : "0"));
+    expect((await post("/v1/redeem", { packId: p, qr: bad, idempotencyKey: key() })).status).toBe(400);
+    expect((await left(p)).units_left).toBe(4);
+  });
+  it("банк терминалы: 3 000 ₸ = 2 донер — 1 дана жіберсе «+ басыңыз» (expectedUnits 2); 2000 ₸ — сома сәйкес емес", async () => {
+    const p = await buy();
+    const qr = `https://t.me/oylarbot?startapp=br_${damdiBranch}&amount=3000`;
+    const one = await (await post("/v1/redeem", { packId: p, qr, units: 1, idempotencyKey: key() })).json();
+    expect(one).toMatchObject({ error: "units_mismatch", expectedUnits: 2, unitPrice: 1500 });
+    expect((await (await post("/v1/redeem", { packId: p, qr, units: 2, idempotencyKey: key() })).json()).left).toBe(2);
+    const bad = await (await post("/v1/redeem", { packId: p, qr: qr.replace("3000", "2000"), units: 1, idempotencyKey: key() })).json();
+    expect(bad.error).toBe("amount_mismatch");
+  });
+  it("бөтен мекеме: қатеде мекеменің аты қайтады", async () => {
+    const p = await buy();
+    const r = await (await post("/v1/redeem", { packId: p, qr: makeDynamicQr(TOKEN, kebabBranch, 1).payload, idempotencyKey: key() })).json();
+    expect(r).toMatchObject({ error: "other_venue", venue: "Kebab House" });
   });
   it("тапсырыс (қазір): 4 таңбалы код; мекеме қабылдамай тұрып бас тартса — бірлік қайтады", async () => {
     const p = await buy();

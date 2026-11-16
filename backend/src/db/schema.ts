@@ -148,6 +148,8 @@ export const redemptions = app.table("redemptions", {
   branchId: uuid("branch_id").notNull().references(() => branches.id),
   cashierId: uuid("cashier_id").references(() => users.id),
   bankRef: text("bank_ref"),
+  /** Бір сканерлеуде неше бірлік (кассир енгізген не банк сомасынан есептелген) */
+  units: smallint("units").notNull().default(1),
   idempotencyKey: text("idempotency_key"),
   createdAt: created(),
 }, (t) => [index("redemptions_pack").on(t.packId), uniqueIndex("redemptions_idem").on(t.packId, t.idempotencyKey)]);

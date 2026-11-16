@@ -1,0 +1,40 @@
+// Касса QR-ы (Патша, 2026-11-17). Екі түрі бар:
+// 1) Jazl динамикалық QR — кассир өз құрылғысында дана санын енгізеді, QR әр 30 секунд сайын жаңарады:
+//      JZQ2.<branchId>.<units>.<exp>.<sig>   (sig = HMAC(BOT_TOKEN), exp — unix секунд)
+//    Суретке түсіріп алып, кейін үйден сканерлеу мүмкін емес: мерзімі 30 с (+15 с кешігуге шыдам).
+// 2) Банк терминалының QR-ы (Kaspi т.б.) — кассир соманы енгізеді, Jazl дана санын сомадан есептейді:
+//      …br_<branchId>&amount=<теңге>  немесе  JZB1:<branchId>?amount=<теңге>
+//    Сома 1 бірлік бағасына еселі болмаса — «сома сәйкес емес»; 2 есе болса — клиент «+» басып 2 дана таңдауы керек.
+// Тұрақты QR (сомасыз br_<id>) — тек сынақ режимінде.
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export const QR_TTL_SEC = 30;
+const GRACE_SEC = 15;
+
+export type ParsedQr =
+  | { kind: "dynamic"; branchId: string; units: number; exp: number; valid: boolean; expired: boolean }
+  | { kind: "amount"; branchId: string; amount: number }
+  | { kind: "static"; branchId: string };
+
+const sign = (secret: string, branchId: string, units: number, exp: number) =>
+  createHmac("sha256", secret).update(`jzq2:${branchId}:${units}:${exp}`).digest("hex").slice(0, 16);
+
+export function makeDynamicQr(secret: string, branchId: string, units: number, now = Math.floor(Date.now() / 1000)) {
+  const exp = now + QR_TTL_SEC;
+  return { payload: `JZQ2.${branchId}.${units}.${exp}.${sign(secret, branchId, units, exp)}`, exp, ttl: QR_TTL_SEC };
+}
+
+export function parseQr(raw: string, secret: string, now = Math.floor(Date.now() / 1000)): ParsedQr | null {
+  const t = raw.trim();
+  const d = t.match(/^JZQ2\.([0-9a-f-]{36})\.(\d{1,2})\.(\d{9,11})\.([0-9a-f]{16})$/i);
+  if (d) {
+    const [, branchId, u, e, sig] = d; const units = Number(u), exp = Number(e);
+    const want = Buffer.from(sign(secret, branchId.toLowerCase(), units, exp)); const got = Buffer.from(sig.toLowerCase());
+    const valid = want.length === got.length && timingSafeEqual(want, got);
+    return { kind: "dynamic", branchId: branchId.toLowerCase(), units, exp, valid, expired: now > exp + GRACE_SEC };
+  }
+  const b = t.match(/(?:^JZB1:|startapp=br_)([0-9a-f-]{36})/i);
+  if (!b) return null;
+  const amount = Number(t.match(/[?&]amount=(\d{2,7})/)?.[1] ?? 0);
+  return amount ? { kind: "amount", branchId: b[1].toLowerCase(), amount } : { kind: "static", branchId: b[1].toLowerCase() };
+}

@@ -79,3 +79,15 @@
 .closedBox { position: absolute; left: 32px; top: calc(320px + var(--top-shift, 0px)); width: 348px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .closedTitle { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
 .closedText { color: var(--text-secondary); }
+
+/* B3.1 · дана саны (Патша, 2026-11-17) */
+.units { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 12px 16px; border-radius: 12px; background: var(--surface-page); }
+.unitsText { display: flex; flex-direction: column; gap: 2px; }
+.unitsText b { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
+.unitsText small { font-size: 13px; line-height: 16px; color: var(--text-secondary); }
+.unitsFixed { min-width: 40px; text-align: center; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
+.stepper { display: flex; align-items: center; gap: 12px; }
+.stepper button { width: 40px; height: 40px; border-radius: 20px; background: var(--chip-tint); color: var(--link); font-size: 24px; line-height: 30px; font-weight: 600; transition: transform 0.12s ease, opacity 0.12s ease; }
+.stepper button:active:not(:disabled) { transform: scale(0.9); }
+.stepper button:disabled { opacity: 0.35; }
+.stepper b { min-width: 24px; text-align: center; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }

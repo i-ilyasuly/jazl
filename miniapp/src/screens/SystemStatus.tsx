@@ -48,21 +48,60 @@ export function SystemStatus() {
   );
 }
 
-/** B3 сынағы: әр филиалдың касса QR-ы (нақты кассаларда мекеме басып шығарады). Компьютерден ашып, телефонмен сканерлеуге болады. */
+/** B3.1 сынағы (Патша, 2026-11-17): кассаның QR-ы. Нақты кассада мұны мекеме бөліміндегі кассир экраны көрсетеді.
+ *  Jazl QR — кассир дана санын енгізеді, QR әр 30 секунд сайын жаңарады (суретке түсіріп алып, кейін қолдану мүмкін емес).
+ *  Банк терминалы — кассир соманы енгізеді, клиент сомаға сай дананы «+» арқылы таңдайды. Компьютерден ашып, телефонмен сканерлеңіз. */
 function TestQrs({ list }: { list: { venue: string; branchId: string; address: string }[] }) {
   const [pick, setPick] = useState(list[0]);
+  const [mode, setMode] = useState<"jazl" | "bank">("jazl");
+  const [units, setUnits] = useState(1);
+  const [amount, setAmount] = useState(3000);
+  const [payload, setPayload] = useState("");
+  const [left, setLeft] = useState(0);
   const [svg, setSvg] = useState("");
-  const url = `https://t.me/oylarbot?startapp=br_${pick.branchId}`;
-  useEffect(() => { void QRCode.toString(url, { type: "svg", margin: 1, color: { dark: "#111a26", light: "#ffffff" } }).then(setSvg); }, [url]);
+  useEffect(() => {
+    let dead = false; let timer = 0; let tick = 0;
+    const load = async () => {
+      try {
+        const r = await fetch(API_URL + "/dev/qr", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "jazl" ? { branchId: pick.branchId, units } : { branchId: pick.branchId, amount }) });
+        const j = await r.json() as { payload: string; exp: number | null };
+        if (dead) return;
+        setPayload(j.payload);
+        if (j.exp) { setLeft(j.exp - Math.floor(Date.now() / 1000)); timer = window.setTimeout(load, Math.max(1000, (j.exp - Math.floor(Date.now() / 1000)) * 1000)); }
+      } catch { /* сервер жоқ */ }
+    };
+    void load();
+    tick = window.setInterval(() => setLeft((x) => Math.max(0, x - 1)), 1000);
+    return () => { dead = true; clearTimeout(timer); clearInterval(tick); };
+  }, [pick.branchId, mode, units, amount]);
+  useEffect(() => { if (payload) void QRCode.toString(payload, { type: "svg", margin: 1, color: { dark: "#111a26", light: "#ffffff" } }).then(setSvg); }, [payload]);
+  const chip = (on: boolean) => ({ padding: "4px 8px", borderRadius: 8, background: on ? "#229af0" : "var(--chip-tint)", color: on ? "#fff" : "var(--link)" });
+  const step = { width: 36, height: 36, borderRadius: 18, background: "var(--chip-tint)", color: "var(--link)", fontSize: 20, lineHeight: "25px", fontWeight: 600 };
   return (
     <Group header="Сынақ касса QR-ы (B3)" i={5}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "8px 16px" }}>
-        {list.map((b) => <button key={b.branchId} onClick={() => setPick(b)} className="t-cap1" style={{ padding: "4px 8px", borderRadius: 8, background: b.branchId === pick.branchId ? "#229af0" : "var(--chip-tint)", color: b.branchId === pick.branchId ? "#fff" : "var(--link)" }}>{b.venue}</button>)}
+        {list.map((b) => <button key={b.branchId} onClick={() => setPick(b)} className="t-cap1" style={chip(b.branchId === pick.branchId)}>{b.venue}</button>)}
+      </div>
+      <div style={{ display: "flex", gap: 8, padding: "4px 16px" }}>
+        <button className="t-sub2" style={chip(mode === "jazl")} onClick={() => setMode("jazl")}>Jazl QR · дана</button>
+        <button className="t-sub2" style={chip(mode === "bank")} onClick={() => setMode("bank")}>Банк терминалы · сома</button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "8px 16px" }}>
+        {mode === "jazl" ? <>
+          <button style={step} onClick={() => setUnits(Math.max(1, units - 1))}>−</button>
+          <b className="t-title3">{units} дана</b>
+          <button style={step} onClick={() => setUnits(Math.min(10, units + 1))}>+</button>
+        </> : <>
+          <button style={step} onClick={() => setAmount(Math.max(500, amount - 500))}>−</button>
+          <b className="t-title3">{amount.toLocaleString("ru-RU")} ₸</b>
+          <button style={step} onClick={() => setAmount(amount + 500)}>+</button>
+        </>}
       </div>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "8px 16px 16px" }}>
         <span style={{ width: 200, height: 200 }} dangerouslySetInnerHTML={{ __html: svg }} />
         <span className="t-sub2" style={{ textAlign: "center" }}>{pick.venue} · {pick.address}</span>
-        <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Осы бетті компьютерден ашып, телефондағы Jazl+ → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — бір бірлік серверде шегеріледі.</span>
+        {mode === "jazl" && <span className="t-cap1 w-600" style={{ color: left <= 5 ? "#e53935" : "var(--link)" }}>QR {left} секундтан кейін жаңарады</span>}
+        <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Компьютерден ашып, телефондағы Jazl+ → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — серверде шегеріледі; басқа мекемеден болса — ескерту шығады.</span>
       </div>
     </Group>
   );
