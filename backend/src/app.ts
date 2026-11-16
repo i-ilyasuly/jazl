@@ -8,14 +8,15 @@ import { users } from "./db/schema.js";
 import { validateInitData } from "./auth/telegram.js";
 import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
+import { purchaseRoutes } from "./routes/purchases.js";
 
 type User = typeof users.$inferSelect;
-export type Env = { Variables: { user: User } };
+export type Env = { Variables: { user: User; auth: { authDate: number; startParam?: string } } };
 
 export function createApp(cfg: Config, db: Db) {
   const app = new Hono<Env>();
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
-  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type"], allowMethods: ["GET", "POST", "PATCH", "DELETE"], maxAge: 600 }));
+  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version"], allowMethods: ["GET", "POST", "PATCH", "DELETE"], maxAge: 600 }));
 
   app.get("/health", async (c) => {
     await db.execute(sql`select 1`);
@@ -44,6 +45,7 @@ export function createApp(cfg: Config, db: Db) {
       set: { firstName: u.first_name, lastName: u.last_name ?? null, username: u.username ?? null, photoUrl: u.photo_url ?? null, lastSeenAt: sql`now()` },
     }).returning();
     c.set("user", row);
+    c.set("auth", { authDate: r.authDate, startParam: r.startParam });
     await next();
   });
 
@@ -58,6 +60,8 @@ export function createApp(cfg: Config, db: Db) {
     const [row] = await db.update(users).set(body.data).where(sql`${users.id} = ${c.get("user").id}`).returning();
     return c.json({ ok: true, user: publicUser(row) });
   });
+
+  app.route("/v1", purchaseRoutes(cfg, db));
 
   app.notFound((c) => c.json({ ok: false, error: "not_found" }, 404));
   app.onError((err, c) => { console.error(err); return c.json({ ok: false, error: "internal" }, 500); });

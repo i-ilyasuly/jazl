@@ -13,6 +13,10 @@ const Env = z.object({
   ALLOWED_ORIGINS: z.string().default(""),
   /** initData қанша уақыт жарамды (секунд). Telegram ұсынысы: қысқа ұстау. */
   INIT_DATA_TTL: z.coerce.number().default(24 * 3600),
+  /** Төлем режимі: test — ақша жүрмейді (Kaspi келісімі біткенше) */
+  PAYMENTS_MODE: z.enum(["test"]).default("test"),
+  /** Jazl комиссиясы, % (ішкі есеп: мекемеге төленетін соманы есептеу) */
+  JAZL_FEE_PCT: z.coerce.number().default(10),
   DB_SSL: z.enum(["require", "disable"]).default("require"),
 });
 

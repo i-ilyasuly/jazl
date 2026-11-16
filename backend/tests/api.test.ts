@@ -66,8 +66,9 @@ d("API", () => {
   });
   it("CORS: тек рұқсат етілген мекенжай", async () => {
     const appx = createApp(cfg, dbh.db);
-    const good = await appx.request("/v1/me", { method: "OPTIONS", headers: { Origin: "https://miniapp.example", "Access-Control-Request-Method": "GET" } });
+    const good = await appx.request("/v1/me", { method: "OPTIONS", headers: { Origin: "https://miniapp.example", "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization,content-type,x-tg-platform,x-tg-version,x-app-version" } });
     expect(good.headers.get("access-control-allow-origin")).toBe("https://miniapp.example");
+    expect(good.headers.get("access-control-allow-headers")?.toLowerCase()).toContain("x-tg-platform"); // мини апп жіберетін тақырыптар рұқсат етілген
     const evil = await appx.request("/v1/me", { method: "OPTIONS", headers: { Origin: "https://evil.example", "Access-Control-Request-Method": "GET" } });
     expect(evil.headers.get("access-control-allow-origin")).toBeNull();
   });

@@ -4,6 +4,7 @@ import { kv } from "./telegram";
 import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
 import { venues } from "./mocks/venues";
 import { useSyncExternalStore } from "react";
+import { api } from "./api";
 import { findOffer, fmt, unitPrice, type Offer } from "./mocks/offers";
 
 export interface HistoryItem { emoji: string; title: string; sub: string; right: string }
@@ -27,6 +28,10 @@ export interface Pack {
   /** Қайта алғанда бұрынғы пакеттен көшкен бірлік саны. */
   carried?: number;
   history: HistoryItem[];
+  /** B2: сервердегі пакет пен чек (бэкендпен сатып алынса) */
+  serverId?: string;
+  receiptId?: string;
+  receiptNo?: string;
 }
 /** Пакеттің күйі: белсенді, мерзімі жақын (≤3 күн), толық пайдаланылды, мерзімі өтті. */
 export type PackState = "active" | "soon" | "used" | "expired";
@@ -93,13 +98,41 @@ export const usePacks = () => useSyncExternalStore(subscribe, () => packs);
 export const offerOf = (p: Pack): Offer => findOffer(p.offerId);
 export const getPack = (id?: string) => packs.find((p) => p.id === id);
 
-export function buyPack(offerId: string): string {
+export function buyPack(offerId: string, methodLabel = "Kaspi Pay"): string {
   const o = findOffer(offerId);
   const id = "p" + (Date.now() % 100000);
-  packs = [{ id, offerId, total: o.units, left: o.units, daysLeft: 30, until: "14 желтоқсанға дейін",
-    history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: "бүгін • Kaspi Pay", right: `${o.units} бірлік` }] }, ...packs];
+  packs = [{ id, offerId, total: o.units, left: o.units, daysLeft: 30, until: inDays(30),
+    history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: `бүгін • ${methodLabel}`, right: `${o.units} бірлік` }] }, ...packs];
   emit();
+  // B2: серверде де сатып алынады (сынақ төлемі). Сәтті болса — пакетке сервер ID мен чек нөмірі жазылады.
+  void buyOnServer(id, offerId, methodLabel);
   return id;
+}
+
+interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null }
+async function buyOnServer(localId: string, offerSlug: string, methodLabel: string) {
+  if (!(window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData) return; // браузерде — тек жергілікті
+  try {
+    const key = (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + Date.now());
+    const method = /kaspi/i.test(methodLabel) ? "kaspi" : "card";
+    const j = await api<{ pack: SrvPack }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug, method, methodLabel, idempotencyKey: key }) }, 12000);
+    packs = packs.map((p) => (p.id === localId ? { ...p, serverId: j.pack.id, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : p));
+    emit();
+  } catch { /* сервер жауап бермесе — пакет жергілікті күйде қалады */ }
+}
+
+/** Сервердегі пакеттерді алып, жергілікті тізімде жоқтарын қосады (басқа құрылғыдан сатып алынғандар). */
+export async function syncServerPacks() {
+  try {
+    const j = await api<{ packs: SrvPack[] }>("/v1/packs");
+    const known = new Set(packs.map((p) => p.serverId).filter(Boolean));
+    const add: Pack[] = j.packs.filter((x) => !known.has(x.id)).map((x) => {
+      const days = Math.max(0, Math.ceil((new Date(x.validUntil).getTime() - Date.now()) / 86400000));
+      return { id: "s" + x.id.slice(0, 8), offerId: x.offerSlug, total: x.unitsTotal, left: x.unitsLeft, daysLeft: days, until: inDays(days), expired: x.status === "expired",
+        serverId: x.id, receiptId: x.receipt?.id, receiptNo: x.receipt?.no, history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: "сервер", right: `${x.unitsTotal} бірлік` }] };
+    });
+    if (add.length) { packs = [...add, ...packs]; emit(); }
+  } catch { /* кірусіз не сервер жоқ */ }
 }
 
 export function redeem(packId: string): boolean {

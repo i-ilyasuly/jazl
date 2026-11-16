@@ -101,7 +101,7 @@ export function PackPage() {
           {pack.extendedTo && <div className={`t-text ${s.kv}`}><span className={s.muted}>Мерзімі ұзартылды</span><span className="w-600">{pack.extendedTo}</span><span className={s.line16} /></div>}
           <div className={`t-text ${s.kv}`}><span className={s.muted}>Бағасы</span><span className="w-600">{fmt(o.price)}</span><span className={s.line16} /></div>
           <div className={`t-text ${s.kv}`}><span className={s.muted}>Төлем тәсілі</span><span className="w-600">Kaspi Pay</span><span className={s.line16} /></div>
-          <button className={s.cell} onClick={() => haptic.tap()}><span className={s.rowTitle}>Чек</span><img src={chev} width={18} height={18} alt="" /></button>
+          <button className={s.cell} onClick={() => { haptic.tap(); if (pack.receiptId) go("/receipt/srv/" + pack.receiptId); }}><span className={s.rowTitle}>Чек{pack.receiptNo ? ` · ${pack.receiptNo}` : ""}</span><img src={chev} width={18} height={18} alt="" /></button>
           {state === "used" && <button className={`${s.cell} ${s.cellTop}`} onClick={() => { haptic.medium(); setRating(rateActivityOf(pack.id)); }}><span className={s.rowTitle}>Бағалау</span><span className={s.cellAction}>Бағала</span></button>}
         </section>
 
