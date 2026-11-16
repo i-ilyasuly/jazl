@@ -1,5 +1,6 @@
 // Figma: «Мекеме / Бағыт» 13886:22679, «Мекеме / Байланыс» 13886:23043, «Мекеме беті / Бағыт: 2ГИС» 13886:27429 → «Modal / Әрекеттер».
 // Өлшемдер Telegram Mini Apps UI kit шкаласы мен 4/8px тор бойынша: шет 16, жол 60, атау 17/22, түсініктеме 15/20.
+import { Tile, hasTile } from "./Tile";
 import { Emo } from "./Emo";
 import { useEffect, useMemo, useState } from "react";
 import { haptic, useBackButton } from "../telegram";
@@ -30,7 +31,7 @@ export function LinkSheet({ title, rows, onClose, note, extra, cancel = "Бас 
         {note && <p className={`t-sub2 ${s.note}`}>{note}</p>}
         {rows.map((r, i) => (
           <button key={r.title} className={s.row} style={{ ["--i" as string]: i }} onClick={() => { haptic.tap(); close(r.onClick); }}>
-            <span className={`${s.tile} ${r.glyph ? "keepIcon" : ""}`} style={r.tint ? { background: r.tint } : undefined}>{r.glyph === "pin" ? <Pin /> : <Emo e={r.emoji} size={30} />}</span>
+            {!r.glyph && hasTile(r.emoji) ? <Tile e={r.emoji!} size={40} /> : <span className={`${s.tile} ${r.glyph ? "keepIcon" : ""}`} style={r.tint ? { background: r.tint } : undefined}>{r.glyph === "pin" ? <Pin /> : <Emo e={r.emoji} size={30} />}</span>}
             <span className={s.text}><b>{r.title}</b><small>{r.sub}</small></span>
             {r.badge ? <span className={`t-cap1 ${s.badge} ${r.badge.ok ? s.ok : ""}`}>{r.badge.text}</span> : <img src={chev} width={20} height={20} alt="" />}
           </button>

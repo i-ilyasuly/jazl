@@ -1,8 +1,7 @@
 // Figma «Қолдану: таңдау парағы» 13918:7998 және «Шаштараз: қолдану таңдау парағы» 14044:12876.
 // Сатып алынған пакетті екі жолмен қолданады: мекемеде кассаның QR-ын сканерлеу немесе үйден тапсырыс беру/жазылу.
 // Екі жағдайда да ақша төленбейді — пакеттен бір бірлік шегеріледі (пакет сатып алғанда төленген).
-import qrIcon from "../assets/icons/navQr.svg";
-import { Emo } from "./Emo";
+import { Tile } from "./Tile";
 import { useEffect, useMemo, useState } from "react";
 import { useGo } from "../nav";
 import { offerOf, type Pack } from "../store";
@@ -44,7 +43,7 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
         <div className={s.list}>
           {opts.map((x) => (
             <button key={x.id} className={`${s.opt} ${way === x.id ? s.on : ""}`} onClick={() => { if (way !== x.id) { haptic.select(); setWay(x.id); } }}>
-              <span className={s.icon}>{x.icon === "▦" ? <span style={{ width: 28, height: 28, background: "var(--link)", maskImage: `url("${qrIcon}")`, WebkitMaskImage: `url("${qrIcon}")`, maskSize: "contain", WebkitMaskSize: "contain", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} /> : <Emo e={x.icon} size={30} />}</span>
+              <Tile e={x.icon} size={44} />
               <span className={s.text}><b>{x.title}</b><small>{x.sub}</small></span>
               <span className={s.radio} />
             </button>

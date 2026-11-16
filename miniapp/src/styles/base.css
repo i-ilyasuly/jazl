@@ -1,11 +1,11 @@
-@import "@fontsource-variable/roboto/wght.css";
+@import "./fonts.css";
 @import "./tokens.css";
 @import "./motion.css";
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body, #root { height: 100%; }
 body {
-  font-family: "Roboto Variable", Roboto, system-ui, sans-serif;
+  font-family: var(--font-sans);
   background: var(--surface-page);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -67,7 +67,7 @@ button.topSearch:active { transform: scale(0.98); }
 @media (min-width: 413px) { .topSearch.pinned { left: calc(50% - 206px + var(--bar-l)); right: calc(50% - 206px + var(--bar-r)); } }
 /* Ақпарат блогы (Патша, 2026-11-16): дәйексөз стилінің орнына Krisha «Хабарландырудың үлкен өлшемі» үлгісі —
    шетке дейін емес, бұрышы 12, ішкі шегініс 12/16, сол жақ жолақ пен ” белгісі жоқ; боялған сөздер өзгеріссіз қалады. */
-.infoBox { border-radius: 12px !important; padding: 12px 16px !important; background: #eaf2fd !important; border-left: 0 !important; color: var(--text-strong); overflow: hidden; }
+.infoBox { border-radius: 8px !important; padding: 12px 16px !important; height: auto !important; min-height: 0 !important; background: #eaf2fd !important; border-left: 0 !important; color: var(--text-strong); overflow: hidden; }
 .infoBox::before { display: none !important; }
 .infoBox > i, .infoBox > [class*=mark], .infoBox > [class*=Mark], .infoBox > span[class*=bar], .infoBox > span[class*=Bar], .infoBox > [class*=edge] { display: none !important; }
 .infoWarn { background: #fef5ca !important; }
@@ -77,3 +77,5 @@ button.topSearch:active { transform: scale(0.98); }
 :root[data-theme="dark"] .infoOk { background: rgba(49, 209, 88, 0.16) !important; }
 /* Басқан сәтте бірден көрінетін жауап: өз :active ережесі жоқ мәтінді батырмалар (Патша, 2026-11-16) */
 .app button.t-sub2:not(:disabled):active, .app button.t-cap1:not(:disabled):active { opacity: 0.6; }
+/* Ескерту блогындағы боялған сөздер: кішірек бұрыш, жол ауысса да әр бөлігі тұтас көрінеді (Патша, 2026-11-16) */
+.infoBox :is(b, strong)[class], .hl { border-radius: 4px !important; padding: 0 3px !important; margin: 0 -1px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }

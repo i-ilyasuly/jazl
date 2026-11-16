@@ -1,9 +1,11 @@
 // Figma: «Пакеттерім (жаңа навигация) / Light» (13905:8147); «09 · Пакеттерім»: «Алғашқы кіру (көрсеткіш)» 13886:28960,
 // «Бос күй» 13886:29133, «Тарих» 13886:29206. Жаңа бөліктердің өлшемі — UI kit шкаласы + 4/8px тор.
 // «12 · Бағалау»: «Пакеттерім жолағы» 13886:33115 (Белсенді табының басында), бағалау парағы — ui/RateSheet.
+import { Tile } from "../ui/Tile";
 import { kindPic } from "../ui/Emo";
 import { Emo } from "../ui/Emo";
 import { useEffect, useRef, useState } from "react";
+import { preloadSticker } from "../ui/Sticker";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
 import { useGo } from "../nav";
@@ -78,6 +80,7 @@ export function Packs() {
   const [rating, setRating] = useState<{ act: Activity; stars: number } | null>(null);
   const hidden = useRateHidden();
   const pending = acts.find((a) => a.action === "rate" && !hidden.includes(a.id));
+  useEffect(() => { if (pending) void preloadSticker("love"); }, [pending]); // бағалау шақыруы көрінсе — стикер алдын ала жүктеледі
   // Алғашқы кіру көрсеткіші: бір рет көрсетіледі («Түсінікті» басылғанша). Демо: ?hint=1
   const [hint, setHint] = useState(false);
   useEffect(() => {
@@ -146,14 +149,14 @@ export function Packs() {
               ), orders.length > 0 && bookings.length > 0 && <p key="oh" className={`t-sub2 w-600 ${s.header}`}>Тапсырыстар<span> · {orders.length}</span></p>, ...orders.map((o, i) => (
                 <button key={o.id} className={`${s.order} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/orders/" + o.id)}>
                   <span className={s.oHead}><span className={s.oEmoji}><Emo e={o.emoji} size={40} /></span><span className={s.oText}><b>{o.title}</b><small>№{o.no} • {o.venue} • {o.time}</small></span></span>
-                  <CopyCode code={o.code} className={s.oCode}><small>Кассирге айтатын код · басып көшір</small><b>{o.code}</b></CopyCode>
+                  <CopyCode code={o.code} className={s.oCode}><small>Кассирге айтатын код · басып көшір</small><b className="mono">{o.code}</b></CopyCode>
                 </button>))] : <p className={`t-sub2 rise ${s.empty}`}>Белсенді тапсырыс жоқ. Пакет бетінде «Тапсырыс беру» батырмасы бар.</p>)
           : tab === 2
             ? (acts.length ? (
                 <section className={`${s.acts} rise`}>
                   {acts.map((a) => (
                     <div key={a.id} className={s.act} role="button" tabIndex={0} onClick={() => { if (getPack(a.packId)) go("/pack/" + a.packId); }}>
-                      <span className={`${s.actIcon} ${a.action === "renew" ? s.actOff : ""}`}><Emo e={a.emoji} size={28} /></span>
+                      <Tile e={a.emoji} size={40} className={a.action === "renew" ? s.actOff : undefined} />
                       <span className={s.actText}><b>{a.title}</b><small>{a.sub}</small></span>
                       {a.action === "rated"
                         ? <span className={s.actStars}>★ {a.stars}</span>

@@ -5,13 +5,25 @@ import { useEffect, useRef, useState } from "react";
 export type StickerName = "egg" | "search" | "love" | "cry" | "sleep" | "stop" | "shop" | "wait" | "think" | "empty" | "lock" | "offline" | "party" | "phone" | "gift" | "hello" | "bags" | "archive" | "clean" | "sad" | "repair";
 const files = import.meta.glob("../assets/stickers/*.json", { import: "default" }) as Record<string, () => Promise<object>>;
 
+type Lottie = typeof import("lottie-web/build/player/lottie_light");
+let player: Promise<Lottie> | null = null;
+const cache = new Map<string, Promise<object>>();
+/** Стикерді (ойнатқышымен бірге) алдын ала жүктеп қояды: кейін көрсеткенде орны бос тұрмайды.
+ *  Мысалы, бағалау парағы ашылғанда — жұлдыз қойылғаннан кейінгі «love» стикері (Патша, 2026-11-16). */
+export function preloadSticker(name: StickerName) {
+  player ??= import("lottie-web/build/player/lottie_light");
+  let d = cache.get(name);
+  if (!d) { d = files[`../assets/stickers/${name}.json`](); cache.set(name, d); }
+  return Promise.all([player, d]);
+}
+
 export function Sticker({ name, size = 120, loop = true, className }: { name: StickerName; size?: number; loop?: boolean; className?: string }) {
   const box = useRef<HTMLSpanElement>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
     let dead = false; let anim: { destroy(): void; play(): void; pause(): void } | undefined; let io: IntersectionObserver | undefined;
     setReady(false);
-    void Promise.all([import("lottie-web/build/player/lottie_light"), files[`../assets/stickers/${name}.json`]()]).then(([m, data]) => {
+    void preloadSticker(name).then(([m, data]) => {
       if (dead || !box.current) return;
       anim = m.default.loadAnimation({ container: box.current, renderer: "svg", loop, autoplay: true, animationData: data });
       setReady(true);

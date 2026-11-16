@@ -33,7 +33,7 @@ function OrderCard({ id }: { id: string }) {
       <div className={s.kv}><span>Уақыты</span><b>{o.time}</b></div>
       <CopyCode code={o.code} className={s.codeBox}>
         <span>Кассирге айтатын код · басып көшір</span>
-        <b className={s.code}>{o.code.split("").map((c, i) => <i key={i} style={{ ["--i" as string]: i }}>{c}</i>)}</b>
+        <b className={`${s.code} mono`}>{o.code.split("").map((c, i) => <i key={i} style={{ ["--i" as string]: i }}>{c}</i>)}</b>
       </CopyCode>
     </div>
   );

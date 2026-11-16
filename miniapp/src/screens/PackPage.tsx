@@ -2,8 +2,8 @@
 // «Толық пайдаланылды» 13886:29723, «Мерзімі өтті» 13886:29947. Жаңа бөліктер — UI kit шкаласы + 4/8px тор.
 // «11 · Мерзімін ұзарту»: «Тегін» 13886:32051, «Ақылы» 13886:32347, «Ұзартылды» 13886:32643, «Мүмкін емес» 13886:32881.
 // Демо: ?extend=no — мекеме ұзартуға рұқсат бермейді.
+import { Tile } from "../ui/Tile";
 import { kindPic } from "../ui/Emo";
-import { Emo } from "../ui/Emo";
 import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
@@ -88,7 +88,7 @@ export function PackPage() {
           <h2 className={`t-sub2 w-600 ${s.groupTitle}`}>Пайдалану тарихы</h2>
           {pack.history.map((x, i) => (
             <div key={i} className={s.row}>
-              <span className={s.emoji}><Emo e={x.emoji} size={28} /></span>
+              <Tile e={x.emoji} size={40} />
               <span className={s.rowText}><span className={s.rowTitle}>{x.title}</span><span className={`t-sub2 ${s.muted}`}>{x.sub}</span></span>
               <span className={`t-sub2 w-600 ${s.muted}`}>{x.right}</span>
               {i < pack.history.length - 1 && <span className={s.line68} />}
@@ -121,7 +121,7 @@ export function PackPage() {
 
       {extending && <ExtendSheet pack={pack} onClose={() => setExtending(false)} onDone={onExtended} />}
       {rating && <RateSheet act={rating} onClose={() => setRating(null)} />}
-      {toast && <div className={s.toast} role="status"><Emo e="📅" size={24} />{toast}</div>}
+      {toast && <div className={s.toast} role="status"><Tile e="📅" size={28} />{toast}</div>}
       {!inTelegram && (
         <div className={s.bar}>
           {usable && <button className={`${s.btn} ${s.btn2}`} onClick={scan.onClick}><img src={qr} width={22} height={22} alt="" />Сканерлеу</button>}

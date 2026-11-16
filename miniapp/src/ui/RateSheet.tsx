@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { findOffer, type OfferKind } from "../mocks/offers";
 import { rateActivity, type Activity } from "../store";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
-import { Sticker } from "./Sticker";
+import { Sticker, preloadSticker } from "./Sticker";
 import burger from "../assets/icons/sheetBurger.svg";
 import scissors from "../assets/icons/offerScissors.svg";
 import s from "./RateSheet.module.css";
@@ -42,6 +42,7 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
   const [text, setText] = useState("");
   const [more, setMore] = useState(false);
   const [done, setDone] = useState(false);
+  useEffect(() => { void preloadSticker("love"); }, []); // жұлдыз қойып жатқанда стикер дайын болады
   const [closing, setClosing] = useState(false);
   const low = stars > 0 && stars <= 3;
   const high = stars >= 4;

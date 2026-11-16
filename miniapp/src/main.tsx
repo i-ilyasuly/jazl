@@ -26,6 +26,7 @@ import { CardAdd } from "./screens/CardAdd";
 import { Order } from "./screens/Order";
 import { OrderDone, OrderState, OrderView } from "./screens/OrderResult";
 import { HapticTest } from "./screens/HapticTest";
+import { FontTest } from "./screens/FontTest";
 import { Security } from "./screens/Security";
 import { City, Language } from "./screens/Choice";
 import { Favorites } from "./screens/Favorites";
@@ -165,6 +166,7 @@ const router = createHashRouter([
       { path: "/profile/receipt/:id", element: <Receipt /> },
       { path: "/profile/security", element: <Security /> },
       { path: "/profile/haptics", element: <HapticTest /> },
+      { path: "/profile/fonts", element: <FontTest /> },
       { path: "/profile/language", element: <Language /> },
       { path: "/profile/city", element: <City /> },
       { path: "/profile/favorites", element: <Favorites /> },

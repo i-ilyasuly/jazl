@@ -1,7 +1,7 @@
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
 import { Photo } from "../ui/Photo";
 import { kindPic } from "../ui/Emo";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
@@ -25,6 +25,21 @@ import s from "./Offer.module.css";
 const Segs = ({ list }: { list: OfferDetails["includes"] }) => <>{list.map((x, i) => typeof x === "string" ? <span key={i}>{x}</span> : "g" in x ? <span key={i} className={s.hlGreen}>{x.g}</span> : <span key={i} className={s.hlBlue}>{x.b}</span>)}</>;
 
 /** Сырғытылатын фото галерея: нүктелері қай суретте тұрғаныңды көрсетеді. */
+/** Сипаттама: мәтін блоктың ішінде екі жағынан бірдей шегініспен тұрады; 4 жолдан ұзын болса ғана жиылады. */
+function About({ list, open, onToggle }: { list: OfferDetails["about"]; open: boolean; onToggle: () => void }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [long, setLong] = useState(true);
+  useLayoutEffect(() => { const el = ref.current; if (el) setLong(el.scrollHeight > 90); }, [list]);
+  if (!long) return <div className={`${s.quote} ${s.quoteShort} infoBox`}><span ref={ref} className={s.quoteText}><Segs list={list} /></span></div>;
+  return (
+    <button className={`${s.quote} infoBox ${open ? s.quoteOpen : ""}`} onClick={onToggle} aria-expanded={open}>
+      <span ref={ref} className={s.quoteText}><Segs list={list} /></span>
+      {!open && <span className={s.fade} />}
+      <img src={expand} className={s.expand} width={22} height={22} alt="" />
+    </button>
+  );
+}
+
 function Gallery({ photos, fallback, kind, onIndex }: { photos: string[]; fallback: string; kind?: OfferKind; onIndex?: (i: number) => void }) {
   const [at, setAt] = useState(0);
   const [bad, setBad] = useState<Record<number, true>>({});
@@ -188,12 +203,7 @@ function OfferView({ id }: { id?: string }) {
 
         <section className={`${s.block} ${s.blk}`} style={{ position: "relative" }}>
           <h2 className={s.blockTitle}>Сипаттама</h2>
-          <button className={`${s.quote} infoBox ${open ? s.quoteOpen : ""}`} onClick={() => { haptic.tap(); setOpen(!open); }}>
-            <span className={s.quoteBar} />
-            <span className={s.quoteText}><Segs list={d.about} /></span>
-            {!open && <span className={s.fade} />}
-            <img src={expand} className={s.expand} width={22} height={22} alt="" />
-          </button>
+          <About list={d.about} open={open} onToggle={() => { haptic.tap(); setOpen(!open); }} />
         </section>
 
         <section className={`${s.blk} ${s.rules}`}>

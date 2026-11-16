@@ -1,6 +1,5 @@
 // Figma: «Төлем тәсілдері / Тізім» (13886:36367) және «Карта әрекеттері» (13886:36451)
-import plusIcon from "../assets/icons/plus18.svg";
-import { Emo } from "../ui/Emo";
+import { Tile } from "../ui/Tile";
 import { useCallback, useState } from "react";
 import { useGo } from "../nav";
 import { removeMethod, setDefaultMethod, useDefaultMethod, useMethods, type PayMethod } from "../store";
@@ -32,11 +31,11 @@ export function Payment() {
       <Group>
         {methods.filter((m) => hasCard || !m.card).map((m) => (
           <Row key={m.id} wrap title={m.title} sub={m.sub} onClick={m.card || m.id !== def ? () => { haptic.tap(); setSheet(m); } : undefined}
-            left={<span className={`${s.emoji} ${leaving === m.id ? s.leave : ""}`}><Emo e={m.emoji} size={30} /></span>}
+            left={<Tile e={m.emoji} size={40} className={leaving === m.id ? s.leave : undefined} />}
             right={m.id === def ? <span key="d" className={`t-cap1 w-600 ${s.def}`}>Әдепкі</span> : <img src={more} width={20} height={20} alt="" />} />
         ))}
         {hasCard && <button className={s.add} onClick={() => go("/profile/card-add")}>
-          <span className={`${s.emoji} ${s.plus}`}><img src={plusIcon} width={20} height={20} alt="" /></span><span className={s.addText}>Карта қосу</span>
+          <Tile e="+" size={40} /><span className={s.addText}>Карта қосу</span>
         </button>}
       </Group>
       {/* Figma «Төлем тәсілдері / Карта жоқ» 13886:36663 — «Карта қосу» төменгі негізгі батырмаға шығады */}
