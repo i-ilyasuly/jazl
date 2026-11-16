@@ -1,0 +1,202 @@
+// B3 · Пакетті қолдану: кассадағы QR (scan), қазір тапсырыс (order), жоспар/жазылу (plan); бас тарту; кассир растауы.
+// Басты ереже: бірлік тек транзакция ішінде, пакет жолын бұғаттап (SELECT … FOR UPDATE) шегеріледі — екі сұрау қатар келсе де
+// бір бірлік екі рет жұмсалмайды. Әр қолдануға чек (receipts.kind = use | order) жазылады: алу тәсілі, слот, код — ішкі бөлікте.
+import { createHash, randomInt } from "node:crypto";
+import { Hono, type Context } from "hono";
+import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { z } from "zod";
+import type { Env } from "../app.js";
+import type { Config } from "../config.js";
+import type { Db } from "../db/client.js";
+import { branches, offers, orders, packEvents, packs, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
+
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+type User = typeof users.$inferSelect;
+const almaty = (d: Date) => d.toLocaleString("ru-RU", { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const FREE_CANCEL_MS = 2 * 3600_000;
+
+/** Кассадағы QR мазмұны: «JZB1:<branchId>» немесе t.me/<бот>?startapp=br_<branchId> сілтемесі. */
+export function parseBranchQr(raw: string): string | null {
+  const m = raw.trim().match(/(?:^JZB1:|startapp=br_)([0-9a-f-]{36})/i);
+  return m ? m[1].toLowerCase() : null;
+}
+export const branchQr = (cfg: Config, branchId: string) => `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=br_${branchId}`;
+
+class UseError extends Error { constructor(public code: string, public status: 400 | 404 | 409 = 409) { super(code); } }
+
+/** Пакеттен бір бірлік алады (жолды бұғаттап). Қате болса UseError. */
+async function takeUnit(tx: Tx, packId: string, userId: string) {
+  const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${packId} and p.user_id = ${userId} for update of p`);
+  const p = res.rows[0] as { id: string; units_left: number; units_total: number; price_paid: number; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string } | undefined;
+  if (!p) throw new UseError("pack_not_found", 404);
+  if (p.status !== "active") throw new UseError("pack_" + p.status);
+  if (new Date(p.valid_until).getTime() < Date.now()) throw new UseError("pack_expired");
+  if (p.units_left < 1) throw new UseError("no_units");
+  const left = p.units_left - 1;
+  await tx.update(packs).set({ unitsLeft: left, status: left === 0 ? "used" : "active" }).where(eq(packs.id, packId));
+  return { ...p, left, unitPrice: Math.round(p.price_paid / p.units_total) };
+}
+
+function meta(c: Context<Env>, user: User) {
+  const ip = (c.req.header("x-forwarded-for") ?? "").split(",")[0].trim();
+  return {
+    customer: { firstName: user.firstName, lastName: user.lastName, fullName: [user.firstName, user.lastName].filter(Boolean).join(" "), username: user.username ? "@" + user.username : null, phone: user.phone ?? null },
+    client: { platform: c.req.header("x-tg-platform") ?? null, tgVersion: c.req.header("x-tg-version") ?? null, appVersion: c.req.header("x-app-version") ?? null, userAgent: c.req.header("user-agent") ?? null,
+      ipHash: ip ? createHash("sha256").update(ip).digest("hex").slice(0, 16) : null, authDate: c.get("auth").authDate },
+  };
+}
+
+export function usageRoutes(cfg: Config, db: Db) {
+  const r = new Hono<Env>();
+  const fail = (c: Context<Env>, e: unknown) => {
+    if (e instanceof UseError) return c.json({ ok: false, error: e.code }, e.status);
+    throw e;
+  };
+
+  // ── Кассадағы QR ──────────────────────────────────────────────
+  const Redeem = z.object({ packId: z.string().uuid(), qr: z.string().min(5).max(300), idempotencyKey: z.string().min(8).max(64) }).strict();
+  r.post("/redeem", async (c) => {
+    const b = Redeem.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const user = c.get("user");
+    const branchId = parseBranchQr(b.data.qr);
+    if (!branchId) return c.json({ ok: false, error: "not_jazl_qr" }, 400);
+    const prev = await db.select().from(redemptions).where(and(eq(redemptions.packId, b.data.packId), eq(redemptions.idempotencyKey, b.data.idempotencyKey))).limit(1);
+    if (prev[0]) { const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.packId, b.data.packId), eq(receipts.kind, "use"), sql`${receipts.internal}->>'redemptionId' = ${prev[0].id}`)).limit(1); return c.json({ ok: true, repeated: true, receipt: rc ? { id: rc.id, no: "JZ-" + rc.no } : null }); }
+    const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, branchId)).limit(1);
+    if (!br || !br.b.active) return c.json({ ok: false, error: "branch_not_found" }, 404);
+    try {
+      const out = await db.transaction(async (tx) => {
+        const p = await takeUnit(tx, b.data.packId, user.id);
+        if (p.venueId !== br.v.id) throw new UseError("other_venue");
+        const [rd] = await tx.insert(redemptions).values({ packId: p.id, branchId, idempotencyKey: b.data.idempotencyKey }).returning();
+        await tx.insert(packEvents).values({ packId: p.id, type: "use", unitsDelta: -1, meta: { via: "scan", branchId, redemptionId: rd.id } });
+        const now = new Date();
+        const [rc] = await tx.insert(receipts).values({ kind: "use", userId: user.id, packId: p.id, venueId: br.v.id, branchId, total: p.unitPrice,
+          public: { title: "Бірлік пайдаланылды", status: "Расталды", dateLocal: almaty(now), seller: { name: br.v.name, address: br.b.address, bin: null },
+            item: { title: p.title, units: 1, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: "Кассадағы QR" },
+          internal: { version: 1, redemptionId: rd.id, ...meta(c, user), item: { title: p.title, units: 1, unitName: p.unitName, packSlug: p.slug },
+            fulfillment: { type: "scan", slot: null, code: null, branchId }, status: { current: "done", history: [{ status: "done", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
+        return { left: p.left, receipt: { id: rc.id, no: "JZ-" + rc.no } };
+      });
+      return c.json({ ok: true, repeated: false, ...out });
+    } catch (e) { return fail(c, e); }
+  });
+
+  // ── Тапсырыс (қазір) және жоспар (күн/уақыт) ─────────────────────
+  const Order = z.object({ packId: z.string().uuid(), type: z.enum(["now", "plan"]), branchId: z.string().uuid().optional(), scheduledAt: z.string().datetime().optional(), courier: z.boolean().optional(), idempotencyKey: z.string().min(8).max(64) }).strict();
+  r.post("/orders", async (c) => {
+    const b = Order.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const d = b.data; const user = c.get("user");
+    const prev = await db.select().from(orders).where(and(eq(orders.userId, user.id), eq(orders.idempotencyKey, d.idempotencyKey))).limit(1);
+    if (prev[0]) return c.json({ ok: true, repeated: true, order: orderDto(prev[0]) });
+    const at = d.type === "plan" ? new Date(d.scheduledAt ?? "") : null;
+    if (d.type === "plan" && (!at || isNaN(at.getTime()) || at.getTime() < Date.now() + 15 * 60_000)) return c.json({ ok: false, error: "bad_slot" }, 400);
+    try {
+      const out = await db.transaction(async (tx) => {
+        const p = await takeUnit(tx, d.packId, user.id);
+        if (at && at.getTime() > new Date(p.valid_until).getTime()) throw new UseError("slot_after_expiry", 400);
+        const [v] = await tx.select().from(venues).where(eq(venues.id, p.venueId));
+        if (d.type === "now" && !v.acceptsPreorder) throw new UseError("no_preorder");
+        const [br] = d.branchId ? await tx.select().from(branches).where(and(eq(branches.id, d.branchId), eq(branches.venueId, v.id))) : await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true))).limit(1);
+        if (!br) throw new UseError("branch_not_found", 404);
+        const code = String(randomInt(1000, 10000));
+        const [o] = await tx.insert(orders).values({ type: d.type, packId: p.id, userId: user.id, branchId: br.id, scheduledAt: at, code, courier: d.courier ?? false, idempotencyKey: d.idempotencyKey }).returning();
+        await tx.insert(packEvents).values({ packId: p.id, type: d.type === "plan" ? "plan" : "order", unitsDelta: -1, meta: { orderId: o.id, orderNo: o.no, scheduledAt: at } });
+        const now = new Date();
+        const slot = at ? almaty(at) : "қазір (~15 мин)";
+        const [rc] = await tx.insert(receipts).values({ kind: "order", userId: user.id, packId: p.id, venueId: v.id, branchId: br.id, total: p.unitPrice,
+          public: { title: d.type === "plan" ? (v.kind === "hair" ? "Жазылу расталды" : "Жоспарланды") : "Тапсырыс жіберілді", status: "Жіберілді", dateLocal: almaty(now),
+            seller: { name: v.name, address: br.address, bin: null }, item: { title: p.title, units: 1, unitName: p.unitName, pricePerUnit: p.unitPrice },
+            order: { no: o.no, slot, code, courier: o.courier }, left: p.left },
+          internal: { version: 1, orderId: o.id, ...meta(c, user), item: { title: p.title, units: 1, unitName: p.unitName, packSlug: p.slug },
+            fulfillment: { type: d.type === "plan" ? "plan" : "order", slot: at ?? "now", code, courier: o.courier, branchId: br.id },
+            status: { current: "sent", history: [{ status: "sent", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
+        return { order: orderDto(o), left: p.left, receipt: { id: rc.id, no: "JZ-" + rc.no } };
+      });
+      return c.json({ ok: true, repeated: false, ...out });
+    } catch (e) { return fail(c, e); }
+  });
+
+  r.get("/orders", async (c) => {
+    const rows = await db.select({ o: orders, off: offers, v: venues, b: branches }).from(orders).innerJoin(packs, eq(orders.packId, packs.id)).innerJoin(offers, eq(packs.offerId, offers.id))
+      .innerJoin(venues, eq(offers.venueId, venues.id)).innerJoin(branches, eq(orders.branchId, branches.id)).where(eq(orders.userId, c.get("user").id)).orderBy(desc(orders.createdAt)).limit(50);
+    return c.json({ ok: true, orders: rows.map((x) => ({ ...orderDto(x.o), title: x.off.title, venue: x.v.name, address: x.b.address })) });
+  });
+
+  // Бас тарту: жоспарда — уақытқа 2 сағаттан көп қалса бірлік қайтады; тапсырыста — мекеме әлі қабылдамаса
+  r.post("/orders/:id/cancel", async (c) => {
+    const user = c.get("user"); const id = c.req.param("id");
+    try {
+      const out = await db.transaction(async (tx) => {
+        const res = await tx.execute(sql`select * from app.orders where id = ${id} and user_id = ${user.id} for update`);
+        const o = res.rows[0] as { id: string; type: string; status: string; scheduled_at: Date | null; pack_id: string; no: number } | undefined;
+        if (!o) throw new UseError("not_found", 404);
+        if (!["sent", "accepted"].includes(o.status)) throw new UseError("order_" + o.status);
+        const free = o.type === "plan" ? o.scheduled_at !== null && new Date(o.scheduled_at).getTime() - Date.now() >= FREE_CANCEL_MS : o.status === "sent";
+        if (!free) throw new UseError("too_late");
+        await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, o.id));
+        await tx.execute(sql`update app.packs set units_left = units_left + 1, status = case when status = 'used' then 'active' else status end where id = ${o.pack_id}`);
+        await tx.insert(packEvents).values({ packId: o.pack_id, type: "cancel", unitsDelta: 1, meta: { orderId: o.id, orderNo: o.no } });
+        await tx.execute(sql`update app.receipts set internal = jsonb_set(jsonb_set(internal, '{status,current}', '"cancelled"'), '{status,history}', (internal->'status'->'history') || jsonb_build_object('status','cancelled','at', now())) where internal->>'orderId' = ${o.id}`);
+        return { returned: 1 };
+      });
+      return c.json({ ok: true, ...out });
+    } catch (e) { return fail(c, e); }
+  });
+
+  // ── Мекеме персоналы (кассир, менеджер, иесі) ─────────────────────
+  const staffVenues = async (userId: string) => (await db.select({ venueId: venueStaff.venueId }).from(venueStaff).where(eq(venueStaff.userId, userId))).map((x) => x.venueId);
+
+  r.get("/venue/orders", async (c) => {
+    const vs = await staffVenues(c.get("user").id);
+    if (!vs.length) return c.json({ ok: false, error: "not_staff" }, 403);
+    const rows = await db.select({ o: orders, off: offers, u: users, b: branches }).from(orders).innerJoin(packs, eq(orders.packId, packs.id)).innerJoin(offers, eq(packs.offerId, offers.id))
+      .innerJoin(users, eq(orders.userId, users.id)).innerJoin(branches, eq(orders.branchId, branches.id))
+      .where(and(inArray(branches.venueId, vs), inArray(orders.status, ["sent", "accepted", "ready"]), gt(orders.createdAt, new Date(Date.now() - 7 * 86400_000)))).orderBy(orders.scheduledAt, orders.createdAt);
+    // Кассирге кодты көрсетпейміз — клиент айтады, кассир тексереді
+    return c.json({ ok: true, orders: rows.map((x) => ({ id: x.o.id, no: x.o.no, type: x.o.type, status: x.o.status, scheduledAt: x.o.scheduledAt, courier: x.o.courier, title: x.off.title, customer: x.u.firstName, branch: x.b.address, createdAt: x.o.createdAt })) });
+  });
+
+  const Status = z.object({ status: z.enum(["accepted", "ready", "missed"]) }).strict();
+  r.post("/venue/orders/:id/status", async (c) => {
+    const b = Status.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const vs = await staffVenues(c.get("user").id);
+    const [row] = await db.select({ o: orders, b: branches }).from(orders).innerJoin(branches, eq(orders.branchId, branches.id)).where(eq(orders.id, c.req.param("id"))).limit(1);
+    if (!row || !vs.includes(row.b.venueId)) return c.json({ ok: false, error: "not_found" }, 404);
+    await db.update(orders).set({ status: b.data.status }).where(eq(orders.id, row.o.id));
+    return c.json({ ok: true });
+  });
+
+  // Кассир клиент айтқан 4 таңбалы кодты енгізеді → тапсырыс беріледі (done)
+  const Verify = z.object({ code: z.string().regex(/^\d{4}$/) }).strict();
+  r.post("/venue/orders/verify", async (c) => {
+    const b = Verify.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const staff = c.get("user");
+    const vs = await staffVenues(staff.id);
+    if (!vs.length) return c.json({ ok: false, error: "not_staff" }, 403);
+    const [row] = await db.select({ o: orders, off: offers, u: users }).from(orders).innerJoin(branches, eq(orders.branchId, branches.id)).innerJoin(packs, eq(orders.packId, packs.id))
+      .innerJoin(offers, eq(packs.offerId, offers.id)).innerJoin(users, eq(orders.userId, users.id))
+      .where(and(inArray(branches.venueId, vs), eq(orders.code, b.data.code), inArray(orders.status, ["sent", "accepted", "ready"]))).orderBy(desc(orders.createdAt)).limit(1);
+    if (!row) return c.json({ ok: false, error: "code_not_found" }, 404);
+    await db.update(orders).set({ status: "done", doneAt: new Date(), doneBy: staff.id }).where(eq(orders.id, row.o.id));
+    await db.execute(sql`update app.receipts set internal = jsonb_set(jsonb_set(internal, '{status,current}', '"done"'), '{status,history}', (internal->'status'->'history') || jsonb_build_object('status','done','at', now(), 'by', ${staff.id}::text)) where internal->>'orderId' = ${row.o.id}`);
+    return c.json({ ok: true, order: { no: row.o.no, title: row.off.title, customer: row.u.firstName, type: row.o.type } });
+  });
+
+  // Филиалдың касса QR-ы (басып шығаруға): тек осы мекеменің персоналына
+  r.get("/venue/branches/:id/qr", async (c) => {
+    const vs = await staffVenues(c.get("user").id);
+    const [br] = await db.select().from(branches).where(eq(branches.id, c.req.param("id"))).limit(1);
+    if (!br || !vs.includes(br.venueId)) return c.json({ ok: false, error: "not_found" }, 404);
+    return c.json({ ok: true, qr: branchQr(cfg, br.id), address: br.address });
+  });
+
+  return r;
+}
+
+type OrderRow = typeof orders.$inferSelect;
+const orderDto = (o: OrderRow) => ({ id: o.id, no: o.no, type: o.type, packId: o.packId, branchId: o.branchId, scheduledAt: o.scheduledAt, code: o.code, courier: o.courier, status: o.status, createdAt: o.createdAt });

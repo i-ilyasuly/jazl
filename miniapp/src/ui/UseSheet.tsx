@@ -33,7 +33,7 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
       // Нативті сканер бірден ашылады; QR оқылса ғана төлем беті ашылады
       const r = scanQrNative();
       if (!r) go("/scan?pack=" + pack.id, "up", { replace: false });
-      else void r.then((ok) => { if (ok) { onClose(); go(`/scan?pack=${pack.id}&via=qr`, "up"); } });
+      else void r.then((qr) => { if (qr !== false) { onClose(); go(`/scan?pack=${pack.id}&via=qr&qr=${encodeURIComponent(qr)}`, "up"); } });
     }
     else if (way === "plan") go("/book/" + pack.id, "forward");
     else go("/order/" + pack.id, "forward");

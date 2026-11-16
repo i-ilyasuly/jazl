@@ -7,8 +7,9 @@ import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
+import { catalogState } from "../catalog";
 import { fmt, unitPrice } from "../mocks/offers";
-import { getPack, hasPin, offerOf, redeem, unitLabel, usePacks, useSettings } from "../store";
+import { getPack, hasPin, offerOf, redeem, redeemOnServer, unitLabel, usePacks, useSettings } from "../store";
 import { scanEarly, scanStates, type ScanKind } from "./ScanState";
 import { haptic, inTelegram, tg, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -21,7 +22,9 @@ export function Scan() {
   const [params] = useSearchParams();
   const packs = usePacks();
   const go = useGo();
-  const pack = getPack(params.get("pack") ?? undefined) ?? packs.find((p) => p.left > 0 && !p.expired);
+  // B3: QR филиалды анықтайды → сол мекеменің пакеті таңдалады (Сканер табынан ашылса, пакет белгісіз)
+  const qrVenue = (() => { const id = (params.get("qr") ?? "").match(/(?:JZB1:|br_)([0-9a-f-]{36})/i)?.[1]; return id ? catalogState.branches.find((b) => b.branchId === id)?.venue : undefined; })();
+  const pack = getPack(params.get("pack") ?? undefined) ?? (qrVenue ? packs.find((p) => p.left > 0 && !p.expired && offerOf(p).venue === qrVenue) : undefined) ?? packs.find((p) => p.left > 0 && !p.expired);
   // «Код енгізу» (Figma 23) дұрыс код берсе, камерасыз бірден төлем парағы ашылады
   // via=qr — QR нативті сканермен бұрын (Навигация не «Қолдану» парағынан) оқылды: бет бірден төлем парағымен ашылады
   const via = params.get("via");
@@ -95,13 +98,22 @@ export function Scan() {
       if (lock && hasPin()) { go("/profile/pin/pay", "up", { state: { packId, sum: `${unitLabel(pack)} • ${offerOf(pack).venue}` } }); return; }
       setBusy(true);
       tg?.MainButton?.showProgress?.(false);
-      setTimeout(() => {
+      const qr = params.get("qr") ?? "";
+      const finish = (err?: ScanKind) => {
         tg?.MainButton?.hideProgress?.();
-        if (demoKind) { haptic.error(); toState(demoKind); return; }
+        if (err) { setBusy(false); haptic.error(); toState(err); return; }
         redeem(packId); haptic.success(); go("/paid/" + packId, "up", { replace: true });
-      }, 1600);
+      };
+      if (demoKind) { setTimeout(() => finish(demoKind), 1600); return; }
+      // B3: пакет серверде болса — бірлік серверде шегеріледі (QR мекемені анықтайды); қате болса — тиісті күй беті
+      void redeemOnServer(packId, qr).then((r) => {
+        if (!r) { setTimeout(() => finish(), 1200); return; }
+        if (r.ok) { finish(); return; }
+        const map: Record<string, ScanKind> = { not_jazl_qr: "notqr", other_venue: "notpartner", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "expired", pack_used: "nopack", network: "fail" };
+        finish(map[r.error] ?? "fail");
+      });
     },
-  }), [pack, busy, go, chosen, lock, demoKind, toState]);
+  }), [pack, busy, go, chosen, lock, demoKind, toState, params]);
   // Figma 23 «Төлем парағы: кассада қосымша»: таңдалған ас пакет бағасынан қымбат — айырмасы кассада төленеді. Демо: ?scan=extra
   const extra = demo === "extra" ? 500 : 0;
   const cancel = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: () => { haptic.soft(); close(); } }), [close]);

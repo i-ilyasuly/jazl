@@ -134,8 +134,12 @@ export const orders = app.table("orders", {
   code: text("code").notNull(),
   courier: boolean("courier").notNull().default(false),
   status: orderStatus("status").notNull().default("sent"),
+  idempotencyKey: text("idempotency_key"),
+  /** Кассир растаған сәт және кім растағаны */
+  doneAt: timestamp("done_at", { withTimezone: true }),
+  doneBy: uuid("done_by").references(() => users.id),
   createdAt: created(),
-}, (t) => [uniqueIndex("orders_no").on(t.no), index("orders_branch_time").on(t.branchId, t.scheduledAt)]);
+}, (t) => [uniqueIndex("orders_no").on(t.no), index("orders_branch_time").on(t.branchId, t.scheduledAt), uniqueIndex("orders_idem").on(t.userId, t.idempotencyKey)]);
 
 /** Кассадағы QR арқылы бір бірлікті қолдану. */
 export const redemptions = app.table("redemptions", {
@@ -144,8 +148,9 @@ export const redemptions = app.table("redemptions", {
   branchId: uuid("branch_id").notNull().references(() => branches.id),
   cashierId: uuid("cashier_id").references(() => users.id),
   bankRef: text("bank_ref"),
+  idempotencyKey: text("idempotency_key"),
   createdAt: created(),
-}, (t) => [index("redemptions_pack").on(t.packId)]);
+}, (t) => [index("redemptions_pack").on(t.packId), uniqueIndex("redemptions_idem").on(t.packId, t.idempotencyKey)]);
 
 export const payments = app.table("payments", {
   id: id(),

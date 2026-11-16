@@ -280,14 +280,14 @@ export async function copyText(text: string): Promise<boolean> {
 }
 
 /** Нативті QR сканерін бірден ашады — бет ауыспай тұрып (Патша, 2026-11-16: «QR бірден ашылсын, бет қайта шығып кіргендей болмасын»).
- *  null — нативті сканер жоқ (браузер не компьютер); true — QR оқылды; false — пайдаланушы жапты. */
-export function scanQrNative(text = "Кассадағы терминал экранындағы QR-ды рамкаға келтір"): Promise<boolean> | null {
+ *  null — нативті сканер жоқ (браузер не компьютер); string — оқылған QR мәтіні; false — пайдаланушы жапты. */
+export function scanQrNative(text = "Кассадағы терминал экранындағы QR-ды рамкаға келтір"): Promise<string | false> | null {
   if (!inTelegram || !wa?.showScanQrPopup || !at("6.4")) return null;
   const w = wa as unknown as { onEvent?: (e: string, cb: () => void) => void; offEvent?: (e: string, cb: () => void) => void };
   return new Promise((res) => {
     let got = false;
     const onClosed = () => { w.offEvent?.("scanQrPopupClosed", onClosed); if (!got) res(false); };
     w.onEvent?.("scanQrPopupClosed", onClosed);
-    wa.showScanQrPopup!({ text }, () => { got = true; w.offEvent?.("scanQrPopupClosed", onClosed); res(true); return true; });
+    wa.showScanQrPopup!({ text }, (data) => { got = true; w.offEvent?.("scanQrPopupClosed", onClosed); res(String(data ?? "")); return true; });
   });
 }

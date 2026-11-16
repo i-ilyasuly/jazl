@@ -1,6 +1,7 @@
 // «Жүйе күйі» (Профиль → Жүйе күйі): мини апп пен бэкендтің байланысын тексеру беті (Патша, 2026-11-16, B1).
 // Сервер жұмыс істей ме, каталог қайдан келді (сервер не үлгі), Telegram арқылы кіру өтті ме — бәрі бір жерде.
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { api, API_URL } from "../api";
 import { catalogState, loadCatalog } from "../catalog";
 import { inTelegram, haptic } from "../telegram";
@@ -41,7 +42,28 @@ export function SystemStatus() {
         <Row title="Сіз" right={me === null ? wait : me.ok ? ok(`${me.name} · тіркелді`) : bad(me.why)} />
       </Group>
       <Group i={3}><Row title="Қайта тексеру" onClick={() => { haptic.tap(); check(); }} /></Group>
+      {cat.branches.length > 0 && <TestQrs list={cat.branches} />}
       <Note i={4}>Бұл бет бэкендтің мини аппен байланысын көрсетеді. «Сервер» деп тұрса — ұсыныстардың бағасы мен атауы дерекқордан келді.</Note>
     </SubPage>
+  );
+}
+
+/** B3 сынағы: әр филиалдың касса QR-ы (нақты кассаларда мекеме басып шығарады). Компьютерден ашып, телефонмен сканерлеуге болады. */
+function TestQrs({ list }: { list: { venue: string; branchId: string; address: string }[] }) {
+  const [pick, setPick] = useState(list[0]);
+  const [svg, setSvg] = useState("");
+  const url = `https://t.me/oylarbot?startapp=br_${pick.branchId}`;
+  useEffect(() => { void QRCode.toString(url, { type: "svg", margin: 1, color: { dark: "#111a26", light: "#ffffff" } }).then(setSvg); }, [url]);
+  return (
+    <Group header="Сынақ касса QR-ы (B3)" i={5}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "8px 16px" }}>
+        {list.map((b) => <button key={b.branchId} onClick={() => setPick(b)} className="t-cap1" style={{ padding: "4px 8px", borderRadius: 8, background: b.branchId === pick.branchId ? "#229af0" : "var(--chip-tint)", color: b.branchId === pick.branchId ? "#fff" : "var(--link)" }}>{b.venue}</button>)}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "8px 16px 16px" }}>
+        <span style={{ width: 200, height: 200 }} dangerouslySetInnerHTML={{ __html: svg }} />
+        <span className="t-sub2" style={{ textAlign: "center" }}>{pick.venue} · {pick.address}</span>
+        <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Осы бетті компьютерден ашып, телефондағы Jazl+ → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — бір бірлік серверде шегеріледі.</span>
+      </div>
+    </Group>
   );
 }
