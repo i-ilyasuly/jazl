@@ -49,7 +49,7 @@ export function NavBar({ active }: { active: TabKey }) {
   const act = (i: number) => {
     const t = tabs[i]; if (!t || t.key === active) return;
     haptic.select();
-    if (t.key === "scan") { const r = scanQrNative(); if (r) { void r.then((ok) => { if (ok) go("/scan?via=qr", "up"); }); return; } }
+    if (t.key === "scan") { const r = scanQrNative(); if (r) { void r.then((qr) => { if (qr !== false) go("/scan?via=qr&qr=" + encodeURIComponent(qr), "up"); }); return; } }
     go(t.to, "fade");
   };
   // Әйнек «линза» (iOS 26 / Telegram iOS сияқты): табты басып тұрып оңға-солға жылжытса, таңдау саусақпен бірге жүреді,

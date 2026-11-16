@@ -135,6 +135,16 @@ export async function syncServerPacks() {
   } catch { /* кірусіз не сервер жоқ */ }
 }
 
+/** B3: серверге жіберу көмекшісі — пакет серверде болса ғана; кілт қайталанған сұрауда екінші рет шегерілмеуі үшін. */
+const newKey = () => (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + Date.now());
+const srvError = (e: unknown) => ((e as { body?: { error?: string } }).body?.error ?? "network");
+/** Кассадағы QR арқылы бір бірлік (серверде). Қате болса — себебі (other_venue, no_units, not_jazl_qr, …). */
+export async function redeemOnServer(packId: string, qr: string): Promise<{ ok: true; receiptId?: string } | { ok: false; error: string } | null> {
+  const p = getPack(packId); if (!p?.serverId || !qr) return null;
+  try { const j = await api<{ receipt?: { id: string } }>("/v1/redeem", { method: "POST", body: JSON.stringify({ packId: p.serverId, qr, idempotencyKey: newKey() }) }, 12000); return { ok: true, receiptId: j.receipt?.id }; }
+  catch (e) { return { ok: false, error: srvError(e) }; }
+}
+
 export function redeem(packId: string): boolean {
   const p = getPack(packId);
   if (!p || p.left < 1) return false;
@@ -377,7 +387,7 @@ void kv.get("jazl_soon").then((v) => { if (v) { soonSubs = v.split(",").map(Numb
 // Пакет бұрын төленген, сондықтан тапсырыс кезінде ешқандай шот/карта төлемі жоқ:
 // пакеттен 1 бірлік шегеріледі. Тапсырыс мекемеге жетпесе, бірлік қайтарылады.
 export interface Branch { id: string; address: string; hours: string; km: number; open: boolean }
-export interface Order { id: string; no: number; packId: string; title: string; venue: string; emoji: string; branch: string; time: string; code: string; status: "sent" | "done"; created: string }
+export interface Order { id: string; no: number; packId: string; title: string; venue: string; emoji: string; branch: string; time: string; code: string; status: "sent" | "done"; created: string; serverId?: string }
 const branchesOf: Record<string, Branch[]> = {
   "Dämdi Doner": [
     { id: "b1", address: "Нұркен Әбдіров, 24", hours: "09:00–22:00", km: 1.2, open: true },
@@ -404,6 +414,9 @@ export function placeOrder(packId: string, branch: string, time: string): Order 
   packs = packs.map((x) => x.id !== packId ? x : { ...x, left: x.left - 1,
     history: [{ emoji: "🛍️", title: `Тапсырыс №${no}`, sub: `бүгін, ${hh} • ${branch}`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
   emit();
+  // B3: серверде тапсырыс — нөмір мен код серверден келеді (кассир соны тексереді)
+  if (p.serverId) void api<{ order: { id: string; no: number; code: string } }>("/v1/orders", { method: "POST", body: JSON.stringify({ packId: p.serverId, type: "now", idempotencyKey: newKey() }) }, 12000)
+    .then((j) => { orders = orders.map((x) => (x.id === order.id ? { ...x, serverId: j.order.id, no: j.order.no, code: j.order.code } : x)); emit(); }).catch(() => undefined);
   return order;
 }
 /** Тапсырыс мекемеге жетпесе: бірлікті пакетке қайтару. */
@@ -418,7 +431,7 @@ export function finishOrder(id: string) { orders = orders.map((o) => (o.id === i
 // ── Шаштараз: жазылу (Figma «22 · Шаштараз: жазылу») ──────────────────────
 // Жазылу расталғанда пакеттен 1 рет брондалады. 2 сағаттан ертерек бас тартса — қайтарылады;
 // кеш бас тартса не келмесе — жұмсалады. Бэкенд қосылғанда: POST /bookings, PATCH /bookings/:id.
-export interface Booking { id: string; packId: string; venue: string; service: string; master?: string; at: number; status: "ok" | "cancelled" | "missed" }
+export interface Booking { id: string; packId: string; venue: string; service: string; master?: string; at: number; status: "ok" | "cancelled" | "missed"; serverId?: string; code?: string }
 export const FREE_CANCEL_MS = 2 * 3600_000;
 const kkMonths = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
 export const dayStart = (off: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return d.getTime(); };
@@ -451,6 +464,9 @@ export function book(packId: string, at: number): Booking | null {
   packs = packs.map((x) => x.id !== packId ? x : { ...x, left: x.left - 1,
     history: [{ emoji: "📅", title: `${o.kind === "hair" ? "Жазылу" : "Жоспар"}: ${bookLabel(at)}`, sub: `${o.venue} • расталды`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
   emit();
+  // B3: серверде жоспар (type: plan, scheduledAt)
+  if (p.serverId) void api<{ order: { id: string; code: string } }>("/v1/orders", { method: "POST", body: JSON.stringify({ packId: p.serverId, type: "plan", scheduledAt: new Date(at).toISOString(), idempotencyKey: newKey() }) }, 12000)
+    .then((j) => { bookings = bookings.map((x) => (x.id === b.id ? { ...x, serverId: j.order.id, code: j.order.code } : x)); emit(); }).catch(() => undefined);
   return b;
 }
 export function moveBooking(id: string, at: number) { bookings = bookings.map((b) => (b.id === id ? { ...b, at } : b)).sort((x, y) => x.at - y.at); emit(); }
@@ -459,6 +475,7 @@ export function cancelBooking(id: string): boolean {
   const b = getBooking(id); if (!b) return false;
   const free = freeCancel(b);
   bookings = bookings.map((x) => (x.id === id ? { ...x, status: "cancelled" } : x));
+  if (b.serverId) void api(`/v1/orders/${b.serverId}/cancel`, { method: "POST" }).catch(() => undefined);
   if (free) packs = packs.map((x) => x.id !== b.packId ? x : { ...x, left: x.left + 1,
     history: [{ emoji: "↩️", title: "Жазылудан бас тартылды", sub: `${bookLabel(b.at)} • тегін`, right: `Қалды: ${x.left + 1}` }, ...x.history] });
   emit();
