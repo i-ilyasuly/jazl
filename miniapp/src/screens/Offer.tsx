@@ -59,7 +59,29 @@ function OfferView({ id }: { id?: string }) {
   const venue = venues.find((v) => v.name === base.venue);
   const [sheet, setSheet] = useState<"route" | "contact" | "how" | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  useEffect(() => { const on = () => setScrolled(window.scrollY > 330); on(); window.addEventListener("scroll", on, { passive: true }); return () => window.removeEventListener("scroll", on); }, []);
+  useEffect(() => { const on = () => setScrolled(window.scrollY > 392); on(); window.addEventListener("scroll", on, { passive: true }); return () => window.removeEventListener("scroll", on); }, []);
+  // Патша, 2026-11-16: фото 412×412 (1:1). Беттің жоғарғы шетінде төмен тартқанда фото созылады (Telegram профиліндегідей,
+  // бұлдыратусыз), жібергенде серпіліп орнына қайтады. Көлденең сырғыту (галерея) созуды қоздырмайды.
+  const [pull, setPull] = useState(0);
+  const [springing, setSpringing] = useState(false);
+  useEffect(() => {
+    let st: { x: number; y: number; dir: "v" | "h" | null } | null = null; let cur = 0;
+    const start = (e: TouchEvent) => { if (window.scrollY > 0) { st = null; return; } const t = e.touches[0]; st = { x: t.clientX, y: t.clientY, dir: null }; setSpringing(false); };
+    const move = (e: TouchEvent) => {
+      if (!st) return; const t = e.touches[0]; const dx = t.clientX - st.x, dy = t.clientY - st.y;
+      if (st.dir === null && Math.abs(dx) + Math.abs(dy) > 8) st.dir = Math.abs(dy) > Math.abs(dx) ? "v" : "h";
+      if (st.dir !== "v" || window.scrollY > 0) return;
+      const next = dy > 0 ? Math.min(160, dy * 0.5) : 0;
+      if (next > 0 && e.cancelable) e.preventDefault();
+      if ((cur < 120) !== (next < 120) && next >= 120) haptic.select();
+      cur = next; setPull(next);
+    };
+    const end = () => { if (!st) return; st = null; if (cur > 0) { setSpringing(true); setPull(0); cur = 0; } };
+    window.addEventListener("touchstart", start, { passive: true });
+    window.addEventListener("touchmove", move, { passive: false });
+    window.addEventListener("touchend", end); window.addEventListener("touchcancel", end);
+    return () => { window.removeEventListener("touchstart", start); window.removeEventListener("touchmove", move); window.removeEventListener("touchend", end); window.removeEventListener("touchcancel", end); };
+  }, []);
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const startStep = (loc.state as { buy?: BuyStep } | null)?.buy;
@@ -102,9 +124,9 @@ function OfferView({ id }: { id?: string }) {
 
   return (
     <div className={`${s.page} ${caption ? s.pageTall : ""}`}>
-      <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`} />
+      <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`}><p className={`pageTitle ${s.barTitle}`}>{offer.title}</p></div>
       <TelegramChrome mode="back" onBack={back} />
-      <div className={`${s.photo} ${ended ? s.photoEnded : ""}`} style={{ viewTransitionName: "offer-photo" }}>
+      <div className={`${s.photo} ${ended ? s.photoEnded : ""} ${springing ? s.spring : ""}`} style={{ viewTransitionName: "offer-photo", height: 412 + pull }} onTransitionEnd={() => setSpringing(false)}>
         <Gallery photos={photos} fallback={kindPic[offer.kind]} />
       </div>
 
