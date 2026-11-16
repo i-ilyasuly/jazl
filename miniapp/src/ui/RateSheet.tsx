@@ -68,7 +68,7 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
       <div className={s.sheet} role="dialog" aria-label="Бағалау" key={done ? "done" : "rate"}>
         <span className={s.grabber} />
         {done ? <>
-          <Sticker name="love" size={96} loop={false} className={s.sticker} />
+          <Sticker name="love" size={96} className={s.sticker} />
           <h2 className={`t-title3 w-700 ${s.center}`}>Рахмет!</h2>
           <p className={`t-sub2 ${s.muted} ${s.center}`}>Бағаң мекемеге жеткізіледі. Ол Jazl+ сапасын жақсартуға көмектеседі.</p>
         </> : <>

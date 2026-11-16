@@ -9,7 +9,7 @@
 @keyframes slideDown { to { transform: translateY(100%); } }
 .grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
 .head { display: flex; justify-content: space-between; height: 24px; }
-.head h2 { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; color: var(--text-strong); }
+.head h2 { font-size: 20px; line-height: 25px; font-weight: 600; color: var(--text-strong); }
 .head button { color: var(--link); }
 .sec { display: flex; flex-direction: column; gap: 8px; height: 68px; }
 .sec h3, .priceHead h3 { color: var(--link); }
@@ -27,9 +27,9 @@
 .slider input::-webkit-slider-thumb:active { transform: scale(1.12); }
 .slider input::-moz-range-thumb { pointer-events: auto; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 2px solid #229af0; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18); }
 .slider input::-moz-range-track { background: none; }
-.toggle { display: flex; align-items: center; justify-content: space-between; height: 32px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; color: var(--text-strong); }
+.toggle { display: flex; align-items: center; justify-content: space-between; height: 32px; font-size: 17px; line-height: 22px; color: var(--text-strong); }
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: calc(66px + var(--safe-b, 0px)); padding: 8px 10px; background: #fff; display: flex; gap: 10px; }
-.btn { width: 191px; height: 50px; border-radius: 8px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; }
+.btn { width: 191px; height: 50px; border-radius: 8px; font-size: 17px; line-height: 22px; font-weight: 600; transition: transform 0.12s ease; }
 .btn:active { transform: scale(0.97); }
 .second { background: rgba(34, 154, 240, 0.16); color: var(--link); }
 .main { background: #229af0; color: #fff; }

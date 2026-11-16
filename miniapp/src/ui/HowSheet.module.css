@@ -8,11 +8,11 @@
 @keyframes slideUp { from { transform: translateY(100%); } }
 @keyframes slideDown { to { transform: translateY(100%); } }
 .grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
-.title { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 700; color: var(--text-strong); }
+.title { font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
 .step { display: flex; align-items: center; gap: 14px; color: var(--text-strong); animation: stepIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(140ms + var(--i) * 70ms); }
 @keyframes stepIn { from { transform: translateX(16px); opacity: 0; } }
 .slot { flex: none; width: 44px; height: 44px; border-radius: 12px; }
 .text { display: flex; flex-direction: column; gap: 1px; width: 314px; }
 .sub { width: 300px; color: var(--text-secondary); }
-.btn { width: 372px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 500; transition: transform 0.12s ease; }
+.btn { width: 372px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 22px; font-weight: 500; transition: transform 0.12s ease; }
 .btn:active { transform: scale(0.98); }

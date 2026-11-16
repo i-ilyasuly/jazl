@@ -65,7 +65,7 @@
 .none { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: -6px; color: var(--text-strong); }
 .none p:first-of-type { margin-top: 8px; }
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 66px; padding: 8px 10px; background: var(--surface-white); display: flex; gap: 8px; }
-.btn { width: 192px; height: 50px; border-radius: 8px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; transition: transform 0.12s ease; }
+.btn { width: 192px; height: 50px; border-radius: 8px; font-size: 17px; line-height: 22px; font-weight: 600; transition: transform 0.12s ease; }
 .btn:active { transform: scale(0.97); }
 .second { color: var(--link); }
 .main { background: #229af0; color: #fff; }

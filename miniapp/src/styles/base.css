@@ -18,16 +18,16 @@ img { display: block; }
 .app { position: relative; width: 100%; max-width: var(--app-width); min-height: 100%; margin: 0 auto; }
 
 /* Мәтін стильдері: Telegram Mini Apps UI Kit шкаласы (04 файлы, 18-ереже): 34/41, 28/34, 24/30, 20/25, 19/24, 17/22, 16/21, 15/20, 13/16, 11/13 */
-.t-large-title { font-size: 34px; line-height: 41px; letter-spacing: 0.25px; font-weight: 700; }
-.t-title1 { font-size: 28px; line-height: 34px; letter-spacing: 0.1px; font-weight: 700; }
-.t-title3 { font-size: 20px; line-height: 25px; letter-spacing: 0.15px; font-weight: 600; }
-.t-headline { font-size: 19px; line-height: 24px; letter-spacing: 0.15px; font-weight: 600; }
-.t-text { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 400; }
-.t-title2 { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 700; }
-.t-sub1 { font-size: 16px; line-height: 21px; letter-spacing: 0.15px; font-weight: 400; }
-.t-sub2 { font-size: 15px; line-height: 20px; letter-spacing: 0.15px; font-weight: 400; }
-.t-cap1 { font-size: 13px; line-height: 16px; letter-spacing: 0.1px; font-weight: 400; }
-.t-cap2 { font-size: 11px; line-height: 13px; letter-spacing: 0.1px; font-weight: 400; }
+.t-large-title { font-size: 34px; line-height: 41px; font-weight: 700; }
+.t-title1 { font-size: 28px; line-height: 34px; font-weight: 700; }
+.t-title3 { font-size: 20px; line-height: 25px; font-weight: 600; }
+.t-headline { font-size: 19px; line-height: 24px; font-weight: 600; }
+.t-text { font-size: 17px; line-height: 22px; font-weight: 400; }
+.t-title2 { font-size: 24px; line-height: 30px; font-weight: 700; }
+.t-sub1 { font-size: 16px; line-height: 21px; font-weight: 400; }
+.t-sub2 { font-size: 15px; line-height: 20px; font-weight: 400; }
+.t-cap1 { font-size: 13px; line-height: 16px; font-weight: 400; }
+.t-cap2 { font-size: 11px; line-height: 13px; font-weight: 400; }
 .w-600 { font-weight: 600; }
 .w-700 { font-weight: 700; }
 
@@ -59,7 +59,7 @@ img { display: block; }
 .topSearch > input::placeholder { color: var(--text-secondary); }
 button.topSearch:active { transform: scale(0.98); }
 /* Беттің атауы: «Артқа» мен ⌄⋯ батырмаларының арасында, сол жолдың ортасында */
-.pageTitle { position: absolute; z-index: 19; left: var(--bar-l); right: var(--bar-r); top: calc(var(--bar-c) - 12px); height: 24px; text-align: center; font-size: 19px; line-height: 24px; font-weight: 600; letter-spacing: 0.1px; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.pageTitle { position: absolute; z-index: 19; left: var(--bar-l); right: var(--bar-r); top: calc(var(--bar-c) - 12px); height: 24px; text-align: center; font-size: 19px; line-height: 24px; font-weight: 600; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 /* Фото үстіндегі әйнек батырмалар: иконкасы әр режимде қара болып қалады */
 :root[data-theme="dark"] .app .keepIcon img { filter: none !important; }
 /* Басты беттегі іздеу: айналдырғанда орнында бекітулі, навигациядағыдай мөлдір glass */
@@ -79,3 +79,5 @@ button.topSearch:active { transform: scale(0.98); }
 .app button.t-sub2:not(:disabled):active, .app button.t-cap1:not(:disabled):active { opacity: 0.6; }
 /* Ескерту блогындағы боялған сөздер: кішірек бұрыш, жол ауысса да әр бөлігі тұтас көрінеді (Патша, 2026-11-16) */
 .infoBox :is(b, strong)[class], .hl { border-radius: 4px !important; padding: 0 3px !important; margin: 0 -1px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* Фондағы мәтіннің (ескерту, сипаттама) боялған сөздері қалың болмайды — айналасындағы мәтінмен бірдей салмақ (Патша, 2026-11-16) */
+.infoBox b, .infoBox strong, .infoBox [class*=hl], .infoBox [class*=green], .infoBox [class*=blue] { font-weight: inherit !important; }

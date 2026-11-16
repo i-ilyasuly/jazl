@@ -6,7 +6,7 @@
 .id { display: flex; align-items: center; gap: 14px; height: 72px; }
 .avatar { flex: none; width: 72px; height: 72px; border-radius: 36px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 34px; animation: pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
 @keyframes pop { from { transform: scale(0.5); opacity: 0; } }
-.name { font-size: 24px; line-height: 30px; letter-spacing: 0.1px; font-weight: 700; margin-bottom: 2px; }
+.name { font-size: 24px; line-height: 30px; font-weight: 700; margin-bottom: 2px; }
 .gray { color: var(--text-secondary); }
 .open { display: flex; align-items: center; gap: 8px; }
 .open i { width: 8px; height: 8px; border-radius: 50%; background: #22a559; }
@@ -45,7 +45,7 @@
 .kv { display: flex; justify-content: space-between; height: 24px; }
 .kv span { color: var(--text-secondary); }
 .kv b { font-weight: 600; }
-.addr { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; }
+.addr { font-size: 17px; line-height: 22px; }
 .miniMap { position: relative; width: 348px; height: 120px; border-radius: 12px; background: #e9eef2 url("../assets/icons/mapBg.svg") -30px -160px / 412px 917px; overflow: hidden; }
 .miniPin { position: absolute; left: 153px; top: 39px; width: 42px; height: 42px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(17, 26, 38, 0.2); display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 21px; animation: pop 0.5s 0.2s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
 .routeBtn { height: 42px; border-radius: 8px; background: rgba(34, 154, 240, 0.14); color: var(--link); transition: transform 0.12s ease; }
@@ -55,7 +55,7 @@
 .shot img { opacity: 0.6; }
 .rating { flex-direction: row; gap: 20px; align-items: center; height: 148px; }
 .score { width: 78px; display: flex; flex-direction: column; align-items: center; }
-.score b { font-size: 34px; line-height: 41px; letter-spacing: 0.25px; }
+.score b { font-size: 34px; line-height: 41px; }
 .stars { font-size: 16px; line-height: 21px; color: #e6a700; }
 .score small { color: var(--text-secondary); }
 .bars { display: flex; flex-direction: column; gap: 5px; }
@@ -74,7 +74,7 @@
 .emptyBtn { margin-top: 8px; height: 36px; padding: 6px 14px; border-radius: 8px; background: rgba(34, 154, 240, 0.16); color: var(--link); display: inline-flex; align-items: center; gap: 6px; }
 .emptyBtn .bell { width: 20px; height: 20px; }
 /* Snackbar: шет 16, биіктігі 48, мәтін Subheadline2 15/20, белгіше 24 */
-.snack { position: fixed; z-index: 40; left: 50%; margin-left: -190px; bottom: calc(24px + var(--safe-b, 0px)); width: 380px; height: 48px; padding: 12px 16px; border-radius: 12px; background: #2b3645; color: #fff; display: flex; align-items: center; gap: 12px; font-size: 15px; line-height: 20px; letter-spacing: 0.15px; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.snack { position: fixed; z-index: 40; left: 50%; margin-left: -190px; bottom: calc(24px + var(--safe-b, 0px)); width: 380px; height: 48px; padding: 12px 16px; border-radius: 12px; background: #2b3645; color: #fff; display: flex; align-items: center; gap: 12px; font-size: 15px; line-height: 20px; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .snack svg { flex: none; }
 @keyframes snack { 0% { transform: translateY(20px); opacity: 0; } 8%, 88% { transform: none; opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }

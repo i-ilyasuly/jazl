@@ -33,20 +33,51 @@ function Bar({ left, main }: { left: BottomAction; main: BottomAction & { disabl
   );
 }
 
+const MONTHS = ["Қаңтар", "Ақпан", "Наурыз", "Сәуір", "Мамыр", "Маусым", "Шілде", "Тамыз", "Қыркүйек", "Қазан", "Қараша", "Желтоқсан"];
+const WEEK = ["Дс", "Сс", "Ср", "Бс", "Жм", "Сб", "Жс"];
+const dayDate = (off: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return d; };
+const offOf = (d: Date) => Math.round((d.getTime() - dayDate(0).getTime()) / 86400000);
+const freeTimes = (off: number) => TIMES.filter((t) => !busy(off, t));
+
+/** Күнтізбе + астында сол күннің бос уақыттары (Патша, 2026-11-16).
+ *  days — пакет мерзімі ішіндегі таңдауға болатын күндер саны (бүгіннен бастап). Бос уақыты жоқ күн сұр. */
 function SlotPicker({ dayTitle, days, value, onChange }: { dayTitle: string; days: number; value: { day: number; time: string }; onChange: (v: { day: number; time: string }) => void }) {
+  const first = dayDate(0);
+  const last = dayDate(days - 1);
+  const monthsTotal = (last.getFullYear() - first.getFullYear()) * 12 + last.getMonth() - first.getMonth() + 1;
+  const sel = dayDate(value.day);
+  const [m, setM] = useState(() => (sel.getFullYear() - first.getFullYear()) * 12 + sel.getMonth() - first.getMonth());
+  const view = new Date(first.getFullYear(), first.getMonth() + m, 1);
+  const lead = (view.getDay() + 6) % 7; // дүйсенбіден басталады
+  const inMonth = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+  const cells: (Date | null)[] = [...Array(lead).fill(null), ...Array.from({ length: inMonth }, (_, i) => new Date(view.getFullYear(), view.getMonth(), i + 1))];
+  const pick = (off: number) => {
+    if (off === value.day) return; haptic.select();
+    onChange({ day: off, time: busy(off, value.time) || !value.time ? (freeTimes(off)[0] ?? "") : value.time });
+  };
+  const times = TIMES;
   return <>
     <h2 className={`t-sub2 w-600 ${s.h2} rise`}>{dayTitle}</h2>
-    <div className={`${s.chips} rise`}>
-      {Array.from({ length: days }, (_, d) => (
-        <button key={d} className={`t-text ${s.chip} ${value.day === d ? s.on : ""}`} onClick={() => {
-          if (value.day === d) return; haptic.select();
-          onChange({ day: d, time: busy(d, value.time) ? (TIMES.find((t) => !busy(d, t)) ?? "") : value.time });
-        }}>{dayWord(d, true)}</button>
-      ))}
+    <div className={`${s.cal} rise`}>
+      <div className={s.calHead}>
+        <button className={s.calNav} disabled={m <= 0} aria-label="Алдыңғы ай" onClick={() => { haptic.select(); setM(m - 1); }}><i className={s.chevL} /></button>
+        <b key={m} className={`t-headline ${s.calTitle}`}>{MONTHS[view.getMonth()]} {view.getFullYear()}</b>
+        <button className={s.calNav} disabled={m >= monthsTotal - 1} aria-label="Келесі ай" onClick={() => { haptic.select(); setM(m + 1); }}><i className={s.chevR} /></button>
+      </div>
+      <div className={s.week}>{WEEK.map((w, i) => <span key={w} className={`t-cap1 ${i > 4 ? s.weekend : ""}`}>{w}</span>)}</div>
+      <div key={m} className={s.grid}>
+        {cells.map((d, i) => {
+          if (!d) return <span key={"e" + i} />;
+          const off = offOf(d);
+          const can = off >= 0 && off < days && freeTimes(off).length > 0;
+          const on = off === value.day;
+          return <button key={i} disabled={!can} className={`t-text ${s.day} ${on ? s.dayOn : ""} ${off === 0 ? s.today : ""}`} onClick={() => pick(off)} aria-label={`${d.getDate()} ${MONTHS[d.getMonth()]}${can ? "" : ", бос емес"}`}>{d.getDate()}</button>;
+        })}
+      </div>
     </div>
-    <h2 className={`t-sub2 w-600 ${s.h2} rise`} style={{ ["--i" as string]: 1 }}>Бос уақыт</h2>
-    <div className={`${s.chips} rise`} style={{ ["--i" as string]: 1 }}>
-      {TIMES.map((t) => {
+    <h2 className={`t-sub2 w-600 ${s.h2} rise`} style={{ ["--i" as string]: 1 }}>{dayWord(value.day)} · бос уақыт</h2>
+    <div key={value.day} className={`${s.times} rise`} style={{ ["--i" as string]: 1 }}>
+      {times.map((t) => {
         const off = busy(value.day, t);
         return <button key={t} disabled={off} aria-label={off ? `${t}, бос емес` : t} className={`t-text ${s.chip} ${off ? s.busy : ""} ${value.time === t ? s.on : ""}`}
           onClick={() => { if (value.time !== t) { haptic.select(); onChange({ ...value, time: t }); } }}>{t}</button>;
@@ -61,8 +92,8 @@ export function BookTime() {
   usePacks();
   const go = useGo();
   const pack = getPack(packId);
-  const days = pack ? Math.max(1, Math.min(5, pack.daysLeft + 1)) : 5;
-  const [v, setV] = useState(() => ({ day: Math.min(1, days - 1), time: "14:00" }));
+  const days = pack ? Math.max(1, Math.min(60, pack.daysLeft + 1)) : 30;
+  const [v, setV] = useState(() => { const d = Math.min(1, days - 1); return { day: d, time: busy(d, "14:00") ? (freeTimes(d)[0] ?? "") : "14:00" }; });
   const back = useCallback(() => go(-1, "back"), [go]);
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); back(); } }), [back]);
   const main = useMemo(() => ({ text: "Жалғастыру", disabled: !v.time, onClick: () => { haptic.medium(); go(`/book/${packId}/confirm`, "forward", { state: { at: atOf(v.day, v.time) } }); } }), [go, packId, v]);
@@ -163,8 +194,8 @@ export function BookMove() {
   useBookings();
   const b = getBooking(useParams().id);
   const pack = b ? getPack(b.packId) : undefined;
-  const days = pack ? Math.max(1, Math.min(5, pack.daysLeft + 1)) : 5;
-  const [v, setV] = useState({ day: 1, time: "" });
+  const days = pack ? Math.max(1, Math.min(60, pack.daysLeft + 1)) : 30;
+  const [v, setV] = useState({ day: Math.min(1, days - 1), time: "" });
   const left = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: () => { haptic.soft(); go(-1, "back"); } }), [go]);
   const main = useMemo(() => ({ text: "Ауыстыру", disabled: !v.time, onClick: () => { if (!b) return; haptic.success(); moveBooking(b.id, atOf(v.day, v.time)); go(-1, "back"); } }), [go, b, v]);
   return (

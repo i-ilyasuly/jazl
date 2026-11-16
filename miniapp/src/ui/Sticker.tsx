@@ -17,7 +17,9 @@ export function preloadSticker(name: StickerName) {
   return Promise.all([player, d]);
 }
 
-export function Sticker({ name, size = 120, loop = true, className }: { name: StickerName; size?: number; loop?: boolean; className?: string }) {
+// ЕРЕЖЕ (Патша, 2026-11-16): ешбір стикер бір ойнап, қатып тоқтап қалмайды — барлығы үздіксіз қайталанады.
+export function Sticker({ name, size = 120, className }: { name: StickerName; size?: number; className?: string }) {
+  const loop = true;
   const box = useRef<HTMLSpanElement>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {

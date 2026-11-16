@@ -14,9 +14,9 @@
 .second { background: var(--chip-tint); color: var(--link); }
 :global(:root[data-theme="dark"]) .reason { background: rgba(255, 184, 0, 0.16); }
 /* Сканер күйлері (ScanState): ескертпе 15/20, сома кестесі — жол 44, шет 16, бұрыш 12 */
-.note { font-size: 15px; line-height: 20px; letter-spacing: 0.15px; }
+.note { font-size: 15px; line-height: 20px; }
 .kvBox { width: 100%; margin-top: 12px; padding: 4px 16px; border-radius: 12px; background: var(--surface-card); animation: rise 0.4s 0.2s ease both; }
-.kvBox p { display: flex; align-items: center; justify-content: space-between; height: 44px; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; color: var(--text-secondary); }
+.kvBox p { display: flex; align-items: center; justify-content: space-between; height: 44px; font-size: 17px; line-height: 22px; color: var(--text-secondary); }
 .kvBox p + p { box-shadow: inset 0 1px 0 var(--separator); }
 .kvBox b { font-weight: 600; color: var(--text-strong); }
 .title, .text { align-self: stretch; padding: 0 24px; }
