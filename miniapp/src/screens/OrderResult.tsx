@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
+import { CopyCode } from "../ui/CopyCode";
 import { failOrder, getOrder, getPack, offerOf, useOrders } from "../store";
 import { venues } from "../mocks/venues";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
@@ -29,10 +30,10 @@ function OrderCard({ id }: { id: string }) {
         <span className={s.text}><b>{o.title}</b><small>{o.venue} • {o.branch}</small></span>
       </div>
       <div className={s.kv}><span>Уақыты</span><b>{o.time}</b></div>
-      <div className={s.codeBox}>
-        <span>Кассирге айтатын код</span>
+      <CopyCode code={o.code} className={s.codeBox}>
+        <span>Кассирге айтатын код · басып көшір</span>
         <b className={s.code}>{o.code.split("").map((c, i) => <i key={i} style={{ ["--i" as string]: i }}>{c}</i>)}</b>
-      </div>
+      </CopyCode>
     </div>
   );
 }

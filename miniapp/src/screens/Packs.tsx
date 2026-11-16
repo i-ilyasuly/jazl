@@ -13,6 +13,7 @@ import searchIcon from "../assets/icons/search.svg";
 import burger from "../assets/icons/offerBurger.svg";
 import scissors from "../assets/icons/offerScissors.svg";
 import { UseSheet } from "../ui/UseSheet";
+import { CopyCode } from "../ui/CopyCode";
 import { RateSheet, Stars } from "../ui/RateSheet";
 import close from "../assets/icons/close.svg";
 import s from "./Packs.module.css";
@@ -143,7 +144,7 @@ export function Packs() {
               ), orders.length > 0 && bookings.length > 0 && <p key="oh" className={`t-sub2 w-600 ${s.header}`}>Тапсырыстар<span> · {orders.length}</span></p>, ...orders.map((o, i) => (
                 <button key={o.id} className={`${s.order} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/orders/" + o.id)}>
                   <span className={s.oHead}><span className={s.oEmoji}>{o.emoji}</span><span className={s.oText}><b>{o.title}</b><small>№{o.no} • {o.venue} • {o.time}</small></span></span>
-                  <span className={s.oCode}><small>Кассирге айтатын код</small><b>{o.code}</b></span>
+                  <CopyCode code={o.code} className={s.oCode}><small>Кассирге айтатын код · басып көшір</small><b>{o.code}</b></CopyCode>
                 </button>))] : <p className={`t-sub2 rise ${s.empty}`}>Белсенді тапсырыс жоқ. Пакет бетінде «Тапсырыс беру» батырмасы бар.</p>)
           : tab === 2
             ? (acts.length ? (

@@ -224,3 +224,13 @@ export function askLocation(): Promise<{ latitude: number; longitude: number } |
 }
 /** Сыртқы сілтемені Telegram-ның ішкі браузерінде ашу. */
 export function openExternal(url: string) { if (inTelegram && wa?.openLink) wa.openLink(url); else window.open(url, "_blank", "noopener"); }
+
+/** Мәтінді көшіру: Telegram-да буферге жазатын нативті әдіс жоқ (тек readTextFromClipboard), сондықтан WebView-дің
+ *  Clipboard API-і, болмаса ескі execCommand жолы. Қайтарады: көшірілді ме. */
+export async function copyText(text: string): Promise<boolean> {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* ескі WebView */ }
+  try {
+    const t = document.createElement("textarea"); t.value = text; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
+    document.body.appendChild(t); t.select(); const ok = document.execCommand("copy"); t.remove(); return ok;
+  } catch { return false; }
+}

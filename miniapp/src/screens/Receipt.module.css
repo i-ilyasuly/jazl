@@ -22,3 +22,4 @@
 :global(:root[data-env="telegram"]) .snack { bottom: calc(16px + var(--safe-b, 0px)); }
 @keyframes snackIn { from { opacity: 0; transform: translateY(12px); } }
 .sent { background: rgba(34, 154, 240, 0.14); color: var(--link); }
+.copy { font-weight: 600; color: var(--link); }
