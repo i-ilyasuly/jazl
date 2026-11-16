@@ -1,6 +1,6 @@
 .emoji { flex: none; width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 24px; }
 .value { white-space: nowrap; color: var(--text-strong); }
-.plus { color: #1b6b2e; }
+.plus { color: #1b6b2e;  --dark-fg: var(--tone-ok); }
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .emoji { background: rgba(92, 180, 244, 0.2); }
 /* «Қолдану тарихы» күйлері: белгі 24 (13/16), жолақ 48 */

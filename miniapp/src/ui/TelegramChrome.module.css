@@ -15,3 +15,5 @@
 :global(:root[data-theme="dark"]) .white .leftIcon { filter: none; }
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .white { background: var(--surface-card); }
+/* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
+button.pill:active { opacity: 0.55; }

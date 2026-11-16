@@ -44,3 +44,5 @@
 .tip button { height: 20px; font-size: 15px; line-height: 20px; letter-spacing: 0.15px; font-weight: 600; color: #8cc4f5; }
 @keyframes tipUp { from { transform: translateY(8px) scale(0.9); opacity: 0; } }
 :global(:root[data-theme="dark"]) .tip, :global(:root[data-theme="dark"]) .tip::after { background: #3b4a5d; }
+/* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
+.tab:active { opacity: 0.7; }

@@ -23,7 +23,7 @@
 .note::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #31d158; }
 .note p { font-size: 15px; line-height: 20px; letter-spacing: 0.15px; }
 .note b { padding: 0 4px; border-radius: 4px; background: var(--hl-green-bg); color: var(--hl-green-text); font-weight: 600; white-space: nowrap; }
-.note i { position: absolute; right: 12px; top: 0; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: #31d158; }
+.note i { position: absolute; right: 12px; top: 0; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: #31d158;  --dark-fg: var(--tone-ok); }
 .warn { background: rgba(245, 179, 1, 0.12); }
 .warn::before { background: #f5b301; }
 .warn i { color: #f5b301; }

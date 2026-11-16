@@ -1,5 +1,5 @@
 .notify { flex: none; height: 36px; padding: 7px 14px; border-radius: 8px; background: rgba(34, 154, 240, 0.16); color: var(--link); white-space: nowrap; transition: background 0.25s ease, transform 0.12s ease; }
 .notify:active { transform: scale(0.95); }
-.done { background: rgba(49, 209, 88, 0.15); color: #1f7a38; }
+.done { background: rgba(49, 209, 88, 0.15); color: #1f7a38;  --dark-fg: var(--tone-ok); }
 .swap { display: inline-block; animation: swap 0.3s cubic-bezier(0.3, 1.4, 0.5, 1); }
 @keyframes swap { from { transform: scale(0.7); opacity: 0; } }

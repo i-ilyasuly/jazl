@@ -40,8 +40,11 @@ img { display: block; }
    ал макет 412-ге созылған, сондықтан оларды --k-ға көбейтеміз. 93 = макеттегі жоғарғы аймақ (96) − 3. */
 :root[data-env="telegram"] { --top-shift: calc((var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)) * var(--k, 1) - 93px); --safe-b: calc(var(--tg-safe-area-inset-bottom, 0px) * var(--k, 1)); }
 
-/* ── Түнгі режим: барлық мәтін, соның ішінде батырмалардағы жазу да — таза ақ ── */
-:root[data-theme="dark"] .app, :root[data-theme="dark"] .app * { color: #ffffff !important; }
+/* ── Түнгі режим: мәтін әдепкіде таза ақ (батырмалардағы жазу да). Мағыналы түсті мәтін (сәтті — жасыл, қате — қызыл)
+   түнде де түсін сақтайды: модуль ережесі --dark-fg: var(--tone-ok|--tone-bad) береді (Патша, 2026-11-16, токендерге көшу). ── */
+:root { --tone-ok: #1b6b2e; --tone-bad: #e53935; }
+:root[data-theme="dark"] { --tone-ok: #6fdc8c; --tone-bad: #ff7b72; }
+:root[data-theme="dark"] .app, :root[data-theme="dark"] .app * { color: var(--dark-fg, #ffffff) !important; }
 :root[data-theme="dark"] .app ::placeholder { color: rgba(255, 255, 255, 0.72) !important; }
 /* Қара не сұр сызылған белгішелер түнде ақ болады (түсі SVG ішінде жазылған) */
 :root[data-theme="dark"] .app img[src*="111A26" i], :root[data-theme="dark"] .app img[src*="5F6B7A" i], :root[data-theme="dark"] .app img[src*="17212B" i],
@@ -72,3 +75,5 @@ button.topSearch:active { transform: scale(0.98); }
 :root[data-theme="dark"] .infoBox { background: rgba(92, 180, 244, 0.16) !important; }
 :root[data-theme="dark"] .infoWarn { background: rgba(255, 219, 79, 0.14) !important; }
 :root[data-theme="dark"] .infoOk { background: rgba(49, 209, 88, 0.16) !important; }
+/* Басқан сәтте бірден көрінетін жауап: өз :active ережесі жоқ мәтінді батырмалар (Патша, 2026-11-16) */
+.app button.t-sub2:not(:disabled):active, .app button.t-cap1:not(:disabled):active { opacity: 0.6; }

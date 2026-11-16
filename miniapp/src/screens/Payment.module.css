@@ -1,7 +1,7 @@
 .emoji { flex: none; width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 24px; transition: transform 0.3s ease, opacity 0.3s ease; }
 .leave { transform: scale(0.4); opacity: 0; }
 .plus { background: #f0f2f6; }
-.def { flex: none; padding: 3px 10px; border-radius: 6px; background: #e3f5e6; color: #1b6b2e; animation: pop 0.35s cubic-bezier(0.3, 1.5, 0.5, 1); }
+.def { flex: none; padding: 3px 10px; border-radius: 6px; background: #e3f5e6; color: #1b6b2e; animation: pop 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);  --dark-fg: var(--tone-ok); }
 @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
 .add { display: flex; align-items: center; gap: 12px; width: 100%; height: 60px; padding: 10px 16px; text-align: left; transition: background 0.15s ease; }
 .add:active { background: rgba(34, 154, 240, 0.08); }
