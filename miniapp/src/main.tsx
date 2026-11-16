@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
 import { useLocked, useOnboarded } from "./store";
@@ -61,6 +61,30 @@ initTelegram();
   if (m && to) window.location.hash = "#" + to + m[2];
 }
 
+// Кіру анимациялары тек бет қолданба ашылғаннан бері АЛҒАШ көрсетілгенде ойнайды (Патша, 2026-11-16: «құр шығын»).
+// Қайта келгенде .still класы анимациялардың ұзақтығын нөлге теңейді — бәрі бірден соңғы күйінде тұрады;
+// ауысу біткен соң (700 мс) класс алынады, анимация аты өзгермегендіктен ешнәрсе қайта ойнамайды, ал кейінгі әрекет анимациялары қалыпты.
+const seenPaths = new Set<string>();
+function FirstVisit({ children }: { children: ReactNode }) {
+  const path = useLocation().pathname;
+  const ref = useRef<HTMLDivElement>(null);
+  const [still] = useState(() => { const seen = seenPaths.has(path); seenPaths.add(path); return seen; });
+  useEffect(() => {
+    if (!still) return;
+    // Бет ауысуы (View Transition, ≤0.32 с) кезінде салу кідіреді — сондықтан ауысу біткен соң аламыз. Класты алған сәтте
+    // (экранға шықпай тұрып) кіру анимацияларын соңғы күйіне жеткіземіз, әйтпесе ұзақтығы қайта қосылып, ортасынан ойнайды.
+    const t = setTimeout(() => {
+      const el = ref.current; if (!el) return;
+      el.classList.remove("still");
+      for (const an of el.getAnimations?.({ subtree: true }) ?? []) {
+        if (an instanceof CSSAnimation && an.effect?.getTiming().iterations !== Infinity && an.playState !== "finished") an.finish();
+      }
+    }, 700);
+    return () => clearTimeout(t);
+  }, [still]);
+  return <div ref={ref} className={still ? "still" : undefined} style={{ display: "contents" }}>{children}</div>;
+}
+
 // Навигация бір рет қана орнатылады: бет ауысқанда қайта салынбайды, сондықтан
 // белсенді «тамшы» бір табтан екіншісіне сырғып өтеді.
 function Shell() {
@@ -72,7 +96,7 @@ function Shell() {
   if (!onboarded && !path.startsWith("/welcome")) return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
-      <Outlet />
+      <FirstVisit key={path}><Outlet /></FirstVisit>
       {tab && <NavBar active={tab} />}
       {tab && <OfflineBar />}
       {locked && <Pin lock />}
