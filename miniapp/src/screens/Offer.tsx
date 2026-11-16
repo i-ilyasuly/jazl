@@ -105,18 +105,23 @@ function OfferView({ id }: { id?: string }) {
       <TelegramChrome mode="back" onBack={back} />
       <div className={`${s.photo} ${ended ? s.photoEnded : ""}`} style={{ viewTransitionName: "offer-photo" }}>
         <Gallery photos={photos} fallback={heroBurger} />
-        <button className={`keepIcon ${s.round} ${s.share}`} aria-label="Бөлісу" onClick={shareIt}><img src={share} width={24} height={24} alt="" /></button>
-        <button className={`keepIcon ${s.round} ${s.fav}`} aria-label="Таңдаулы" onClick={() => { haptic.medium(); toggleFav(offer.id); }}>
-          <img src={fav ? heartFill : heartLine} width={26} height={26} alt="" key={String(fav)} className={`${s.pop} ${fav ? "" : s.heartLine}`} />
-        </button>
       </div>
 
       {loading ? <OfferSkeleton /> : (
       <div className={`${s.content} ${s.contentIn}`}>
         <section className={`${s.head} ${s.blk}`}>
-          <h1 className={s.h1}>{offer.title}</h1>
+          {/* Патша, 2026-11-16: бөлісу мен таңдаулы фото үстінен атаудың оң жағына, мөлдір фонсыз (Krisha үлгісі) */}
+          <div className={s.titleRow}>
+            <h1 className={s.h1}>{offer.title}</h1>
+            <div className={s.titleActs}>
+              <button className={s.act} aria-label="Бөлісу" onClick={shareIt}><span className={s.ico} style={{ maskImage: `url("${share}")`, WebkitMaskImage: `url("${share}")` }} /></button>
+              <button className={s.act} aria-label="Таңдаулы" onClick={() => { haptic.medium(); toggleFav(offer.id); }}>
+                {fav ? <img src={heartFill} width={26} height={26} alt="" key="on" className={s.pop} /> : <span key="off" className={`${s.ico} ${s.pop}`} style={{ maskImage: `url("${heartLine}")`, WebkitMaskImage: `url("${heartLine}")` }} />}
+              </button>
+            </div>
+          </div>
           <p className={s.venueLine}>
-            <button className={s.link} onClick={toVenue}>{offer.venue}</button>
+            <button className={`${s.link} ${s.venueLink}`} onClick={toVenue}>{offer.venue}<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
             <span className={s.muted}>{`·  ★ ${String(offer.rating).replace(".", ",")} (${offer.ratingCount})  ·  ${offer.distance}`}</span>
           </p>
           <div className={s.priceRow}>
@@ -129,20 +134,17 @@ function OfferView({ id }: { id?: string }) {
               <span className={`${s.badge} ${s.green}`}>{fmt(saving(offer))} үнем</span>
             </div>
           </div>
-        </section>
-
-        {base.sizes && (
-          <section className={`${s.sizes} ${s.blk}`}>
-            <h2 className={s.blockTitle}>Пакет көлемі</h2>
-            <div className={s.sizeRow}>
+          {base.sizes && (
+            <div className={`${s.sizeRow} ${s.sizesIn}`} role="radiogroup" aria-label="Пакет көлемі">
               {base.sizes.map((z, i) => (
-                <button key={z.units} className={`${s.size} ${size === i ? s.sizeOn : ""}`} onClick={() => { if (size !== i) { haptic.select(); setSize(i); } }}>
+                <button key={z.units} role="radio" aria-checked={size === i} className={`${s.size} ${size === i ? s.sizeOn : ""}`} onClick={() => { if (size !== i) { haptic.select(); setSize(i); } }}>
                   <b>{z.units} дана</b><small>{fmt(Math.round(z.price / z.units))} / дана</small>
                 </button>
               ))}
             </div>
-          </section>
-        )}
+          )}
+        </section>
+
 
         <section className={`${s.block} ${s.blk}`}>
         <h2 className={s.blockTitle}>Шарттары</h2>

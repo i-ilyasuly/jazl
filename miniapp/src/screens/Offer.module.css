@@ -149,3 +149,13 @@
 .inner { display: flex; flex-direction: column; margin: -4px -16px -20px; }
 :global(:root[data-theme="dark"]) .blk { background: var(--surface-card); }
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
+/* Атау жолы: оң жақта бөлісу мен таңдаулы (40×40, фонсыз, көк иконка — Krisha үлгісі) */
+.titleRow { display: flex; align-items: flex-start; gap: 8px; }
+.titleRow .h1 { flex: 1; min-width: 0; }
+.titleActs { flex: none; display: flex; gap: 4px; margin: -5px -8px 0 0; }
+.act { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.15s ease, transform 0.12s ease; }
+.act:active { background: rgba(34, 154, 240, 0.1); transform: scale(0.92); }
+.ico { display: block; width: 26px; height: 26px; background: var(--link); mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; }
+.venueLink { display: inline-flex; align-items: center; gap: 2px; }
+.venueLink svg { flex: none; margin-top: 1px; }
+.sizesIn { margin-top: 16px; }
