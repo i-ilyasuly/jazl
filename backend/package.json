@@ -1,0 +1,34 @@
+{
+  "name": "jazl-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Jazl+ API: мини апп пен мекеме бөлімінің бэкенді (Cloud Run). Түбірдегі бот кодынан бөлек.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.8",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.19",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
