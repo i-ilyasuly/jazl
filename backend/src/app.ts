@@ -7,6 +7,7 @@ import type { Db } from "./db/client.js";
 import { users } from "./db/schema.js";
 import { validateInitData } from "./auth/telegram.js";
 import { z } from "zod";
+import { catalogRoutes } from "./routes/catalog.js";
 
 type User = typeof users.$inferSelect;
 export type Env = { Variables: { user: User } };
@@ -14,16 +15,19 @@ export type Env = { Variables: { user: User } };
 export function createApp(cfg: Config, db: Db) {
   const app = new Hono<Env>();
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
-  app.use("/v1/*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type"], allowMethods: ["GET", "POST", "PATCH", "DELETE"], maxAge: 600 }));
+  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type"], allowMethods: ["GET", "POST", "PATCH", "DELETE"], maxAge: 600 }));
 
   app.get("/health", async (c) => {
     await db.execute(sql`select 1`);
     return c.json({ ok: true });
   });
 
+  // Ашық маршруттар (кірусіз): каталог
+  app.route("/v1/catalog", catalogRoutes(db));
+
   // Аутентификация: Authorization: tma <initData>. Пайдаланушы бірінші рет кірсе — жазылады, әйтпесе деректері жаңарады.
   app.use("/v1/*", async (c, next) => {
-    if (c.req.method === "OPTIONS") return next();
+    if (c.req.method === "OPTIONS" || c.req.path.startsWith("/v1/catalog")) return next();
     const h = c.req.header("Authorization") ?? "";
     const raw = h.startsWith("tma ") ? h.slice(4) : "";
     const r = validateInitData(raw, cfg.BOT_TOKEN, cfg.INIT_DATA_TTL);
