@@ -19,7 +19,10 @@ export function SystemStatus() {
     setHealth(null); setMe(null);
     const t0 = performance.now();
     api<{ ok: boolean }>("/health").then((r) => setHealth({ ok: r.ok, ms: Math.round(performance.now() - t0) })).catch(() => setHealth({ ok: false, ms: 0 }));
-    api<Me>("/v1/me").then((r) => setMe({ ok: true, name: r.user.firstName })).catch((e: { status?: number }) => setMe({ ok: false, why: e.status === 401 ? (inTelegram ? "қолтаңба өтпеді" : "Telegram сыртында ашылған") : "сервер жауап бермеді" }));
+    api<Me>("/v1/me").then((r) => setMe({ ok: true, name: r.user.firstName })).catch((e: { status?: number; body?: { reason?: string } }) => {
+      const why: Record<string, string> = { bad_hash: "қолтаңба өтпеді: басқа бот токені", expired: "кіру мерзімі өткен", missing: "Telegram сыртында ашылған", no_user: "пайдаланушы дерегі жоқ" };
+      setMe({ ok: false, why: e.status === 401 ? (why[e.body?.reason ?? ""] ?? (inTelegram ? "қолтаңба өтпеді" : "Telegram сыртында ашылған")) : "сервер жауап бермеді" });
+    });
     void loadCatalog().then(() => setCat({ ...catalogState }));
   };
   useEffect(check, []);
