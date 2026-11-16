@@ -1,4 +1,6 @@
 // Figma: «Сатып алу / Сәтті / Light» (13886:25101)
+import { kindPic } from "../ui/Emo";
+import type { OfferKind } from "../mocks/offers";
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { buyPack, getPack, offerOf, usePacks } from "../store";
@@ -13,7 +15,7 @@ import { Sticker } from "../ui/Sticker";
 import s from "./Success.module.css";
 
 interface ResultProps {
-  title: string; paid: string; cardTitle: string; cardSub: string;
+  title: string; paid: string; cardTitle: string; cardSub: string; kind?: OfferKind;
   total: number; used: number; counter: string; next: string;
   main: { text: string; onClick: () => void }; secondary: { text: string; onClick: () => void };
   onClose: () => void;
@@ -32,7 +34,7 @@ export function ResultScreen(p: ResultProps) {
       <p className={`t-sub2 ${s.paid}`}>{p.paid}</p>
       <div className={s.card}>
         <div className={s.head}>
-          <span className={s.icon}><img src={burger} width={32} height={32} alt="" /></span>
+          <span className={s.icon}><img src={kindPic[p.kind ?? "food"]} width={44} height={44} alt="" style={{ objectFit: "contain" }} /></span>
           <span className={s.headText}>
             <span className="t-headline">{p.cardTitle}</span>
             <span className={`t-sub2 ${s.muted}`}>{p.cardSub}</span>
@@ -66,7 +68,7 @@ export function Success() {
   return (
     <ResultScreen
       title="Пакет сатып алынды" paid={`Төлем қабылданды · ${fmt(offer.price)}`}
-      cardTitle={offer.title} cardSub={`${offer.venue} · ${offer.distance}`}
+      cardTitle={offer.title} cardSub={`${offer.venue} · ${offer.distance}`} kind={offer.kind}
       total={offer.units} used={0} counter={`${offer.units} / ${offer.units} · 30 күн`}
       next="Келесі қадам: мекемеде «Jazl бойынша» деп айт"
       main={{ text: "Пакеттерге өту", onClick: toPacks }} secondary={{ text: "Жабу", onClick: close }} onClose={close}
@@ -86,7 +88,7 @@ export function Paid() {
   return (
     <ResultScreen
       title="Төлем өтті" paid={`${fmt(Math.round(o.price / o.units))} • ${o.venue}`}
-      cardTitle={o.title} cardSub="Нұркен Әбдіров, 24"
+      cardTitle={o.title} cardSub="Нұркен Әбдіров, 24" kind={o.kind}
       total={pack.total} used={pack.total - pack.left} counter={`${pack.left} / ${pack.total} қалды`}
       next="Терминал төлемді растады, тамағыңды алуға болады"
       main={{ text: "Дайын", onClick: toPacks }} secondary={{ text: "Чекті көру", onClick: receipt }} onClose={toPacks}

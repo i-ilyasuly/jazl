@@ -1,6 +1,7 @@
 // Figma «20 · Тапсырыс»: «Тапсырыс беру» 13911:7999, «Филиал таңдау» 13911:8105, «Тапсырыс жіберілуде» 13914:8002;
 // «23»: «Тапсырыс: алу уақыты» 14043:12745. Пакет бұрын төленген — бұл жерде шот та, карта төлемі де жоқ,
 // тек пакеттен 1 бірлік шегеріледі. Шаштаразда бұл бет «Жазылу» болып ашылады (күн + уақыт).
+import { Emo } from "../ui/Emo";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useGo } from "../nav";
@@ -87,13 +88,13 @@ export function Order() {
   return (
     <SubPage title={hair ? "Жазылу" : "Тапсырыс"} variant="settings">
       <div className={`${s.pack} rise`} style={{ ["--i" as string]: 0 }}>
-        <span className={s.emoji}>{hair ? "✂️" : o.kind === "coffee" ? "☕" : "🍔"}</span>
+        <span className={s.emoji}><Emo kind={o.kind} size={40} /></span>
         <span className={s.packText}><b>{o.title}</b><small>Шегеріледі: 1 бірлік • Қалады: {pack.left - 1} / {pack.total}</small></span>
       </div>
 
       <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 1 }}>{hair ? "Қай салон" : "Қайда"}</h2>
       <button className={`${s.card} ${s.branch} rise`} style={{ ["--i" as string]: 1 }} onClick={() => { haptic.tap(); setPicking(true); }} disabled={list.length < 2}>
-        <span className={s.pin}>📍</span>
+        <span className={s.pin}><Emo e="📍" size={32} /></span>
         <span className={s.packText}><small>{o.venue} · филиал</small><b>{b?.address}</b></span>
         {list.length > 1 && <i className={s.chev} />}
       </button>

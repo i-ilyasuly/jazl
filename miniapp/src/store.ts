@@ -178,7 +178,7 @@ export const unitLabel = (p: Pack) => fmt(unitPrice(offerOf(p)));
 export interface Notice { id: string; title: string; sub: string; time: string; read: boolean; to?: string }
 export interface NoticePrefs { expiry: boolean; rating: boolean; offers: boolean; promo: boolean }
 let notices: Notice[] = [
-  { id: "n0", title: "🎁 Ерлан Серіков сыйлығыңды қабылдады!", sub: "Латте · 15 стақан енді оның Пакеттерінде", time: "13:42", read: false, to: "/profile/gift/g2" },
+  { id: "n0", title: "Ерлан Серіков сыйлығыңды қабылдады!", sub: "Латте · 15 стақан енді оның Пакеттерінде", time: "13:42", read: false, to: "/profile/gift/g2" },
   { id: "n1", title: "Тауық донерінің мерзімі 2 күнде бітеді", sub: "Қайта алсаң, қалған бірлік келесі айға көшеді", time: "13:20", read: false },
   { id: "n2", title: "Coffee Lab-та жаңа ұсыныс", sub: "Латте · 15 стақан, −14%", time: "Кеше", read: false },
 ];

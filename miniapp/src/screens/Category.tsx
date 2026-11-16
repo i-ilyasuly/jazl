@@ -1,5 +1,6 @@
 // Figma, «03 · Іздеу және санаттар»: «Санат беті / Кофе» 13886:16943, «Кофе (айналдырылған)» 13886:17139,
 // «Тағамдар» 13886:17339, «Шаш алу (бір мекеме)» 13886:17543
+import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { categoryOffers, discount, type Offer, type OfferKind } from "../mocks/offers";
@@ -70,7 +71,7 @@ function CategoryPage({ kind }: { kind: OfferKind }) {
         <div className={`${s.subs} rise`} style={{ ["--i" as string]: 2 }}>
           {c.subs.map(([e, t, key]) => (
             <button key={t} className={`${s.sub} ${sub === key ? s.subOn : ""}`} onClick={() => { haptic.select(); setSub(sub === key ? "" : key); }}>
-              <span className={s.subTile}><i>{e}</i></span><span className="t-sub2 w-600">{t}</span>
+              <span className={s.subTile}><Emo e={e} asItem size={52} /></span><span className="t-sub2 w-600">{t}</span>
             </button>
           ))}
         </div>

@@ -1,6 +1,7 @@
 // Figma «11 · Қайта алу және мерзімін ұзарту»: «Қайта алу / Бірліктер көшеді» 13886:31503,
 // «Мерзімі өткен» 13886:31655, «Баға өзгерді» 13886:31773, «Сәтті» 13886:31931, «Көшіру ережесі» 13918:8306.
 // Өлшемдер — UI kit шкаласы (17/22, 15/20, 13/16) және 4/8px тор (шет 16, жол 48/68, бұрыш 12/20).
+import { kindPic } from "../ui/Emo";
 import { useCallback, useMemo } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
@@ -37,7 +38,7 @@ export function Rebuy() {
       if (nid) go("/rebuy/done/" + nid, "fade", { replace: true, state: { paid: price } });
     });
   }, [pack, payOffer, price, flow, go]);
-  const main = useMemo(() => ({ text: `💳 Төлеу · ${fmt(price)}`, shine: true, onClick: pay }), [price, pay]);
+  const main = useMemo(() => ({ text: `Төлеу · ${fmt(price)}`, shine: true, onClick: pay }), [price, pay]);
   useBottomButtons(main, undefined, Boolean(pack) && !flow.sheetOpen);
   if (!pack || !o) return null;
 
@@ -65,7 +66,7 @@ export function Rebuy() {
         <section className={`${s.card} rise`} style={{ ["--i" as string]: 1 }}>
           <h2 className={`t-sub2 w-600 ${s.head}`}>Қазіргі пакет</h2>
           <div className={s.pack}>
-            <span className={s.thumb}><img src={o.kind === "hair" ? scissors : burger} width={36} height={36} alt="" /></span>
+            <span className={s.thumb}><img src={kindPic[o.kind]} width={40} height={40} alt="" style={{ objectFit: "contain" }} /></span>
             <span className={s.packText}><span className="t-text">{o.title}</span><span className={`t-cap1 ${s.muted}`}>{sub}</span></span>
           </div>
         </section>
@@ -126,7 +127,7 @@ export function RebuyDone() {
   return (
     <ResultScreen
       title="Пакет қайта алынды" paid={`Төлем қабылданды · ${fmt(paid)}`}
-      cardTitle={o.title} cardSub={`${o.venue} · ${o.distance}`}
+      cardTitle={o.title} cardSub={`${o.venue} · ${o.distance}`} kind={o.kind}
       total={pack.total} used={0} counter={`${pack.left} / ${pack.total} · 30 күн`}
       next={pack.carried ? "Қалған бірлік жаңа пакетке қосылды" : "Келесі қадам: мекемеде «Jazl бойынша» деп айт"}
       main={{ text: "Пакеттерге өту", onClick: toPacks }} secondary={{ text: "Жабу", onClick: close }} onClose={close}

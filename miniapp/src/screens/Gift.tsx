@@ -36,7 +36,7 @@ export function Gift() {
     cancelled: { sticker: "stop", title: "Сыйлық болдырылмады", chip: "Болдырылмады", chipCls: s.gray },
     // Figma «Жіберушіге хабарлама (бот)» 13886:34660 — бот хабарламасының мазмұны осында да көрінеді
     ok: g.dir === "sent"
-      ? { sticker: "party", title: "Сыйлық қабылданды", sub: `🎁 ${g.name} сыйлығыңды қабылдады!` }
+      ? { sticker: "party", title: "Сыйлық қабылданды", sub: `${g.name} сыйлығыңды қабылдады!` }
       : { sticker: "love", title: "Сыйлықты қабылдадың", sub: `${g.anon ? "Аноним" : g.name} сыйлады` },
   };
   const v = view[g.status] ?? view.wait;

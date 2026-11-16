@@ -1,4 +1,5 @@
 // Figma: «Үнем / Негізгі» (13886:36173)
+import { Emo } from "../ui/Emo";
 import { useEffect, useMemo, useState } from "react";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
@@ -46,7 +47,7 @@ export function Savings() {
       </div>
       <Group header="Қараша бойынша" i={2}>
         {loading ? <SkRows n={4} /> : rows.map(([t, sub, v]) => (
-          <Row key={t} title={t} sub={sub} left={<span className={s.circle}>{/шаш/i.test(t) ? "✂️" : /латте|кофе/i.test(t) ? "☕" : "🍔"}</span>} right={<span className={`t-text w-600 ${s.value}`}>{v}</span>} />
+          <Row key={t} title={t} sub={sub} left={<span className={s.circle}><Emo kind={/шаш/i.test(t) ? "hair" : /латте|кофе/i.test(t) ? "coffee" : "food"} size={30} /></span>} right={<span className={`t-text w-600 ${s.value}`}>{v}</span>} />
         ))}
       </Group>
       <p className={`t-cap1 ${s.note} rise`} style={{ ["--i" as string]: 3 }}>Үнем = бөлек баға мен пакет бағасының айырмасы × пайдаланылған бірлік саны.</p>

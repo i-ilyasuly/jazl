@@ -1,6 +1,8 @@
 // Figma: «Пакеттерім (жаңа навигация) / Light» (13905:8147); «09 · Пакеттерім»: «Алғашқы кіру (көрсеткіш)» 13886:28960,
 // «Бос күй» 13886:29133, «Тарих» 13886:29206. Жаңа бөліктердің өлшемі — UI kit шкаласы + 4/8px тор.
 // «12 · Бағалау»: «Пакеттерім жолағы» 13886:33115 (Белсенді табының басында), бағалау парағы — ui/RateSheet.
+import { kindPic } from "../ui/Emo";
+import { Emo } from "../ui/Emo";
 import { useEffect, useRef, useState } from "react";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
@@ -27,7 +29,7 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
   return (
     <article className={`${s.card} ${hint ? s.hinted : ""} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/pack/" + pack.id)}>
       <div className={s.info}>
-        <span className={s.thumb}><img src={icon[o.kind]} width={48} height={48} alt="" /></span>
+        <span className={s.thumb}><img src={kindPic[o.kind]} width={60} height={60} alt="" style={{ objectFit: "contain" }} /></span>
         <div className={s.text}>
           <p className="t-headline">{o.title}</p>
           <p className={`t-sub2 ${s.sub}`}>{o.venue} · {o.distance}</p>
@@ -143,7 +145,7 @@ export function Packs() {
                 </section>
               ), orders.length > 0 && bookings.length > 0 && <p key="oh" className={`t-sub2 w-600 ${s.header}`}>Тапсырыстар<span> · {orders.length}</span></p>, ...orders.map((o, i) => (
                 <button key={o.id} className={`${s.order} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/orders/" + o.id)}>
-                  <span className={s.oHead}><span className={s.oEmoji}>{o.emoji}</span><span className={s.oText}><b>{o.title}</b><small>№{o.no} • {o.venue} • {o.time}</small></span></span>
+                  <span className={s.oHead}><span className={s.oEmoji}><Emo e={o.emoji} size={40} /></span><span className={s.oText}><b>{o.title}</b><small>№{o.no} • {o.venue} • {o.time}</small></span></span>
                   <CopyCode code={o.code} className={s.oCode}><small>Кассирге айтатын код · басып көшір</small><b>{o.code}</b></CopyCode>
                 </button>))] : <p className={`t-sub2 rise ${s.empty}`}>Белсенді тапсырыс жоқ. Пакет бетінде «Тапсырыс беру» батырмасы бар.</p>)
           : tab === 2
@@ -151,7 +153,7 @@ export function Packs() {
                 <section className={`${s.acts} rise`}>
                   {acts.map((a) => (
                     <div key={a.id} className={s.act} role="button" tabIndex={0} onClick={() => { if (getPack(a.packId)) go("/pack/" + a.packId); }}>
-                      <span className={`${s.actIcon} ${a.action === "renew" ? s.actOff : ""}`}>{a.emoji}</span>
+                      <span className={`${s.actIcon} ${a.action === "renew" ? s.actOff : ""}`}><Emo e={a.emoji} size={28} /></span>
                       <span className={s.actText}><b>{a.title}</b><small>{a.sub}</small></span>
                       {a.action === "rated"
                         ? <span className={s.actStars}>★ {a.stars}</span>

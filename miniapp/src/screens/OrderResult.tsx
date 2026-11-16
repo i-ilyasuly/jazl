@@ -1,5 +1,6 @@
 // Figma «20 · Тапсырыс»: «Тапсырыс жіберілді» 13914:8066, «Тапсырыс беті» 13914:8187, «Тапсырыс мекемеге жетпеді» 13914:8166,
 // «Мекеме қабылдамайды» 13918:9091, «Бірлік жоқ» 13918:9112; «23»: «Мекеме жабық» 14043:12864.
+import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
@@ -26,7 +27,7 @@ function OrderCard({ id }: { id: string }) {
   return (
     <div className={s.card}>
       <div className={s.head}>
-        <span className={s.emoji}>{o.emoji}</span>
+        <span className={s.emoji}><Emo e={o.emoji} size={40} /></span>
         <span className={s.text}><b>{o.title}</b><small>{o.venue} • {o.branch}</small></span>
       </div>
       <div className={s.kv}><span>Уақыты</span><b>{o.time}</b></div>

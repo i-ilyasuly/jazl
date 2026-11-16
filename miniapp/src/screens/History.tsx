@@ -1,4 +1,5 @@
 // Figma: «Сатып алу тарихы / Тізім» (13886:36715)
+import { Emo } from "../ui/Emo";
 import { useMemo } from "react";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
@@ -18,13 +19,13 @@ export function History() {
       {/* Кассада QR арқылы пайдаланылған бірліктер — бөлек бетте (Figma «Қолдану тарихы» 13918:8337) */}
       <Group i={0}>
         <Row title="Қолдану тарихы" sub="Кассада пайдаланылған бірліктер" onClick={() => go("/profile/usage")}
-          left={<span className={s.emoji}>🧾</span>} right={<img src={chev} width={18} height={18} alt="" />} />
+          left={<span className={s.emoji}><Emo e="🧾" size={28} /></span>} right={<img src={chev} width={18} height={18} alt="" />} />
       </Group>
       {data.map((g, gi) => (
         <Group key={g.month} header={g.month} i={gi}>
           {loading ? <SkRows n={g.items.length} /> : g.items.map((it) => (
             <Row key={it.id} title={it.t} sub={it.sub} onClick={() => go("/profile/receipt/" + it.id)}
-              left={<span className={s.emoji}>{it.e}</span>}
+              left={<span className={s.emoji}><Emo e={it.e} size={28} /></span>}
               right={<span className={`t-text w-600 ${s.value} ${it.plus ? s.plus : ""}`}>{it.v}</span>} />
           ))}
         </Group>

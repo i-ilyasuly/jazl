@@ -8,7 +8,7 @@
 .pop { animation: pop 0.28s cubic-bezier(0.3, 1.6, 0.5, 1); }
 @keyframes pop { from { transform: scale(0.6); } to { transform: scale(1); } }
 .thumb { position: absolute; left: 16px; top: 72px; width: 176px; height: 116px; border-radius: 12px; background: var(--thumb-bg); overflow: hidden; }
-.thumbIcon { position: absolute; left: 64px; top: 24px; }
+.thumbIcon { position: absolute; left: 40px; top: 10px; object-fit: contain; }
 .photo { width: 100%; height: 100%; object-fit: cover; }
 .buyers { position: absolute; left: 8px; top: 80px; height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.28); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: flex; align-items: center; gap: 4px; color: #fff; font-weight: 600; }
 .buyers img { filter: brightness(0) invert(1); }

@@ -3,6 +3,7 @@
 // Демо: ?scan=multi (бірнеше пакет) немесе ?scan=<ScanState күйі> (fail, pending, limit, amount, notqr, ...).
 // Telegram ішінде нативті QR сканері ашылады (showScanQrPopup, Bot API 6.4);
 // браузерде Figma-дағы сканер экраны көрсетіліп, QR оқылғаны еліктеледі.
+import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
@@ -83,7 +84,7 @@ export function Scan() {
   }, [found, detect, close, toState, nativeClosed]);
 
   const pay = useMemo(() => ({
-    text: pack ? `💳 Төлеу · ${unitLabel(pack)}` : "Төлеу",
+    text: pack ? `Төлеу · ${unitLabel(pack)}` : "Төлеу",
     onClick: () => {
       if (!pack || busy) return;
       haptic.medium();
@@ -160,7 +161,7 @@ export function Scan() {
             <div className={s.opts}>
               {opts.map((x) => (
                 <button key={x.id} className={`${s.pack} ${chosen?.id === x.id ? s.packOn : ""}`} disabled={!x.ok} onClick={() => { if (chosen?.id !== x.id) { haptic.select(); setSel(x.id); } }}>
-                  <span className={s.emoji}>{x.emoji}</span>
+                  <span className={s.emoji}><Emo e={x.emoji} size={28} /></span>
                   <span className={s.packText}><span className={s.packTitle}>{x.title}</span><span className={s.packSub}>{x.sub}</span></span>
                   <span className={s.packPrice}>{fmt(x.price)}</span>
                   {chosen?.id === x.id && <span className={s.radio}><span /></span>}

@@ -1,4 +1,5 @@
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
+import { kindPic } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useMock } from "../mocks/useMock";
@@ -31,7 +32,7 @@ function Gallery({ photos, fallback, onIndex }: { photos: string[]; fallback: st
       <div className={s.gallery} onScroll={(e) => { const el = e.currentTarget; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== at) { setAt(i); haptic.select(); onIndex?.(i); } }}>
         {photos.map((src, i) => (
           <div key={src} className={s.slide}>
-            {bad[i] ? <img src={fallback} className={s.heroIcon} width={120} height={120} alt="" /> : <img src={src} className={s.photoImg} alt="" loading={i ? "lazy" : "eager"} onError={() => setBad((b) => ({ ...b, [i]: true }))} />}
+            {bad[i] ? <img src={fallback} className={s.heroIcon} width={180} height={180} alt="" /> : <img src={src} className={s.photoImg} alt="" loading={i ? "lazy" : "eager"} onError={() => setBad((b) => ({ ...b, [i]: true }))} />}
           </div>
         ))}
       </div>
@@ -79,7 +80,7 @@ function OfferView({ id }: { id?: string }) {
   // Сатып алынған пакетте: «Тағы алу» → нативті таңдау: өзіме қайта алу немесе досыма сыйлау
   const again = useMemo(() => ({ text: "Тағы алу", onClick: async () => {
     haptic.tap();
-    const id = await nativePick("Тағы алу", "Пакетті өзіңе қайта аласың ба, әлде досыңа сыйлайсың ба?", [{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "🎁 Сыйлау" }, { id: "", text: "Бас тарту" }], "ask");
+    const id = await nativePick("Тағы алу", "Пакетті өзіңе қайта аласың ба, әлде досыңа сыйлайсың ба?", [{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "Сыйлау" }, { id: "", text: "Бас тарту" }], "ask");
     if (id === "buy") { haptic.medium(); setBuying(true); }
     else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); }
     else if (id === "ask") setChoose(true);
@@ -104,7 +105,7 @@ function OfferView({ id }: { id?: string }) {
       <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`} />
       <TelegramChrome mode="back" onBack={back} />
       <div className={`${s.photo} ${ended ? s.photoEnded : ""}`} style={{ viewTransitionName: "offer-photo" }}>
-        <Gallery photos={photos} fallback={heroBurger} />
+        <Gallery photos={photos} fallback={kindPic[offer.kind]} />
       </div>
 
       {loading ? <OfferSkeleton /> : (
@@ -216,7 +217,7 @@ function OfferView({ id }: { id?: string }) {
       </div>
       )}
 
-      {choose && <ActionSheet title="Тағы алу" actions={[{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "🎁 Сыйлау" }]} onPick={(id) => { setChoose(false); if (id === "buy") { haptic.medium(); setBuying(true); } else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); } }} onClose={() => setChoose(false)} />}
+      {choose && <ActionSheet title="Тағы алу" actions={[{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "Сыйлау" }]} onPick={(id) => { setChoose(false); if (id === "buy") { haptic.medium(); setBuying(true); } else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); } }} onClose={() => setChoose(false)} />}
       {using && pack && <UseSheet pack={pack} onClose={() => setUsing(false)} />}
       {buying && <BuySheet offer={offer} onClose={closeSheet} onPaid={paid} start={startStep} />}
       {sheet === "how" && <HowSheet onClose={() => setSheet(null)} />}

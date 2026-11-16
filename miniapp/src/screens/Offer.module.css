@@ -7,7 +7,7 @@
 .gallery::-webkit-scrollbar { display: none; }
 .slide { position: relative; flex: none; width: 100%; height: 100%; scroll-snap-align: center; scroll-snap-stop: always; }
 .counter { position: absolute; right: 16px; top: calc(var(--bar-c) + 28px); height: 24px; padding: 2px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.45); color: #fff; font-size: 13px; line-height: 16px; font-weight: 600; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); pointer-events: none; }
-.heroIcon { position: absolute; left: 146px; top: 110px; }
+.heroIcon { position: absolute; left: 116px; top: 72px; object-fit: contain; }
 .dots { position: absolute; left: 0; right: 0; bottom: 32px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
 .dots span { width: 7px; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.6); box-shadow: 0 0 4px rgba(0, 0, 0, 0.2); transition: width 0.25s ease, background 0.25s ease; }
 .dots .dotOn { width: 18px; background: #fff; }

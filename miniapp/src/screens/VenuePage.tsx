@@ -2,10 +2,12 @@
 // «Пікірлер» 13886:26155, «Ұсыныс жоқ» 13886:27031, «Жаңа мекеме: пікірлер» 13886:26881,
 // «Бағыт: 2ГИС» 13886:27429, «Қоңырау: растау» 13886:27703, «Бөлісу: Telegram чаттары» 13886:27961 (нативті чат таңдау),
 // «Хабарла: рұқсат диалогы» 13886:28289 (нативті requestWriteAccess), «Хабарла: қосылды» 13886:28547
+import { kindPic } from "../ui/Emo";
+import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { offersOfVenue } from "../mocks/offers";
-import { findVenue, kindEmoji, kindLabel, venues } from "../mocks/venues";
+import { findVenue, kindLabel, venues } from "../mocks/venues";
 import { coverPhoto } from "../mocks/photos";
 import { useGo } from "../nav";
 import { appLink, branches, toggleVenueSub, useVenueSubs } from "../store";
@@ -69,12 +71,12 @@ function VenueView({ id }: { id?: string }) {
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
       <div className={s.cover}>
-        {coverBroken ? <img src={coverIcon[v.kind]} width={110} height={110} className={s.coverIcon} alt="" /> : <img src={coverPhoto[v.kind]} className={s.coverPhoto} alt="" onError={() => setCoverBroken(true)} />}
+        {coverBroken ? <img src={kindPic[v.kind]} width={160} height={160} className={s.coverIcon} alt="" style={{ objectFit: "contain" }} /> : <img src={coverPhoto[v.kind]} className={s.coverPhoto} alt="" onError={() => setCoverBroken(true)} />}
         <button className={`t-cap1 w-600 ${s.photos}`} onClick={() => pick(2)}>4 сурет</button>
       </div>
       <header className={s.head}>
         <div className={s.id}>
-          <span className={s.avatar}>{kindEmoji[v.kind]}</span>
+          <span className={s.avatar}><Emo kind={v.kind} size={48} /></span>
           <div><h1 className={s.name}>{v.name}</h1><p className={`t-sub2 ${s.gray}`} style={{ whiteSpace: "pre" }}>{kindLabel[v.kind]}  •  Қарағанды</p></div>
         </div>
         {status === "new"
@@ -118,8 +120,8 @@ function VenueView({ id }: { id?: string }) {
             <h2 className={`t-headline ${s.cardTitle}`}>Мекенжайы</h2>
             <p className={s.addr}>Қарағанды, {v.address}</p>
             {branches(v.name, v.address).length > 1 && <button className={`t-sub2 w-600 ${s.branchesBtn}`} onClick={() => { haptic.tap(); setSheet("branches"); }}>Барлық филиалдар · {branches(v.name, v.address).length}</button>}
-            <button className={s.miniMap} onClick={() => go("/map")} aria-label="Картада"><span className={s.miniPin}>{kindEmoji[v.kind]}</span></button>
-            <button className={`t-sub2 w-600 ${s.routeBtn}`} onClick={() => { haptic.tap(); setSheet("route"); }}>🧭 Бағыт</button>
+            <button className={s.miniMap} onClick={() => go("/map")} aria-label="Картада"><span className={s.miniPin}><Emo kind={v.kind} size={28} /></span></button>
+            <button className={`t-sub2 w-600 ${s.routeBtn}`} onClick={() => { haptic.tap(); setSheet("route"); }}><Emo e="🧭" size={20} />Бағыт</button>
           </section>
         </>}
         {tab === 2 && <section className={s.card}>
