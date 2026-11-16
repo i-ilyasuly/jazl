@@ -1,6 +1,7 @@
 // Figma «13 · Сыйлау / Сыйлық сілтемесі»: «Қабылдау» 13886:34238, «Аноним жіберуші» 13886:34312, «Қабылданды» 13886:34392,
 // «Мерзімі өтті» 13886:34508, «Бұрын қабылданған» 13886:34546, «Болдырылмады» 13886:34584, «Өз сыйлығың» 13886:34622.
 // Демо: ?state=anon | expired | taken | cancelled | own. Telegram-да сілтеме startapp=gift_<id> арқылы келеді (main.tsx).
+import { Emo } from "../ui/Emo";
 import { useCallback, useMemo } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { findOffer } from "../mocks/offers";
@@ -62,10 +63,10 @@ export function GiftOpen() {
             <h1 className="t-title2 w-700">Саған сыйлық!</h1>
             <p className={`t-sub2 ${s.muted}`}>{anon ? "Жіберуші өз атын жасырды" : `${g.name} сыйлады`}</p>
           </div>
-          {g.msg && <div className={`${s.quote} rise`}><p className="t-sub2">{g.msg}</p><i aria-hidden>”</i></div>}
+          {g.msg && <div className={`${s.quote} infoBox rise`}><p className="t-sub2">{g.msg}</p><i aria-hidden>”</i></div>}
           <section className={`${s.card} rise`} style={{ ["--i" as string]: 1 }}>
             <div className={s.row}>
-              <span className={s.emoji}>{g.emoji}</span>
+              <span className={s.emoji}><Emo e={g.emoji} size={28} /></span>
               <span className={s.text}><span className="t-text w-600">{o.title}</span><span className={`t-sub2 ${s.muted}`}>{o.venue} • 30 күн</span></span>
             </div>
             {anon && <div className={s.kv}><span className={s.muted}>Жіберуші</span><span className="w-600">Аноним</span></div>}
@@ -93,7 +94,7 @@ export function GiftDone() {
   return (
     <ResultScreen
       title="Сыйлық қабылданды" paid={from ? `${from} сыйлады` : "Сыйлық сенікі"}
-      cardTitle={o.title} cardSub={`${o.venue} · ${o.distance}`}
+      cardTitle={o.title} cardSub={`${o.venue} · ${o.distance}`} kind={o.kind}
       total={pack.total} used={0} counter={`${pack.left} / ${pack.total} · 30 күн`}
       next="Сыйлық Пакеттерімде көрінеді"
       main={{ text: "Пакеттерге өту", onClick: toPacks }} secondary={{ text: "Жабу", onClick: close }} onClose={close}

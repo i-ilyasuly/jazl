@@ -59,7 +59,7 @@ export function Complaint() {
       <label className={`${rp.area} ${s.area} rise`} style={{ ["--i" as string]: 2 }}>
         <textarea value={text} rows={1} maxLength={300} placeholder="Не болғанын қысқаша жаз" onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }} />
       </label>
-      <p className={`t-sub2 ${b.note} rise`} style={{ ["--i" as string]: 3 }}>Мекеме 24 сағат ішінде жауап береді. Қате расталса, дана пакетке қайтарылады.<i>”</i></p>
+      <p className={`t-sub2 ${b.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 3 }}>Мекеме 24 сағат ішінде жауап береді. Қате расталса, дана пакетке қайтарылады.<i>”</i></p>
       <div style={{ height: 70 }} />
       <Bar left={left} main={main} />
     </SubPage>
@@ -114,7 +114,7 @@ export function CodeEntry() {
         ? <p className={`t-sub2 ${s.err}`} role="alert">Код қате немесе мерзімі өтті. Кассирден жаңа код сұра.</p>
         : <>
             <p className={`t-sub2 ${s.hint} rise`} style={{ ["--i" as string]: 2 }}>Код QR-дың астында жазылған және 2 минут жарамды.</p>
-            <p className={`t-sub2 ${b.note} rise`} style={{ ["--i" as string]: 3 }}>Қолмен енгізу де төлемді дәл сол пакеттен алып, кассаға жібереді.<i>”</i></p>
+            <p className={`t-sub2 ${b.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 3 }}>Қолмен енгізу де төлемді дәл сол пакеттен алып, кассаға жібереді.<i>”</i></p>
           </>}
       <Bar left={left} main={main} />
     </SubPage>

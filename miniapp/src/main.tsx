@@ -36,6 +36,7 @@ import { AppError } from "./screens/AppError";
 import { CodeEntry, Complaint, ComplaintDone } from "./screens/Extra";
 import { BookConfirm, BookDone, BookingView, BookMissed, BookMove, BookTime } from "./screens/Booking";
 import { OfflineBar } from "./ui/OfflineBar";
+import { Toast } from "./ui/Toast";
 import { About, DeleteData, Faq } from "./screens/Help";
 import { Terms } from "./screens/Terms";
 import { VenueApply, VenueDone } from "./screens/VenueApply";
@@ -75,6 +76,7 @@ function Shell() {
       {tab && <NavBar active={tab} />}
       {tab && <OfflineBar />}
       {locked && <Pin lock />}
+      <Toast />
       <ScrollRestoration />
     </div>
   );

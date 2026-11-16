@@ -12,7 +12,7 @@
 .hint { position: absolute; left: 36px; top: 372px; width: 340px; text-align: center; color: #5f6b7a; transition: color 0.15s ease; }
 .err { color: #d8434b; }
 .keys { position: absolute; left: 20px; top: 532px; width: 372px; display: grid; grid-template-columns: repeat(3, 116px); gap: 12px; }
-.key { width: 116px; height: 56px; border-radius: 16px; background: #f4f4f7; font-size: 28px; line-height: 34px; color: #000; overflow: hidden; transition: transform 0.1s ease, background 0.1s ease; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.key { width: 116px; height: 56px; border-radius: 12px; background: #f4f4f7; font-size: 28px; line-height: 34px; color: #000; overflow: hidden; transition: transform 0.1s ease, background 0.1s ease; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .key:active { transform: scale(0.94); background: #e6e7ec; }
 .key img { display: block; }
 .off img { opacity: 0.35; }

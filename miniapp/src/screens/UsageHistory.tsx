@@ -1,5 +1,6 @@
 // Figma «15 · Профиль»: «Қолдану тарихы» 13918:8337, «күтілуде» 13941:8134, «расталды» 13941:8196, «қайтарылды» 13941:8260.
 // Демо: ?use=pending | ok | fail — бірінші жолдың күйі (банк растауын күту, расталды, өтпеді → бірлік қайтарылды).
+import { Emo } from "../ui/Emo";
 import { useEffect, useState } from "react";
 import { usage } from "../mocks/history";
 import { demoEmpty, useMock } from "../mocks/useMock";
@@ -34,7 +35,7 @@ export function UsageHistory() {
             const right = first === "pending" ? <span className={`t-cap1 w-600 ${s.pending}`}>Күтілуде</span>
               : first === "fail" ? <span className={`t-cap1 w-600 ${s.failed}`}>Өтпеді</span>
               : <span className={`t-text w-600 ${s.value}`}>{it.v}</span>;
-            return <Row key={it.id} title={it.t} sub={sub} right={right} left={<span className={s.emoji}>{it.e}</span>}
+            return <Row key={it.id} title={it.t} sub={sub} right={right} left={<span className={s.emoji}><Emo e={it.e} size={28} /></span>}
               onClick={it.packId && first !== "pending" && first !== "fail" ? () => go("/receipt/use/" + it.packId) : undefined} />;
           })}
         </Group>

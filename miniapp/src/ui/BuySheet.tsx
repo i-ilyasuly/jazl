@@ -1,6 +1,7 @@
 // Figma «07 · Сатып алу және төлем»: «Сатып алу парағы» 13886:23425, «Төлем тәсілі / Тізім» 13886:23847,
 // «Kaspi Pay нөмірі» 13886:24239, «Kaspi растауын күту» 13886:24623, «Баға өзгерді» 13940:8187.
 // Бір парақтың ішінде қадамдар ауысады; төменгі батырмалар — Telegram-ның нативті MainButton/SecondaryButton.
+import { Emo, kindPic } from "./Emo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, saving, type Offer } from "../mocks/offers";
 import { useGo } from "../nav";
@@ -103,7 +104,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
     if (step === "method") return { text: "Дайын", onClick: () => { haptic.medium(); setDefaultMethod(method); if (start === "method") close(); else setStep("sum"); } };
     if (step === "kaspi") return { text: "Шот жіберу", onClick: sendBill };
     if (step === "wait") return { text: "Kaspi.kz ашу", onClick: () => { haptic.medium(); openExternal("https://kaspi.kz/"); } };
-    if (step === "price") return { text: `💳 Төлеу · ${fmt(newPrice)}`, shine: true, onClick: () => { haptic.medium(); if (m?.id === "kaspi") startWait(); else finish(); } };
+    if (step === "price") return { text: `Төлеу · ${fmt(newPrice)}`, shine: true, onClick: () => { haptic.medium(); if (m?.id === "kaspi") startWait(); else finish(); } };
     return { text: `Төлеу · ${fmt(offer.price)}`, shine: true, onClick: pay };
   }, [step, method, phone, keep, agree, busy, m?.id, saved, offer.price, newPrice, start, close]); // eslint-disable-line react-hooks/exhaustive-deps
   const second: Btn | undefined = useMemo(() => (step === "wait" || step === "price" ? { text: "Бас тарту", position: "left", onClick: close } : undefined), [step, close]);
@@ -118,7 +119,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
         {step === "sum" && <>
           <h2 className={s.title}>Төлем</h2>
           <div className={s.item}>
-            <span className={s.icon}><img src={burger} width={30} height={30} alt="" /></span>
+            <span className={s.icon}><img src={kindPic[offer.kind]} width={44} height={44} alt="" style={{ objectFit: "contain" }} /></span>
             <span className={s.itemText}>
               <span className={s.itemTitle}>{offer.title}</span>
               <span className={s.itemSub}>{`${offer.venue}  •  30 күн`}</span>
@@ -144,7 +145,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
           <div className={s.list}>
             {methods.map((x) => (
               <button key={x.id} className={`${s.opt} ${method === x.id ? s.optOn : ""}`} onClick={() => { if (method !== x.id) { haptic.select(); setMethod(x.id); } }}>
-                <span className={s.optIcon}>{x.emoji}</span>
+                <span className={s.optIcon}><Emo e={x.emoji} size={30} /></span>
                 <span className={s.itemText}><span className={s.itemTitle}>{x.title}</span><span className={s.itemSub}>{x.card ? `Қосылған карта · ${x.sub.replace(/.*(\d\d\/\d\d).*/, "$1")}` : x.sub}</span></span>
                 <span className={`${s.radio} ${method === x.id ? s.radioOn : ""}`} />
               </button>
@@ -157,7 +158,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
         </>}
 
         {step === "kaspi" && <>
-          <div className={s.kaspiHead}><span className={s.optIcon}>🏦</span><h2 className={s.title}>Kaspi Pay</h2></div>
+          <div className={s.kaspiHead}><span className={s.optIcon}><Emo e="🏦" size={30} /></span><h2 className={s.title}>Kaspi Pay</h2></div>
           <p className={s.lead}>Шот жіберілетін, Kaspi.kz-ке тіркелген нөмірді көрсет</p>
           <label className={s.field}>
             <span className={s.fieldLabel}>Kaspi.kz нөмірі</span>
@@ -188,7 +189,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
           <h2 className={s.title}>Баға өзгерді</h2>
           <div className={s.row}><span className={s.muted}>Бұрынғы баға</span><span className="w-600">{fmt(offer.price)}</span></div>
           <div className={s.row}><span className={s.muted}>Жаңа баға</span><span className={s.method}><span className={s.up}>▲ {Math.round((newPrice / offer.price - 1) * 100)}%</span><span className="w-600">{fmt(newPrice)}</span></span></div>
-          <p className={s.warn}>Мекеме бағаны жаңартты. Төлемге дейін тексеріп ал.<i>”</i></p>
+          <p className={`${s.warn} infoBox infoWarn`}>Мекеме бағаны жаңартты. Төлемге дейін тексеріп ал.<i>”</i></p>
         </>}
 
         {!inTelegram && (

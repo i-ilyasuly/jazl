@@ -24,7 +24,7 @@ button.row:active { background: rgba(34, 154, 240, 0.08); }
 .green { background: var(--hl-green-bg); color: var(--hl-green-text); }
 
 .bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 8px 10px calc(8px + var(--safe-b, 0px)); background: #fff; display: flex; gap: 8px; }
-.btn { flex: 1; height: 50px; border-radius: 12px; background: var(--button); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.12s ease; }
+.btn { flex: 1; height: 50px; border-radius: 8px; background: var(--button); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.12s ease; }
 .btn:active { opacity: 0.8; }
 .btn2 { background: var(--chip-tint); color: var(--link); }
 .shine { position: relative; overflow: hidden; }

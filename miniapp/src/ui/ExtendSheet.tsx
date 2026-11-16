@@ -21,7 +21,7 @@ export function ExtendSheet({ pack, onClose, onDone }: { pack: Pack; onClose: ()
   const finish = useMemo(() => () => { const u = extendPack(pack.id, pick.days, pick.price); if (u) { haptic.success(); onDone(u); } }, [pack.id, pick, onDone]);
   const main = useMemo(() => pick.price === 0
     ? { text: "Тегін ұзарту", onClick: () => { haptic.medium(); finish(); } }
-    : { text: `💳 Төлеу · ${fmt(pick.price)}`, shine: true, onClick: () => flow.pay({ ...offerOf(pack), title: `Мерзімін ұзарту · +${pick.days} күн`, price: pick.price }, finish) },
+    : { text: `Төлеу · ${fmt(pick.price)}`, shine: true, onClick: () => flow.pay({ ...offerOf(pack), title: `Мерзімін ұзарту · +${pick.days} күн`, price: pick.price }, finish) },
   [pick, finish, flow, pack]);
   useBottomButtons(main, undefined, !flow.sheetOpen);
 

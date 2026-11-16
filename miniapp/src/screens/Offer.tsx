@@ -1,4 +1,5 @@
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
+import { kindPic } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useMock } from "../mocks/useMock";
@@ -31,7 +32,7 @@ function Gallery({ photos, fallback, onIndex }: { photos: string[]; fallback: st
       <div className={s.gallery} onScroll={(e) => { const el = e.currentTarget; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== at) { setAt(i); haptic.select(); onIndex?.(i); } }}>
         {photos.map((src, i) => (
           <div key={src} className={s.slide}>
-            {bad[i] ? <img src={fallback} className={s.heroIcon} width={120} height={120} alt="" /> : <img src={src} className={s.photoImg} alt="" loading={i ? "lazy" : "eager"} onError={() => setBad((b) => ({ ...b, [i]: true }))} />}
+            {bad[i] ? <img src={fallback} className={s.heroIcon} width={180} height={180} alt="" /> : <img src={src} className={s.photoImg} alt="" loading={i ? "lazy" : "eager"} onError={() => setBad((b) => ({ ...b, [i]: true }))} />}
           </div>
         ))}
       </div>
@@ -79,7 +80,7 @@ function OfferView({ id }: { id?: string }) {
   // Сатып алынған пакетте: «Тағы алу» → нативті таңдау: өзіме қайта алу немесе досыма сыйлау
   const again = useMemo(() => ({ text: "Тағы алу", onClick: async () => {
     haptic.tap();
-    const id = await nativePick("Тағы алу", "Пакетті өзіңе қайта аласың ба, әлде досыңа сыйлайсың ба?", [{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "🎁 Сыйлау" }, { id: "", text: "Бас тарту" }], "ask");
+    const id = await nativePick("Тағы алу", "Пакетті өзіңе қайта аласың ба, әлде досыңа сыйлайсың ба?", [{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "Сыйлау" }, { id: "", text: "Бас тарту" }], "ask");
     if (id === "buy") { haptic.medium(); setBuying(true); }
     else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); }
     else if (id === "ask") setChoose(true);
@@ -104,19 +105,24 @@ function OfferView({ id }: { id?: string }) {
       <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`} />
       <TelegramChrome mode="back" onBack={back} />
       <div className={`${s.photo} ${ended ? s.photoEnded : ""}`} style={{ viewTransitionName: "offer-photo" }}>
-        <Gallery photos={photos} fallback={heroBurger} />
-        <button className={`keepIcon ${s.round} ${s.share}`} aria-label="Бөлісу" onClick={shareIt}><img src={share} width={24} height={24} alt="" /></button>
-        <button className={`keepIcon ${s.round} ${s.fav}`} aria-label="Таңдаулы" onClick={() => { haptic.medium(); toggleFav(offer.id); }}>
-          <img src={fav ? heartFill : heartLine} width={26} height={26} alt="" key={String(fav)} className={`${s.pop} ${fav ? "" : s.heartLine}`} />
-        </button>
+        <Gallery photos={photos} fallback={kindPic[offer.kind]} />
       </div>
 
       {loading ? <OfferSkeleton /> : (
       <div className={`${s.content} ${s.contentIn}`}>
         <section className={`${s.head} ${s.blk}`}>
-          <h1 className={s.h1}>{offer.title}</h1>
+          {/* Патша, 2026-11-16: бөлісу мен таңдаулы фото үстінен атаудың оң жағына, мөлдір фонсыз (Krisha үлгісі) */}
+          <div className={s.titleRow}>
+            <h1 className={s.h1}>{offer.title}</h1>
+            <div className={s.titleActs}>
+              <button className={s.act} aria-label="Бөлісу" onClick={shareIt}><span className={s.ico} style={{ maskImage: `url("${share}")`, WebkitMaskImage: `url("${share}")` }} /></button>
+              <button className={s.act} aria-label="Таңдаулы" onClick={() => { haptic.medium(); toggleFav(offer.id); }}>
+                {fav ? <img src={heartFill} width={26} height={26} alt="" key="on" className={s.pop} /> : <span key="off" className={`${s.ico} ${s.pop}`} style={{ maskImage: `url("${heartLine}")`, WebkitMaskImage: `url("${heartLine}")` }} />}
+              </button>
+            </div>
+          </div>
           <p className={s.venueLine}>
-            <button className={s.link} onClick={toVenue}>{offer.venue}</button>
+            <button className={`${s.link} ${s.venueLink}`} onClick={toVenue}>{offer.venue}<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
             <span className={s.muted}>{`·  ★ ${String(offer.rating).replace(".", ",")} (${offer.ratingCount})  ·  ${offer.distance}`}</span>
           </p>
           <div className={s.priceRow}>
@@ -129,20 +135,17 @@ function OfferView({ id }: { id?: string }) {
               <span className={`${s.badge} ${s.green}`}>{fmt(saving(offer))} үнем</span>
             </div>
           </div>
-        </section>
-
-        {base.sizes && (
-          <section className={`${s.sizes} ${s.blk}`}>
-            <h2 className={s.blockTitle}>Пакет көлемі</h2>
-            <div className={s.sizeRow}>
+          {base.sizes && (
+            <div className={`${s.sizeRow} ${s.sizesIn}`} role="radiogroup" aria-label="Пакет көлемі">
               {base.sizes.map((z, i) => (
-                <button key={z.units} className={`${s.size} ${size === i ? s.sizeOn : ""}`} onClick={() => { if (size !== i) { haptic.select(); setSize(i); } }}>
+                <button key={z.units} role="radio" aria-checked={size === i} className={`${s.size} ${size === i ? s.sizeOn : ""}`} onClick={() => { if (size !== i) { haptic.select(); setSize(i); } }}>
                   <b>{z.units} дана</b><small>{fmt(Math.round(z.price / z.units))} / дана</small>
                 </button>
               ))}
             </div>
-          </section>
-        )}
+          )}
+        </section>
+
 
         <section className={`${s.block} ${s.blk}`}>
         <h2 className={s.blockTitle}>Шарттары</h2>
@@ -162,13 +165,12 @@ function OfferView({ id }: { id?: string }) {
 
         <section className={`${s.block} ${s.blk}`} style={{ position: "relative" }}>
           <h2 className={s.blockTitle}>Сипаттама</h2>
-          <button className={`${s.quote} ${open ? s.quoteOpen : ""}`} onClick={() => { haptic.tap(); setOpen(!open); }}>
+          <button className={`${s.quote} infoBox ${open ? s.quoteOpen : ""}`} onClick={() => { haptic.tap(); setOpen(!open); }}>
             <span className={s.quoteBar} />
             <span className={s.quoteText}><Segs list={d.about} /></span>
             {!open && <span className={s.fade} />}
             <img src={expand} className={s.expand} width={22} height={22} alt="" />
           </button>
-          <span className={s.quoteMark} aria-hidden>”</span>
         </section>
 
         <section className={`${s.blk} ${s.rules}`}>
@@ -215,7 +217,7 @@ function OfferView({ id }: { id?: string }) {
       </div>
       )}
 
-      {choose && <ActionSheet title="Тағы алу" actions={[{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "🎁 Сыйлау" }]} onPick={(id) => { setChoose(false); if (id === "buy") { haptic.medium(); setBuying(true); } else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); } }} onClose={() => setChoose(false)} />}
+      {choose && <ActionSheet title="Тағы алу" actions={[{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "Сыйлау" }]} onPick={(id) => { setChoose(false); if (id === "buy") { haptic.medium(); setBuying(true); } else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); } }} onClose={() => setChoose(false)} />}
       {using && pack && <UseSheet pack={pack} onClose={() => setUsing(false)} />}
       {buying && <BuySheet offer={offer} onClose={closeSheet} onPaid={paid} start={startStep} />}
       {sheet === "how" && <HowSheet onClose={() => setSheet(null)} />}

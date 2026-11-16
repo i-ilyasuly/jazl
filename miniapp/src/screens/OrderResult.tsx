@@ -1,8 +1,10 @@
 // Figma «20 · Тапсырыс»: «Тапсырыс жіберілді» 13914:8066, «Тапсырыс беті» 13914:8187, «Тапсырыс мекемеге жетпеді» 13914:8166,
 // «Мекеме қабылдамайды» 13918:9091, «Бірлік жоқ» 13918:9112; «23»: «Мекеме жабық» 14043:12864.
+import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
+import { CopyCode } from "../ui/CopyCode";
 import { failOrder, getOrder, getPack, offerOf, useOrders } from "../store";
 import { venues } from "../mocks/venues";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
@@ -25,14 +27,14 @@ function OrderCard({ id }: { id: string }) {
   return (
     <div className={s.card}>
       <div className={s.head}>
-        <span className={s.emoji}>{o.emoji}</span>
+        <span className={s.emoji}><Emo e={o.emoji} size={40} /></span>
         <span className={s.text}><b>{o.title}</b><small>{o.venue} • {o.branch}</small></span>
       </div>
       <div className={s.kv}><span>Уақыты</span><b>{o.time}</b></div>
-      <div className={s.codeBox}>
-        <span>Кассирге айтатын код</span>
+      <CopyCode code={o.code} className={s.codeBox}>
+        <span>Кассирге айтатын код · басып көшір</span>
         <b className={s.code}>{o.code.split("").map((c, i) => <i key={i} style={{ ["--i" as string]: i }}>{c}</i>)}</b>
-      </div>
+      </CopyCode>
     </div>
   );
 }
@@ -56,7 +58,7 @@ export function OrderDone() {
         <h1 className={p.title}>{o.title.startsWith("Шаш") ? "Жазылу расталды" : "Тапсырыс жіберілді"}</h1>
         <p className={p.text}>№{o.no} • мекеменің тапсырыс жүйесіне түсті</p>
         <OrderCard id={id} />
-        <p className={s.note}>Мекемеге келгенде кассирге «Jazl, тапсырыс {o.no}» және кодты айт. Курьер жалдасаң, ол кодты айтады.<i>”</i></p>
+        <p className={`${s.note} infoBox infoWarn`}>Мекемеге келгенде кассирге «Jazl, тапсырыс {o.no}» және кодты айт. Курьер жалдасаң, ол кодты айтады.<i>”</i></p>
       </div>
       <Bar left={left} main={main} />
     </div>
@@ -81,7 +83,7 @@ export function OrderView() {
           <div className={s.kv}><span>Төлем</span><b>пакеттен 1 бірлік</b></div>
           <button className={`${s.kv} ${s.kvBtn}`} onClick={() => { haptic.tap(); go("/receipt/order/" + o.id); }}><span>Чек</span><b className={s.link}>Ашу</b></button>
         </div>
-        <p className={s.note}>Мекемеге тапсырыс жіберілді. Орындалу барысын қолданба көрсетпейді.<i>”</i></p>
+        <p className={`${s.note} infoBox infoWarn`}>Мекемеге тапсырыс жіберілді. Орындалу барысын қолданба көрсетпейді.<i>”</i></p>
       </>}
       <Bar left={help} main={close} />
     </SubPage>
@@ -124,7 +126,7 @@ export function OrderState() {
         <Sticker name={c.sticker} size={132} className={p.sticker} />
         <h1 className={p.title}>{c.title}</h1>
         <p className={p.text}>{c.text}</p>
-        {c.note && <p className={p.reason}>{c.note}<i>”</i></p>}
+        {c.note && <p className={`${p.reason} infoBox infoWarn`}>{c.note}<i>”</i></p>}
       </div>
       <Bar left={left} main={main} />
     </div>

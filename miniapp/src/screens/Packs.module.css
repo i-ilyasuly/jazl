@@ -3,9 +3,9 @@
 .top { position: sticky; z-index: 20; top: 0; height: calc(170px + var(--top-shift)); background: var(--surface-card); border-radius: 0 0 24px 24px; overflow: hidden; box-shadow: 0 4px 16px rgba(17, 26, 38, 0.06); }
 .top > * { translate: 0 var(--top-shift); }
 /* Segmented Control (Android): 380×44, r44, ішкі шегініс 2 */
-.seg { position: absolute; left: 16px; top: 110px; width: 380px; height: 44px; padding: 2px; border-radius: 44px; background: rgba(118, 118, 128, 0.12); display: flex; }
-.segThumb { position: absolute; left: 2px; top: 2px; width: 125.33px; height: 40px; border-radius: 40px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04); transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.segBtn { position: relative; flex: 1; height: 40px; border-radius: 40px; color: var(--text-secondary); font-size: 17px !important; line-height: 22px !important; font-weight: 500; transition: color 0.2s ease; }
+.seg { position: absolute; left: 16px; top: 110px; width: 380px; height: 44px; padding: 2px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); display: flex; }
+.segThumb { position: absolute; left: 2px; top: 2px; width: 125.33px; height: 40px; border-radius: 10px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04); transition: translate 0.42s cubic-bezier(0.3, 1.25, 0.4, 1); }
+.segBtn { position: relative; flex: 1; height: 40px; border-radius: 10px; color: var(--text-secondary); font-size: 17px !important; line-height: 22px !important; font-weight: 500; transition: color 0.2s ease; }
 .segOn { font-weight: 700; color: var(--text-strong); }
 .list { padding: 8px 16px 0; display: flex; flex-direction: column; gap: 8px; }
 .header { padding: 12px 16px 4px; color: #007aff; }
@@ -16,19 +16,19 @@
 .thumb { width: 72px; height: 72px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; }
 .text { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; white-space: nowrap; color: #000; }
 .sub { color: #707579; }
-.days { margin-top: 8px; height: 24px; padding: 4px 8px; border-radius: 12px; background: rgba(95, 107, 122, 0.1); color: #5f6b7a; }
+.days { margin-top: 8px; height: 24px; padding: 4px 8px; border-radius: 6px; background: rgba(95, 107, 122, 0.1); color: #5f6b7a; }
 .daysSoon { background: var(--orange-bg); color: var(--orange-text); }
 .sep { border: 0; height: 1px; width: 100%; background: #f6f6fa; }
 .bottom { display: flex; align-items: center; justify-content: space-between; }
 .left { display: flex; align-items: flex-end; gap: 4px; color: #000; white-space: nowrap; }
-.use { height: 36px; padding: 8px 12px; border-radius: 18px; background: #007aff; color: #fff; white-space: nowrap; transition: transform 0.12s ease, opacity 0.12s ease; }
+.use { height: 36px; padding: 8px 12px; border-radius: 8px; background: #007aff; color: #fff; white-space: nowrap; transition: transform 0.12s ease, opacity 0.12s ease; }
 .use:active { transform: scale(0.94); }
 .use:disabled { opacity: 0.4; }
 .renew { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 14px; border-radius: 8px; background: rgba(49, 209, 88, 0.12); overflow: hidden; }
 .renewBar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #31d158; }
 .renewText { flex: 1; color: var(--text-strong); line-height: 20px; word-spacing: 0.4px; }
 .renewText b { display: inline-block; padding: 0 6px; border-radius: 6px; background: var(--hl-green-bg); color: var(--hl-green-text); font-weight: 600; line-height: 20px; }
-.renewBtn { height: 36px; padding: 8px 12px; border-radius: 18px; background: rgba(67, 120, 255, 0.1); color: #007aff; white-space: nowrap; flex: none; }
+.renewBtn { height: 36px; padding: 8px 12px; border-radius: 8px; background: rgba(67, 120, 255, 0.1); color: #007aff; white-space: nowrap; flex: none; }
 .quoteMark { position: absolute; left: 334px; top: 185px; font-size: 56px; line-height: 56px; font-weight: 700; color: #31d158; pointer-events: none; }
 .empty { padding: 48px 16px; text-align: center; color: var(--text-secondary); }
 :global(:root[data-theme="dark"]) .seg { background: rgba(118, 118, 128, 0.24); }
@@ -40,11 +40,11 @@
 .order { display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 16px; border-radius: 20px; background: var(--surface-card); text-align: left; transition: transform 0.12s ease; }
 .order:active { transform: scale(0.98); }
 .oHead { display: flex; align-items: center; gap: 12px; }
-.oEmoji { width: 52px; height: 52px; flex: none; border-radius: 14px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 34px; }
+.oEmoji { width: 52px; height: 52px; flex: none; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 34px; }
 .oText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .oText b { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
 .oText small { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
-.oCode { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 14px; background: var(--chip-tint); }
+.oCode { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; background: var(--chip-tint); }
 .oCode small { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
 .oCode b { font-size: 24px; line-height: 30px; font-weight: 800; letter-spacing: 3px; color: var(--link); }
 
@@ -66,7 +66,7 @@
 .actText { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .actText b { font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .actText small { font-size: 15px; line-height: 20px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.actBtn { flex: none; height: 32px; padding: 6px 12px; border-radius: 16px; background: rgba(67, 120, 255, 0.1); color: #007aff; font-size: 15px; line-height: 20px; font-weight: 600; white-space: nowrap; transition: transform 0.12s ease; }
+.actBtn { flex: none; height: 32px; padding: 6px 12px; border-radius: 8px; background: rgba(67, 120, 255, 0.1); color: #007aff; font-size: 15px; line-height: 20px; font-weight: 600; white-space: nowrap; transition: transform 0.12s ease; }
 .actBtn:active { transform: scale(0.94); }
 .actStars { flex: none; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--text-secondary); }
 :global(:root[data-theme="dark"]) .actIcon { background: rgba(52, 199, 89, 0.24); }
@@ -89,8 +89,15 @@
 .bookRow { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; height: 68px; padding: 0 16px; text-align: left; transition: background 0.15s ease; }
 .bookRow:active { background: rgba(34, 154, 240, 0.08); }
 .bookRow:not(:last-child)::after { content: ""; position: absolute; left: 16px; right: 0; bottom: 0; height: 1px; background: var(--separator); }
-.bookChip { flex: none; height: 24px; padding: 4px 8px; border-radius: 8px; background: rgba(34, 154, 240, 0.14); color: var(--link); }
+.bookChip { flex: none; height: 24px; padding: 4px 8px; border-radius: 6px; background: rgba(34, 154, 240, 0.14); color: var(--link); }
 .bookNote { position: relative; padding: 12px 40px 12px 16px; border-radius: 12px; background: #e3f0fb; color: var(--text-strong); }
 .bookNote::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; background: #229af0; }
 .bookNote i { position: absolute; right: 12px; top: -12px; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: #229af0; }
 :global(:root[data-theme="dark"]) .bookNote { background: rgba(34, 154, 240, 0.18); }
+/* Таб свайпы: тамшы саусақпен бірге, мазмұн бағытына қарай кіреді */
+.segDrag { transition: none !important; }
+.list { touch-action: pan-y; transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.fromRight { animation: inR 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.fromLeft { animation: inL 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes inR { from { transform: translateX(48px); opacity: 0; } }
+@keyframes inL { from { transform: translateX(-48px); opacity: 0; } }

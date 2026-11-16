@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { offers } from "../mocks/offers";
+import { categoryOffers, moreOffers, offers } from "../mocks/offers";
+// Басты беттегі лента: негізгі + санат + қосымша ұсыныстар (мок; бэкендте — жақындығы мен жарнамасы бойынша сұрыпталған тізім)
+const feed = [offers[0], categoryOffers[1], offers[1], moreOffers[1], offers[2], categoryOffers[3], moreOffers[0], categoryOffers[0], categoryOffers[2], categoryOffers[4]];
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { haptic } from "../telegram";
@@ -24,7 +26,7 @@ const soon = [
 export function Home() {
   const [sheet, setSheet] = useState<(typeof soon)[number] | null>(null);
   const go = useGo();
-  const { data, loading } = useMock("home", offers);
+  const { data, loading } = useMock("home", feed);
   if (loading || !data) return <HomeSkeleton />;
   return (
     <div className={s.page}>

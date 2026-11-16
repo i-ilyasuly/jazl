@@ -1,6 +1,6 @@
-.seg { position: relative; width: 380px; height: 44px; padding: 2px; border-radius: 44px; background: rgba(118, 118, 128, 0.12); display: flex; gap: 2px; }
-.thumb { position: absolute; left: 2px; top: 2px; width: 187px; height: 40px; border-radius: 40px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); transition: translate 0.34s cubic-bezier(0.3, 1.2, 0.4, 1); }
-.segBtn { position: relative; width: 187px; height: 40px; border-radius: 40px; color: var(--text-secondary); font-size: 17px !important; line-height: 22px !important; font-weight: 500; transition: color 0.2s ease; -webkit-tap-highlight-color: transparent; }
+.seg { position: relative; width: 380px; height: 44px; padding: 2px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); display: flex; gap: 2px; }
+.thumb { position: absolute; left: 2px; top: 2px; width: 187px; height: 40px; border-radius: 10px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); transition: translate 0.34s cubic-bezier(0.3, 1.2, 0.4, 1); }
+.segBtn { position: relative; width: 187px; height: 40px; border-radius: 10px; color: var(--text-secondary); font-size: 17px !important; line-height: 22px !important; font-weight: 500; transition: color 0.2s ease; -webkit-tap-highlight-color: transparent; }
 .on { color: var(--text-strong); font-weight: 700; }
 .pane { display: flex; flex-direction: column; gap: 12px; }
 .fromLeft { animation: inL 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -8,7 +8,7 @@
 @keyframes inL { from { transform: translateX(-24px); opacity: 0; } }
 @keyframes inR { from { transform: translateX(24px); opacity: 0; } }
 .avatar { flex: none; width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; }
-.chip { flex: none; height: 24px; padding: 4px 8px; border-radius: 12px; white-space: nowrap; }
+.chip { flex: none; height: 24px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
 .wait { background: rgba(254, 149, 0, 0.13); color: #a86400; }
 .ok { background: rgba(49, 209, 88, 0.15); color: #1f7a38; }
 .expired { background: rgba(95, 107, 122, 0.1); color: #5f6b7a; }

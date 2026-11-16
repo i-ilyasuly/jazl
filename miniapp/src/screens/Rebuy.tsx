@@ -1,6 +1,7 @@
 // Figma «11 · Қайта алу және мерзімін ұзарту»: «Қайта алу / Бірліктер көшеді» 13886:31503,
 // «Мерзімі өткен» 13886:31655, «Баға өзгерді» 13886:31773, «Сәтті» 13886:31931, «Көшіру ережесі» 13918:8306.
 // Өлшемдер — UI kit шкаласы (17/22, 15/20, 13/16) және 4/8px тор (шет 16, жол 48/68, бұрыш 12/20).
+import { kindPic } from "../ui/Emo";
 import { useCallback, useMemo } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
@@ -37,7 +38,7 @@ export function Rebuy() {
       if (nid) go("/rebuy/done/" + nid, "fade", { replace: true, state: { paid: price } });
     });
   }, [pack, payOffer, price, flow, go]);
-  const main = useMemo(() => ({ text: `💳 Төлеу · ${fmt(price)}`, shine: true, onClick: pay }), [price, pay]);
+  const main = useMemo(() => ({ text: `Төлеу · ${fmt(price)}`, shine: true, onClick: pay }), [price, pay]);
   useBottomButtons(main, undefined, Boolean(pack) && !flow.sheetOpen);
   if (!pack || !o) return null;
 
@@ -55,7 +56,7 @@ export function Rebuy() {
       <h1 className="pageTitle">Қайта алу</h1>
       <div className={s.col}>
         {changed && (
-          <div className={`${s.note} ${s.warn} rise`}>
+          <div className={`${s.note} ${s.warn} infoBox infoWarn rise`}>
             <p className={s.noteTitle}>Баға өзгерді: {fmt(o.price).replace(" ₸", "")} → {fmt(price)}</p>
             <p className={s.noteSub}>Мекеме бағаны жаңартты. Төлемге дейін тексеріп ал.</p>
             <i aria-hidden>”</i>
@@ -65,19 +66,19 @@ export function Rebuy() {
         <section className={`${s.card} rise`} style={{ ["--i" as string]: 1 }}>
           <h2 className={`t-sub2 w-600 ${s.head}`}>Қазіргі пакет</h2>
           <div className={s.pack}>
-            <span className={s.thumb}><img src={o.kind === "hair" ? scissors : burger} width={36} height={36} alt="" /></span>
+            <span className={s.thumb}><img src={kindPic[o.kind]} width={40} height={40} alt="" style={{ objectFit: "contain" }} /></span>
             <span className={s.packText}><span className="t-text">{o.title}</span><span className={`t-cap1 ${s.muted}`}>{sub}</span></span>
           </div>
         </section>
 
         {carry > 0 && (
-          <div className={`${s.note} rise`} style={{ ["--i" as string]: 2 }}>
+          <div className={`${s.note} infoBox infoOk rise`} style={{ ["--i" as string]: 2 }}>
             <p>Қалған <b>{carry} бірлік</b> жаңа пакетке <b>қосылады</b>, мерзімі де жаңарады.</p>
             <i aria-hidden>”</i>
           </div>
         )}
         {late && (
-          <div className={`${s.note} ${s.warn} rise`} style={{ ["--i" as string]: 2 }}>
+          <div className={`${s.note} ${s.warn} infoBox infoWarn rise`} style={{ ["--i" as string]: 2 }}>
             <p>Бұрынғы пакеттің мерзімі өткеніне {CARRY_DAYS} күннен асты, сондықтан пайдаланылмаған {pack.left} бірлік жаңа пакетке көшпейді.</p>
             <button className={s.noteLink} onClick={() => go("/rules/carry")}>Көшіру ережесі туралы толығырақ</button>
             <i aria-hidden>”</i>
@@ -126,7 +127,7 @@ export function RebuyDone() {
   return (
     <ResultScreen
       title="Пакет қайта алынды" paid={`Төлем қабылданды · ${fmt(paid)}`}
-      cardTitle={o.title} cardSub={`${o.venue} · ${o.distance}`}
+      cardTitle={o.title} cardSub={`${o.venue} · ${o.distance}`} kind={o.kind}
       total={pack.total} used={0} counter={`${pack.left} / ${pack.total} · 30 күн`}
       next={pack.carried ? "Қалған бірлік жаңа пакетке қосылды" : "Келесі қадам: мекемеде «Jazl бойынша» деп айт"}
       main={{ text: "Пакеттерге өту", onClick: toPacks }} secondary={{ text: "Жабу", onClick: close }} onClose={close}
@@ -162,7 +163,7 @@ export function CarryRules() {
             <li>Мерзімін өткізбеу үшін тегін ұзартуды қолдануға болады, егер мекеме рұқсат етсе.</li>
           </ul>
         </section>
-        <div className={`${s.note} ${s.info} rise`} style={{ ["--i" as string]: 2 }}>
+        <div className={`${s.note} ${s.info} infoBox rise`} style={{ ["--i" as string]: 2 }}>
           <p>Нақты шарттар мекеменің ұсыныс бетінде көрсетіледі.</p>
           <i aria-hidden>”</i>
         </div>

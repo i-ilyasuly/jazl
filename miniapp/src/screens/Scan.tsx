@@ -3,6 +3,7 @@
 // Демо: ?scan=multi (бірнеше пакет) немесе ?scan=<ScanState күйі> (fail, pending, limit, amount, notqr, ...).
 // Telegram ішінде нативті QR сканері ашылады (showScanQrPopup, Bot API 6.4);
 // браузерде Figma-дағы сканер экраны көрсетіліп, QR оқылғаны еліктеледі.
+import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
@@ -83,7 +84,7 @@ export function Scan() {
   }, [found, detect, close, toState, nativeClosed]);
 
   const pay = useMemo(() => ({
-    text: pack ? `💳 Төлеу · ${unitLabel(pack)}` : "Төлеу",
+    text: pack ? `Төлеу · ${unitLabel(pack)}` : "Төлеу",
     onClick: () => {
       if (!pack || busy) return;
       haptic.medium();
@@ -148,7 +149,7 @@ export function Scan() {
               {([["Мекеме", o.venue], ["Пакеттен", `1 дана · ${unitLabel(pack)}`], ["Таңдалған ас", "Донер + Айран"], ["Қосымша", fmt(extra)]] as const).map(([k, v]) => <p key={k}><span className={s.muted}>{k}</span><b>{v}</b></p>)}
             </div>
             <p className={`t-sub2 w-600 ${s.extraChip}`}>Қосымша {fmt(extra)} кассада төленеді</p>
-            <p className={s.quote}>Пакет баламасынан бір дана ғана шегеріледі. Қосымша сома пакеттен тыс, мекеменің кассасында төленеді.<i>”</i></p>
+            <p className={`${s.quote} infoBox`}>Пакет баламасынан бір дана ғана шегеріледі. Қосымша сома пакеттен тыс, мекеменің кассасында төленеді.<i>”</i></p>
             </> : <>
             <h2 className={s.sheetTitle}>Төлем</h2>
             <div className={s.venue}>
@@ -160,7 +161,7 @@ export function Scan() {
             <div className={s.opts}>
               {opts.map((x) => (
                 <button key={x.id} className={`${s.pack} ${chosen?.id === x.id ? s.packOn : ""}`} disabled={!x.ok} onClick={() => { if (chosen?.id !== x.id) { haptic.select(); setSel(x.id); } }}>
-                  <span className={s.emoji}>{x.emoji}</span>
+                  <span className={s.emoji}><Emo e={x.emoji} size={28} /></span>
                   <span className={s.packText}><span className={s.packTitle}>{x.title}</span><span className={s.packSub}>{x.sub}</span></span>
                   <span className={s.packPrice}>{fmt(x.price)}</span>
                   {chosen?.id === x.id && <span className={s.radio}><span /></span>}
@@ -168,7 +169,7 @@ export function Scan() {
               ))}
             </div>
             {multi
-              ? <p className={s.quote}>Таңдаған пакетіңнен 1 бірлік шегеріледі. Бағасы бірдей пакеттердің кез келгенін таңдауға болады.<i>”</i></p>
+              ? <p className={`${s.quote} infoBox`}>Таңдаған пакетіңнен 1 бірлік шегеріледі. Бағасы бірдей пакеттердің кез келгенін таңдауға болады.<i>”</i></p>
               : <div className={s.rows}>
                   <p><span className={s.muted}>Шегеріледі</span><b>1 бірлік</b></p>
                   <p><span className={s.muted}>Қалады</span><b>{pack.left - 1} / {pack.total}</b></p>

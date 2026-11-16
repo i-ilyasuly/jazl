@@ -47,7 +47,7 @@ export function Notifications() {
   return (
     <SubPage title="Хабарландырулар">
       {access !== "ok" && (
-        <div key={access} className={`${s.banner} ${access === "denied" ? s.warn : ""} rise`} role="status">
+        <div key={access} className={`${s.banner} infoBox ${access === "denied" ? `${s.warn} infoWarn` : ""} rise`} role="status">
           <span className={s.bar} />
           <p className={`t-sub2 w-600 ${s.bannerText}`}>{access === "need" ? "Хабарлама алу үшін ботқа рұқсат бер" : "Рұқсат берілмеді. Ботты ашып, Start түймесін бас."}</p>
           <button className={`t-sub2 w-600 ${s.bannerBtn}`} onClick={access === "need" ? request : () => { haptic.tap(); openChat("oylarbot"); }}>

@@ -1,7 +1,9 @@
 // Figma: «Пакеттерім (жаңа навигация) / Light» (13905:8147); «09 · Пакеттерім»: «Алғашқы кіру (көрсеткіш)» 13886:28960,
 // «Бос күй» 13886:29133, «Тарих» 13886:29206. Жаңа бөліктердің өлшемі — UI kit шкаласы + 4/8px тор.
 // «12 · Бағалау»: «Пакеттерім жолағы» 13886:33115 (Белсенді табының басында), бағалау парағы — ui/RateSheet.
-import { useEffect, useState } from "react";
+import { kindPic } from "../ui/Emo";
+import { Emo } from "../ui/Emo";
+import { useEffect, useRef, useState } from "react";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
 import { useGo } from "../nav";
@@ -13,6 +15,7 @@ import searchIcon from "../assets/icons/search.svg";
 import burger from "../assets/icons/offerBurger.svg";
 import scissors from "../assets/icons/offerScissors.svg";
 import { UseSheet } from "../ui/UseSheet";
+import { CopyCode } from "../ui/CopyCode";
 import { RateSheet, Stars } from "../ui/RateSheet";
 import close from "../assets/icons/close.svg";
 import s from "./Packs.module.css";
@@ -26,7 +29,7 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
   return (
     <article className={`${s.card} ${hint ? s.hinted : ""} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/pack/" + pack.id)}>
       <div className={s.info}>
-        <span className={s.thumb}><img src={icon[o.kind]} width={48} height={48} alt="" /></span>
+        <span className={s.thumb}><img src={kindPic[o.kind]} width={60} height={60} alt="" style={{ objectFit: "contain" }} /></span>
         <div className={s.text}>
           <p className="t-headline">{o.title}</p>
           <p className={`t-sub2 ${s.sub}`}>{o.venue} · {o.distance}</p>
@@ -46,13 +49,12 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
         )}
       </div>
       {soon && (
-        <div className={s.renew}>
+        <div className={`${s.renew} infoBox infoOk`}>
           <span className={s.renewBar} />
           <p className={`t-sub2 ${s.renewText}`}>Қайта алсаң, қалған бірлік <b>келесі айға көшеді</b></p>
           <button className={`t-sub2 w-600 ${s.renewBtn}`} onClick={(e) => { e.stopPropagation(); haptic.medium(); go("/rebuy/" + pack.id); }}>Қайта алу</button>
         </div>
       )}
-      {soon && <span className={s.quoteMark} aria-hidden>”</span>}
     </article>
   );
 }
@@ -85,21 +87,45 @@ export function Packs() {
     return () => { live = false; };
   }, []);
   const closeHint = () => { setHint(false); kv.set("jazl_packs_hint", "1"); };
+  // Табтар арасында свайп (Патша, 2026-11-16): көлденең сүйреу > 64px не жылдам сілтеу — көрші табқа өтеді;
+  // табтың «тамшысы» навигациядағыдай саусақпен бірге жүреді, ауысқанда серпіліп созылады.
+  const thumb = useRef<HTMLSpanElement>(null);
+  const [drag, setDrag] = useState(0);
+  const [dir, setDir] = useState(0);
+  const touch = useRef<{ x: number; y: number; t: number; h: boolean | null } | null>(null);
+  const pick = (i: number) => {
+    if (i === tab || i < 0 || i > 2) return;
+    haptic.select(); setDir(i > tab ? 1 : -1); setTab(i);
+    thumb.current?.animate([{ scale: "1 1" }, { scale: "1.14 0.86", offset: 0.4 }, { scale: "0.97 1.04", offset: 0.75 }, { scale: "1 1" }], { duration: 420, easing: "ease-out" });
+  };
+  const onStart = (e: React.TouchEvent) => { const p = e.touches[0]; touch.current = { x: p.clientX, y: p.clientY, t: Date.now(), h: null }; };
+  const onMove = (e: React.TouchEvent) => {
+    const st = touch.current; if (!st) return; const p = e.touches[0]; const dx = p.clientX - st.x, dy = p.clientY - st.y;
+    if (st.h === null && Math.abs(dx) + Math.abs(dy) > 10) st.h = Math.abs(dx) > Math.abs(dy) * 1.2;
+    if (st.h) setDrag(Math.max(-140, Math.min(140, (tab === 0 && dx > 0) || (tab === 2 && dx < 0) ? dx * 0.25 : dx)));
+  };
+  const onEnd = () => {
+    const st = touch.current; touch.current = null; if (!st?.h) { setDrag(0); return; }
+    const fast = Math.abs(drag) > 24 && Date.now() - st.t < 250;
+    if (drag < -64 || (fast && drag < 0)) pick(tab + 1); else if (drag > 64 || (fast && drag > 0)) pick(tab - 1);
+    setDrag(0);
+  };
   return (
     <div className={s.page}>
       <button className="topSearch pinned" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>
       <header className={s.top}>
         <TelegramChrome mode="close" />
         <div className={s.seg}>
-          <span className={s.segThumb} style={{ transform: `translateX(${tab * 125.33}px)` }} />
+          <span ref={thumb} className={`${s.segThumb} ${drag ? s.segDrag : ""}`} style={{ translate: `${Math.max(0, Math.min(250.66, tab * 125.33 - (drag / 380) * 125.33))}px 0` }} />
           {tabs.map((t, i) => (
-            <button key={t} className={`${s.segBtn} ${tab === i ? s.segOn : ""}`} onClick={() => { if (tab !== i) { haptic.select(); setTab(i); } }}>{t}</button>
+            <button key={t} className={`${s.segBtn} ${tab === i ? s.segOn : ""}`} onClick={() => pick(i)}>{t}</button>
           ))}
         </div>
       </header>
       {!loading && packs.length === 0 ? (
         <EmptyState inline sticker="shop" title="Әзірге пакет жоқ" text={"Пакет сатып алсаң, мекемеде сканерлеп\nнемесе үйден тапсырыс беріп қолданасың"} action={{ text: "Ұсыныстарды көру", onClick: () => go("/", "fade") }} />
-      ) : <main className={s.list} key={tab}>
+      ) : <main className={`${s.list} ${dir > 0 ? s.fromRight : dir < 0 ? s.fromLeft : ""}`} key={tab} onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} onTouchCancel={onEnd}
+          style={drag ? { transform: `translateX(${drag}px)`, transition: "none" } : undefined}>
         {!(tab === 1 && bookings.length) && <p className={`t-sub2 w-600 ${s.header}`}>{tab === 2 ? "Соңғы әрекеттер" : <>{tabs[tab]}<span> · {tab === 0 ? active.length : orders.length}</span></>}</p>}
         {loading
           ? [0, 1].map((i) => <div key={i} className={s.card} style={{ height: 190 }}><span className="sk" style={{ position: "absolute", left: 16, top: 16, width: 72, height: 72, borderRadius: 12 }} /><span className="sk" style={{ position: "absolute", left: 100, top: 20, width: 190, height: 20, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 100, top: 48, width: 130, height: 14, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 16, top: 112, width: 348, height: 10, borderRadius: 5 }} /><span className="sk" style={{ position: "absolute", left: 16, top: 140, width: 90, height: 22, borderRadius: 6 }} /><span className="sk" style={{ position: "absolute", left: 274, top: 134, width: 90, height: 36, borderRadius: 18 }} /></div>)
@@ -115,19 +141,19 @@ export function Packs() {
                       </button>
                     ))}
                   </div>
-                  <p className={`t-sub2 ${s.bookNote}`}>Ауыстыру немесе бас тарту үшін жазылуды ашып қара.<i>”</i></p>
+                  <p className={`t-sub2 ${s.bookNote} infoBox`}>Ауыстыру немесе бас тарту үшін жазылуды ашып қара.<i>”</i></p>
                 </section>
               ), orders.length > 0 && bookings.length > 0 && <p key="oh" className={`t-sub2 w-600 ${s.header}`}>Тапсырыстар<span> · {orders.length}</span></p>, ...orders.map((o, i) => (
                 <button key={o.id} className={`${s.order} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/orders/" + o.id)}>
-                  <span className={s.oHead}><span className={s.oEmoji}>{o.emoji}</span><span className={s.oText}><b>{o.title}</b><small>№{o.no} • {o.venue} • {o.time}</small></span></span>
-                  <span className={s.oCode}><small>Кассирге айтатын код</small><b>{o.code}</b></span>
+                  <span className={s.oHead}><span className={s.oEmoji}><Emo e={o.emoji} size={40} /></span><span className={s.oText}><b>{o.title}</b><small>№{o.no} • {o.venue} • {o.time}</small></span></span>
+                  <CopyCode code={o.code} className={s.oCode}><small>Кассирге айтатын код · басып көшір</small><b>{o.code}</b></CopyCode>
                 </button>))] : <p className={`t-sub2 rise ${s.empty}`}>Белсенді тапсырыс жоқ. Пакет бетінде «Тапсырыс беру» батырмасы бар.</p>)
           : tab === 2
             ? (acts.length ? (
                 <section className={`${s.acts} rise`}>
                   {acts.map((a) => (
                     <div key={a.id} className={s.act} role="button" tabIndex={0} onClick={() => { if (getPack(a.packId)) go("/pack/" + a.packId); }}>
-                      <span className={`${s.actIcon} ${a.action === "renew" ? s.actOff : ""}`}>{a.emoji}</span>
+                      <span className={`${s.actIcon} ${a.action === "renew" ? s.actOff : ""}`}><Emo e={a.emoji} size={28} /></span>
                       <span className={s.actText}><b>{a.title}</b><small>{a.sub}</small></span>
                       {a.action === "rated"
                         ? <span className={s.actStars}>★ {a.stars}</span>

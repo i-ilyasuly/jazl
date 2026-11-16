@@ -101,7 +101,7 @@ export function BookConfirm() {
   return (
     <SubPage title="Растау" top={92}>
       <Group i={0}>{rows.map(([k, v]) => <div key={k} className={`t-text ${s.kv}`}><span>{k}</span><b className="t-sub2 w-600">{v}</b></div>)}</Group>
-      <p className={`t-sub2 ${s.note} rise`} style={{ ["--i" as string]: 1 }}>Жазылуға 2 сағат қалғанға дейін тегін бас тарта аласың. Кейін немесе келмесең, жазылымнан бір рет жұмсалады.<i>”</i></p>
+      <p className={`t-sub2 ${s.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 1 }}>Жазылуға 2 сағат қалғанға дейін тегін бас тарта аласың. Кейін немесе келмесең, жазылымнан бір рет жұмсалады.<i>”</i></p>
       <Bar left={left} main={main} />
     </SubPage>
   );
@@ -146,7 +146,7 @@ export function BookingView() {
     <SubPage title="Жазылу" top={92}>
       <section className={`${s.head} rise`}><b className="t-text w-600">{bookLabel(b.at)}</b><small className="t-sub2">{b.service}</small></section>
       <Group i={1}>{rows.map(([k, v, c]) => <div key={k} className={`t-text ${s.kv}`}><span>{k}</span><b className={`t-sub2 w-600 ${c ?? ""}`}>{v}</b></div>)}</Group>
-      <p className={`t-sub2 ${s.note} rise`} style={{ ["--i" as string]: 2 }}>{free ? "Уақытты 2 сағатқа дейін тегін ауыстыруға не бас тартуға болады." : "Жазылуға 2 сағаттан аз қалды: ауыстыру мүмкін емес, бас тартсаң жазылымнан бір рет жұмсалады."}<i>”</i></p>
+      <p className={`t-sub2 ${s.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 2 }}>{free ? "Уақытты 2 сағатқа дейін тегін ауыстыруға не бас тартуға болады." : "Жазылуға 2 сағаттан аз қалды: ауыстыру мүмкін емес, бас тартсаң жазылымнан бір рет жұмсалады."}<i>”</i></p>
       {b.status === "ok" && !snack && <Bar left={left} main={main} />}
       {snack && <div className={`t-sub2 ${s.snack}`} role="status">{snack}</div>}
       {ask && <Confirm danger cancel="Жоқ" ok="Бас тарту" onClose={() => setAsk(false)}
@@ -170,7 +170,7 @@ export function BookMove() {
   return (
     <SubPage title="Уақытты ауыстыру" top={92}>
       <SlotPicker dayTitle="Жаңа күні" days={days} value={v} onChange={setV} />
-      <p className={`t-sub2 ${s.note} rise`} style={{ ["--i" as string]: 2 }}>Уақытты 2 сағатқа дейін тегін ауыстыруға болады.<i>”</i></p>
+      <p className={`t-sub2 ${s.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 2 }}>Уақытты 2 сағатқа дейін тегін ауыстыруға болады.<i>”</i></p>
       <Bar left={left} main={main} />
     </SubPage>
   );

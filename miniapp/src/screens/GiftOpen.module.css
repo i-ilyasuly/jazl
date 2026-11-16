@@ -18,7 +18,7 @@
 .kv::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 1px; background: var(--separator); }
 .note { padding: 0 16px; color: var(--text-secondary); }
 .bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 8px 10px calc(8px + var(--safe-b, 0px)); background: #fff; }
-.btn { width: 392px; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.12s ease; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.12s ease; }
 .btn:active { opacity: 0.8; }
 .shine { position: relative; overflow: hidden; }
 .shine::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: shine 2.6s ease-in-out infinite; }

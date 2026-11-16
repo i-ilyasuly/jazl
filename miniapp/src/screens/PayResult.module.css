@@ -9,7 +9,7 @@
 .reason i { position: absolute; right: 12px; top: -6px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b301; font-style: normal; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
 .bar { position: fixed; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: calc(70px + var(--safe-b, 0px)); padding: 10px 10px 0; display: flex; gap: 8px; background: var(--surface-white); }
-.btn { flex: 1; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.15s ease; }
+.btn { flex: 1; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.15s ease; }
 .btn:active { opacity: 0.8; }
 .second { background: var(--chip-tint); color: var(--link); }
 :global(:root[data-theme="dark"]) .reason { background: rgba(255, 184, 0, 0.16); }

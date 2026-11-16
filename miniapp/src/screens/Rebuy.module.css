@@ -40,7 +40,7 @@
 .rules li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 4px; height: 4px; border-radius: 2px; background: var(--text-secondary); }
 
 .bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 8px 10px calc(8px + var(--safe-b, 0px)); background: #fff; }
-.btn { width: 392px; height: 50px; border-radius: 12px; background: var(--button); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; transition: opacity 0.12s ease; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 17px; line-height: 22px; letter-spacing: 0.1px; font-weight: 600; transition: opacity 0.12s ease; }
 .btn:active { opacity: 0.8; }
 .btn:disabled { opacity: 0.6; }
 .shine { position: relative; overflow: hidden; }

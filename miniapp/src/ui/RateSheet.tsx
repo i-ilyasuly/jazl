@@ -1,6 +1,7 @@
 // Figma «12 · Бағалау»: «1 Бағасыз» 13886:33294, «2 Жоғары баға» 13886:33455, «3 Төмен баға (себеп)» 13886:33622,
 // «4 Рахмет» 13886:33817, «5 Жоғары баға (пікір)» 13929:12534. Себеп чиптері — жиексіз, тек фон (ереже 7);
 // «Рахмет» — жасыл белгінің орнында балапан стикері (ереже 9); себептер санатқа сай (ереже 13).
+import { kindPic } from "./Emo";
 import { useEffect, useMemo, useState } from "react";
 import { findOffer, type OfferKind } from "../mocks/offers";
 import { rateActivity, type Activity } from "../store";
@@ -72,7 +73,7 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
         </> : <>
           <h2 className="t-title3 w-700">Қалай болды?</h2>
           <div className={s.item}>
-            <span className={s.icon}><img src={o.kind === "hair" ? scissors : burger} width={30} height={30} alt="" /></span>
+            <span className={s.icon}><img src={kindPic[o.kind]} width={40} height={40} alt="" style={{ objectFit: "contain" }} /></span>
             <span className={s.itemText}><span className="t-text w-600">{title}</span><span className={`t-cap1 ${s.muted}`}>{sub}</span></span>
           </div>
           <Stars value={stars} onPick={pickStars} />

@@ -34,7 +34,7 @@
 .agreeText b { font-weight: 600; color: var(--link); }
 
 .bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 94px; padding: 10px 10px 0; background: var(--surface-white); display: flex; gap: 8px; }
-.pay { flex: 1; height: 50px; border-radius: 12px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s ease; }
+.pay { flex: 1; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s ease; }
 .pay:active { opacity: 0.8; }
 .pay:disabled { opacity: 0.45; }
 .spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
@@ -81,6 +81,6 @@
 .steps .done span { background: #34c759; color: #fff; animation: checkPop 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
 
 /* Баға өзгерді */
-.up { height: 24px; padding: 2px 8px; border-radius: 12px; background: rgba(240, 74, 74, 0.14); color: #c71f1f; font-size: 13px; line-height: 16px; font-weight: 700; }
+.up { height: 24px; padding: 2px 8px; border-radius: 6px; background: rgba(240, 74, 74, 0.14); color: #c71f1f; font-size: 13px; line-height: 16px; font-weight: 700; }
 .warn { position: relative; width: 100%; padding: 12px 40px 12px 16px; border-radius: 12px; background: rgba(255, 184, 0, 0.12); border-left: 4px solid #ffb800; font-size: 17px; line-height: 22px; color: var(--text-strong); }
 .warn i { position: absolute; right: 12px; top: -6px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b301; font-style: normal; }
