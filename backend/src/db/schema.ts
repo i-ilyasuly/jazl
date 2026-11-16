@@ -155,8 +155,33 @@ export const payments = app.table("payments", {
   amount: integer("amount").notNull(),
   status: paymentStatus("status").notNull().default("created"),
   externalId: text("external_id"),
+  /** Клиент таңдаған тәсіл: kaspi | card | test (сынақ режимінде провайдер — test) */
+  method: text("method").notNull().default("test"),
+  /** Қайталанған сұрау екінші рет төлем жасамауы үшін (клиент әр сатып алуға бір кілт жібереді) */
+  idempotencyKey: text("idempotency_key"),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
   createdAt: created(),
-}, (t) => [uniqueIndex("payments_external").on(t.provider, t.externalId)]);
+}, (t) => [uniqueIndex("payments_external").on(t.provider, t.externalId), uniqueIndex("payments_idem").on(t.userId, t.idempotencyKey)]);
+
+/** Чек. public — клиентке көрсетілетін бөлік; internal — тек біз үшін (комиссия, мекемеге төлем, құрылғы, баға көзі…).
+ *  Чек өзгермейді: жазылған сәттегі деректердің суреті (мекеме атауы не баға кейін өзгерсе де чек сол күйі қалады). */
+export const receipts = app.table("receipts", {
+  id: id(),
+  /** Адамға оқылатын нөмір: JZ-100001 */
+  no: bigint("no", { mode: "number" }).notNull().generatedAlwaysAsIdentity({ startWith: 100001 }),
+  /** purchase | use | order | refund | extend | gift */
+  kind: text("kind").notNull(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  packId: uuid("pack_id").references(() => packs.id),
+  paymentId: uuid("payment_id").references(() => payments.id),
+  venueId: uuid("venue_id").notNull().references(() => venues.id),
+  branchId: uuid("branch_id").references(() => branches.id),
+  total: integer("total").notNull(),
+  currency: text("currency").notNull().default("KZT"),
+  public: jsonb("public").notNull(),
+  internal: jsonb("internal").notNull(),
+  createdAt: created(),
+}, (t) => [uniqueIndex("receipts_no").on(t.no), index("receipts_user").on(t.userId)]);
 
 export const gifts = app.table("gifts", {
   id: id(),
