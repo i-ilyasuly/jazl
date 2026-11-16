@@ -46,3 +46,6 @@
 @media (prefers-reduced-motion: reduce) {
   *, ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Бетке қайта келгенде кіру анимациялары ойнамайды (main.tsx → FirstVisit) */
+.still *, .still *::before, .still *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; transition-delay: 0s !important; }
