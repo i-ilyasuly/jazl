@@ -17,6 +17,10 @@ const Env = z.object({
   PAYMENTS_MODE: z.enum(["test"]).default("test"),
   /** Jazl комиссиясы, % (ішкі есеп: мекемеге төленетін соманы есептеу) */
   JAZL_FEE_PCT: z.coerce.number().default(10),
+  /** Мини апп ашылатын бот (чектегі тексеру QR-ы: t.me/<бот>?startapp=rc_<нөмір>) */
+  /** API-дің ашық мекенжайы (жүктеу сілтемелері үшін); жоқ болса — сұраудың host-ы */
+  PUBLIC_URL: z.string().url().optional(),
+  MINIAPP_BOT_USERNAME: z.string().default("oylarbot"),
   DB_SSL: z.enum(["require", "disable"]).default("require"),
 });
 
