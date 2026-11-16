@@ -63,8 +63,8 @@ initTelegram();
 // Бот сілтемелері t.me/oylarbot?startapp=<түр>_<id> түрінде келеді — бірден тиісті бетті ашамыз.
 {
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-  const m = sp?.match(/^(gift|venue|offer)_([\w-]+)$/);
-  const to = m && { gift: "/gift/open/", venue: "/venue/", offer: "/offer/" }[m[1] as "gift" | "venue" | "offer"];
+  const m = sp?.match(/^(gift|venue|offer|rc)_([\w-]+)$/);
+  const to = m && { gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/" }[m[1] as "gift" | "venue" | "offer" | "rc"];
   if (m && to) window.location.hash = "#" + to + m[2];
 }
 
@@ -177,6 +177,7 @@ const router = createHashRouter([
       { path: "/profile/fonts", element: <FontTest /> },
       { path: "/profile/system", element: <SystemStatus /> },
       { path: "/receipt/srv/:id", element: <ServerReceipt /> },
+      { path: "/receipt/no/:no", element: <ServerReceipt /> },
       { path: "/profile/language", element: <Language /> },
       { path: "/profile/city", element: <City /> },
       { path: "/profile/favorites", element: <Favorites /> },

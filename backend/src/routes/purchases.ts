@@ -1,7 +1,8 @@
 // B2 · Сатып алу, пакеттер, чектер.
 // Ереже: баға тек серверде есептеледі (клиент жіберген бағаға сенбейміз); бір сатып алу кілті — бір төлем (идемпотенттік);
 // бәрі бір транзакцияда: төлем → пакет → тарих → чек. Қазір төлем сынақ режимінде (ақша жүрмейді).
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { receiptPdf, type PublicReceipt } from "../receipt/pdf.js";
 import { Hono } from "hono";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -76,11 +77,19 @@ export function purchaseRoutes(cfg: Config, db: Db) {
         total: size.price, currency: "KZT",
         payment: { method: body.method, label: methodLabel, ref: pay.externalId, mode: cfg.PAYMENTS_MODE },
         pack: { id: pack.id, validFrom: almaty(now), validUntil: almaty(validUntil), validDays: o.validDays, howToUse: "Мекемеде «Jazl бойынша» деп айтып, кассадағы QR-ды сканерле немесе алдын ала тапсырыс бер" },
-        support: { bot: "@oylarbot" },
+        support: { bot: "@" + cfg.MINIAPP_BOT_USERNAME },
       };
       const internal = {
         version: 1,
         user: { id: user.id, telegramId: user.telegramId, lang: user.lang, city: user.city },
+        // Патша (2026-11-17): клиент туралы толық дерек — аты-жөні, username, телефон (Telegram-да бөліссе)
+        customer: { firstName: user.firstName, lastName: user.lastName, fullName: [user.firstName, user.lastName].filter(Boolean).join(" "), username: user.username ? "@" + user.username : null, phone: user.phone ?? null },
+        item: { title: o.title, units, unitName: o.unitName },
+        // Алу тәсілі, слот, бір реттік код — пакетті қолданғанда (B3: scan | order | plan) толтырылады; сатып алуда жоқ
+        fulfillment: { type: null, slot: null, code: null },
+        status: { current: "paid", history: [{ status: "created", at: now }, { status: "paid", at: paidAt }] },
+        // Клиенттің бағасы (жұлдыз) — бағалағанда осы чекке жазылады (B4)
+        rating: null,
         client: { platform: c.req.header("x-tg-platform") ?? null, tgVersion: c.req.header("x-tg-version") ?? null, appVersion: c.req.header("x-app-version") ?? null, userAgent: c.req.header("user-agent") ?? null,
           ipHash: ip ? createHash("sha256").update(ip).digest("hex").slice(0, 16) : null, authDate: c.get("auth").authDate, startParam: c.get("auth").startParam ?? null },
         offer: { id: o.id, slug: o.slug, venueId: v.id, branchId: branch?.id ?? null, catalogPrice: o.price, sizesOffered: o.sizes ?? null, chosenUnits: units, priceSource: "server" },
@@ -103,14 +112,57 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     return c.json({ ok: true, packs: rows.map(({ p, o }) => packDto(p, o.slug, rcs.find((x) => x.packId === p.id))) });
   });
 
+  r.get("/receipts/no/:no", async (c) => {
+    const no = Number(c.req.param("no").replace(/^JZ-/i, ""));
+    if (!Number.isInteger(no)) return c.json({ ok: false, error: "not_found" }, 404);
+    const [rc] = await db.select().from(receipts).where(and(eq(receipts.no, no), eq(receipts.userId, c.get("user").id))).limit(1);
+    if (!rc) return c.json({ ok: false, error: "not_found" }, 404);
+    return c.json({ ok: true, receipt: publicReceipt(rc, cfg) });
+  });
+
+  // Жүктеу сілтемесі: 1 сағат жарамды, қолтаңбалы (Telegram downloadFile тақырып жібере алмайды, сондықтан кіру — сілтемедегі қолтаңбамен)
+  r.post("/receipts/:id/link", async (c) => {
+    const id = c.req.param("id");
+    const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.id, id), eq(receipts.userId, c.get("user").id))).limit(1);
+    if (!rc) return c.json({ ok: false, error: "not_found" }, 404);
+    const e = Math.floor(Date.now() / 1000) + 3600;
+    const base = cfg.PUBLIC_URL ?? `https://${c.req.header("host")}`;
+    return c.json({ ok: true, url: `${base}/files/receipts/${rc.id}.pdf?e=${e}&s=${signLink(cfg, rc.id, e)}`, fileName: `Jazl-chek-${receiptNo(rc.no)}.pdf` });
+  });
+
   r.get("/receipts/:id", async (c) => {
     const id = c.req.param("id");
     if (!/^[0-9a-f-]{36}$/.test(id)) return c.json({ ok: false, error: "not_found" }, 404);
     const [rc] = await db.select().from(receipts).where(and(eq(receipts.id, id), eq(receipts.userId, c.get("user").id))).limit(1);
     if (!rc) return c.json({ ok: false, error: "not_found" }, 404);
-    return c.json({ ok: true, receipt: { id: rc.id, no: receiptNo(rc.no), kind: rc.kind, total: rc.total, currency: rc.currency, createdAt: rc.createdAt, ...(rc.public as object) } });
+    return c.json({ ok: true, receipt: publicReceipt(rc, cfg) });
   });
 
+  return r;
+}
+
+type ReceiptRow = typeof receipts.$inferSelect;
+export function publicReceipt(rc: ReceiptRow, cfg: Config) {
+  return { id: rc.id, no: receiptNo(rc.no), kind: rc.kind, total: rc.total, currency: rc.currency, createdAt: rc.createdAt, ...(rc.public as object),
+    verifyUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=rc_${rc.no}` };
+}
+export const signLink = (cfg: Config, id: string, e: number) => createHmac("sha256", cfg.BOT_TOKEN).update(`receipt:${id}:${e}`).digest("hex").slice(0, 32);
+
+/** Ашық маршрут: /files/receipts/:id.pdf?e=&s= — қолтаңба мен мерзім тексеріледі, PDF беріледі. */
+export function receiptFileRoutes(cfg: Config, db: Db) {
+  const r = new Hono();
+  r.get("/receipts/:file", async (c) => {
+    const id = c.req.param("file").replace(/\.pdf$/, "");
+    const e = Number(c.req.query("e")); const s = c.req.query("s") ?? "";
+    if (!/^[0-9a-f-]{36}$/.test(id) || !e || e < Date.now() / 1000) return c.text("Сілтеменің мерзімі өтті", 410);
+    const want = Buffer.from(signLink(cfg, id, e)); const got = Buffer.from(s);
+    if (want.length !== got.length || !timingSafeEqual(want, got)) return c.text("Сілтеме жарамсыз", 403);
+    const [rc] = await db.select().from(receipts).where(eq(receipts.id, id)).limit(1);
+    if (!rc) return c.text("Чек табылмады", 404);
+    const pub = publicReceipt(rc, cfg) as unknown as PublicReceipt;
+    const pdf = await receiptPdf(pub);
+    return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Jazl-chek-${pub.no}.pdf"`, "Cache-Control": "private, max-age=600" } });
+  });
   return r;
 }
 

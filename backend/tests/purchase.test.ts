@@ -38,6 +38,8 @@ d("B2 сатып алу", () => {
     const r = await dbh.pool.query("select internal from app.receipts where id = $1", [j.receipt.id]);
     expect(r.rows[0].internal.money).toMatchObject({ jazlFee: 600, venuePayout: 5400 });
     expect(r.rows[0].internal.client).toMatchObject({ platform: "android", userAgent: "vitest" });
+    expect(r.rows[0].internal.customer).toMatchObject({ fullName: "Сатып алушы", username: null, phone: null });
+    expect(r.rows[0].internal).toMatchObject({ item: { title: "Тауық донері · 4 дана", units: 4 }, fulfillment: { type: null }, status: { current: "paid" }, rating: null });
   });
   it("сол кілтпен қайта жіберсе — екінші төлем жоқ", async () => {
     const a = await (await buy({ offerSlug: "doner", idempotencyKey: "key-0002-abcdef" })).json();
@@ -55,6 +57,21 @@ d("B2 сатып алу", () => {
   it("аяқталған ұсыныс — 409; клиент бағасы қабылданбайды — 400", async () => {
     expect((await buy({ offerSlug: "burger", idempotencyKey: "key-0005-abcdef" })).status).toBe(409);
     expect((await buy({ offerSlug: "doner", price: 1, idempotencyKey: "key-0006-abcdef" })).status).toBe(400);
+  });
+  it("чек нөмірмен ашылады; PDF сілтемесі қолтаңбалы: дұрысы — PDF, бұрмаланғаны — 403", async () => {
+    const list = await (await app.request("/v1/packs", { headers: h() })).json();
+    const { id, no } = list.packs[0].receipt;
+    const byNo = await (await app.request("/v1/receipts/no/" + no, { headers: h() })).json();
+    expect(byNo.receipt.verifyUrl).toBe(`https://t.me/oylarbot?startapp=rc_${no.slice(3)}`);
+    const link = await (await app.request(`/v1/receipts/${id}/link`, { method: "POST", headers: { ...h(), Host: "api.example" } })).json();
+    expect(link.fileName).toBe(`Jazl-chek-${no}.pdf`);
+    const path = link.url.replace("https://api.example", "");
+    const pdf = await app.request(path);
+    expect(pdf.status).toBe(200);
+    expect(pdf.headers.get("content-type")).toBe("application/pdf");
+    expect(Buffer.from(await pdf.arrayBuffer()).subarray(0, 4).toString()).toBe("%PDF");
+    expect((await app.request(path.replace(/s=[0-9a-f]/, "s=0"))).status).toBe(403);
+    expect((await app.request(path.replace(/e=\d+/, "e=1"))).status).toBe(410);
   });
   it("пакеттер тізімі және бөтен чекті көру мүмкін емес", async () => {
     const list = await (await app.request("/v1/packs", { headers: h() })).json();
