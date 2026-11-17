@@ -7,11 +7,11 @@ import type { OfferKind } from "../mocks/offers";
 
 export type Role = "owner" | "manager" | "cashier";
 export interface StaffOf {
-  venue: { id: string; slug: string; name: string; kind: OfferKind; city: string; logoUrl: string | null; coverUrl: string | null; rating: number | null; reviews: number; branchesTotal: number };
+  venue: { id: string; slug: string; name: string; kind: OfferKind; status?: string; statusNote?: string | null; city: string; logoUrl: string | null; coverUrl: string | null; rating: number | null; reviews: number; branchesTotal: number };
   role: Role; status: "active" | "pending"; branchId: string | null; branches: { id: string; address: string }[];
 }
 export interface Use { id: string; kind: "scan" | "order"; at: string; units: number; title: string; slug: string; customer: string; branch: string; branchId: string; orderNo: number | null; amount: number; venueAmount: number; cancelled: boolean; canCancel: boolean }
-export interface Dashboard { today: number; yesterday: number; series: number[]; revenueToday: number; revenueYesterday: number; cashierToday: number; cashierRevenue: number; activePacks: number; unitsLeft: number; recent: Use[] }
+export interface Dashboard { total?: number; record?: number; offers?: number; cashiers?: number; complaints?: number; today: number; yesterday: number; series: number[]; revenueToday: number; revenueYesterday: number; cashierToday: number; cashierRevenue: number; activePacks: number; unitsLeft: number; recent: Use[] }
 export interface VOrder { id: string; no: number; type: "now" | "plan"; status: string; scheduledAt: string | null; courier: boolean; title: string; customer: string; branch: string; branchId: string; createdAt: string; code: string; slug: string; doneAt: string | null }
 export interface VOffer { id: string; slug: string; title: string; photo?: string | null; kind: OfferKind; unitName: string; status: "active" | "paused" | "draft" | "review" | "ended"; sold: number; validDays: number; sizes: number[]; fromPrice: number; unitPrice: number }
 export interface StaffRow { userId: string; name: string; username: string | null; photoUrl: string | null; role: Role; status: "active" | "pending"; branch: string | null; branchId: string | null; since: string; lastSeen: string }

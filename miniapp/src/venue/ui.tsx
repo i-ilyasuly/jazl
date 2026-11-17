@@ -8,6 +8,7 @@ import { Emo } from "../ui/Emo";
 import { Sticker, type StickerName } from "../ui/Sticker";
 import type { OfferKind } from "../mocks/offers";
 import { useCurrent, type Role } from "./api";
+import { NewOrderBanner, SysScreen, useSys } from "./States";
 import homeIcon from "../assets/icons/navHome.svg";
 import qrIcon from "../assets/icons/navQr.svg";
 import packsIcon from "../assets/icons/navPacks.svg";
@@ -21,12 +22,15 @@ export function VPage({ title, back, children, tab, className }: { title?: strin
   const go = useGo();
   const onBack = useCallback(() => (back ? go(-1, "back") : go("/profile", "fade")), [back, go]);
   useBackButton(onBack, Boolean(back));
+  const [sys, retry] = useSys();
+  if (sys) return <SysScreen sys={sys} retry={retry} />; // Figma 13: желі жоқ, сессия аяқталды, техникалық жұмыстар
   return (
     <div className={`${s.page} ${title ? s.sub : ""} ${tab ? "" : s.navless} ${className ?? ""}`}>
       <TelegramChrome mode={back ? "back" : "close"} onBack={onBack} />
       {title && <h1 className={s.pageTitle}>{title}</h1>}
       {children}
       {tab && <VNav active={tab} />}
+      {tab && <NewOrderBanner />}
     </div>
   );
 }

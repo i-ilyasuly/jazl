@@ -20,7 +20,12 @@ export async function api<T>(path: string, init: RequestInit = {}, timeoutMs = 6
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
     const res = await fetch(API_URL + path, { ...init, headers, signal: ctl.signal });
     const j = await res.json().catch(() => ({}));
-    if (!res.ok) throw Object.assign(new Error(j?.error ?? "http_" + res.status), { status: res.status, body: j });
+    if (!res.ok) {
+      // Жүйелік күйлер (Figma 13): сессия аяқталды, техникалық жұмыстар — мекеме бөлімі арнайы бет көрсетеді
+      if (res.status === 401 && j?.reason === "expired") window.dispatchEvent(new CustomEvent("jazl:sys", { detail: "session" }));
+      if (res.status === 503 && j?.error === "maintenance") window.dispatchEvent(new CustomEvent("jazl:sys", { detail: "maintenance" }));
+      throw Object.assign(new Error(j?.error ?? "http_" + res.status), { status: res.status, body: j });
+    }
     return j as T;
   } finally { clearTimeout(t); }
 }

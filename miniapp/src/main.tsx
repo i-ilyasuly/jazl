@@ -61,6 +61,8 @@ import { VBranchEdit, VBranches } from "./venue/Branches";
 import { VReviews } from "./venue/Reviews";
 import { VGuide, VProfile, VSettings, VSupport } from "./venue/Settings";
 import { VApplyIntro, VApplyStatus, VApplyStep, VApplyTerms } from "./venue/Apply";
+import { VComplaint, VComplaints, VExpired } from "./venue/Complaints";
+import { VAchievement } from "./venue/States";
 import { loadStaff } from "./venue/api";
 import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
@@ -248,6 +250,10 @@ const router = createHashRouter([
       { path: "/v/menu", element: <VMenu /> },
       { path: "/v/branches", element: <VBranches /> },
       { path: "/v/reviews", element: <VReviews /> },
+      { path: "/v/complaints", element: <VComplaints /> },
+      { path: "/v/complaints/:id", element: <VComplaint /> },
+      { path: "/v/expired", element: <VExpired /> },
+      { path: "/v/achieve/:kind", element: <VAchievement /> },
       { path: "/v/profile", element: <VProfile /> },
       { path: "/v/settings", element: <VSettings /> },
       { path: "/v/support", element: <VSupport /> },

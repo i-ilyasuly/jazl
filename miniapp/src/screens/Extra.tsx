@@ -7,7 +7,7 @@ import { useParams } from "react-router-dom";
 import { fmt, unitPrice } from "../mocks/offers";
 import { useGo } from "../nav";
 import { getPack, offerOf, usePacks } from "../store";
-import { haptic, inTelegram, useBackButton, useBottomButtons, type BottomAction } from "../telegram";
+import { nativeAlert, haptic, inTelegram, useBackButton, useBottomButtons, type BottomAction } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Group, SubPage } from "../ui/SubPage";
@@ -39,7 +39,17 @@ export function Complaint() {
   const [why, setWhy] = useState(0);
   const [text, setText] = useState("");
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); go(-1, "back"); } }), [go]);
-  const main = useMemo(() => ({ text: "Жіберу", onClick: () => { haptic.success(); go("/complaint/done", "up", { replace: true }); } }), [go]);
+  const [busy, setBusy] = useState(false);
+  // Серверге жіберу (Figma «16 · Шағым»): мекеме 24 сағат ішінде қайтарады не жауап береді. Үлгі пакетте (сервер id-сыз) — тек демо.
+  const main = useMemo(() => ({ text: busy ? "Жіберілуде…" : "Жіберу", disabled: busy || text.trim().length < 5, onClick: async () => {
+    if (text.trim().length < 5) { haptic.error(); return; }
+    if (/^[0-9a-f-]{36}$/.test(packId)) {
+      setBusy(true);
+      try { await api("/v1/complaints", { method: "POST", body: JSON.stringify({ packId, reason: reasons[why], text: text.trim() }) }); }
+      catch (e) { setBusy(false); haptic.error(); const k = (e as { body?: { error?: string } }).body?.error; nativeAlert(k === "already_open" ? "Бұл пакет бойынша шағым қаралып жатыр." : "Жіберілмеді. Қайталап көріңіз."); return; }
+    }
+    haptic.success(); go("/complaint/done", "up", { replace: true });
+  } }), [go, busy, text, why, packId]);
   if (!pack || !o) return <SubPage title="Шағым жіберу"><p className={`t-sub2 ${b.empty}`}>Пакет табылмады</p></SubPage>;
   const last = pack.history.find((h) => h.title.includes("пайдаланылды"));
   return (

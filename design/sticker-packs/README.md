@@ -34,3 +34,5 @@ python3 -c "import gzip,sys; open(sys.argv[2],'wb').write(gzip.open(sys.argv[1])
 | painter | HD 4919867 | Ұсыныс құру: негізгі фото |
 | headset | HD 4919836 | Қолдау |
 | reader | HD 4919909 | Кассаға нұсқау |
+| trophy | HD 4919809 | Жетістік: 100 қолдану |
+| disco | FS 4919670 | Жетістік: рекорд күн |

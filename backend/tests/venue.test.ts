@@ -207,4 +207,30 @@ d("C мекеме бөлімі", () => {
     expect(pdf.headers.get("content-type")).toBe("application/pdf");
     expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 5))).toBe("%PDF-");
   });
+  it("шағым: клиент жібереді → мекеме қайтарады (бірлік оралады) не жауаппен қайтармайды; мерзімі өткен пакеттер; жетістік санақтары", async () => {
+    const p = await buy(740);
+    expect((await post("/v1/redeem", { packId: p, qr: "JZB1:" + branchId, units: 2, idempotencyKey: key() }, 740)).status).toBe(200);
+    const c1 = await json(post("/v1/complaints", { packId: p, reason: "Қате дана", text: "Бір алдым, екі дана кетті" }, 740));
+    expect(c1.complaint.status).toBe("new");
+    expect((await post("/v1/complaints", { packId: p, text: "Тағы бір шағым" }, 740)).status).toBe(409);
+    const list = await json(get(`/v1/venue/${venueId}/complaints`, 701));
+    expect(list.complaints[0]).toMatchObject({ id: c1.complaint.id, status: "new", units: 2 });
+    expect((await post(`/v1/venue/${venueId}/complaints/${c1.complaint.id}/resolve`, { action: "refund", reply: "Кешіріңіз" }, 702)).status).toBe(403);
+    const r = await json(post(`/v1/venue/${venueId}/complaints/${c1.complaint.id}/resolve`, { action: "refund", reply: "Кешіріңіз" }, 701));
+    expect(r.returned).toBe(2);
+    expect((await dbh.pool.query("select units_left from app.packs where id = $1", [p])).rows[0].units_left).toBe(4);
+    const p2 = await buy(741);
+    const c2 = await json(post("/v1/complaints", { packId: p2, text: "Дәмі ұнамады" }, 741));
+    expect((await post(`/v1/venue/${venueId}/complaints/${c2.complaint.id}/resolve`, { action: "reject" }, 701)).status).toBe(400); // себебі керек
+    expect((await post(`/v1/venue/${venueId}/complaints/${c2.complaint.id}/resolve`, { action: "reject", reply: "Тексердік, қате жоқ" }, 701)).status).toBe(200);
+    // мерзімі өткен: біреуі күтуде (1 күн бұрын), біреуі есептелген (10 күн бұрын)
+    const e1 = await buy(742); const e2 = await buy(743);
+    await dbh.pool.query("update app.packs set valid_until = now() - interval '1 day' where id = $1", [e1]);
+    await dbh.pool.query("update app.packs set valid_until = now() - interval '10 days' where id = $1", [e2]);
+    const ex = await json(get(`/v1/venue/${venueId}/expired`, 701));
+    expect(ex.items.find((x: { id: string }) => x.id === e1)).toMatchObject({ state: "waiting", daysLeft: 2, units: 4 });
+    expect(ex.items.find((x: { id: string }) => x.id === e2)).toMatchObject({ state: "credited" });
+    const dash = (await json(get(`/v1/venue/${venueId}/dashboard`, 701))).dashboard;
+    expect(dash.total).toBeGreaterThan(0); expect(dash).toHaveProperty("record"); expect(dash.offers).toBeGreaterThan(0);
+  });
 });

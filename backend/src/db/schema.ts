@@ -50,6 +50,8 @@ export const venues = app.table("venues", {
   gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
   tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
   status: venueStatus("status").notNull().default("draft"),
+  /** Jazl+ мекемені тоқтатса — себебі (Figma «Мекеме уақытша тоқтатылды») */
+  statusNote: text("status_note"),
   createdAt: created(),
 }, (t) => [uniqueIndex("venues_slug").on(t.slug)]);
 
@@ -122,6 +124,8 @@ export const offers = app.table("offers", {
   rules: jsonb("rules"),
   promoted: boolean("promoted").notNull().default(false),
   status: offerStatus("status").notNull().default("draft"),
+  /** Jazl+ тексерушісінің ескертуі (Figma «Ұсыныс: түзету сұралды»): { text, field, at } */
+  reviewNote: jsonb("review_note"),
   createdAt: created(),
 }, (t) => [uniqueIndex("offers_slug").on(t.slug), index("offers_venue").on(t.venueId)]);
 
@@ -312,3 +316,20 @@ export const venueDocs = app.table("venue_docs", {
   bytes: bytea("bytes").notNull(),
   createdAt: created(),
 }, (t) => [index("venue_docs_app").on(t.applicationId)]);
+
+/** Клиенттің шағымы (Figma «16 · Шағым: клиенттен түсті»): мекеме 24 сағат ішінде жауап береді — қайтару не қайтармау.
+ *  status: new → refunded | rejected. Қайтаруда байланысты қолдану (redemption) жойылып, бірлік пакетке оралады. */
+export const complaints = app.table("complaints", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  venueId: uuid("venue_id").notNull().references(() => venues.id),
+  packId: uuid("pack_id").notNull().references(() => packs.id),
+  redemptionId: uuid("redemption_id").references(() => redemptions.id),
+  reason: text("reason"),
+  text: text("text").notNull(),
+  status: text("status").notNull().default("new"),
+  reply: text("reply"),
+  decidedBy: uuid("decided_by").references(() => users.id),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  createdAt: created(),
+}, (t) => [index("complaints_venue").on(t.venueId, t.status)]);
