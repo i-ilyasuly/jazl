@@ -88,10 +88,10 @@ export function Paid() {
   const o = offerOf(pack);
   return (
     <ResultScreen
-      title="Төлем өтті" paid={`${units > 1 ? units + " дана · " : ""}${fmt(Math.round(o.price / o.units) * units)} • ${o.venue}`}
+      title="Қолданылды" paid={`${units} ${o.unitWord} пакетіңнен жұмсалды • ${o.venue}`}
       cardTitle={o.title} cardSub={o.address || o.venue} kind={o.kind}
       total={pack.total} used={pack.total - pack.left} counter={`${pack.left} / ${pack.total} қалды`}
-      next="Терминал төлемді растады, тамағыңды алуға болады"
+      next={o.kind === "hair" ? "Шеберге айт: «Jazl бойынша»" : "Кассирге айт: «Jazl бойынша» — тапсырысыңды ал"}
       main={{ text: "Дайын", onClick: toPacks }} secondary={{ text: "Чекті көру", onClick: receipt }} onClose={toPacks}
     />
   );

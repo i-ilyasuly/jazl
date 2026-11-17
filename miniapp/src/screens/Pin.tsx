@@ -31,9 +31,10 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
   const change = mode === "change";
   const paying = mode === "pay";
   const scanning = mode === "scan"; // Патша (2026-11-17): PIN сканерлеуден бұрын
+  const confirming = mode === "confirm"; // тапсырыс/жоспар алдындағы растау: сәтті болса — артқа, батырманы қайта басады
   const locState = useLocation().state as { packId?: string; sum?: string } | null;
   const payInfo = paying ? locState : null;
-  const [step, setStep] = useState<Step>(change || paying || unlocking || scanning ? "old" : "new");
+  const [step, setStep] = useState<Step>(change || paying || unlocking || scanning || confirming ? "old" : "new");
   const [wait, setWait] = useState(0);
   const [code, setCode] = useState("");
   const [first, setFirst] = useState("");
@@ -55,6 +56,7 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
     if (code.length < 4) return;
     if (step === "old") {
       if (checkPin(code) && unlocking) { haptic.success(); setTimeout(unlockApp, 200); }
+      else if (checkPin(code) && confirming) { haptic.success(); markPinOk(); setTimeout(() => go(-1, "back"), 200); }
       else if (checkPin(code) && scanning) { haptic.success(); markPinOk(); setTimeout(() => openScanner(go, locState?.packId, true), 200); }
       else if (checkPin(code) && paying) { haptic.success(); setTimeout(() => { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); else back(); }, 250); }
       else if (checkPin(code)) next("new");
@@ -74,7 +76,7 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
 
   const press = (d: string) => { if (code.length >= 4 || wait) return; haptic.tap(); setError(""); setCode(code + d); };
   const del = () => { if (!code) return; haptic.soft(); setCode(code.slice(0, -1)); };
-  const bio = async () => { if (step !== "old" || !st.bio || wait) return; if ((await biometricAuth(unlocking ? "Jazl+ қолданбасын ашу" : scanning ? "Сканерлеуді растау" : paying ? "Төлемді растау" : "PIN-кодты өзгерту")) !== "ok") return; if (unlocking) { haptic.success(); unlockApp(); } else if (scanning) { haptic.success(); markPinOk(); openScanner(go, locState?.packId, true); } else if (paying) { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); } else next("new"); };
+  const bio = async () => { if (step !== "old" || !st.bio || wait) return; if ((await biometricAuth(unlocking ? "Jazl+ қолданбасын ашу" : scanning ? "Сканерлеуді растау" : paying ? "Төлемді растау" : "PIN-кодты өзгерту")) !== "ok") return; if (unlocking) { haptic.success(); unlockApp(); } else if (scanning) { haptic.success(); markPinOk(); openScanner(go, locState?.packId, true); } else if (confirming) { haptic.success(); markPinOk(); go(-1, "back"); } else if (paying) { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); } else next("new"); };
 
   // Нақты пернетақтадан да теруге болады (десктоп Telegram)
   useEffect(() => {
@@ -88,13 +90,13 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
       <TelegramChrome mode="close" onBack={back} />
       {/* Figma: «PIN / 3 Қолданба құлыпталған» — сейф ұстаған үйрек, «4 Қате код» — ойланған үйрек (146,96 120×120) */}
       {step === "old" && <Sticker key={error ? "think" : "lock"} name={error ? "think" : "lock"} className={s.sticker} />}
-      <h1 key={step} className={s.title}>{unlocking ? "Қолданба құлыпталған" : scanning ? "Сканерлеу алдында растаңыз" : paying ? "Төлемді растаңыз" : titles[step]}</h1>
+      <h1 key={step} className={s.title}>{unlocking ? "Қолданба құлыпталған" : scanning || confirming ? "Растаңыз" : paying ? "Төлемді растаңыз" : titles[step]}</h1>
       <div key={shake} className={`${s.boxes} ${shake ? s.shake : ""}`}>
         {[0, 1, 2, 3].map((i) => (
           <span key={i} className={`${s.box} ${i === code.length && !error ? s.active : ""}`}>{i < code.length && <i className={error ? s.bad : ""} />}</span>
         ))}
       </div>
-      <p className={`t-sub2 ${s.hint} ${error || wait ? s.err : ""}`}>{(wait ? `Тым көп қате әрекет. ${wait} секундтан кейін қайтала` : error) || (scanning ? "Төлем QR-ын сканерлеу үшін PIN енгіз" : paying ? "Төлемді растау үшін PIN енгіз" : step === "old" && !st.bio ? "PIN енгіз" : hints[step])}</p>
+      <p className={`t-sub2 ${s.hint} ${error || wait ? s.err : ""}`}>{(wait ? `Тым көп қате әрекет. ${wait} секундтан кейін қайтала` : error) || (scanning ? "QR сканерлеу үшін PIN енгіз" : confirming ? "Бірлікті жұмсау үшін PIN енгіз" : paying ? "Төлемді растау үшін PIN енгіз" : step === "old" && !st.bio ? "PIN енгіз" : hints[step])}</p>
       {paying && payInfo?.sum && <p className={s.sum}>{payInfo.sum}</p>}
       <div className={s.keys}>
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => <button key={d} className={s.key} onClick={() => press(d)}>{d}</button>)}

@@ -1,15 +1,22 @@
 // Сканерді ашу ағыны (Патша, 2026-11-17): экран құлпы қосулы болса — PIN сканерлеуден БҰРЫН сұралады,
 // содан кейін Telegram-ның нативті сканері ашылады; QR оқылса — төлем парағы (/scan?via=qr&qr=…).
 import type { NavigateOptions } from "react-router-dom";
-import { getSettings, hasPin, pinFresh } from "./store";
-import { scanQrNative } from "./telegram";
+import { getSettings, hasPin, markPinOk, pinFresh } from "./store";
+import { biometricAuth, scanQrNative } from "./telegram";
 import type { Dir } from "./nav";
 
 type Go = (to: string | number, dir?: Dir, opts?: NavigateOptions) => void;
 
+/** Бірлік жұмсар алдындағы растау (Патша, 2026-11-17): алдымен саусақ ізі / Face ID, өтпесе — PIN беті.
+ *  Растау 5 минут жарамды. "ok" — жалғастыра бер; "pin" — PIN бетіне жіберу керек. */
+export async function confirmSpend(): Promise<"ok" | "pin"> {
+  if (!(getSettings().lock && hasPin()) || pinFresh()) return "ok";
+  if (getSettings().bio && (await biometricAuth("Бірлікті жұмсауды растау")) === "ok") { markPinOk(); return "ok"; }
+  return "pin";
+}
+
 export function startScan(go: Go, packId?: string) {
-  if (getSettings().lock && hasPin() && !pinFresh()) { go("/profile/pin/scan", "up", { state: { packId } }); return; }
-  openScanner(go, packId);
+  void confirmSpend().then((r) => (r === "ok" ? openScanner(go, packId) : go("/profile/pin/scan", "up", { state: { packId } })));
 }
 
 /** replace — PIN бетінен шақырылғанда (PIN беті тарихта қалмайды). */

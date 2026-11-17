@@ -112,6 +112,20 @@ d("B3 қолдану", () => {
     expect(rc.status.current).toBe("cancelled");
     expect(rc.fulfillment.type).toBe("plan");
   });
+  it("кассир 10 минут ішінде қолдануды бас тарта алады — бірлік қайтады; екінші рет — 409", async () => {
+    await app.request("/v1/me", { headers: h(901) });
+    await dbh.pool.query("insert into app.venue_staff (venue_id, user_id, role) select v.id, u.id, 'cashier' from app.venues v, app.users u where v.slug='damdi' and u.telegram_id=901 on conflict do nothing");
+    const p = await buy();
+    await post("/v1/redeem", { packId: p, qr: makeDynamicQr(TOKEN, damdiBranch, 2).payload, units: 2, idempotencyKey: key() });
+    expect((await left(p)).units_left).toBe(2);
+    const list = await (await app.request("/v1/venue/redemptions", { headers: h(901) })).json();
+    const rd = list.redemptions[0];
+    expect(rd).toMatchObject({ units: 2, canCancel: true });
+    expect((await post(`/v1/venue/redemptions/${rd.id}/cancel`, {}, 901)).status).toBe(200);
+    expect((await left(p)).units_left).toBe(4);
+    expect((await post(`/v1/venue/redemptions/${rd.id}/cancel`, {}, 901)).status).toBe(409);
+    expect((await post(`/v1/venue/redemptions/${rd.id}/cancel`, {}, 601)).status).toBe(404); // клиенттің өзі бас тарта алмайды
+  });
   it("кассир: персонал емес — 403; дұрыс код — тапсырыс беріледі; қате код — 404", async () => {
     const p = await buy();
     const o = await (await post("/v1/orders", { packId: p, type: "now", idempotencyKey: key() })).json();

@@ -35,18 +35,17 @@ export function Security() {
   return (
     <SubPage title="Қауіпсіздік" variant="settings">
       <Group i={0}>
-        <Row inset={16} title="Экран құлпы" sub="PIN-код немесе биометрия" right={<Switch on={st.lock} onChange={toggleLock} />} />
+        <Row inset={16} title="Бірлік жұмсағанда растау" sub="Саусақ ізі / Face ID, болмаса PIN" right={<Switch on={st.lock} onChange={toggleLock} />} />
         <Row inset={16} dim={off} title="PIN-ді өзгерту" onClick={() => go("/profile/pin/change", "up")} />
         <Row inset={16} dim={off} title="Биометрия" sub={bioSub} right={<Switch on={st.bio} onChange={toggleBio} />} />
-        <Row inset={16} dim={off} title="Автоқұлып" onClick={pickTime} right={<span key={st.autolock} className={`t-text ${s.value}`}>{lockTimes.find((t) => t.id === st.autolock)?.text}</span>} />
       </Group>
       <h2 className={`t-sub2 w-600 ${s.section} rise`} style={{ ["--i" as string]: 1 }}>Қашан сұралады</h2>
       <Group i={1}>
         <Row inset={16} dim={off} title="Сақталған картамен төлеу" right={<Switch on={st.onCard} onChange={(v) => setSettings({ onCard: v })} />} />
         <Row inset={16} dim={off} title="Төлем тәсілдерін өзгерту" right={<Switch on={st.onMethods} onChange={(v) => setSettings({ onMethods: v })} />} />
-        <Row inset={16} dim={off} title="Қолданбаны ашқанда" sub="Құлып уақыты өткенде" right={<Switch on={st.onOpen} onChange={(v) => setSettings({ onOpen: v })} />} />
+        <Row inset={16} dim={off} title="QR, тапсырыс, жоспар" sub="Бірлік жұмсалар алдында · 5 минут жарамды" right={<span className={`t-text ${s.value}`}>әрқашан</span>} />
       </Group>
-      <Note>Экран құлпы төлем қауіпсіздігі үшін: PIN төлемді растағанда сұралады. PIN-ді ұмытсаң, Telegram аккаунтың арқылы қалпына келтіре аласың.</Note>
+      <Note>Қолданба ашылғанда құлып сұралмайды — пакеттерді көру қауіпсіз. Растау бірлік жұмсалатын сәтте ғана сұралады: алдымен саусақ ізі не Face ID, өтпесе PIN. PIN-ді ұмытсаң, Telegram аккаунтың арқылы қалпына келтіре аласың.</Note>
     </SubPage>
   );
 }

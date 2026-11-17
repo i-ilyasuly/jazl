@@ -314,10 +314,11 @@ let locked = false;
 export const useLocked = () => useSyncExternalStore(subscribe, () => locked);
 /** PIN сканерлеу алдында сұралады (Патша, 2026-11-17); расталған соң 3 минут бойы төлемде қайта сұралмайды. */
 let pinOkUntil = 0;
-export const markPinOk = () => { pinOkUntil = Date.now() + 3 * 60_000; };
+export const markPinOk = () => { pinOkUntil = Date.now() + 5 * 60_000; };
 export const pinFresh = () => Date.now() < pinOkUntil;
 export function unlockApp() { locked = false; emit(); }
-const lockOn = () => settings.lock && settings.onOpen && pin !== null;
+// Патша (2026-11-17): ашқандағы құлып алынды — растау тек бірлік жұмсағанда (scanFlow.confirmSpend). Демо: #…lock=1
+const lockOn = () => false;
 void Promise.all([kv.get("jazl_pin_h"), kv.get("jazl_settings")]).then(([h, st]) => {
   if (h) pin = h;
   if (st) { try { settings = { ...settings, ...JSON.parse(st) }; } catch { /* бұзылған мән */ } }

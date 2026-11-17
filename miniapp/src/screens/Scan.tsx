@@ -59,33 +59,31 @@ export function Scan() {
     if (info?.expired) { toState("expired"); return; }
     if (qrVenue && venuePacks.length === 0) toState("othervenue", "&v=" + encodeURIComponent(qrVenue));
   }, [qrInfo, qrVenue, venuePacks.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Дана саны: кассир енгізгені (динамикалық QR) — өзгермейді; банк сомасынан — клиент «+» басып теңестіреді
-  const [units, setUnits] = useState(1);
-  useEffect(() => { setUnits(qrUnits ?? 1); }, [qr, qrUnits]);
 
-  // Сол мекемедегі белсенді пакеттер: QR сомасына бағасы сәйкес келетіндерін ғана таңдауға болады
-  const amount = pack ? unitPrice(offerOf(pack)) : 0;
+
+  // Патша (2026-11-17, «бір жанасу»): мекемедегі пакеттер; әдепкіде мерзімі ең жақын біткелі тұрғаны (бірлік күйіп кетпесін).
+  // Бір ғана пакет болса — таңдау жолы көрсетілмейді. Ақша көрсетілмейді: клиент пакеттегі бірлікті жұмсайды, төлемейді.
+  const amount = pack ? unitPrice(offerOf(pack)) : 0; // 1 бірліктің бағасы — тек банк сомасынан дананы есептеуге
   const opts = useMemo(() => {
     if (!pack) return [];
     const venue = offerOf(pack).venue;
     const emoji = { food: "🍔", coffee: "☕", hair: "✂️" };
     const list = packs.filter((p) => p.left > 0 && !p.expired && offerOf(p).venue === venue)
-      .sort((a, b) => (a.id === pack.id ? -1 : b.id === pack.id ? 1 : 0))
-      .map((p) => { const po = offerOf(p); const price = unitPrice(po); const ok = price === amount;
-        return { id: p.id, emoji: emoji[po.kind], title: po.title, sub: `Қалды: ${p.left} • ${ok ? p.daysLeft + " күн қалды" : "сома сәйкес емес"}`, price, ok, left: p.left, total: p.total }; });
-    if (demo === "multi" && list.length < 2) list.push(
-      { id: "demo-1", emoji: "🌯", title: "Донер комбо · 8 дана", sub: "Қалды: 5 • 24 күн қалды", price: amount, ok: true, left: 5, total: 8 },
-      { id: "demo-2", emoji: "🥙", title: "Қой етінен донер · 4 дана", sub: "Қалды: 4 • сома сәйкес емес", price: amount + 300, ok: false, left: 4, total: 4 });
+      .sort((a, b) => (wanted && a.id === wanted.id ? -1 : wanted && b.id === wanted.id ? 1 : a.daysLeft - b.daysLeft))
+      .map((p) => { const po = offerOf(p); return { id: p.id, emoji: emoji[po.kind], title: po.title, sub: `Қалды: ${p.left} ${po.unitWord} • ${p.daysLeft} күн`, price: unitPrice(po), word: po.unitWord, ok: true, left: p.left, total: p.total }; });
+    if (demo === "multi" && list.length < 2) list.push({ id: "demo-1", emoji: "🌯", title: "Донер комбо · 8 дана", sub: "Қалды: 5 комбо • 24 күн", price: amount, word: "комбо", ok: true, left: 5, total: 8 });
     return list;
-  }, [pack, packs, amount, demo]);
+  }, [pack, packs, amount, demo, wanted]);
   const [sel, setSel] = useState("");
-  const chosen = opts.find((x) => x.id === sel && x.ok) ?? opts[0];
+  const chosen = opts.find((x) => x.id === sel) ?? opts[0];
   const multi = opts.length > 1;
-  // Банк терминалы: кассадағы сома → неше дана (1 бірлік бағасына бөлінсе)
+  // Дана санын клиент өзгертпейді: Jazl QR — кассир енгізгені; банк QR — сома ÷ 1 бірлік бағасы; тұрақты QR — 1
   const chosenPrice = chosen?.price ?? amount;
   const needUnits = qrAmount && chosenPrice ? (qrAmount % chosenPrice === 0 ? qrAmount / chosenPrice : -1) : null;
-  const unitsOk = needUnits === null ? true : needUnits === units;
-  const maxUnits = Math.min(10, chosen?.left ?? pack?.left ?? 1);
+  const units = qrUnits ?? (needUnits && needUnits > 0 ? needUnits : 1);
+  const unitsOk = needUnits !== -1 && units <= (chosen?.left ?? 0);
+  const word = chosen?.word ?? (pack ? offerOf(pack).unitWord : "бірлік");
+  useEffect(() => { if (found && needUnits === -1) toState("amount"); }, [found, needUnits]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const close = useCallback(() => go(-1, "back"), [go]);
   useBackButton(close);
@@ -119,12 +117,13 @@ export function Scan() {
   }, [found, detect, close, toState, nativeClosed]);
 
   const pay = useMemo(() => ({
-    text: !pack ? "Төлеу" : !unitsOk ? `Алдымен ${needUnits} дана таңдаңыз` : units > 1 ? `Төлеу · ${units} дана` : `Төлеу · ${unitLabel(pack)}`,
+    text: !pack ? "Растау" : !unitsOk ? "Бірлік жеткіліксіз" : `Растау · ${units} ${word}`,
     disabled: !unitsOk,
     onClick: () => {
       if (!pack || busy) return;
       if (needUnits === -1) { haptic.error(); toState("amount"); return; }
       if (!unitsOk) { haptic.warning(); return; }
+      if (!chosen) return;
       haptic.medium();
       const packId = chosen && getPack(chosen.id) ? chosen.id : pack.id;
       // PIN қосулы болса, төлем PIN-мен расталады (Figma «PIN: төлемді растау»)
@@ -145,7 +144,7 @@ export function Scan() {
       void redeemOnServer(packId, qr, units).then((r) => {
         if (!r) { setTimeout(() => finish(), 1200); return; }
         if (r.ok) { srvLeft = r.left; finish(); return; }
-        if (r.error === "units_mismatch" && r.expectedUnits) { tg?.MainButton?.hideProgress?.(); setBusy(false); haptic.warning(); setUnits(r.expectedUnits); return; }
+        if (r.error === "units_mismatch") { finish("amount"); return; }
         if (r.error === "other_venue") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/othervenue?v=${encodeURIComponent(r.venue ?? "")}`, "up", { replace: true }); return; }
         const map: Record<string, ScanKind> = { not_jazl_qr: "notqr", bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
         finish(map[r.error] ?? "fail");
@@ -174,7 +173,7 @@ export function Scan() {
       )}
       {!native && <>
       <TelegramChrome mode="close" onBack={close} onDark />
-      <h1 className={s.title}>Төлем QR-ын сканерле</h1>
+      <h1 className={s.title}>Кассадағы QR-ды сканерле</h1>
       <p className={`t-sub2 ${s.hint}`}>Кассадағы терминал экранындағы QR-ды рамкаға келтір</p>
       <button className={s.frame} onClick={detect} aria-label="QR рамкасы"><img src={frame} width={260} height={260} alt="" /></button>
       {!found && <span className={s.line} />}
@@ -187,13 +186,13 @@ export function Scan() {
       {found && pack && o && (
         <>
           <div className={s.scrim} />
-          <div className={s.sheet} role="dialog" aria-label="Төлем">
+          <div className={s.sheet} role="dialog" aria-label="Қолдану">
             <span className={s.grabber} />
             {busy ? (
               <div className={s.wait}>
-                <h2>Төлем өңделуде</h2>
-                <p>Банк растауын күтеміз. Қолданбаны жаппа және қайта төлеме.</p>
-                <b>{fmt(amount)} • {o.venue}</b>
+                <h2>Расталуда…</h2>
+                <p>Бірнеше секунд. Қолданбаны жаппа.</p>
+                <b>{units} {word} • {o.venue}</b>
               </div>
             ) : extra ? <>
             <h2 className={s.sheetTitle}>Төлемді растаңыз</h2>
@@ -203,41 +202,36 @@ export function Scan() {
             <p className={`t-sub2 w-600 ${s.extraChip}`}>Қосымша {fmt(extra)} кассада төленеді</p>
             <p className={`${s.quote} infoBox`}>Пакет баламасынан бір дана ғана шегеріледі. Қосымша сома пакеттен тыс, мекеменің кассасында төленеді.<i>”</i></p>
             </> : <>
-            <h2 className={s.sheetTitle}>Төлем</h2>
+            <h2 className={s.sheetTitle}>Қолдану</h2>
             <div className={s.venue}>
               <span className={s.avatar} />
-              <span className={s.venueText}><span className="t-headline">{o.venue}</span><span className={s.packSub}>{info?.branch.address ?? o.address ?? ""} • {qrUnits ? "Jazl QR" : qrAmount ? "Банк QR" : "QR"}</span></span>
-              <span className={s.amount}>{unitLabel(pack)}</span>
+              <span className={s.venueText}><span className="t-headline">{o.venue}</span><span className={s.packSub}>{info?.branch.address ?? o.address ?? ""}</span></span>
             </div>
             {switched && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Бұл QR — {qrVenue} мекемесінікі. Сол мекемедегі пакетің таңдалды.<i>”</i></p>}
-            <p className={`t-sub2 w-600 ${s.link}`}>{multi ? "Қай пакеттен шегереміз?" : "Пакетті таңда"}</p>
+            {multi && <p className={`t-sub2 w-600 ${s.link}`}>Қай пакеттен?</p>}
             <div className={s.opts}>
-              {opts.map((x) => (
-                <button key={x.id} className={`${s.pack} ${chosen?.id === x.id ? s.packOn : ""}`} disabled={!x.ok} onClick={() => { if (chosen?.id !== x.id) { haptic.select(); setSel(x.id); } }}>
+              {multi ? opts.map((x) => (
+                <button key={x.id} className={`${s.pack} ${chosen?.id === x.id ? s.packOn : ""}`} onClick={() => { if (chosen?.id !== x.id) { haptic.select(); setSel(x.id); } }}>
                   <span className={s.emoji}><Emo e={x.emoji} size={28} /></span>
                   <span className={s.packText}><span className={s.packTitle}>{x.title}</span><span className={s.packSub}>{x.sub}</span></span>
-                  <span className={s.packPrice}>{fmt(x.price)}</span>
                   {chosen?.id === x.id && <span className={s.radio}><span /></span>}
                 </button>
-              ))}
-            </div>
-            {/* Дана саны: кассир енгізген (өзгермейді) не банк сомасы бойынша клиент таңдайды */}
-            <div className={s.units}>
-              <span className={s.unitsText}><b>Дана</b><small>{qrUnits ? "Кассир енгізді" : needUnits ? `Кассадағы сома: ${fmt(qrAmount ?? 0)}` : "Бір сканерлеуде"}</small></span>
-              {qrUnits ? <b className={s.unitsFixed}>{units}</b> : (
-                <span className={s.stepper}>
-                  <button aria-label="Азайту" disabled={units <= 1} onClick={() => { haptic.select(); setUnits(units - 1); }}>−</button>
-                  <b>{units}</b>
-                  <button aria-label="Көбейту" disabled={units >= maxUnits} onClick={() => { haptic.select(); setUnits(units + 1); }}>+</button>
-                </span>
+              )) : chosen && (
+                <div className={`${s.pack} ${s.packOn}`}>
+                  <span className={s.emoji}><Emo e={chosen.emoji} size={28} /></span>
+                  <span className={s.packText}><span className={s.packTitle}>{chosen.title}</span><span className={s.packSub}>{chosen.sub}</span></span>
+                </div>
               )}
             </div>
-            {needUnits !== null && needUnits > 0 && !unitsOk && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Кассадағы сома {fmt(qrAmount ?? 0)} = {needUnits} × {fmt(chosenPrice)}. «+» батырмасымен {needUnits} дана таңдап, сосын төле — әйтпесе төлем өтпейді.<i>”</i></p>}
-            {needUnits === -1 && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Кассадағы сома {fmt(qrAmount ?? 0)} пакеттің 1 бірлік бағасына ({fmt(chosenPrice)}) еселі емес. Кассирден соманы түзетуін сұра.<i>”</i></p>}
+            {/* Дана: клиент өзгертпейді (Патша) — кассир енгізгені не кассадағы сомадан есептелгені */}
+            <div className={s.units}>
+              <span className={s.unitsText}><b>Жұмсалады</b><small>{qrUnits ? "Кассир енгізді" : needUnits ? "Кассадағы сома бойынша" : "Бір сканерлеуде"}</small></span>
+              <b className={s.unitsFixed}>{units} {word}</b>
+            </div>
             <div className={s.rows}>
-              <p><span className={s.muted}>Шегеріледі</span><b>{units} бірлік</b></p>
               <p><span className={s.muted}>Қалады</span><b>{Math.max(0, (chosen?.left ?? pack.left) - units)} / {chosen?.total ?? pack.total}</b></p>
             </div>
+            {!unitsOk && needUnits !== -1 && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Пакетте {chosen?.left ?? 0} {word} қалды — {units} {word} жұмсауға жетпейді. Кассирге айт.<i>”</i></p>}
             </>}
             {!inTelegram && (
               <div className={`${s.bar} ${extra ? s.bar2 : ""}`}>
