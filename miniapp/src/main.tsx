@@ -125,7 +125,7 @@ function Shell() {
   const locked = useLocked();
   // Патша (2026-11-17): «Medeo» жүктелу экраны алынды — баптаулар оқылғанша (CloudStorage, ~50–200 мс) бос фон ғана
   if (onboarded === null) return <div className="app" />;
-  if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/v/") && path !== "/v" && !path.startsWith("/a")) return <Navigate to="/welcome" replace />;
+  if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/v/") && path !== "/v" && !path.startsWith("/a") && !path.startsWith("/legal")) return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
       <FirstVisit key={path}><Outlet /></FirstVisit>
@@ -223,6 +223,8 @@ const router = createHashRouter([
       { path: "/welcome/doc/:id", element: <Doc /> },
       { path: "/welcome/carry", element: <CarryRules /> }, // тіркелмеген адамға да ашылады (бұрын /welcome-ге қайта лақтыратын)
       { path: "/profile/doc/:id", element: <Doc /> },
+      { path: "/legal", element: <Terms /> }, // ашық: тіркелусіз (төлем провайдері сайтты тексергенде)
+      { path: "/legal/:id", element: <Doc /> },
       { path: "/kyc", element: <Kyc /> },
       { path: "/profile/venue", element: <Navigate to="/v/apply" replace /> }, // ескі қысқа өтінім → Figma «02 · Тіркелу»
       { path: "/profile/venue/done", element: <VenueDone /> },

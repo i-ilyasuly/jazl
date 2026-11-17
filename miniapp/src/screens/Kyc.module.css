@@ -16,3 +16,4 @@
 .draft { padding: 0 16px; color: var(--text-secondary); }
 :global(:root[data-theme="dark"]) .note { background: rgba(34, 154, 240, 0.18); }
 :global(:root[data-theme="dark"]) .errText, :global(:root[data-theme="dark"]) .bad span { color: #fff; }
+.fill { background: rgba(255, 196, 0, 0.28); color: inherit; border-radius: 4px; padding: 0 2px; }
