@@ -9,7 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { catalogState } from "../catalog";
 import { fmt, unitPrice } from "../mocks/offers";
-import { getPack, hasPin, offerOf, redeem, redeemOnServer, resolveQr, unitLabel, usePacks, useSettings, type QrInfo } from "../store";
+import { applyServerUse, getPack, hasPin, offerOf, pinFresh, redeem, redeemOnServer, resolveQr, unitLabel, usePacks, useSettings, type QrInfo } from "../store";
 import { scanEarly, scanStates, type ScanKind } from "./ScanState";
 import { haptic, inTelegram, tg, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -128,20 +128,23 @@ export function Scan() {
       haptic.medium();
       const packId = chosen && getPack(chosen.id) ? chosen.id : pack.id;
       // PIN қосулы болса, төлем PIN-мен расталады (Figma «PIN: төлемді растау»)
-      if (lock && hasPin()) { go("/profile/pin/pay", "up", { state: { packId, sum: `${unitLabel(pack)} • ${offerOf(pack).venue}` } }); return; }
+      // PIN енді сканерлеуден бұрын сұралады (scanFlow.startScan); мұнда — тек сол растау ескірсе (3 мин)
+      if (lock && hasPin() && !pinFresh()) { go("/profile/pin/scan", "up", { state: { packId }, replace: true }); return; }
       setBusy(true);
       tg?.MainButton?.showProgress?.(false);
       const qr = params.get("qr") ?? "";
+      let srvLeft: number | undefined;
       const finish = (err?: ScanKind) => {
         tg?.MainButton?.hideProgress?.();
         if (err) { setBusy(false); haptic.error(); toState(err); return; }
-        redeem(packId, units); haptic.success(); go("/paid/" + packId, "up", { replace: true });
+        if (srvLeft !== undefined) applyServerUse(packId, srvLeft, units); else redeem(packId, units);
+        haptic.success(); go(`/paid/${packId}?u=${units}`, "up", { replace: true });
       };
       if (demoKind) { setTimeout(() => finish(demoKind), 1600); return; }
       // B3: пакет серверде болса — бірлік серверде шегеріледі (QR мекемені анықтайды); қате болса — тиісті күй беті
       void redeemOnServer(packId, qr, units).then((r) => {
         if (!r) { setTimeout(() => finish(), 1200); return; }
-        if (r.ok) { finish(); return; }
+        if (r.ok) { srvLeft = r.left; finish(); return; }
         if (r.error === "units_mismatch" && r.expectedUnits) { tg?.MainButton?.hideProgress?.(); setBusy(false); haptic.warning(); setUnits(r.expectedUnits); return; }
         if (r.error === "other_venue") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/othervenue?v=${encodeURIComponent(r.venue ?? "")}`, "up", { replace: true }); return; }
         const map: Record<string, ScanKind> = { not_jazl_qr: "notqr", bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
@@ -203,7 +206,7 @@ export function Scan() {
             <h2 className={s.sheetTitle}>Төлем</h2>
             <div className={s.venue}>
               <span className={s.avatar} />
-              <span className={s.venueText}><span className="t-headline">{o.venue}</span><span className={s.packSub}>Нұркен Әбдіров, 24 • Бірыңғай QR</span></span>
+              <span className={s.venueText}><span className="t-headline">{o.venue}</span><span className={s.packSub}>{info?.branch.address ?? o.address ?? ""} • {qrUnits ? "Jazl QR" : qrAmount ? "Банк QR" : "QR"}</span></span>
               <span className={s.amount}>{unitLabel(pack)}</span>
             </div>
             {switched && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Бұл QR — {qrVenue} мекемесінікі. Сол мекемедегі пакетің таңдалды.<i>”</i></p>}

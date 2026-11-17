@@ -2,7 +2,8 @@
 // Main/Secondary/Back/Settings батырмалары бар), сондықтан жолақты өзіміз саламыз:
 // әйнек (glass) фон, сырғитын «тамшы», басқанда ойнайтын белгіше анимациясы.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { haptic, kv, scanQrNative, tg } from "../telegram";
+import { haptic, kv, tg } from "../telegram";
+import { startScan } from "../scanFlow";
 import { useGo } from "../nav";
 import { useUnread } from "../store";
 import homeIcon from "../assets/icons/navHome.svg";
@@ -49,7 +50,7 @@ export function NavBar({ active }: { active: TabKey }) {
   const act = (i: number) => {
     const t = tabs[i]; if (!t || t.key === active) return;
     haptic.select();
-    if (t.key === "scan") { const r = scanQrNative(); if (r) { void r.then((qr) => { if (qr !== false) go("/scan?via=qr&qr=" + encodeURIComponent(qr), "up"); }); return; } }
+    if (t.key === "scan") { startScan(go); return; }
     go(t.to, "fade");
   };
   // Әйнек «линза» (iOS 26 / Telegram iOS сияқты): табты басып тұрып оңға-солға жылжытса, таңдау саусақпен бірге жүреді,

@@ -15,10 +15,11 @@
 .gallery { left: 256px; }
 .on { background: rgba(255, 213, 79, 0.9); }
 
-.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); animation: fade 0.24s ease both; }
+.scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); animation: fade 0.24s ease both; }
 @keyframes fade { from { opacity: 0; } }
-.sheet { position: absolute; left: 0; bottom: 0; width: 412px; padding: 28px 16px 82px; border-radius: 16px 16px 0 0; background: #fff; color: var(--text-strong); display: flex; flex-direction: column; gap: 12px; animation: up 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
-:global(:root[data-env="telegram"]) .sheet { padding-bottom: 24px; }
+/* Патша (2026-11-17): парақ экранның астына бекітіледі және толық көрінеді (бұрын 917px бет биіктігінің астында қалып, жартысы көрінбейтін) */
+.sheet { position: fixed; z-index: 20; left: 50%; margin-left: -206px; bottom: 0; width: 412px; max-height: calc(100vh - 56px); overflow-y: auto; overscroll-behavior: contain; padding: 28px 16px calc(82px + var(--safe-b, 0px)); border-radius: 16px 16px 0 0; background: #fff; color: var(--text-strong); display: flex; flex-direction: column; gap: 12px; animation: up 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+:global(:root[data-env="telegram"]) .sheet { padding-bottom: calc(24px + var(--safe-b, 0px)); }
 @keyframes up { from { transform: translateY(100%); } }
 .grabber { position: absolute; left: 188px; top: 8px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
 .venue { display: flex; align-items: center; gap: 12px; height: 48px; }
