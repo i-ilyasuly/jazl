@@ -151,6 +151,9 @@ export const redemptions = app.table("redemptions", {
   /** Бір сканерлеуде неше бірлік (кассир енгізген не банк сомасынан есептелген) */
   units: smallint("units").notNull().default(1),
   idempotencyKey: text("idempotency_key"),
+  /** Кассир 10 минут ішінде бас тартса (қате мекеме/дана) — бірлік пакетке қайтады */
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  cancelledBy: uuid("cancelled_by").references(() => users.id),
   createdAt: created(),
 }, (t) => [index("redemptions_pack").on(t.packId), uniqueIndex("redemptions_idem").on(t.packId, t.idempotencyKey)]);
 

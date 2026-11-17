@@ -222,6 +222,37 @@ export function usageRoutes(cfg: Config, db: Db) {
     return c.json({ ok: true, ...makeDynamicQr(cfg.BOT_TOKEN, br.id, b.data.units) });
   });
 
+  // Кассирге соңғы қолданулар (30 мин) және 10 минут ішінде бас тарту — клиент қате мекеме/дана растаса
+  const CANCEL_MS = 10 * 60_000;
+  r.get("/venue/redemptions", async (c) => {
+    const vs = await staffVenues(c.get("user").id);
+    if (!vs.length) return c.json({ ok: false, error: "not_staff" }, 403);
+    const rows = await db.select({ rd: redemptions, off: offers, u: users, b: branches }).from(redemptions).innerJoin(branches, eq(redemptions.branchId, branches.id))
+      .innerJoin(packs, eq(redemptions.packId, packs.id)).innerJoin(offers, eq(packs.offerId, offers.id)).innerJoin(users, eq(packs.userId, users.id))
+      .where(and(inArray(branches.venueId, vs), gt(redemptions.createdAt, new Date(Date.now() - 30 * 60_000)))).orderBy(desc(redemptions.createdAt));
+    return c.json({ ok: true, redemptions: rows.map((x) => ({ id: x.rd.id, units: x.rd.units, title: x.off.title, customer: x.u.firstName, at: x.rd.createdAt, cancelled: Boolean(x.rd.cancelledAt),
+      canCancel: !x.rd.cancelledAt && Date.now() - x.rd.createdAt.getTime() < CANCEL_MS })) });
+  });
+  r.post("/venue/redemptions/:id/cancel", async (c) => {
+    const staff = c.get("user");
+    const vs = await staffVenues(staff.id);
+    try {
+      const out = await db.transaction(async (tx) => {
+        const res = await tx.execute(sql`select r.*, b.venue_id as "venueId" from app.redemptions r join app.branches b on b.id = r.branch_id where r.id = ${c.req.param("id")} for update of r`);
+        const rd = res.rows[0] as { id: string; pack_id: string; units: number; created_at: Date; cancelled_at: Date | null; venueId: string } | undefined;
+        if (!rd || !vs.includes(rd.venueId)) throw new UseError("not_found", 404);
+        if (rd.cancelled_at) throw new UseError("already_cancelled");
+        if (Date.now() - new Date(rd.created_at).getTime() > CANCEL_MS) throw new UseError("too_late");
+        await tx.update(redemptions).set({ cancelledAt: new Date(), cancelledBy: staff.id }).where(eq(redemptions.id, rd.id));
+        await tx.execute(sql`update app.packs set units_left = units_left + ${rd.units}, status = case when status = 'used' then 'active' else status end where id = ${rd.pack_id}`);
+        await tx.insert(packEvents).values({ packId: rd.pack_id, type: "use_cancelled", unitsDelta: rd.units, meta: { redemptionId: rd.id, by: staff.id } });
+        await tx.execute(sql`update app.receipts set internal = jsonb_set(jsonb_set(internal, '{status,current}', '"cancelled"'), '{status,history}', (internal->'status'->'history') || jsonb_build_object('status','cancelled','at', now(), 'by', ${staff.id}::text)) where internal->>'redemptionId' = ${rd.id}`);
+        return { returned: rd.units };
+      });
+      return c.json({ ok: true, ...out });
+    } catch (e) { return fail(c, e); }
+  });
+
   // Филиалдың касса QR-ы (басып шығаруға): тек осы мекеменің персоналына
   r.get("/venue/branches/:id/qr", async (c) => {
     const vs = await staffVenues(c.get("user").id);

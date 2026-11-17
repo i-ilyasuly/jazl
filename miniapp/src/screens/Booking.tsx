@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useGo } from "../nav";
+import { confirmSpend } from "../scanFlow";
 import { atOf, book, bookLabel, cancelBooking, dayWord, freeCancel, getBooking, getPack, moveBooking, offerOf, useBookings, usePacks } from "../store";
 import { haptic, inTelegram, tg, useBackButton, useBottomButtons, type BottomAction } from "../telegram";
 import { Confirm } from "../ui/Confirm";
@@ -162,13 +163,17 @@ export function BookConfirm() {
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); go(-1, "back"); } }), [go]);
   const main = useMemo(() => ({ text: "Растау", shine: true, disabled: busyNow, onClick: () => {
     if (busyNow) return;
-    haptic.medium(); setBusyNow(true); tg?.MainButton?.showProgress?.(false);
+    haptic.medium();
+    void confirmSpend().then((c) => {
+    if (c === "pin") { go("/profile/pin/confirm", "up"); return; }
+    setBusyNow(true); tg?.MainButton?.showProgress?.(false);
     setTimeout(() => {
       tg?.MainButton?.hideProgress?.();
       const b = book(packId, at);
       if (!b) { haptic.error(); go(`/order/state/nounits/${packId}`, "up", { replace: true }); return; }
       haptic.success(); go("/book/done/" + b.id, "up", { replace: true });
     }, 900);
+    });
   } }), [busyNow, go, packId, at]);
   if (!pack || !o) return <SubPage title="Растау"><p className={`t-sub2 ${s.empty}`}>Пакет табылмады</p></SubPage>;
   const hair = o.kind === "hair";

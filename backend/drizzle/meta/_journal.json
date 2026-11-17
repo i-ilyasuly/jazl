@@ -29,6 +29,13 @@
       "when": 1794873054608,
       "tag": "0003_redemption_units",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794875916712,
+      "tag": "0004_redemption_cancel",
+      "breakpoints": true
     }
   ]
 }

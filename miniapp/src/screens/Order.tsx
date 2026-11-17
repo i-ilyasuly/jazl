@@ -6,6 +6,7 @@ import { Emo } from "../ui/Emo";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useGo } from "../nav";
+import { confirmSpend } from "../scanFlow";
 import { branches, getPack, offerOf, placeOrder, usePacks } from "../store";
 import { haptic, inTelegram, tg, useBottomButtons } from "../telegram";
 import { SubPage } from "../ui/SubPage";
@@ -69,6 +70,10 @@ export function Order() {
   const send = useMemo(() => ({ text: hair ? "Жазылу" : "Тапсырыс беру", shine: true, onClick: () => {
     if (!pack || !b || sending) return;
     haptic.medium();
+    void confirmSpend().then((c) => { if (c === "pin") { go("/profile/pin/confirm", "up"); return; } doSend(); });
+  } }), [pack, b, sending, time, hair, day, go]); // eslint-disable-line react-hooks/exhaustive-deps
+  function doSend() {
+    if (!pack || !b) return;
     setSending(true);
     tg?.MainButton?.showProgress?.(false);
     setTimeout(() => {
@@ -80,7 +85,7 @@ export function Order() {
       haptic.success();
       go("/order/done/" + order.id, "up", { replace: true });
     }, 1400);
-  } }), [pack, b, sending, time, hair, day, go]);
+  }
   const sendOk = useMemo(() => (!nowOk ? { ...send, disabled: true, onClick: () => { haptic.error(); setShake((n) => n + 1); } } : send), [nowOk, send]);
   useBottomButtons(sendOk, undefined, Boolean(pack) && !picking);
 
