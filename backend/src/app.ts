@@ -4,7 +4,8 @@ import { cors } from "hono/cors";
 import { sql } from "drizzle-orm";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
-import { users } from "./db/schema.js";
+import { users, venues } from "./db/schema.js";
+import { guidePdf } from "./receipt/guide.js";
 import { validateInitData } from "./auth/telegram.js";
 import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
@@ -30,6 +31,15 @@ export function createApp(cfg: Config, db: Db) {
   // Ашық маршруттар (кірусіз): чек PDF (қолтаңбалы сілтеме), каталог
   app.route("/files", receiptFileRoutes(cfg, db));
   app.route("/media", localMediaRoutes(cfg)); // тек MEDIA_DIR болғанда (жергілікті)
+  // «Кассаға нұсқау» PDF (ашық: ішінде тек мекеме атауы мен мини апп сілтемесі бар)
+  app.get("/files/guide/:file", async (c) => {
+    const id = c.req.param("file").replace(/\.pdf$/, "");
+    if (!/^[0-9a-f-]{36}$/.test(id)) return c.notFound();
+    const [v] = await db.select({ name: venues.name }).from(venues).where(sql`${venues.id} = ${id}`).limit(1);
+    if (!v) return c.notFound();
+    const pdf = await guidePdf(v.name, `https://t.me/${cfg.MINIAPP_BOT_USERNAME}`);
+    return c.body(new Uint8Array(pdf), 200, { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Jazl-kassa.pdf"` });
+  });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db));
 

@@ -110,16 +110,16 @@ export function VMenu() {
   if (!me) return <VPage back><Sk h={160} /></VPage>;
   const owner = me.role === "owner";
   const rows: { e: string; t: string; sub?: string; on: () => void; hide?: boolean }[][] = [[
-    { e: "v:venue", t: "Мекеме профилі", on: soon, hide: !owner },
+    { e: "v:venue", t: "Мекеме профилі", on: () => go("/v/profile"), hide: !owner },
     { e: "v:branch", t: "Филиалдар", sub: `${me.venue.branchesTotal} филиал`, on: () => go("/v/branches"), hide: me.role === "cashier" },
     { e: "v:team", t: "Команда", on: () => go("/v/team"), hide: me.role === "cashier" },
     { e: "v:orders", t: "Алдын ала тапсырыстар", on: () => go("/v/orders") },
     { e: "v:integration", t: "Интеграция", on: soon, hide: !owner },
     { e: "v:reviews", t: "Пікірлер", sub: `${me.venue.reviews} пікір`, on: () => go("/v/reviews"), hide: me.role === "cashier" },
   ], [
-    { e: "v:guide", t: "Кассаға нұсқау", on: () => nativeAlert("1) «Кассир» → клиенттің пакетін таңда.\n2) «QR шығар» — клиент Jazl+ сканерімен оқиды.\n3) Қосымша тауарды клиент кассада бөлек төлейді.") },
-    { e: "v:settings", t: "Баптаулар", on: soon },
-    { e: "v:support", t: "Қолдау", on: () => openChat(SUPPORT_BOT) },
+    { e: "v:guide", t: "Кассаға нұсқау", on: () => go("/v/guide") },
+    { e: "v:settings", t: "Баптаулар", on: () => go("/v/settings") },
+    { e: "v:support", t: "Қолдау", on: () => go("/v/support") },
     { e: "v:client", t: "Клиент режиміне өту", on: () => go("/", "fade") },
   ]];
   return (

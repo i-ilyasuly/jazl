@@ -194,4 +194,17 @@ d("C мекеме бөлімі", () => {
     const nr = await json(get(`/v1/venue/${venueId}/reviews?filter=noreply`, 701));
     expect(nr.items.find((x: { id: string }) => x.id === it.id)).toBeUndefined();
   });
+  it("мекеме профилі (тек иесі), баптаулар (әр қызметкерге), кассаға нұсқау PDF", async () => {
+    const prof = { about: "Үй донері", logoUrl: null, coverUrl: null, gallery: [], tags: ["Тағам", "Донер"] };
+    expect((await app.request(`/v1/venue/${venueId}/profile`, { method: "PUT", headers: h(702), body: JSON.stringify(prof) })).status).toBe(403);
+    expect((await app.request(`/v1/venue/${venueId}/profile`, { method: "PUT", headers: h(701), body: JSON.stringify(prof) })).status).toBe(200);
+    expect((await json(get(`/v1/venue/${venueId}/profile`, 702))).profile).toMatchObject({ about: "Үй донері", tags: ["Тағам", "Донер"] });
+    expect((await json(get(`/v1/venue/${venueId}/prefs`, 702))).prefs.pin).toBe(false);
+    await app.request(`/v1/venue/${venueId}/prefs`, { method: "PUT", headers: h(702), body: JSON.stringify({ newReview: false, paymentSent: true, orderFailed: true, offerEnding: false, pin: true }) });
+    expect((await json(get(`/v1/venue/${venueId}/prefs`, 702))).prefs).toMatchObject({ pin: true, newReview: false });
+    expect((await json(get(`/v1/venue/${venueId}/prefs`, 701))).prefs.pin).toBe(false);
+    const pdf = await app.request(`/files/guide/${venueId}.pdf`);
+    expect(pdf.headers.get("content-type")).toBe("application/pdf");
+    expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 5))).toBe("%PDF-");
+  });
 });
