@@ -4,7 +4,7 @@ import { api } from "../api";
 export type CheckoutCard = { id: string } | { cryptogram: string; save?: boolean };
 export interface SrvPurchase { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null }
 export type CheckoutResult =
-  | { status: "paid"; paymentId: string; pack: SrvPurchase }
+  | { status: "paid"; paymentId: string; pack: SrvPurchase; gift?: { code: string } | null; carried?: number }
   | { status: "action_required"; paymentId: string; confirmUrl: string }
   | { status: "failed"; paymentId?: string; reason: string };
 
@@ -12,8 +12,8 @@ const newKey = () => (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + 
 
 async function call(path: string, init: RequestInit): Promise<CheckoutResult> {
   try {
-    const j = await api<{ status: string; paymentId: string; pack?: SrvPurchase; confirmUrl?: string }>(path, init, 20000);
-    if (j.status === "paid" && j.pack) return { status: "paid", paymentId: j.paymentId, pack: j.pack };
+    const j = await api<{ status: string; paymentId: string; pack?: SrvPurchase; confirmUrl?: string; gift?: { code: string } | null; carried?: number }>(path, init, 20000);
+    if (j.status === "paid" && j.pack) return { status: "paid", paymentId: j.paymentId, pack: j.pack, gift: j.gift ?? null, carried: j.carried };
     return { status: "action_required", paymentId: j.paymentId, confirmUrl: j.confirmUrl ?? "" };
   } catch (e) {
     const b = (e as { body?: { error?: string; reason?: string; paymentId?: string } }).body;
@@ -38,3 +38,10 @@ export const failText: Record<string, string> = {
   "3ds_failed": "Банк растауы өтпеді.", limit: "Карта лимиті асып кетті.", fraud: "Банк қауіпсіздік үшін төлемді тоқтатты.",
   provider_error: "Төлем жүйесі уақытша жауап бермеді.", network: "Желі үзілді. Қайталап көр.", card_not_found: "Карта табылмады. Басқа картаны таңда.",
 };
+
+/** Ақылы ұзарту картамен (бэкенд: POST /v1/packs/:id/extend) — жауап сатып алумен бірдей: төленді / банк растауы / өтпеді */
+export const extendCard = (packId: string, days: number, card: CheckoutCard) =>
+  call(`/v1/packs/${packId}/extend`, { method: "POST", body: JSON.stringify({ days, card, idempotencyKey: newKey() }) });
+
+/** Банк растауы бетінен (/pay/3ds) оралғанда — қайта алу, сыйлық, ұзарту өз ісін жалғастырады (сатып алу бетінің өз жолы бар) */
+export const pendingPay = new Map<string, (r: Extract<CheckoutResult, { status: "paid" }>) => void>();

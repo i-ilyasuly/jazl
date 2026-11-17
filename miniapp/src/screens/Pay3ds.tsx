@@ -3,29 +3,36 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
-import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
+import { haptic, inTelegram, nativeAlert, useBackButton, useBottomButtons } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { adoptPurchase } from "../store";
-import { paymentStatus, testConfirm, type CheckoutResult } from "../pay/checkout";
+import { failText, paymentStatus, pendingPay, testConfirm, type CheckoutResult } from "../pay/checkout";
 import { api } from "../api";
 import s from "./PayResult.module.css";
 
 export function Pay3ds() {
   const { id = "" } = useParams();
   const q = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
-  const offer = q.get("offer") ?? ""; const label = q.get("label") ?? "Карта"; const wait = q.get("wait") === "1";
+  const offer = q.get("offer") ?? ""; const label = q.get("label") ?? "Карта"; const wait = q.get("wait") === "1"; const back = q.get("back") === "1";
   const go = useGo();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [amount, setAmount] = useState<number | null>(null);
   const done = useCallback((r: CheckoutResult) => {
     // Банктен startapp арқылы оралса (offer белгісіз) — ұсынысты сервер жауабынан аламыз
+    // Қайта алу / сыйлық / ұзарту: артқа (бастапқы бетке) оралып, сол беттің әрекетін жалғастырамыз
+    const pend = pendingPay.get(id);
+    if (pend && back) {
+      if (r.status === "paid") { pendingPay.delete(id); haptic.success(); go(-1, "back"); setTimeout(() => pend(r), 350); return true; }
+      if (r.status === "failed") { pendingPay.delete(id); haptic.error(); go(-1, "back"); setTimeout(() => nativeAlert(`Төлем өтпеді. ${failText[r.reason] ?? failText.declined}`), 350); return true; }
+      return false;
+    }
     const off = offer || (r.status === "paid" ? r.pack.offerSlug : "");
     if (r.status === "paid") { adoptPurchase(off, r.pack, label); haptic.success(); go(`/success/${off}`, "up", { replace: true }); return true; }
     if (r.status === "failed") { haptic.error(); go(off ? `/pay/fail/${off}?r=${encodeURIComponent(r.reason)}` : "/packs", "up", { replace: true }); return true; }
     return false;
-  }, [go, offer, label]);
+  }, [go, offer, label, id, back]);
   useEffect(() => { void api<{ amount?: number }>(`/v1/payments/${id}`).then((j) => setAmount(j.amount ?? null)).catch(() => null); }, [id]);
   // Банк бетінде растау (нақты провайдер): нәтиже вебхукпен серверге келеді — 2 секунд сайын сұраймыз
   useEffect(() => {

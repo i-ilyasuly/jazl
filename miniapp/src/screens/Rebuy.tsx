@@ -1,6 +1,7 @@
 // Figma «11 · Қайта алу және мерзімін ұзарту»: «Қайта алу / Бірліктер көшеді» 13886:31503,
 // «Мерзімі өткен» 13886:31655, «Баға өзгерді» 13886:31773, «Сәтті» 13886:31931, «Көшіру ережесі» 13918:8306.
 // Өлшемдер — UI kit шкаласы (17/22, 15/20, 13/16) және 4/8px тор (шет 16, жол 48/68, бұрыш 12/20).
+import { checkoutCard } from "../pay/checkout";
 import { kindPic } from "../ui/Emo";
 import { useCallback, useMemo } from "react";
 import { useLocation, useParams } from "react-router-dom";
@@ -33,10 +34,11 @@ export function Rebuy() {
   const payOffer = useMemo(() => (o ? { ...o, price } : null), [o, price]);
   const pay = useCallback(() => {
     if (!pack || !payOffer) return;
-    flow.pay(payOffer, () => {
-      const nid = rebuyPack(pack.id, price, flow.method?.title);
+    // Карта + серверде пакет бар → нақты төлем (ескі пакеттің қалғаны серверде көшеді); әйтпесе — бұрынғы жол
+    flow.pay(payOffer, (r) => {
+      const nid = rebuyPack(pack.id, price, flow.method?.title, r?.pack);
       if (nid) go("/rebuy/done/" + nid, "fade", { replace: true, state: { paid: price } });
-    });
+    }, pack.serverId ? (card) => checkoutCard(o!.id, card, { fromPackId: pack.serverId, methodLabel: flow.method?.title }) : undefined);
   }, [pack, payOffer, price, flow, go]);
   const main = useMemo(() => ({ text: `Төлеу · ${fmt(price)}`, shine: true, onClick: pay }), [price, pay]);
   useBottomButtons(main, undefined, Boolean(pack) && !flow.sheetOpen);

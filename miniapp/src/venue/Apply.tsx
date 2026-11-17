@@ -268,7 +268,7 @@ export function VApplyTerms() {
       <p className={s.muted} style={{ marginTop: -6 }}>Толық мәтінді оқып шық</p>
       <div className={s.card}>
         {items.map((t) => <div key={t} className={s.row}><span style={{ width: 32, height: 32, borderRadius: 9, background: "#31d158", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, flex: "none" }}>✓</span><span className={s.rowText}><span className={s.rowTitle} style={{ whiteSpace: "normal", fontSize: 16 }}>{t}</span></span></div>)}
-        <button className={s.row} onClick={() => go("/profile/terms")}><Tile e="v:guide" size={32} /><span className={s.rowText}><span className={s.rowTitle}>Шартты толық оқу</span></span><i className={s.arrow} /></button>
+        <button className={s.row} onClick={() => go("/legal/venue")}><Tile e="v:guide" size={32} /><span className={s.rowText}><span className={s.rowTitle}>Мекеме шартын оқу</span></span><i className={s.arrow} /></button>
       </div>
       <Check on={Boolean(d.agreeTerms)} onChange={(v) => setD({ ...d, agreeTerms: v })}>Қолдану шарттарымен және тарифпен келісемін</Check>
       <Check on={Boolean(d.agreePrivacy)} onChange={(v) => setD({ ...d, agreePrivacy: v })}>Құпиялылық саясатымен келісемін</Check>

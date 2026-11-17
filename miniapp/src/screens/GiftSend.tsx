@@ -2,6 +2,7 @@
 // Өлшемдер Figma-дан емес, 18-ереже бойынша: UI kit шкаласы + 4/8px тор (шет 16, жол 48/68, блок арасы 12).
 // «Сыйлау» — төлем → Telegram-ның нативті контакт/чат таңдау терезесі (WebApp.shareMessage, жоқ болса t.me/share).
 // Mini App контактілер тізімін өзі оқи алмайды: таңдау тек Telegram терезесінде. «Сілтеме» — төлеп, сілтемені көшіру.
+import { checkoutCard, type CheckoutCard } from "../pay/checkout";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { findOffer, fmt } from "../mocks/offers";
@@ -42,11 +43,14 @@ export function GiftSend() {
   useEffect(() => { if (!snack) return; const t = window.setTimeout(() => setSnack(""), 2400); return () => clearTimeout(t); }, [snack]);
 
   const gift = { ...o, title: `Сыйлық · ${o.title}` };
+  // Карта төлемі: сыйлық серверде төлеммен бірге жасалады (код жауапта келеді)
+  const giftCharge = (toUsername?: string) => (card: CheckoutCard) =>
+    checkoutCard(o.id, card, { gift: { message: msg.trim() || undefined, anonymous: anon, toUsername }, methodLabel: flow.method?.title });
   // Төлем → сыйлық жасалады → Telegram-ның контакт/чат тізімі ашылады → сыйлық беті
   const send = useCallback(() => {
     if (to.trim() && !userOk) { haptic.error(); setSnack("Username дұрыс емес: латын әріп, сан, _ (4–32)"); return; }
-    flow.pay(gift, async () => {
-      const gid = sendGift(o.id, msg.trim(), anon, userOk ? user : undefined);
+    flow.pay(gift, async (r) => {
+      const gid = sendGift(o.id, msg.trim(), anon, userOk ? user : undefined, r?.gift?.code);
       await waitGift(gid); // сервердегі код дайын болсын — сілтеме сонымен жіберіледі
       if (userOk) {
         // Алушының чаты ашылады, хабарлама дайын тұрады (сілтеме көшіріледі де — қажет болса қоюға)
@@ -56,15 +60,15 @@ export function GiftSend() {
         if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
       } else await shareGift(gid, o.title);
       go("/profile/gift/" + gid, "fade", { replace: true });
-    });
+    }, giftCharge(userOk ? user : undefined));
   }, [flow, gift, o.id, o.title, msg, anon, go, to, user, userOk]); // eslint-disable-line react-hooks/exhaustive-deps
   // «Сілтеме»: төлем → сілтеме көшіріледі (кез келген мессенджерге жіберуге болады)
-  const byLink = useCallback(() => flow.pay(gift, async () => {
-    const gid = sendGift(o.id, msg.trim(), anon);
+  const byLink = useCallback(() => flow.pay(gift, async (r) => {
+    const gid = sendGift(o.id, msg.trim(), anon, undefined, r?.gift?.code);
     await waitGift(gid);
     try { await navigator.clipboard.writeText(giftLink(gid)); haptic.success(); setSnack("Сілтеме көшірілді"); } catch { await shareGift(gid, o.title); }
     window.setTimeout(() => go("/profile/gift/" + gid, "fade", { replace: true }), 900);
-  }), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, giftCharge()), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
   const main = useMemo(() => ({ text: `Сыйлау · ${fmt(o.price)}`, shine: true, onClick: send }), [o.price, send]);
   const second = useMemo(() => ({ text: "Сілтеме", position: "left" as const, onClick: byLink }), [byLink]);
   useBottomButtons(main, second, !busy);

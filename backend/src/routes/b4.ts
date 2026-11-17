@@ -4,14 +4,16 @@
 // Қайтару: пакеттен бір де бірлік жұмсалмаса және сатып алғанына 14 күн толмаса — толық қайтарылады.
 import { randomUUID } from "node:crypto";
 import { Hono, type Context } from "hono";
-import { and, avg, count, desc, eq, or, sql } from "drizzle-orm";
+import { and, avg, count, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
-import { gifts, offers, packEvents, packs, payments, ratings, receipts, users, venues } from "../db/schema.js";
-import { GIFT_DAYS } from "./purchases.js";
+import { gifts, offers, packEvents, packs, paymentCards, payments, ratings, receipts, users, venues } from "../db/schema.js";
+import { GIFT_DAYS, paymentReply, saveCard } from "./purchases.js";
+import { paymentProvider } from "../payments/index.js";
+import { PaymentError } from "../payments/types.js";
 
 export const EXTEND = [{ days: 7, price: 0 }, { days: 14, price: 1000 }, { days: 30, price: 2000 }] as const;
 const REFUND_DAYS = 14;
@@ -41,29 +43,62 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
   });
 
   // ── Мерзімді ұзарту ──
-  const Extend = z.object({ days: z.union([z.literal(7), z.literal(14), z.literal(30)]), idempotencyKey: z.string().min(8).max(64) }).strict();
+  // Карта (сақталған id не жаңа картаның криптограммасы) — ақылы ұзарту нақты төлем ағынымен (3-D Secure, вебхук); картасыз — сынақ режимі
+  const Extend = z.object({ days: z.union([z.literal(7), z.literal(14), z.literal(30)]), idempotencyKey: z.string().min(8).max(64),
+    card: z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional() }).strict().optional() }).strict();
   r.post("/packs/:id/extend", async (c) => {
     const b = Extend.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const user = c.get("user"); const opt = EXTEND.find((x) => x.days === b.data.days)!;
+    const packId = c.req.param("id");
+    // Қайталанған сұрау (сол кілт) — бұрынғы төлемнің нәтижесі
+    const [prev] = await db.select().from(payments).where(and(eq(payments.userId, user.id), eq(payments.idempotencyKey, b.data.idempotencyKey))).limit(1);
+    if (prev) return c.json(...(await paymentReply(db, user.id, prev, true)));
+    if (opt.price > 0 && b.data.card) {
+      const [p] = await db.select({ p: packs, o: offers }).from(packs).innerJoin(offers, eq(packs.offerId, offers.id)).where(and(eq(packs.id, packId), eq(packs.userId, user.id))).limit(1);
+      if (!p) return c.json({ ok: false, error: "not_found" }, 404);
+      if (p.p.status !== "active" && p.p.status !== "expired") return c.json({ ok: false, error: "pack_" + p.p.status }, 409);
+      if (p.p.unitsLeft < 1) return c.json({ ok: false, error: "no_units" }, 409);
+      const provider = paymentProvider(cfg);
+      let card: { token?: string; cryptogram?: string; save?: boolean; id?: string; label?: string };
+      if (b.data.card.id) {
+        const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, b.data.card.id), eq(paymentCards.userId, user.id), isNull(paymentCards.removedAt))).limit(1);
+        if (!pc) return c.json({ ok: false, error: "card_not_found" }, 404);
+        card = { token: pc.token, id: pc.id, label: `${pc.brand} •• ${pc.last4}` };
+      } else if (b.data.card.cryptogram) card = { cryptogram: b.data.card.cryptogram, save: b.data.card.save ?? false };
+      else return c.json({ ok: false, error: "bad_request" }, 400);
+      const [pay] = await db.insert(payments).values({ userId: user.id, packId, provider: provider.name, method: "card", amount: opt.price, status: "created", idempotencyKey: b.data.idempotencyKey,
+        meta: { kind: "extend", days: opt.days, price: opt.price, methodLabel: card.label ?? "Банк картасы" }, cardId: card.id ?? null }).returning();
+      let res: Awaited<ReturnType<typeof provider.charge>>;
+      try {
+        res = await provider.charge({ paymentId: pay.id, amount: opt.price, description: `Medeo · мерзімді ұзарту +${opt.days} күн`, user: { id: user.id, telegramId: user.telegramId },
+          card: { token: card.token, cryptogram: card.cryptogram, save: card.save }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${pay.id}` });
+      } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
+      if (res.status === "failed") {
+        await db.update(payments).set({ status: "failed", failure: res.reason, externalId: res.externalId ?? null }).where(eq(payments.id, pay.id));
+        return c.json({ ok: false, error: "payment_failed", reason: res.reason, paymentId: pay.id }, 402);
+      }
+      await db.update(payments).set({ externalId: res.externalId, status: res.status === "paid" ? "created" : "pending" }).where(eq(payments.id, pay.id));
+      if (res.status === "action_required") {
+        await db.execute(sql`update app.payments set meta = meta || ${JSON.stringify({ confirmUrl: res.confirmUrl })}::jsonb where id = ${pay.id}`);
+        return c.json({ ok: true, status: "action_required", paymentId: pay.id, confirmUrl: res.confirmUrl }, 202);
+      }
+      if (res.card) await saveCard(db, provider.name, user.id, res.card);
+      const out = await finalizeExtend(db, cfg, pay.id);
+      if ("error" in out) return fail(c, new B4Error(out.error));
+      const [fresh] = await db.select().from(payments).where(eq(payments.id, pay.id));
+      return c.json(...(await paymentReply(db, user.id, fresh)));
+    }
     try {
       const out = await db.transaction(async (tx) => {
-        const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${c.req.param("id")} and p.user_id = ${user.id} for update of p`);
+        const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${packId} and p.user_id = ${user.id} for update of p`);
         const p = res.rows[0] as { id: string; status: string; units_left: number; valid_until: Date; free_extend_used: boolean; venueId: string; title: string } | undefined;
         if (!p) throw new B4Error("not_found", 404);
         if (p.status !== "active" && p.status !== "expired") throw new B4Error("pack_" + p.status);
         if (p.units_left < 1) throw new B4Error("no_units");
         if (opt.price === 0 && p.free_extend_used) throw new B4Error("free_used");
-        const base = Math.max(Date.now(), new Date(p.valid_until).getTime());
-        const until = new Date(base + opt.days * 86400_000);
         const [pay] = opt.price ? await tx.insert(payments).values({ userId: user.id, packId: p.id, provider: cfg.PAYMENTS_MODE, method: "test", amount: opt.price, status: "paid", paidAt: new Date(), externalId: "test_" + randomUUID(), idempotencyKey: b.data.idempotencyKey }).returning() : [undefined];
-        await tx.update(packs).set({ validUntil: until, status: "active", freeExtendUsed: p.free_extend_used || opt.price === 0 }).where(eq(packs.id, p.id));
-        await tx.insert(packEvents).values({ packId: p.id, type: "extend", meta: { days: opt.days, price: opt.price, until } });
-        const now = new Date();
-        const [rc] = await tx.insert(receipts).values({ kind: "extend", userId: user.id, packId: p.id, paymentId: pay?.id, venueId: p.venueId, total: opt.price,
-          public: { title: "Мерзімі ұзартылды", status: opt.price ? "Төленді" : "Тегін", dateLocal: almaty(now), item: { title: p.title, days: opt.days }, newUntil: almaty(until) },
-          internal: { version: 1, days: opt.days, price: opt.price, free: opt.price === 0, oldUntil: p.valid_until, newUntil: until, paymentId: pay?.id ?? null, status: { current: "done", history: [{ status: "done", at: now }] } } }).returning();
-        return { validUntil: until, receipt: { id: rc.id, no: "MD-" + rc.no } };
+        return applyExtend(tx, p, opt.days, opt.price, pay?.id ?? null);
       });
       return c.json({ ok: true, ...out });
     } catch (e) { return fail(c, e); }
@@ -168,3 +203,33 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
   return r;
 }
 export { GIFT_DAYS };
+
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+/** Ұзартуды қолдану (транзакция ішінде): мерзім, тарих, чек */
+async function applyExtend(tx: Tx, p: { id: string; valid_until: Date; free_extend_used: boolean; venueId: string; title: string }, days: number, price: number, paymentId: string | null) {
+  const base = Math.max(Date.now(), new Date(p.valid_until).getTime());
+  const until = new Date(base + days * 86400_000);
+  await tx.update(packs).set({ validUntil: until, status: "active", freeExtendUsed: p.free_extend_used || price === 0 }).where(eq(packs.id, p.id));
+  await tx.insert(packEvents).values({ packId: p.id, type: "extend", meta: { days, price, until, paymentId } });
+  const now = new Date();
+  const [rc] = await tx.insert(receipts).values({ kind: "extend", userId: (await tx.select({ u: packs.userId }).from(packs).where(eq(packs.id, p.id)))[0].u, packId: p.id, paymentId, venueId: p.venueId, total: price,
+    public: { title: "Мерзімі ұзартылды", status: price ? "Төленді" : "Тегін", dateLocal: almaty(now), item: { title: p.title, days }, newUntil: almaty(until) },
+    internal: { version: 1, days, price, free: price === 0, oldUntil: p.valid_until, newUntil: until, paymentId, status: { current: "done", history: [{ status: "done", at: now }] } } }).returning();
+  return { validUntil: until, receipt: { id: rc.id, no: "MD-" + rc.no } };
+}
+
+/** Карта арқылы ұзарту расталды (бірден, 3-D Secure-ден кейін не вебхукпен). Идемпотентті. */
+export async function finalizeExtend(db: Db, cfg: Config, paymentId: string): Promise<{ validUntil: Date } | { error: string }> {
+  void cfg;
+  return db.transaction(async (tx) => {
+    const lk = (await tx.execute(sql`select id, status, pack_id, meta from app.payments where id = ${paymentId} for update`)).rows[0] as { id: string; status: string; pack_id: string; meta: { days: number; price: number } } | undefined;
+    if (!lk) return { error: "not_found" };
+    if (lk.status === "failed") return { error: "payment_failed" };
+    const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${lk.pack_id} for update of p`);
+    const p = res.rows[0] as { id: string; valid_until: Date; free_extend_used: boolean; venueId: string; title: string };
+    if (lk.status === "paid") return { validUntil: p.valid_until };
+    await tx.update(payments).set({ status: "paid", paidAt: new Date() }).where(eq(payments.id, lk.id));
+    const out = await applyExtend(tx, p, lk.meta.days, lk.meta.price, lk.id);
+    return { validUntil: out.validUntil };
+  });
+}

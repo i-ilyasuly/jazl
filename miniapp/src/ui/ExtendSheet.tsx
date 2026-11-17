@@ -5,6 +5,7 @@ import { fmt } from "../mocks/offers";
 import { EXTEND_OPTIONS, extendPack, offerOf, shiftUntil, type Pack } from "../store";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { usePayFlow } from "./usePayFlow";
+import { extendCard } from "../pay/checkout";
 import s from "./ExtendSheet.module.css";
 
 export function ExtendSheet({ pack, onClose, onDone }: { pack: Pack; onClose: () => void; onDone: (until: string) => void }) {
@@ -18,10 +19,11 @@ export function ExtendSheet({ pack, onClose, onDone }: { pack: Pack; onClose: ()
   useBackButton(close, !flow.sheetOpen);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
-  const finish = useMemo(() => () => { const u = extendPack(pack.id, pick.days, pick.price); if (u) { haptic.success(); onDone(u); } }, [pack.id, pick, onDone]);
+  const finish = useMemo(() => (r?: unknown) => { const u = extendPack(pack.id, pick.days, pick.price, Boolean(r)); if (u) { haptic.success(); onDone(u); } }, [pack.id, pick, onDone]);
   const main = useMemo(() => pick.price === 0
     ? { text: "Тегін ұзарту", onClick: () => { haptic.medium(); finish(); } }
-    : { text: `Төлеу · ${fmt(pick.price)}`, shine: true, onClick: () => flow.pay({ ...offerOf(pack), title: `Мерзімін ұзарту · +${pick.days} күн`, price: pick.price }, finish) },
+    : { text: `Төлеу · ${fmt(pick.price)}`, shine: true, onClick: () => flow.pay({ ...offerOf(pack), title: `Мерзімін ұзарту · +${pick.days} күн`, price: pick.price }, finish,
+        pack.serverId ? (card) => extendCard(pack.serverId!, pick.days, card) : undefined) },
   [pick, finish, flow, pack]);
   useBottomButtons(main, undefined, !flow.sheetOpen);
 

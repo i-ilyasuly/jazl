@@ -111,7 +111,7 @@ export function buyPack(offerId: string, methodLabel = "Kaspi Pay"): string {
   return id;
 }
 
-interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null }
+export interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null }
 async function buyOnServer(localId: string, offerSlug: string, methodLabel: string) {
   if (!(window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData) return; // браузерде — тек жергілікті
   try {
@@ -192,7 +192,8 @@ export const carryOf = (p: Pack) => (p.expired && (p.expiredAgo ?? 0) > CARRY_DA
 export const EXTEND_OPTIONS = [{ days: 7, price: 0 }, { days: 14, price: 1000 }, { days: 30, price: 2000 }];
 
 /** Пакетті қайта алу: ескі пакеттің орнына жаңасы, қалған бірлік (ереже бойынша) қосылады. */
-export function rebuyPack(packId: string, paid: number, method = "Kaspi Pay"): string | null {
+/** srv — карта төлемі серверде өтіп қойған болса (жаңа пакет): қайта сұрау жіберілмейді, тек байланыстырылады. */
+export function rebuyPack(packId: string, paid: number, method = "Kaspi Pay", srv?: SrvPack): string | null {
   const old = getPack(packId);
   if (!old) return null;
   const o = offerOf(old);
@@ -207,20 +208,22 @@ export function rebuyPack(packId: string, paid: number, method = "Kaspi Pay"): s
   acts = acts.filter((a) => !(a.packId === packId && a.action === "renew"));
   emit();
   // B4: серверде қайта алу — ескі пакеттің қалғаны (3 күн ережесі) серверде есептеліп көшеді
-  if (old.serverId) void api<{ pack: SrvPack }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: o.id, fromPackId: old.serverId, method: /kaspi/i.test(method) ? "kaspi" : "card", methodLabel: method, idempotencyKey: newKey() }) }, 12000)
+  if (srv) { packs = packs.map((x) => (x.id === id ? { ...x, serverId: srv.id, total: srv.unitsTotal, left: srv.unitsLeft, receiptId: srv.receipt?.id, receiptNo: srv.receipt?.no } : x)); emit(); }
+  else if (old.serverId) void api<{ pack: SrvPack }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: o.id, fromPackId: old.serverId, method: /kaspi/i.test(method) ? "kaspi" : "card", methodLabel: method, idempotencyKey: newKey() }) }, 12000)
     .then((j) => { packs = packs.map((x) => (x.id === id ? { ...x, serverId: j.pack.id, total: j.pack.unitsTotal, left: j.pack.unitsLeft, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : x)); emit(); }).catch(() => undefined);
   return id;
 }
 
 /** Мерзімін ұзарту: days күнге; price 0 болса — бір реттік тегін мүмкіндік жұмсалады. */
-export function extendPack(packId: string, days: number, price: number): string | null {
+/** paidOnServer — карта төлемі серверде ұзартуды жасап қойды: қайта сұрау жіберілмейді. */
+export function extendPack(packId: string, days: number, price: number, paidOnServer = false): string | null {
   const p = getPack(packId);
   if (!p || p.noExtend) return null;
   const until = shiftUntil(p.until, days);
   packs = packs.map((x) => x.id !== packId ? x : { ...x, until, extendedTo: until, daysLeft: x.daysLeft + days, freeExtendUsed: x.freeExtendUsed || price === 0,
     history: [{ emoji: "📅", title: "Мерзімі ұзартылды", sub: `бүгін • ${price ? fmt(price) : "тегін"}`, right: `+${days} күн` }, ...x.history] });
   emit();
-  if (p.serverId && [7, 14, 30].includes(days)) void api("/v1/packs/" + p.serverId + "/extend", { method: "POST", body: JSON.stringify({ days, idempotencyKey: newKey() }) }).catch(() => undefined);
+  if (!paidOnServer && p.serverId && [7, 14, 30].includes(days)) void api("/v1/packs/" + p.serverId + "/extend", { method: "POST", body: JSON.stringify({ days, idempotencyKey: newKey() }) }).catch(() => undefined);
   return until;
 }
 
@@ -385,7 +388,8 @@ const nowLabel = () => { const d = new Date(); return `${d.getDate()} ${["қаң
 const giftReady = new Map<string, Promise<string | null>>();
 /** Сыйлық серверде жасалып болғанша күтеді (сілтеме сервердегі кодпен болуы үшін). Сервер жоқ болса — null. */
 export const waitGift = (id: string) => giftReady.get(id) ?? Promise.resolve(null);
-export function sendGift(offerId: string, msg: string, anon: boolean, toUsername?: string): string {
+/** srvCode — карта төлемі серверде сыйлықты жасап қойды: код бірден қолданылады. */
+export function sendGift(offerId: string, msg: string, anon: boolean, toUsername?: string, srvCode?: string): string {
   const o = findOffer(offerId);
   const id = "g" + (Date.now() % 100000);
   const until = new Date(Date.now() + 7 * 864e5);
@@ -394,7 +398,8 @@ export function sendGift(offerId: string, msg: string, anon: boolean, toUsername
   emit();
   // B4: сыйлық серверде сатып алынады (пакет алушы қабылдағанша «сыйлықта» тұрады), код — сілтеме үшін
   const hasTg = Boolean((window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData);
-  if (hasTg) giftReady.set(id, api<{ gift: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, gift: { message: msg || undefined, anonymous: anon, toUsername: toUsername || undefined }, idempotencyKey: newKey() }) }, 12000)
+  if (srvCode) { gifts = gifts.map((g) => (g.id === id ? { ...g, code: srvCode } : g)); emit(); giftReady.set(id, Promise.resolve(srvCode)); }
+  else if (hasTg) giftReady.set(id, api<{ gift: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, gift: { message: msg || undefined, anonymous: anon, toUsername: toUsername || undefined }, idempotencyKey: newKey() }) }, 12000)
     .then((j) => { gifts = gifts.map((g) => (g.id === id ? { ...g, code: j.gift.code } : g)); emit(); return j.gift.code; }).catch(() => null));
   return id;
 }

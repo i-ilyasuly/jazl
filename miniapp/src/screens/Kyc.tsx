@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { askPhone, haptic, inTelegram, useBottomButtons } from "../telegram";
 import { Group, SubPage } from "../ui/SubPage";
+import { LEGAL_UPDATED, legalDoc } from "../legal/texts";
 import b from "./Booking.module.css";
 import s from "./Kyc.module.css";
 
@@ -54,40 +55,22 @@ export function Kyc() {
   );
 }
 
-const docs: Record<string, { title: string; parts: [string, string][] }> = {
-  terms: { title: "Пайдалану шарттары", parts: [
-    ["Medeo деген не", "Medeo — мекемелердің пакеттерін (бірнеше бірлікті алдын ала) жеңілдікпен сатып алып, кейін бөліп қолдануға арналған Telegram Mini App."],
-    ["Пакет және бірлік", "Пакет сатып алынған сәттен мерзімі басталады. Әр қолдану — пакеттен бір бірлік. Бірлік мекемеде QR сканерлегенде не алдын ала тапсырыс/жазылу растағанда шегеріледі."],
-    ["Мерзім және көшіру", "Мерзім біткен соң 3 күн ішінде пакетті қайта алсаң, қалған бірліктер жаңа пакетке көшеді. Одан кейін қалған бірліктер жойылады."],
-    ["Сыйлау", "Пакетті досыңа сыйлай аласың. Алушы 7 күн ішінде қабылдамаса, пакет өзіңе қайтады."],
-  ] },
-  privacy: { title: "Құпиялылық саясаты", parts: [
-    ["Қандай деректер", "Telegram аты мен ID-і, сатып алу және қолдану тарихы. Телефон нөмірі мен жеке басты растау деректері тек төлем үшін банкке беріледі."],
-    ["Не үшін", "Пакеттерді есептеу, чек беру, мерзім туралы ескерту және қауіпсіздік үшін."],
-    ["Деректерді жою", "Профиль → Қолданба туралы → «Деректерді жою». Заң талап ететін төлем жазбалары белгіленген мерзімге дейін сақталады."],
-  ] },
-  refund: { title: "Қайтару ережесі", parts: [
-    ["Пайдаланылмаған пакет", "«Мәселе туралы жазу» → «Қайтару керек» арқылы өтінім бер. Қолдау 24 сағат ішінде хабарласады."],
-    ["Қате қолдану", "Бірлік қате шегерілсе, қолдану чегінен шағым жібер. Мекеме растаса, бірлік пакетке қайтарылады."],
-    ["Мерзімі өткен бірлік", "Мерзімі өткен және көшірілмеген бірліктің ақшасы қайтарылмайды."],
-  ] },
-  offer: { title: "Оферта", parts: [
-    ["Тараптар", "Medeo сервисі, мекеме (серіктес) және пайдаланушы. Қызметті мекеме көрсетеді, Medeo төлем мен есепті жүргізеді."],
-    ["Келісім", "Пакетті төлеу — осы офертаны қабылдау. Баға мен құрам ұсыныс бетінде көрсетіледі."],
-  ] },
-};
+/** [Толтырылатын орын] — сары белгімен (компания деректемелері тіркелгенше) */
+const marked = (t: string) => t.split(/(\[[^\]]+\])/).map((x, i) => (x.startsWith("[") ? <mark key={i} className={s.fill}>{x}</mark> : x));
 
+/** Заңды құжат: /legal/:id (ашық, тіркелусіз — төлем провайдері тексеруі үшін), /profile/doc/:id, /welcome/doc/:id */
 export function Doc() {
-  const d = docs[useParams().id ?? ""] ?? docs.terms;
+  const d = legalDoc(useParams().id) ?? legalDoc("terms")!;
   return (
     <SubPage title={d.title} top={92}>
-      {d.parts.map(([h, t], i) => (
-        <section key={h} className={`${b.head} ${s.part} rise`} style={{ ["--i" as string]: i }}>
-          <h2 className="t-title3 w-600">{h}</h2>
-          <p className="t-text">{t}</p>
+      <p className={`t-cap1 ${s.draft}`}>Редакция: {LEGAL_UPDATED}</p>
+      {d.parts.map((x, i) => (
+        <section key={x.h} className={`${b.head} ${s.part} rise`} style={{ ["--i" as string]: Math.min(i, 6) }}>
+          <h2 className="t-title3 w-600">{x.h}</h2>
+          {x.p.map((t, k) => <p key={k} className="t-text">{marked(t)}</p>)}
         </section>
       ))}
-      <p className={`t-cap1 ${s.draft}`}>Мәтін — үлгі; заңгер тексергеннен кейін ауыстырылады.</p>
+      <p className={`t-cap1 ${s.draft}`}>Жоба: заңгер тексергеннен кейін түпкілікті нұсқамен ауыстырылады.</p>
     </SubPage>
   );
 }
