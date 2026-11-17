@@ -21,7 +21,7 @@ const Buy = z.object({
   /** B4 · қайта алу: бұрынғы пакеттің қалған бірлігі жаңасына көшеді (мерзімі өткеніне 3 күннен аспаса) */
   fromPackId: z.string().uuid().optional(),
   /** B4 · сыйлыққа алу: пакет алушы қабылдағанша «gifted» күйінде тұрады */
-  gift: z.object({ message: z.string().max(120).optional(), anonymous: z.boolean().default(false) }).optional(),
+  gift: z.object({ message: z.string().max(120).optional(), anonymous: z.boolean().default(false), toUsername: z.string().regex(/^@?[A-Za-z0-9_]{4,32}$/).optional() }).optional(),
 }).strict();
 
 export const CARRY_DAYS = 3;
@@ -95,7 +95,9 @@ export function purchaseRoutes(cfg: Config, db: Db) {
       let gift: { code: string; link: string; expiresAt: Date } | null = null;
       if (body.gift) {
         const code = giftCode(); const expiresAt = new Date(Date.now() + GIFT_DAYS * 86400_000);
-        await tx.insert(gifts).values({ packId: pack.id, fromUserId: user.id, code, message: body.gift.message ?? null, anonymous: body.gift.anonymous, status: "sent", expiresAt });
+        const toUsername = body.gift.toUsername?.replace(/^@/, "").toLowerCase() ?? null;
+        if (toUsername && user.username && toUsername === user.username.toLowerCase()) throw new PurchaseError("gift_to_self");
+        await tx.insert(gifts).values({ packId: pack.id, fromUserId: user.id, toUsername, code, message: body.gift.message ?? null, anonymous: body.gift.anonymous, status: "sent", expiresAt });
         gift = { code, link: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=gift_${code}`, expiresAt };
       }
       const pub = {

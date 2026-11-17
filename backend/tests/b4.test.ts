@@ -71,6 +71,13 @@ d("B4", () => {
     expect(owner[0]).toEqual({ t: "702", status: "active" });
     expect((await post(`/v1/gifts/${g.gift.code}/accept`, {}, 703)).status).toBe(409);
   });
+  it("сыйлық белгілі адамға (@username): тек сол қабылдай алады; басқаға — 409 not_for_you", async () => {
+    const g = await buy({ gift: { toUsername: "@Aigerim_N" } });
+    const other = app.request(`/v1/gifts/${g.gift.code}/accept`, { method: "POST", headers: { Authorization: "tma " + signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: 801, first_name: "Бөтен", username: "someone" }) }, TOKEN) } });
+    expect((await (await other).json()).error).toBe("not_for_you");
+    const right = await app.request(`/v1/gifts/${g.gift.code}/accept`, { method: "POST", headers: { Authorization: "tma " + signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: 802, first_name: "Айгерім", username: "aigerim_n" }) }, TOKEN) } });
+    expect(right.status).toBe(200);
+  });
   it("сыйлық 7 күн қабылданбаса — жіберушіге қайтады; жіберуші қабылданбаған сыйлықтан бас тарта алады", async () => {
     const g = await buy({ gift: {} });
     await q("update app.gifts set expires_at=now()-interval '1 minute' where code=$1", [g.gift.code]);

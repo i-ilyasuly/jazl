@@ -70,7 +70,7 @@ d("B2 сатып алу", () => {
     expect(pdf.status).toBe(200);
     expect(pdf.headers.get("content-type")).toBe("application/pdf");
     expect(Buffer.from(await pdf.arrayBuffer()).subarray(0, 4).toString()).toBe("%PDF");
-    expect((await app.request(path.replace(/s=[0-9a-f]/, "s=0"))).status).toBe(403);
+    expect((await app.request(path.replace(/s=([0-9a-f])/, (_m, ch: string) => "s=" + (ch === "0" ? "1" : "0")))).status).toBe(403);
     expect((await app.request(path.replace(/e=\d+/, "e=1"))).status).toBe(410);
   });
   it("пакеттер тізімі және бөтен чекті көру мүмкін емес", async () => {

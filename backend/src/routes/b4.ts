@@ -120,7 +120,8 @@ export function b4Routes(cfg: Config, db: Db) {
     if (!x) return c.json({ ok: false, error: "not_found" }, 404);
     if (x.g.status === "sent" && x.g.expiresAt.getTime() < Date.now()) { await expireGift(x.g.id); x.g.status = "returned"; }
     return c.json({ ok: true, gift: { code: x.g.code, status: x.g.status, title: x.o.title, offerSlug: x.o.slug, venue: x.v.name, units: x.o.units, validDays: x.o.validDays,
-      from: x.g.anonymous ? null : x.from.firstName, message: x.g.message, expiresAt: x.g.expiresAt, mine: x.g.fromUserId === c.get("user").id } });
+      from: x.g.anonymous ? null : x.from.firstName, message: x.g.message, expiresAt: x.g.expiresAt, mine: x.g.fromUserId === c.get("user").id,
+      toUsername: x.g.toUsername, forMe: !x.g.toUsername || x.g.toUsername === (c.get("user").username ?? "").toLowerCase() } });
   });
 
   r.post("/gifts/:code/accept", async (c) => {
@@ -128,9 +129,10 @@ export function b4Routes(cfg: Config, db: Db) {
     try {
       const out = await db.transaction(async (tx) => {
         const res = await tx.execute(sql`select * from app.gifts where code = ${c.req.param("code")} for update`);
-        const g = res.rows[0] as { id: string; status: string; expires_at: Date; pack_id: string; from_user_id: string } | undefined;
+        const g = res.rows[0] as { id: string; status: string; expires_at: Date; pack_id: string; from_user_id: string; to_username: string | null } | undefined;
         if (!g) throw new B4Error("not_found", 404);
         if (g.from_user_id === u.id) throw new B4Error("own_gift");
+        if (g.to_username && g.to_username !== (u.username ?? "").toLowerCase()) throw new B4Error("not_for_you");
         if (g.status !== "sent") throw new B4Error("gift_" + g.status);
         if (new Date(g.expires_at).getTime() < Date.now()) throw new B4Error("gift_expired");
         const [o] = await tx.select({ d: offers.validDays }).from(packs).innerJoin(offers, eq(packs.offerId, offers.id)).where(eq(packs.id, g.pack_id));

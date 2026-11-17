@@ -346,7 +346,9 @@ export interface Gift { id: string; dir: "sent" | "got"; name: string; color: st
   /** Figma «13 · Сыйлау»: ұсыныс, құттықтау, жіберуші атын жасырды ма, алушының @username-і. */
   offerId?: string; msg?: string; anon?: boolean; username?: string; acceptedAt?: string;
   /** B4: сервердегі сыйлық коды (сілтеме t.me/<бот>?startapp=gift_<code>) */
-  code?: string }
+  code?: string;
+  /** Сыйлық басқа нақты адамға (@username) арналған */
+  notForMe?: boolean; toUsername?: string }
 let gifts: Gift[] = [
   { id: "g1", dir: "sent", name: "Айгерім Нұрланова", color: "#e25a7a", pack: "Тауық донері · 4 дана", emoji: "🍔", venue: "Dämdi Doner", status: "wait", label: "Күтілуде · 5 күн", sentAt: "8 қараша, 13:20", until: "15 қараша" },
   { id: "g2", dir: "sent", name: "Ерлан Серіков", color: "#4378ff", pack: "Латте · 15 стақан", emoji: "☕", venue: "Brew Point", status: "ok", label: "Қабылданды", sentAt: "5 қараша, 09:40", until: "12 қараша", offerId: "latte", acceptedAt: "5 қараша, 13:42", msg: "Таңғы кофе менен ☕" },
@@ -361,16 +363,16 @@ const nowLabel = () => { const d = new Date(); return `${d.getDate()} ${["қаң
 const giftReady = new Map<string, Promise<string | null>>();
 /** Сыйлық серверде жасалып болғанша күтеді (сілтеме сервердегі кодпен болуы үшін). Сервер жоқ болса — null. */
 export const waitGift = (id: string) => giftReady.get(id) ?? Promise.resolve(null);
-export function sendGift(offerId: string, msg: string, anon: boolean): string {
+export function sendGift(offerId: string, msg: string, anon: boolean, toUsername?: string): string {
   const o = findOffer(offerId);
   const id = "g" + (Date.now() % 100000);
   const until = new Date(Date.now() + 7 * 864e5);
-  gifts = [{ id, dir: "sent", name: "Telegram арқылы", color: "#229af0", pack: o.title, emoji: o.kind === "coffee" ? "☕" : o.kind === "hair" ? "✂️" : "🍔", venue: o.venue,
-    status: "wait", label: "Күтілуде · 7 күн", sentAt: nowLabel(), until: untilText(until).replace("ға дейін", "").replace("ге дейін", "").replace("ке дейін", ""), offerId, msg, anon }, ...gifts];
+  gifts = [{ id, dir: "sent", color: "#229af0", pack: o.title, emoji: o.kind === "coffee" ? "☕" : o.kind === "hair" ? "✂️" : "🍔", venue: o.venue,
+    status: "wait", label: "Күтілуде · 7 күн", sentAt: nowLabel(), until: untilText(until).replace("ға дейін", "").replace("ге дейін", "").replace("ке дейін", ""), offerId, msg, anon, toUsername, name: toUsername ? "@" + toUsername : "Telegram арқылы" }, ...gifts];
   emit();
   // B4: сыйлық серверде сатып алынады (пакет алушы қабылдағанша «сыйлықта» тұрады), код — сілтеме үшін
   const hasTg = Boolean((window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData);
-  if (hasTg) giftReady.set(id, api<{ gift: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, gift: { message: msg || undefined, anonymous: anon }, idempotencyKey: newKey() }) }, 12000)
+  if (hasTg) giftReady.set(id, api<{ gift: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, gift: { message: msg || undefined, anonymous: anon, toUsername: toUsername || undefined }, idempotencyKey: newKey() }) }, 12000)
     .then((j) => { gifts = gifts.map((g) => (g.id === id ? { ...g, code: j.gift.code } : g)); emit(); return j.gift.code; }).catch(() => null));
   return id;
 }
@@ -378,11 +380,11 @@ export function sendGift(offerId: string, msg: string, anon: boolean): string {
 /** Сервердегі сыйлықты кодпен ашу (сілтемеден келгенде): жергілікті тізімге қосады. */
 export async function loadServerGift(code: string): Promise<Gift | null> {
   try {
-    const j = await api<{ gift: { code: string; status: string; title: string; offerSlug: string; venue: string; from: string | null; message: string | null; expiresAt: string; mine: boolean } }>("/v1/gifts/" + code);
+    const j = await api<{ gift: { code: string; status: string; title: string; offerSlug: string; venue: string; from: string | null; message: string | null; expiresAt: string; mine: boolean; forMe: boolean; toUsername: string | null } }>("/v1/gifts/" + code);
     const x = j.gift; const o = findOffer(x.offerSlug);
     const st: GiftStatus = x.status === "sent" ? (x.mine ? "wait" : "open") : x.status === "accepted" ? "ok" : x.status === "cancelled" ? "cancelled" : "expired";
     const g: Gift = { id: code, code, dir: x.mine ? "sent" : "got", name: x.from ?? "Аноним", color: "#229af0", pack: x.title, emoji: o.kind === "coffee" ? "☕" : o.kind === "hair" ? "✂️" : "🍔", venue: x.venue,
-      status: st, label: st === "open" ? "Сыйлық" : st, sentAt: "", until: untilText(new Date(x.expiresAt)), offerId: x.offerSlug, msg: x.message ?? undefined, anon: !x.from };
+      status: st, label: st === "open" ? "Сыйлық" : st, sentAt: "", until: untilText(new Date(x.expiresAt)), offerId: x.offerSlug, msg: x.message ?? undefined, anon: !x.from, notForMe: !x.mine && !x.forMe, toUsername: x.toUsername ?? undefined };
     gifts = [g, ...gifts.filter((y) => y.id !== code)]; emit();
     return g;
   } catch { return null; }
@@ -409,7 +411,7 @@ export async function prepareGift(id: string): Promise<string | null> {
 /** Алынған сыйлықты қабылдау: пакет Пакеттерімге қосылады. */
 export function acceptGift(id: string): string | null {
   const g = gifts.find((x) => x.id === id);
-  if (!g || g.status !== "open") return null;
+  if (!g || g.status !== "open" || g.dir === "sent") return null;
   const pid = buyPack(g.offerId ?? "doner");
   packs = packs.map((p) => (p.id === pid ? { ...p, history: [{ emoji: "🎁", title: "Сыйлық қабылданды", sub: `бүгін • ${g.anon ? "Аноним" : g.name}`, right: `${p.total} бірлік` }] } : p));
   gifts = gifts.map((x) => (x.id === id ? { ...x, status: "ok", label: "Қабылданды" } : x));
