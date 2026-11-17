@@ -4,12 +4,12 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { receiptPdf, type PublicReceipt } from "../receipt/pdf.js";
 import { Hono } from "hono";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
-import { branches, offers, packEvents, packs, payments, receipts, venues } from "../db/schema.js";
+import { branches, gifts, offers, packEvents, packs, payments, receipts, venues } from "../db/schema.js";
 
 const Buy = z.object({
   offerSlug: z.string().min(1).max(64),
@@ -18,9 +18,18 @@ const Buy = z.object({
   /** Төлем тәсілінің адамға көрінетін атауы: «Kaspi Pay», «Visa •• 4417» */
   methodLabel: z.string().max(40).optional(),
   idempotencyKey: z.string().min(8).max(64),
+  /** B4 · қайта алу: бұрынғы пакеттің қалған бірлігі жаңасына көшеді (мерзімі өткеніне 3 күннен аспаса) */
+  fromPackId: z.string().uuid().optional(),
+  /** B4 · сыйлыққа алу: пакет алушы қабылдағанша «gifted» күйінде тұрады */
+  gift: z.object({ message: z.string().max(120).optional(), anonymous: z.boolean().default(false) }).optional(),
 }).strict();
 
+export const CARRY_DAYS = 3;
+export const GIFT_DAYS = 7;
+const giftCode = () => randomUUID().replace(/-/g, "").slice(0, 10);
+
 type Sizes = { units: number; price: number; oldPrice?: number }[] | null;
+class PurchaseError extends Error { constructor(public code: string) { super(code); } }
 const almaty = (d: Date) => d.toLocaleString("ru-RU", { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const receiptNo = (n: number) => "JZ-" + n;
 
@@ -66,14 +75,35 @@ export function purchaseRoutes(cfg: Config, db: Db) {
       // Сынақ режимі: провайдер бірден «төленді» дейді. Нақты төлемде бұл қадам провайдердің webhook-ында болады.
       const paidAt = new Date();
       await tx.update(payments).set({ status: "paid", paidAt, packId: pack.id }).where(eq(payments.id, pay.id));
-      await tx.update(packs).set({ status: "active" }).where(eq(packs.id, pack.id));
-      await tx.insert(packEvents).values({ packId: pack.id, type: "purchase", unitsDelta: units, meta: { paymentId: pay.id, price: size.price, method: body.method } });
+      // B4 · көшіру: ескі пакетті бұғаттап, қалған бірлігін жаңасына қосамыз
+      let carried = 0;
+      if (body.fromPackId) {
+        const res = await tx.execute(sql`select * from app.packs where id = ${body.fromPackId} and user_id = ${user.id} for update`);
+        const old = res.rows[0] as { id: string; offer_id: string; units_left: number; valid_until: Date; status: string } | undefined;
+        if (!old || old.offer_id !== o.id) throw new PurchaseError("bad_from_pack");
+        const expiredFor = Date.now() - new Date(old.valid_until).getTime();
+        carried = ["active", "expired"].includes(old.status) && expiredFor <= CARRY_DAYS * 86400_000 ? old.units_left : 0;
+        await tx.update(packs).set({ unitsLeft: 0, status: "used" }).where(eq(packs.id, old.id));
+        if (carried) {
+          await tx.insert(packEvents).values({ packId: old.id, type: "carry_out", unitsDelta: -carried, meta: { toPackId: pack.id } });
+          await tx.update(packs).set({ unitsTotal: units + carried, unitsLeft: units + carried }).where(eq(packs.id, pack.id));
+          await tx.insert(packEvents).values({ packId: pack.id, type: "carry_in", unitsDelta: carried, meta: { fromPackId: old.id } });
+        }
+      }
+      await tx.update(packs).set({ status: body.gift ? "gifted" : "active", source: body.gift ? "gift" : body.fromPackId ? "rebuy" : "purchase" }).where(eq(packs.id, pack.id));
+      await tx.insert(packEvents).values({ packId: pack.id, type: body.gift ? "gift_bought" : "purchase", unitsDelta: units, meta: { paymentId: pay.id, price: size.price, method: body.method } });
+      let gift: { code: string; link: string; expiresAt: Date } | null = null;
+      if (body.gift) {
+        const code = giftCode(); const expiresAt = new Date(Date.now() + GIFT_DAYS * 86400_000);
+        await tx.insert(gifts).values({ packId: pack.id, fromUserId: user.id, code, message: body.gift.message ?? null, anonymous: body.gift.anonymous, status: "sent", expiresAt });
+        gift = { code, link: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=gift_${code}`, expiresAt };
+      }
       const pub = {
-        title: "Пакет сатып алынды", status: "Төленді",
+        title: body.gift ? "Сыйлық сатып алынды" : body.fromPackId ? "Пакет қайта алынды" : "Пакет сатып алынды", status: "Төленді",
         dateLocal: almaty(paidAt), timezone: "Asia/Almaty",
         seller: { name: v.name, kind: v.kind, address: branch?.address ?? null, city: v.city, bin: null as string | null },
         agent: { name: "Jazl+", note: "Пакетті Jazl+ сервисі арқылы сатып алдыңыз" },
-        item: { title: o.title, units, unitName: o.unitName, pricePerUnit: Math.round(size.price / units), regularPricePerUnit: o.regularUnitPrice, regularTotal, saving, discountPct: regularTotal ? Math.round((saving / regularTotal) * 100) : 0 },
+        item: { title: o.title, units, carried, unitName: o.unitName, pricePerUnit: Math.round(size.price / units), regularPricePerUnit: o.regularUnitPrice, regularTotal, saving, discountPct: regularTotal ? Math.round((saving / regularTotal) * 100) : 0 },
         total: size.price, currency: "KZT",
         payment: { method: body.method, label: methodLabel, ref: pay.externalId, mode: cfg.PAYMENTS_MODE },
         pack: { id: pack.id, validFrom: almaty(now), validUntil: almaty(validUntil), validDays: o.validDays, howToUse: "Мекемеде «Jazl бойынша» деп айтып, кассадағы QR-ды сканерле немесе алдын ала тапсырыс бер" },
@@ -98,9 +128,10 @@ export function purchaseRoutes(cfg: Config, db: Db) {
         timing: { serverMs: Date.now() - t0 },
       };
       const [rc] = await tx.insert(receipts).values({ kind: "purchase", userId: user.id, packId: pack.id, paymentId: pay.id, venueId: v.id, branchId: branch?.id, total: size.price, public: pub, internal }).returning();
-      return { packId: pack.id, receiptId: rc.id };
-    });
-    return c.json({ ok: true, repeated: false, ...(await packAndReceipt(db, user.id, result.packId)) });
+      return { packId: pack.id, receiptId: rc.id, gift, carried };
+    }).catch((e) => { if (e instanceof PurchaseError) return { error: e.code }; throw e; });
+    if ("error" in result) return c.json({ ok: false, error: result.error }, 409);
+    return c.json({ ok: true, repeated: false, carried: result.carried, gift: result.gift, ...(await packAndReceipt(db, user.id, result.packId)) });
   });
 
   r.get("/packs", async (c) => {
@@ -168,7 +199,7 @@ export function receiptFileRoutes(cfg: Config, db: Db) {
 
 type PackRow = typeof packs.$inferSelect;
 function packDto(p: PackRow, offerSlug: string, rc?: { id: string; no: number }) {
-  return { id: p.id, offerSlug, unitsTotal: p.unitsTotal, unitsLeft: p.unitsLeft, pricePaid: p.pricePaid, validUntil: p.validUntil, status: packStatusNow(p), source: p.source, createdAt: p.createdAt,
+  return { id: p.id, offerSlug, unitsTotal: p.unitsTotal, unitsLeft: p.unitsLeft, pricePaid: p.pricePaid, validUntil: p.validUntil, status: packStatusNow(p), source: p.source, freeExtendUsed: p.freeExtendUsed, createdAt: p.createdAt,
     receipt: rc ? { id: rc.id, no: receiptNo(rc.no) } : null };
 }
 

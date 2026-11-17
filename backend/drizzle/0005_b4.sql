@@ -1,0 +1,1 @@
+ALTER TABLE "app"."packs" ADD COLUMN "free_extend_used" boolean DEFAULT false NOT NULL;

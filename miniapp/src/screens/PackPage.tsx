@@ -5,11 +5,12 @@
 import { Tile } from "../ui/Tile";
 import { kindPic } from "../ui/Emo";
 import { useCallback, useMemo, useState } from "react";
+import { Confirm } from "../ui/Confirm";
 import { useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
 import { useGo } from "../nav";
 import { findVenue, venues } from "../mocks/venues";
-import { carryOf, CARRY_DAYS, getPack, offerOf, packState, rateActivityOf, usePacks, type Activity } from "../store";
+import { carryOf, CARRY_DAYS, getPack, offerOf, packState, rateActivityOf, usePacks, type Activity , refundPack } from "../store";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { ExtendSheet } from "../ui/ExtendSheet";
@@ -28,6 +29,7 @@ export function PackPage() {
   const [extending, setExtending] = useState(false);
   const [rating, setRating] = useState<Activity | null>(null);
   const [toast, setToast] = useState("");
+  const [askRefund, setAskRefund] = useState(false);
   const sheet = extending || Boolean(rating);
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back, !sheet);
@@ -116,9 +118,13 @@ export function PackPage() {
 
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 3 }}>
           <button className={s.cell} onClick={() => haptic.tap()}><span className={`${s.rowTitle} ${s.linkText}`}>Мәселе туралы жазу</span></button>
+          {/* B4: бірде-бір бірлік жұмсалмаса — 14 күн ішінде ақшаны толық қайтаруға болады (сервер тексереді) */}
+          {pack.serverId && pack.left === pack.total && !pack.expired && <button className={s.cell} onClick={() => { haptic.tap(); setAskRefund(true); }}><span className={`${s.rowTitle} ${s.linkText}`}>Ақшаны қайтару</span></button>}
         </section>
       </div>
 
+      {askRefund && <Confirm title="Ақшаны қайтару?" text="Пакеттен бірде-бір бірлік жұмсалмаған — ақша толық қайтарылады, пакет жабылады." cancel="Жоқ" ok="Қайтару" danger onClose={() => setAskRefund(false)}
+        onOk={() => { setAskRefund(false); void refundPack(pack.id).then((r) => { if (r.ok) { haptic.success(); go("/packs", "fade", { replace: true }); } else { haptic.error(); setToast(r.error === "too_late" ? "14 күн өтіп кеткен — қайтару мүмкін емес" : "Қайтару мүмкін болмады"); } }); }} />}
       {extending && <ExtendSheet pack={pack} onClose={() => setExtending(false)} onDone={onExtended} />}
       {rating && <RateSheet act={rating} onClose={() => setRating(null)} />}
       {toast && <div className={s.toast} role="status"><Tile e="📅" size={28} />{toast}</div>}

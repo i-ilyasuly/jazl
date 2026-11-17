@@ -108,6 +108,8 @@ export const packs = app.table("packs", {
   status: packStatus("status").notNull().default("pending_payment"),
   /** purchase | gift | rebuy | carry */
   source: text("source").notNull().default("purchase"),
+  /** Мекеменің бір реттік тегін ұзартуы пайдаланылды ма (B4) */
+  freeExtendUsed: boolean("free_extend_used").notNull().default(false),
   createdAt: created(),
 }, (t) => [index("packs_user").on(t.userId)]);
 

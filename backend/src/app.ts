@@ -10,6 +10,7 @@ import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
 import { purchaseRoutes, receiptFileRoutes } from "./routes/purchases.js";
 import { devQrRoutes, usageRoutes } from "./routes/usage.js";
+import { b4Routes } from "./routes/b4.js";
 
 type User = typeof users.$inferSelect;
 export type Env = { Variables: { user: User; auth: { authDate: number; startParam?: string } } };
@@ -66,6 +67,7 @@ export function createApp(cfg: Config, db: Db) {
 
   app.route("/v1", purchaseRoutes(cfg, db));
   app.route("/v1", usageRoutes(cfg, db));
+  app.route("/v1", b4Routes(cfg, db));
 
   app.notFound((c) => c.json({ ok: false, error: "not_found" }, 404));
   app.onError((err, c) => { console.error(err); return c.json({ ok: false, error: "internal" }, 500); });

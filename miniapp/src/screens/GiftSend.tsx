@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
-import { giftLink, prepareGift, sendGift } from "../store";
+import { giftLink, prepareGift, sendGift, waitGift } from "../store";
 import { haptic, inTelegram, shareToChat, useBackButton, useBottomButtons } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { Switch } from "../ui/SubPage";
@@ -41,12 +41,14 @@ export function GiftSend() {
   // Төлем → сыйлық жасалады → Telegram-ның контакт/чат тізімі ашылады → сыйлық беті
   const send = useCallback(() => flow.pay(gift, async () => {
     const gid = sendGift(o.id, msg.trim(), anon);
+    await waitGift(gid); // сервердегі код дайын болсын — сілтеме сонымен жіберіледі
     await shareGift(gid, o.title);
     go("/profile/gift/" + gid, "fade", { replace: true });
   }), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
   // «Сілтеме»: төлем → сілтеме көшіріледі (кез келген мессенджерге жіберуге болады)
   const byLink = useCallback(() => flow.pay(gift, async () => {
     const gid = sendGift(o.id, msg.trim(), anon);
+    await waitGift(gid);
     try { await navigator.clipboard.writeText(giftLink(gid)); haptic.success(); setSnack("Сілтеме көшірілді"); } catch { await shareGift(gid, o.title); }
     window.setTimeout(() => go("/profile/gift/" + gid, "fade", { replace: true }), 900);
   }), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps

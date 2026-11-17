@@ -15,7 +15,7 @@
 | B1 | Каталог: `GET /v1/catalog` (кірусіз), seed (10 мекеме, 11 ұсыныс), мини апп фонда алады; Профиль → «Жүйе күйі» | дайын |
 | B2 | `POST /v1/purchases` (сынақ төлемі, баға серверде, идемпотенттік), `GET /v1/packs`, `GET /v1/receipts/:id`; чек: public + internal | дайын |
 | B3 | `POST /v1/redeem` (касса QR), `POST /v1/orders` (now/plan, 4 таңбалы код), бас тарту, `GET /v1/venue/orders`, `POST /v1/venue/orders/verify`; бірлік бұғатпен шегеріледі | дайын (бот хабарламалары — кейін) |
-| B4 | Сыйлық, көшіру, қайтару, бағалау | |
+| B4 | `POST /v1/ratings`, `POST /v1/packs/:id/extend` (7 тегін бір рет / 14 / 30), `POST /v1/purchases {fromPackId}` (көшіру, 3 күн), `{gift}` + `/v1/gifts/:code` (accept, cancel, 7 күнде қайту), `POST /v1/packs/:id/refund` | дайын |
 | B5 | Мекеме дашборды, басқару сайты | |
 | B6 | Нақты төлем, Қазақстандағы хостингке көшу | |
 
