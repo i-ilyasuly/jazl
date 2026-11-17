@@ -8,6 +8,7 @@ import QRCode from "qrcode";
 import { useGo } from "../nav";
 import { haptic, nativePick } from "../telegram";
 import { dayMonth, err, hm, useCurrent, V, type Paid, type QrState, type VOffer } from "./api";
+import { cashierUnlock } from "./Settings";
 import { Buttons, Note, OfferPic, Sk, VPage, VSticker } from "./ui";
 import s from "./V.module.css";
 
@@ -29,7 +30,8 @@ export function VPay() {
   const offer = offers?.find((o) => o.id === offerId);
 
   const make = useCallback(async () => {
-    if (!offer || !branch || busy) return;
+    if (!offer || !branch || busy || !me) return;
+    if (!(await cashierUnlock(me.venue.id, go))) return; // Баптаулар → «PIN-код: кассир режимін ашу үшін»
     setBusy(true); haptic.medium();
     const d: Draft = { branchId: branch, offer, units, extras: extras.filter((x) => x.qty > 0) };
     try { const ss = await V.qr(branch, offer.id, units, extraSum(d)); draft = d; go(`/v/pay/qr/${ss.id}`, "forward"); }

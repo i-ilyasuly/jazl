@@ -46,6 +46,9 @@ export const venues = app.table("venues", {
   rating: doublePrecision("rating"),
   reviewsCount: integer("reviews_count").notNull().default(0),
   acceptsPreorder: boolean("accepts_preorder").notNull().default(true),
+  /** Figma «Мекеме профилі»: фото галерея және санат белгілері (Тағам, Донер, Фастфуд) */
+  gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
+  tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
   status: venueStatus("status").notNull().default("draft"),
   createdAt: created(),
 }, (t) => [uniqueIndex("venues_slug").on(t.slug)]);
@@ -75,6 +78,8 @@ export const venueStaff = app.table("venue_staff", {
   userId: uuid("user_id").notNull().references(() => users.id),
   role: staffRole("role").notNull(),
   branchId: uuid("branch_id").references(() => branches.id),
+  /** Қызметкердің баптаулары (Figma «Баптаулар»): хабарландырулар, кассир режиміне PIN */
+  prefs: jsonb("prefs"),
   /** pending — шақыру кодымен кірді, иесі әлі растамады (Figma «Кассир: растау күтілуде»); active — жұмыс істейді */
   status: text("status").notNull().default("active"),
   createdAt: created(),

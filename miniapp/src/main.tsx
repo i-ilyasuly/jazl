@@ -59,6 +59,7 @@ import { VInvite, VStaff, VTeam } from "./venue/Team";
 import { VOfferPage, VOfferReview, VOfferWizard } from "./venue/Offers";
 import { VBranchEdit, VBranches } from "./venue/Branches";
 import { VReviews } from "./venue/Reviews";
+import { VGuide, VProfile, VSettings, VSupport } from "./venue/Settings";
 import { loadStaff } from "./venue/api";
 import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
@@ -242,6 +243,10 @@ const router = createHashRouter([
       { path: "/v/menu", element: <VMenu /> },
       { path: "/v/branches", element: <VBranches /> },
       { path: "/v/reviews", element: <VReviews /> },
+      { path: "/v/profile", element: <VProfile /> },
+      { path: "/v/settings", element: <VSettings /> },
+      { path: "/v/support", element: <VSupport /> },
+      { path: "/v/guide", element: <VGuide /> },
       { path: "/v/branches/:id", element: <VBranchEdit /> },
       { path: "/v/team", element: <VTeam /> },
       { path: "/v/team/invite", element: <VInvite /> },

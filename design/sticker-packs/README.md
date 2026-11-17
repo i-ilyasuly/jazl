@@ -31,3 +31,6 @@ python3 -c "import gzip,sys; open(sys.argv[2],'wb').write(gzip.open(sys.argv[1])
 | money | HD 4919829 | Есеп |
 | clock | HD 4919875 | Төлем: банк күтілуде |
 | partyhat | U 4919955 | Төлем өтті |
+| painter | HD 4919867 | Ұсыныс құру: негізгі фото |
+| headset | HD 4919836 | Қолдау |
+| reader | HD 4919909 | Кассаға нұсқау |

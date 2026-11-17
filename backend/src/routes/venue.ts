@@ -436,6 +436,39 @@ export function venueRoutes(cfg: Config, db: Db) {
     return res.rows.length ? c.json({ ok: true }) : c.json({ ok: false, error: "not_found" }, 404);
   });
 
+  // ── 12 · Мекеме профилі, баптаулар (Figma 14012:9193, 9260) ──
+  r.get("/venue/:venueId/profile", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId))) return deny(c);
+    const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
+    return c.json({ ok: true, profile: { name: v.name, about: v.about ?? "", logoUrl: v.logoUrl, coverUrl: v.coverUrl, gallery: v.gallery, tags: v.tags } });
+  });
+  const Url = z.string().url().max(500);
+  r.put("/venue/:venueId/profile", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner"]))) return deny(c);
+    const b = z.object({ about: z.string().trim().max(300), logoUrl: Url.nullable(), coverUrl: Url.nullable(), gallery: z.array(Url).max(9), tags: z.array(z.string().trim().min(1).max(20)).max(6) }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    await db.update(venues).set(b.data).where(eq(venues.id, venueId));
+    return c.json({ ok: true });
+  });
+  const Prefs = z.object({ newReview: z.boolean(), paymentSent: z.boolean(), orderFailed: z.boolean(), offerEnding: z.boolean(), pin: z.boolean() }).strict();
+  const defPrefs = { newReview: true, paymentSent: true, orderFailed: true, offerEnding: false, pin: false };
+  r.get("/venue/:venueId/prefs", async (c) => {
+    const venueId = c.req.param("venueId");
+    const me = await guard(c, venueId); if (!me) return deny(c);
+    const [x] = await db.select({ p: venueStaff.prefs }).from(venueStaff).where(and(eq(venueStaff.venueId, venueId), eq(venueStaff.userId, c.get("user").id))).limit(1);
+    return c.json({ ok: true, prefs: { ...defPrefs, ...((x?.p as object) ?? {}) } });
+  });
+  r.put("/venue/:venueId/prefs", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId))) return deny(c);
+    const b = Prefs.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    await db.update(venueStaff).set({ prefs: b.data }).where(and(eq(venueStaff.venueId, venueId), eq(venueStaff.userId, c.get("user").id)));
+    return c.json({ ok: true });
+  });
+
   // ── 09 · Есеп (тек иесі) ─────────────────────────────────────
   r.get("/venue/:venueId/report", async (c) => {
     const venueId = c.req.param("venueId");
