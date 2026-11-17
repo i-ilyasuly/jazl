@@ -7,12 +7,11 @@ import { useParams } from "react-router-dom";
 import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
 import { giftLink, prepareGift, sendGift, waitGift } from "../store";
-import { haptic, inTelegram, shareToChat, useBackButton, useBottomButtons } from "../telegram";
+import { haptic, inTelegram, shareToChat, tg, useBackButton, useBottomButtons } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { Switch } from "../ui/SubPage";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { usePayFlow } from "../ui/usePayFlow";
-import chev from "../assets/icons/chevRight.svg";
 import tgIcon from "../assets/icons/vTg.svg";
 import s from "./GiftSend.module.css";
 
@@ -31,6 +30,11 @@ export function GiftSend() {
   const flow = usePayFlow();
   const [msg, setMsg] = useState("");
   const [anon, setAnon] = useState(false);
+  // Патша (2026-11-17): алушы төлемге ДЕЙІН көрсетіледі. Telegram мини апқа контакт тізімін бермейді, сондықтан — @username.
+  // Көрсетілсе: тек сол адам қабылдай алады, төлемнен кейін бірден соның чаты ашылады. Бос қалса — төлемнен кейін Telegram тізімі.
+  const [to, setTo] = useState("");
+  const user = to.trim().replace(/^@/, "");
+  const userOk = /^[A-Za-z0-9_]{4,32}$/.test(user);
   const [snack, setSnack] = useState("");
   const busy = flow.sheetOpen;
   const back = useCallback(() => go(-1, "back"), [go]);
@@ -39,12 +43,21 @@ export function GiftSend() {
 
   const gift = { ...o, title: `Сыйлық · ${o.title}` };
   // Төлем → сыйлық жасалады → Telegram-ның контакт/чат тізімі ашылады → сыйлық беті
-  const send = useCallback(() => flow.pay(gift, async () => {
-    const gid = sendGift(o.id, msg.trim(), anon);
-    await waitGift(gid); // сервердегі код дайын болсын — сілтеме сонымен жіберіледі
-    await shareGift(gid, o.title);
-    go("/profile/gift/" + gid, "fade", { replace: true });
-  }), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
+  const send = useCallback(() => {
+    if (to.trim() && !userOk) { haptic.error(); setSnack("Username дұрыс емес: латын әріп, сан, _ (4–32)"); return; }
+    flow.pay(gift, async () => {
+      const gid = sendGift(o.id, msg.trim(), anon, userOk ? user : undefined);
+      await waitGift(gid); // сервердегі код дайын болсын — сілтеме сонымен жіберіледі
+      if (userOk) {
+        // Алушының чаты ашылады, хабарлама дайын тұрады (сілтеме көшіріледі де — қажет болса қоюға)
+        const text = `🎁 Саған Jazl+ сыйлығы: ${o.title}\n${giftLink(gid)}`;
+        try { await navigator.clipboard.writeText(giftLink(gid)); } catch { /* рұқсат жоқ */ }
+        const url = `https://t.me/${user}?text=${encodeURIComponent(text)}`;
+        if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
+      } else await shareGift(gid, o.title);
+      go("/profile/gift/" + gid, "fade", { replace: true });
+    });
+  }, [flow, gift, o.id, o.title, msg, anon, go, to, user, userOk]); // eslint-disable-line react-hooks/exhaustive-deps
   // «Сілтеме»: төлем → сілтеме көшіріледі (кез келген мессенджерге жіберуге болады)
   const byLink = useCallback(() => flow.pay(gift, async () => {
     const gid = sendGift(o.id, msg.trim(), anon);
@@ -68,14 +81,13 @@ export function GiftSend() {
 
         <section className={`${s.card} rise`}>
           <h2 className={`t-sub2 w-600 ${s.head}`}>Кімге</h2>
-          <button className={s.row} onClick={send}>
-            <span className={`${s.avatar} ${s.tg}`}><img src={tgIcon} width={24} height={24} alt="" /></span>
+          <label className={s.row}>
+            <span className={`${s.avatar} ${userOk ? "" : s.tg}`}>{userOk ? <b className={s.letter}>{user.slice(0, 1).toUpperCase()}</b> : <img src={tgIcon} width={24} height={24} alt="" />}</span>
             <span className={s.cText}>
-              <span className={`t-text ${s.link}`}>Telegram контактілерінен таңда</span>
-              <span className={`t-sub2 ${s.muted}`}>Төлемнен кейін тізім ашылады</span>
+              <input className={`t-text ${s.toInput}`} value={to} onChange={(e) => setTo(e.target.value)} placeholder="@username" autoCapitalize="none" autoCorrect="off" spellCheck={false} inputMode="text" />
+              <span className={`t-sub2 ${s.muted}`}>{userOk ? `Тек @${user} қабылдай алады · төлемнен кейін оның чаты ашылады` : to.trim() ? "Латын әріп, сан, _ — 4–32 таңба" : "Бос қалса — төлемнен кейін Telegram тізімінен таңдайсың"}</span>
             </span>
-            <img src={chev} width={18} height={18} alt="" />
-          </button>
+          </label>
         </section>
 
         <section className={`${s.card} rise`} style={{ ["--i" as string]: 1 }}>

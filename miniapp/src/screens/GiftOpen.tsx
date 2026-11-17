@@ -14,12 +14,14 @@ import { ResultScreen } from "./Success";
 import { shareGift } from "./GiftSend";
 import s from "./GiftOpen.module.css";
 
-type Bad = "expired" | "taken" | "cancelled" | "own";
+type Bad = "expired" | "taken" | "cancelled" | "own" | "notyou" | "notfound";
 const BAD: Record<Bad, { sticker: StickerName; title: string; text: string; btn: string }> = {
   expired: { sticker: "sleep", title: "Сыйлықтың мерзімі өтті", text: "Қабылдау мерзімі бітті. Пакет жіберушіге қайтарылды.", btn: "Ұсыныстарды көру" },
   taken: { sticker: "party", title: "Сыйлық бұрын қабылданған", text: "Бұл сыйлықты басқа адам алып қойған.", btn: "Ұсыныстарды көру" },
   cancelled: { sticker: "stop", title: "Жіберуші сыйлықты болдырмады", text: "Бұл сыйлық енді жарамсыз.", btn: "Ұсыныстарды көру" },
   own: { sticker: "hello", title: "Бұл сенің өз сыйлығың", text: "Сыйлықты өзіңе қабылдай алмайсың. Сілтемені досыңа жібер.", btn: "Сілтемені жіберу" },
+  notyou: { sticker: "stop", title: "Бұл сыйлық басқа адамға арналған", text: "Жіберуші сыйлықты нақты бір адамға бағыттаған — оны тек сол қабылдай алады.", btn: "Ұсыныстарды көру" },
+  notfound: { sticker: "search", title: "Сыйлық табылмады", text: "Сілтеме қате немесе сыйлық жойылған.", btn: "Ұсыныстарды көру" },
 };
 const demo = () => window.location.hash.match(/[?&]state=(\w+)/)?.[1] ?? "";
 
@@ -30,19 +32,23 @@ export function GiftOpen() {
   // B4: сілтемедегі код серверде болса — сыйлықты серверден аламыз
   const [srvTried, setSrvTried] = useState(false);
   useEffect(() => { if (id && !gifts.some((x) => x.id === id)) void loadServerGift(id).finally(() => setSrvTried(true)); else setSrvTried(true); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const g = gifts.find((x) => x.id === id) ?? gifts.find((x) => x.status === "open") ?? gifts[0];
+  // Патша (2026-11-17): сілтемедегі сыйлық жүктелгенше басқа (үлгі) сыйлық көрсетілмейді — бұрын сол үлгіні «қабылдап» алуға болатын
+  const found = gifts.find((x) => x.id === id || (x.code && x.code === id));
+  const g = found ?? (id ? { ...gifts[0], id: id, dir: "got" as const, status: "expired" as const, code: undefined } : gifts.find((x) => x.status === "open") ?? gifts[0]);
+  const loading = Boolean(id && !found && !srvTried);
   const d = demo();
   const anon = d === "anon" || Boolean(g.anon);
   const bad: Bad | null = d in BAD ? (d as Bad)
-    : g.dir === "sent" ? "own" : g.status === "expired" ? "expired" : g.status === "cancelled" ? "cancelled" : g.status === "ok" ? "taken" : null;
+    : id && !found ? "notfound" : g.dir === "sent" ? "own" : g.notForMe ? "notyou" : g.status === "expired" ? "expired" : g.status === "cancelled" ? "cancelled" : g.status === "ok" ? "taken" : null;
   const o = findOffer(g.offerId);
   const close = useCallback(() => go("/", "fade", { replace: true }), [go]);
   useBackButton(close);
   const take = useCallback(async () => {
+    if (bad) return;
     const pid = g.code ? await acceptServerGift(g.code) : acceptGift(g.id);
     if (!pid) { haptic.error(); return; }
     haptic.success(); go("/gift/done/" + pid, "fade", { replace: true, state: { from: anon ? "Аноним" : g.name } });
-  }, [g.id, g.code, g.name, anon, go]);
+  }, [g.id, g.code, g.name, anon, go, bad]);
   const main = useMemo(() => {
     if (!bad) return { text: "Сыйлықты алу", shine: true, onClick: take };
     if (bad === "own") return { text: BAD.own.btn, onClick: () => { haptic.medium(); shareGift(g.id, g.pack); } };
@@ -50,6 +56,7 @@ export function GiftOpen() {
   }, [bad, take, g.id, g.pack, go]);
   useBottomButtons(main);
 
+  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Sticker name="gift" size={120} /></div>;
   return (
     <div className={s.page}>
       <TelegramChrome mode="close" onBack={close} />

@@ -200,6 +200,8 @@ export const gifts = app.table("gifts", {
   packId: uuid("pack_id").notNull().references(() => packs.id),
   fromUserId: uuid("from_user_id").notNull().references(() => users.id),
   toUserId: uuid("to_user_id").references(() => users.id),
+  /** Жіберуші алушыны көрсетсе (@username) — тек сол адам қабылдай алады */
+  toUsername: text("to_username"),
   code: text("code").notNull(),
   message: text("message"),
   anonymous: boolean("anonymous").notNull().default(false),

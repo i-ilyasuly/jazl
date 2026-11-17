@@ -1,0 +1,1 @@
+ALTER TABLE "app"."gifts" ADD COLUMN "to_username" text;
