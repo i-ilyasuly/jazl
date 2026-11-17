@@ -1,7 +1,7 @@
 // Medeo Басқару (Figma «Medeo Басқару» 14060:7998): серверге сұраулар. Кіру — Telegram initData + PIN → X-Admin-Token (12 сағ).
 // Токен тек осы сеанста (sessionStorage) сақталады: мини апп жабылса, қайта PIN сұралады.
 import { useEffect, useState } from "react";
-import { api, API_URL } from "../api";
+import { api, API_URL, apiFetch } from "../api";
 
 const KEY = "medeo_adm";
 const WEB_KEY = "medeo_adm_web";
@@ -45,7 +45,7 @@ let widgetAuth: WidgetAuth | null = null;
 export const setWidgetAuth = (a: WidgetAuth | null) => { widgetAuth = a; };
 export const getWidgetAuth = () => widgetAuth;
 export async function webLogin(pin?: string, setup?: boolean): Promise<{ ok: true; hasPin?: boolean; name?: string; token?: string }> {
-  const res = await fetch(API_URL + "/admin-web/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ auth: widgetAuth, pin, setup }) });
+  const res = await apiFetch("/admin-web/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ auth: widgetAuth, pin, setup }) });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(j?.error ?? "http_" + res.status), { status: res.status, body: j });
   if (j.token) setWebToken(j.token);

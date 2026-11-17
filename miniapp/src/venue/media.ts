@@ -1,6 +1,6 @@
 // Сурет жүктеу: телефонда алдымен кішірейтеміз (ең үлкен жағы 2000 px, JPEG 0,9) — iPhone HEIC те JPEG-ке айналады,
 // трафик азаяды. Сервер оны WebP-ке сығып, бакетке салады да, ашық URL қайтарады.
-import { API_URL } from "../api";
+import { API_URL, apiFetch } from "../api";
 
 async function shrink(file: File): Promise<Blob> {
   try {
@@ -17,7 +17,7 @@ export async function uploadImage(venueId: string, file: File, kind: "offer" | "
   const wa = (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp;
   let init = wa?.initData ?? "";
   if (!init && import.meta.env.DEV) { try { init = localStorage.getItem("medeo_dev_init") ?? ""; } catch { /* жоқ */ } }
-  const res = await fetch(`${API_URL}/v1/venue/${venueId}/media?kind=${kind}`, { method: "POST", body, headers: { Authorization: "tma " + init, "Content-Type": body.type || "image/jpeg" } });
+  const res = await apiFetch(`/v1/venue/${venueId}/media?kind=${kind}`, { method: "POST", body, headers: { Authorization: "tma " + init, "Content-Type": body.type || "image/jpeg" } });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(j?.error ?? "http_" + res.status), { body: j });
   return j.url as string;

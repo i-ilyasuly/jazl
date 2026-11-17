@@ -11,14 +11,20 @@ export type Sender = (m: Msg) => Promise<void>;
 
 /** Telegram Bot API арқылы жіберу. Токен журналға ешқашан жазылмайды. */
 export function telegramSender(cfg: Config): Sender {
-  const token = cfg.MINIAPP_BOT_TOKEN || cfg.BOT_TOKEN;
+  // Medeo. атауына ауысу: алдымен жаңа бот (@Mmedeo_bot); адам оны әлі ашпаған болса (403 / chat not found) — ескі бот (@oylarbot) арқылы
+  const tokens = [cfg.MINIAPP_BOT_TOKEN || cfg.BOT_TOKEN, cfg.LEGACY_MINIAPP_BOT_TOKEN].filter((t): t is string => Boolean(t));
   return async (m) => {
     const body = {
       chat_id: m.chatId, text: m.text, link_preview_options: { is_disabled: true },
       ...(m.button ? { reply_markup: { inline_keyboard: [[{ text: m.button.text, url: m.button.url ?? `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=${m.button.start}` }]] } } : {}),
     };
-    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(4000) });
-    if (!r.ok) console.warn(`notify: telegram ${r.status} ${(await r.text().catch(() => "")).slice(0, 160)}`);
+    for (let i = 0; i < tokens.length; i++) {
+      const r = await fetch(`https://api.telegram.org/bot${tokens[i]}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(4000) });
+      if (r.ok) return;
+      const t = (await r.text().catch(() => "")).slice(0, 160);
+      const unreachable = r.status === 403 || (r.status === 400 && /chat not found/i.test(t));
+      if (!unreachable || i === tokens.length - 1) { console.warn(`notify: telegram ${r.status} ${t}`); return; }
+    }
   };
 }
 export const noopSender: Sender = async () => {};

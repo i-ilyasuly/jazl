@@ -4,7 +4,7 @@ import { haptic, nativeAlert } from "../telegram";
 import { Switch } from "../ui/SubPage";
 import { useCached } from "../venue/api";
 import { Buttons, Note, Person, Sheet, Sk, VPage, VSticker } from "../venue/ui";
-import { API_URL } from "../api";
+import { API_URL, apiFetch } from "../api";
 import { A, dayMonth, hm, isWeb, money, when } from "./api";
 import { Tile } from "../ui/Tile";
 import v from "../venue/V.module.css";
@@ -90,7 +90,7 @@ async function download(period: string, parts: string[]) {
     const tok = (() => { try { return web ? localStorage.getItem("medeo_adm_web") ?? "" : sessionStorage.getItem("medeo_adm") ?? ""; } catch { return ""; } })();
     if (web) { const [, e, sg] = tok.split("."); headers.Authorization = "adm " + tok; headers["X-Admin-Token"] = `${e}.${sg}`; }
     else { headers.Authorization = "tma " + (window.Telegram?.WebApp?.initData || (import.meta.env.DEV ? localStorage.getItem("medeo_dev_init") ?? "" : "")); headers["X-Admin-Token"] = tok; }
-    const res = await fetch(`${API_URL}/v1/admin/export?period=${period}&parts=${parts.join(",")}`, { headers });
+    const res = await apiFetch(`/v1/admin/export?period=${period}&parts=${parts.join(",")}`, { headers });
     if (!res.ok) throw new Error("http_" + res.status);
     const blob = await res.blob();
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `medeo-${new Date().toISOString().slice(0, 10)}.csv`; a.click();

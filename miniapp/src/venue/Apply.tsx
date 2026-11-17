@@ -6,7 +6,7 @@ import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { askPhone, haptic, nativeAlert, openChat } from "../telegram";
 import { Tile } from "../ui/Tile";
-import { api, API_URL } from "../api";
+import { api, API_URL, apiFetch } from "../api";
 import { SUPPORT_BOT } from "../config";
 import { err, loadStaff } from "./api";
 import { pickImage, uploadImage } from "./media";
@@ -353,7 +353,7 @@ async function uploadDoc(kind: string, f: File): Promise<Doc> {
   const wa = window.Telegram?.WebApp;
   let init = wa?.initData ?? "";
   if (!init && import.meta.env.DEV) { try { init = localStorage.getItem("medeo_dev_init") ?? ""; } catch { /* жоқ */ } }
-  const res = await fetch(`${API_URL}/v1/venue/application/docs?kind=${kind}`, { method: "POST", body: f, headers: { Authorization: "tma " + init, "Content-Type": f.type || "application/pdf", "X-File-Name": encodeURIComponent(f.name) } });
+  const res = await apiFetch(`/v1/venue/application/docs?kind=${kind}`, { method: "POST", body: f, headers: { Authorization: "tma " + init, "Content-Type": f.type || "application/pdf", "X-File-Name": encodeURIComponent(f.name) } });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(j?.error ?? "http"), { body: j });
   return j.doc as Doc;

@@ -4,7 +4,7 @@ import { kv } from "./telegram";
 import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
 import { venues } from "./mocks/venues";
 import { useSyncExternalStore } from "react";
-import { api } from "./api";
+import { api, apiFetch } from "./api";
 import { findOffer, fmt, unitPrice, type Offer } from "./mocks/offers";
 
 export interface HistoryItem { emoji: string; title: string; sub: string; right: string }
@@ -427,7 +427,7 @@ export const appLink = (kind: "gift" | "venue" | "offer", id: string) =>
 /** Бот хабарламаны дайындайды (savePreparedInlineMessage) → WebApp.shareMessage үшін id. Бэкенд жоқ болса — null. */
 export async function prepareGift(id: string): Promise<string | null> {
   if (!API_URL) return null;
-  try { const r = await fetch(`${API_URL}/gifts/${id}/prepared-message`, { method: "POST" }); return r.ok ? ((await r.json()) as { id?: string }).id ?? null : null; } catch { return null; }
+  try { const r = await apiFetch(`/gifts/${id}/prepared-message`, { method: "POST" }); return r.ok ? ((await r.json()) as { id?: string }).id ?? null : null; } catch { return null; }
 }
 /** Алынған сыйлықты қабылдау: пакет Пакеттерімге қосылады. */
 export function acceptGift(id: string): string | null {
@@ -458,7 +458,7 @@ export const useOnboarded = () => useSyncExternalStore(subscribe, () => onboarde
  *  Бэкенд қосылғанда: DELETE /me (аккаунт пен пакеттер серверде жойылады). */
 export function resetAll() {
   for (const k of ["medeo_onboarded", "medeo_settings", "medeo_pin_h", "medeo_favs", "medeo_kaspi_phone", "medeo_notice_prefs", "medeo_read", "medeo_bot_ok", "medeo_nav_hints", "medeo_packs_hint"]) kv.set(k, "");
-  try { for (const k of Object.keys(localStorage)) if (k.startsWith("medeo_")) localStorage.removeItem(k); } catch { /* жеке режим */ }
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith("medeo_") || k.startsWith("jazl_")) localStorage.removeItem(k); } catch { /* жеке режим */ }
   window.location.replace(window.location.pathname + "#/welcome");
   setTimeout(() => window.location.reload(), 50);
 }
