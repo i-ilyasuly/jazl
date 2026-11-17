@@ -50,6 +50,13 @@
       "when": 1794878079258,
       "tag": "0006_gift_to",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794878610939,
+      "tag": "0007_staff_invites",
+      "breakpoints": true
     }
   ]
 }

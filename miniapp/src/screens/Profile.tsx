@@ -23,9 +23,11 @@ import terms from "../assets/icons/p_terms.svg";
 import venue from "../assets/icons/p_venue.svg";
 import font from "../assets/icons/p_font.svg";
 import system from "../assets/icons/p_system.svg";
+import { Tile } from "../ui/Tile";
+import { roleName, useStaff } from "../desk";
 import s from "./Profile.module.css";
 
-interface RowDef { icon: string; title: string; sub?: string; value?: string; badge?: number; to: string }
+interface RowDef { icon: string; tile?: string; title: string; sub?: string; value?: string; badge?: number; to: string }
 
 const groups: { header?: string; rows: RowDef[] }[] = [
   { rows: [{ icon: saving, title: "Осы айдағы үнем", sub: "3 пакет пайдаланылды", value: "8 400 ₸", to: "/profile/savings" }] },
@@ -59,6 +61,9 @@ export function Profile() {
   const { loading } = useMock("profile", true, 450);
   const unread = useUnread();
   const st = useSettings();
+  const staff = useStaff();
+  // C2: мекеме қызметкеріне ең үстінде «Касса» жолы (клиентке көрінбейді)
+  const all = staff && staff.length ? [{ rows: [{ icon: "", tile: "🏪", title: "Мекеме бөлімі", sub: `${staff[0].venue.name} · ${roleName[staff[0].role]}${staff.length > 1 ? ` · +${staff.length - 1}` : ""}`, to: "/desk" }] }, ...groups] : groups;
   const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (st.lang === "ru" ? "Русский" : "Қазақша") : r.sub);
   const [how, setHow] = useState(false);
   const [ask, setAsk] = useState(false);
@@ -83,7 +88,7 @@ export function Profile() {
         <p className={`t-sub2 ${s.handle}`} style={{ whiteSpace: "pre" }}>{[handle, "Қарағанды"].filter(Boolean).join("  •  ")}</p>
       </div>
       <div className={s.groups}>
-        {groups.map((g, gi) => (
+        {all.map((g, gi) => (
           <section key={gi} className={`${s.group} rise`} style={{ ["--i" as string]: gi }}>
             {g.header && <h2 className={`t-sub2 w-600 ${s.header}`}>{g.header}</h2>}
             {g.rows.map((r, i) => loading ? (
@@ -93,7 +98,7 @@ export function Profile() {
               </div>
             ) : (
               <button key={r.title} className={`${s.row} ${r.sub ? "" : s.short}`} onClick={() => open(r)}>
-                <img src={r.icon} width={36} height={36} className={s.icon} alt="" />
+                {r.tile ? <Tile e={r.tile} size={36} className={s.icon} /> : <img src={r.icon} width={36} height={36} className={s.icon} alt="" />}
                 <span className={s.text}><span className={s.title}>{r.title}</span>{r.sub && <span className={s.sub}>{subOf(r)}</span>}</span>
                 {r.value && <span className={s.value}>{r.value}</span>}
                 {r.badge && unread ? <span className={`t-cap1 w-600 ${s.badge}`}>{unread}</span> : null}

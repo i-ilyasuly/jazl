@@ -17,6 +17,7 @@ const map: Record<string, [string, C]> = {
   "🛒": ["shopping-cart", "green"], "🍴": ["utensils", "orange"], "☕": ["coffee", "orange"], "✂": ["scissors", "purple"],
   "↪": ["redo-2", "blue"], "↩": ["undo-2", "gray"], "🎁": ["gift", "orange"], "✈": ["send", "cyan"], "📞": ["phone", "green"],
   "🔔": ["bell", "red"], "🧭": ["navigation", "blue"], "🎉": ["party-popper", "purple"], "💰": ["coins", "yellow"],
+  "#": ["hash", "indigo"], "👥": ["users", "green"], "🏪": ["store", "cyan"],
   "🍔": ["utensils", "orange"], "🌯": ["utensils", "orange"], "🥙": ["utensils", "orange"], "🍕": ["utensils", "orange"], "🍵": ["coffee", "orange"], "💈": ["scissors", "purple"],
 };
 const norm = (e: string) => e.replace(/️/g, "").trim();

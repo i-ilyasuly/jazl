@@ -50,6 +50,12 @@ import { Category } from "./screens/Category";
 import { MapScreen } from "./screens/MapScreen";
 import { VenuePage } from "./screens/VenuePage";
 import { Stub } from "./screens/Stub";
+import { DeskHome } from "./screens/DeskHome";
+import { DeskQr } from "./screens/DeskQr";
+import { DeskCode } from "./screens/DeskCode";
+import { DeskStaff } from "./screens/DeskStaff";
+import { StaffJoin } from "./screens/StaffJoin";
+import { loadStaff } from "./desk";
 import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
 import { warmImages } from "./ui/imageCache";
@@ -63,8 +69,8 @@ initTelegram();
 // Бот сілтемелері t.me/oylarbot?startapp=<түр>_<id> түрінде келеді — бірден тиісті бетті ашамыз.
 {
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-  const m = sp?.match(/^(gift|venue|offer|rc)_([\w-]+)$/);
-  const to = m && { gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/" }[m[1] as "gift" | "venue" | "offer" | "rc"];
+  const m = sp?.match(/^(gift|venue|offer|rc|staff)_([\w-]+)$/);
+  const to = m && { gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/desk/join/" }[m[1] as "gift" | "venue" | "offer" | "rc" | "staff"];
   if (m && to) window.location.hash = "#" + to + m[2];
 }
 
@@ -102,7 +108,7 @@ function Shell() {
   const onboarded = useOnboarded();
   const locked = useLocked();
   if (onboarded === null) return <div className="app"><Splash /></div>;
-  if (!onboarded && !path.startsWith("/welcome")) return <Navigate to="/welcome" replace />;
+  if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/desk")) return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
       <FirstVisit key={path}><Outlet /></FirstVisit>
@@ -206,6 +212,11 @@ const router = createHashRouter([
       { path: "/profile/about", element: <About /> },
       { path: "/profile/delete", element: <DeleteData /> },
       { path: "/profile/report/done", element: <ReportDone /> },
+      { path: "/desk", element: <DeskHome /> },
+      { path: "/desk/qr", element: <DeskQr /> },
+      { path: "/desk/code", element: <DeskCode /> },
+      { path: "/desk/staff", element: <DeskStaff /> },
+      { path: "/desk/join/:code", element: <StaffJoin /> },
       { path: "*", element: <Stub /> },
     ],
   },
@@ -215,6 +226,7 @@ warmImages();
 // B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
 void loadCatalog().then(() => window.dispatchEvent(new Event("jazl:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
+void loadStaff(); // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

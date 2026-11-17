@@ -11,6 +11,7 @@ import { catalogRoutes } from "./routes/catalog.js";
 import { purchaseRoutes, receiptFileRoutes } from "./routes/purchases.js";
 import { devQrRoutes, usageRoutes } from "./routes/usage.js";
 import { b4Routes } from "./routes/b4.js";
+import { venueRoutes } from "./routes/venue.js";
 
 type User = typeof users.$inferSelect;
 export type Env = { Variables: { user: User; auth: { authDate: number; startParam?: string } } };
@@ -66,6 +67,7 @@ export function createApp(cfg: Config, db: Db) {
   });
 
   app.route("/v1", purchaseRoutes(cfg, db));
+  app.route("/v1", venueRoutes(cfg, db));
   app.route("/v1", usageRoutes(cfg, db));
   app.route("/v1", b4Routes(cfg, db));
 

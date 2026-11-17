@@ -73,6 +73,19 @@ export const venueStaff = app.table("venue_staff", {
   createdAt: created(),
 }, (t) => [primaryKey({ columns: [t.venueId, t.userId] })]);
 
+/** Қызметкерді шақыру: иесі/менеджер сілтеме жасайды (t.me/<bot>?startapp=staff_<code>), 48 сағат, бір рет қолданылады. */
+export const staffInvites = app.table("staff_invites", {
+  code: text("code").primaryKey(),
+  venueId: uuid("venue_id").notNull().references(() => venues.id),
+  role: staffRole("role").notNull(),
+  branchId: uuid("branch_id").references(() => branches.id),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  usedBy: uuid("used_by").references(() => users.id),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: created(),
+}, (t) => [index("staff_invites_venue").on(t.venueId)]);
+
 /** Ұсыныс (пакет үлгісі): мысалы «Тауық донері · 4 дана». */
 export const offers = app.table("offers", {
   id: id(),
