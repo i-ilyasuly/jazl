@@ -45,6 +45,6 @@ export const kindTile = { food: "🍔", coffee: "☕", hair: "✂" } as Record<s
 let adminFlag: boolean | null = null;
 export function useIsAdmin() {
   const [v, setV] = useState(adminFlag ?? false);
-  useEffect(() => { if (adminFlag === null) me().then((m) => { adminFlag = m.admin; setV(m.admin); }).catch(() => { adminFlag = false; }); }, []);
+  useEffect(() => { if (import.meta.env.VITE_NO_ADMIN === "1") return; if (adminFlag === null) me().then((m) => { adminFlag = m.admin; setV(m.admin); }).catch(() => { adminFlag = false; }); }, []);
   return v;
 }
