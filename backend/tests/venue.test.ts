@@ -72,7 +72,7 @@ d("C мекеме бөлімі", () => {
 
   it("кассир QR: пакет + дана → клиент сканерлейді → «Төлем өтті»; сеанс бір рет қана", async () => {
     const s = (await json(post("/v1/venue/qr", { branchId, offerId: donerId, units: 2, extra: 500 }, 702))).session;
-    expect(s.code).toMatch(/^\d{6}$/); expect(s.payload).toMatch(/^JZQ3\./);
+    expect(s.code).toMatch(/^\d{4}$/); expect(s.payload).toMatch(/^JZQ3\./);
     const info = await json(post("/v1/qr/resolve", { qr: s.payload }, 710));
     expect(info).toMatchObject({ ok: true, units: 2, offer: { slug: "doner" }, valid: true, expired: false });
     const p = await buy(710);
@@ -80,6 +80,11 @@ d("C мекеме бөлімі", () => {
     const st = await json(get(`/v1/venue/qr/${s.id}`, 702));
     expect(st).toMatchObject({ status: "paid", paid: { units: 2, left: 2, total: 4, extra: 500 } });
     expect(st.paid.venueAmount).toBe(Math.round(st.paid.amount * 0.9));
+    // QR мен код әр 30 с бірге жаңарады
+    const s3 = (await json(post("/v1/venue/qr", { branchId, offerId: donerId, units: 1 }, 702))).session;
+    await dbh.pool.query("update app.qr_sessions set code_exp = now() - interval '1 second' where id = $1", [s3.id]);
+    const w = await json(get(`/v1/venue/qr/${s3.id}`, 702));
+    expect(w.status).toBe("waiting"); expect(w.amount).toBeUndefined(); expect(new Date(w.codeExp).getTime()).toBeGreaterThan(Date.now() + 20_000);
     const p2 = await buy(711);
     expect((await post("/v1/redeem", { packId: p2, qr: s.payload, units: 2, idempotencyKey: key() }, 711)).status).toBe(409); // екінші рет — жоқ
     const cashierId = (await dbh.pool.query("select cashier_id from app.redemptions where id = $1", [st.paid.redemptionId])).rows[0].cashier_id;

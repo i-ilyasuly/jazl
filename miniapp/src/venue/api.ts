@@ -16,7 +16,7 @@ export interface VOrder { id: string; no: number; type: "now" | "plan"; status: 
 export interface VOffer { id: string; slug: string; title: string; kind: OfferKind; unitName: string; status: "active" | "paused" | "draft" | "ended"; sold: number; validDays: number; sizes: number[]; fromPrice: number; unitPrice: number }
 export interface StaffRow { userId: string; name: string; username: string | null; photoUrl: string | null; role: Role; status: "active" | "pending"; branch: string | null; branchId: string | null; since: string; lastSeen: string }
 export interface Paid { redemptionId: string; customer: string; title: string; units: number; left: number; total: number; amount: number; venueAmount: number; extra: number; at: string; ref: string | null; receiptId: string | null; cancelled: boolean }
-export type QrState = { status: "waiting"; code: string; expiresAt: string; payload: string; exp: number; ttl: number; units: number; extra: number; title: string | null; amount: number | null } | { status: "paid"; paid: Paid } | { status: "expired" } | { status: "cancelled" };
+export type QrState = { status: "waiting"; code: string; codeExp: string; expiresAt: string; payload: string; exp: number; ttl: number; units: number; extra: number; title: string | null; unitName: string | null } | { status: "paid"; paid: Paid } | { status: "expired" } | { status: "cancelled" };
 
 export const roleName: Record<Role, string> = { owner: "Иесі", manager: "Басқарушы", cashier: "Кассир" };
 
@@ -58,7 +58,7 @@ export const V = {
   offers: (vid: string) => api<{ offers: VOffer[] }>(`/v1/venue/${vid}/offers`).then((r) => r.offers),
   offerStatus: (vid: string, id: string, status: "active" | "paused") => post(`/v1/venue/${vid}/offers/${id}/status`, { status }),
   report: (vid: string, period: "week" | "month" | "all") => api<{ report: { today: number; total: number; bars: { label: string; amount: number }[]; days: { date: string; count: number; amount: number; status: string }[]; testMode: boolean } }>(`/v1/venue/${vid}/report?period=${period}`).then((r) => r.report),
-  qr: (branchId: string, offerId: string, units: number, extra: number) => post<{ session: { id: string; code: string; expiresAt: string; amount: number; payload: string; exp: number } }>("/v1/venue/qr", { branchId, offerId, units, extra }).then((r) => r.session),
+  qr: (branchId: string, offerId: string, units: number, extra: number) => post<{ session: { id: string; code: string; codeExp: string; expiresAt: string; payload: string; exp: number } }>("/v1/venue/qr", { branchId, offerId, units, extra }).then((r) => r.session),
   qrState: (id: string) => api<QrState>(`/v1/venue/qr/${id}`),
   qrCancel: (id: string) => post(`/v1/venue/qr/${id}/cancel`),
   cancelUse: (id: string) => post<{ returned: number }>(`/v1/venue/redemptions/${id}/cancel`),

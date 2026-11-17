@@ -76,11 +76,12 @@ export function usageRoutes(cfg: Config, db: Db) {
       units, offer, amount: q.kind === "amount" ? q.amount : null, valid, expired });
   });
 
-  // Сканер істемесе: кассир QR-ының астындағы 6 таңбалы код (сеанс 2 минут жарамды) → сол сеанстың QR-ы
+  // Сканер істемесе: кассир QR-ының астындағы 4 таңбалы код (30 с жарамды) → сол сеанстың QR-ы
   r.post("/qr/code", async (c) => {
     const code = String((await c.req.json().catch(() => ({})))?.code ?? "").replace(/\D/g, "");
-    if (code.length !== 6) return c.json({ ok: false, error: "bad_request" }, 400);
-    const [ss] = await db.select().from(qrSessions).where(and(eq(qrSessions.code, code), gt(qrSessions.expiresAt, new Date()), isNull(qrSessions.redemptionId), isNull(qrSessions.cancelledAt))).orderBy(desc(qrSessions.createdAt)).limit(1);
+    if (code.length !== 4) return c.json({ ok: false, error: "bad_request" }, 400);
+    // 4 таңбалы код 30 с жарамды (+15 с шыдам: клиент енгізіп жатқанда жаңарып кетсе)
+    const [ss] = await db.select().from(qrSessions).where(and(eq(qrSessions.code, code), gt(qrSessions.codeExp, new Date(Date.now() - 15_000)), gt(qrSessions.expiresAt, new Date()), isNull(qrSessions.redemptionId), isNull(qrSessions.cancelledAt))).orderBy(desc(qrSessions.createdAt)).limit(1);
     if (!ss) return c.json({ ok: false, error: "code_not_found" }, 404);
     return c.json({ ok: true, qr: makeSessionQr(cfg.BOT_TOKEN, ss.id).payload });
   });

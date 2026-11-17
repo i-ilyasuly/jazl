@@ -156,8 +156,10 @@ export function purchaseRoutes(cfg: Config, db: Db) {
   // Жүктеу сілтемесі: 1 сағат жарамды, қолтаңбалы (Telegram downloadFile тақырып жібере алмайды, сондықтан кіру — сілтемедегі қолтаңбамен)
   r.post("/receipts/:id/link", async (c) => {
     const id = c.req.param("id");
-    const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.id, id), eq(receipts.userId, c.get("user").id))).limit(1);
-    if (!rc) return c.json({ ok: false, error: "not_found" }, 404);
+    const [rc] = await db.select({ id: receipts.id, no: receipts.no, userId: receipts.userId, venueId: receipts.venueId }).from(receipts).where(eq(receipts.id, id)).limit(1);
+    const staff = rc && rc.userId !== c.get("user").id && rc.venueId
+      ? (await db.execute(sql`select 1 from app.venue_staff where venue_id = ${rc.venueId} and user_id = ${c.get("user").id} and status = 'active'`)).rows.length > 0 : false;
+    if (!rc || (rc.userId !== c.get("user").id && !staff)) return c.json({ ok: false, error: "not_found" }, 404);
     const e = Math.floor(Date.now() / 1000) + 3600;
     const base = cfg.PUBLIC_URL ?? `https://${c.req.header("host")}`;
     return c.json({ ok: true, url: `${base}/files/receipts/${rc.id}.pdf?e=${e}&s=${signLink(cfg, rc.id, e)}`, fileName: `Jazl-chek-${receiptNo(rc.no)}.pdf` });

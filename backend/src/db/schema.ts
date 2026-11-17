@@ -249,11 +249,13 @@ export const ratings = app.table("ratings", {
 }, (t) => [index("ratings_venue").on(t.venueId)]);
 
 /** Кассир шығарған төлем QR-ы (Figma «Кассир: QR шығару»): пакет (ұсыныс) + дана + кассада бөлек төленетін қосымша.
- *  QR суреті әр 30 с жаңарады (JZQ3.<id>.<exp>.<sig>), ал сеанс 2 минут жарамды; 6 таңбалы код — сканер істемесе қолмен енгізу үшін.
+ *  Патша (2026-11-17): QR суреті де, 4 таңбалы код та әр 30 с бірге жаңарады (code_exp); сеанс кассир экраны ашық тұрғанда 10 минут.
  *  Бір сеанс — бір рет қана төленеді (redemption_id). */
 export const qrSessions = app.table("qr_sessions", {
   id: id(),
   code: text("code").notNull(),
+  /** Ағымдағы QR суреті мен кодтың мерзімі (30 с); өткен соң кассир экраны жаңасын алады */
+  codeExp: timestamp("code_exp", { withTimezone: true }).notNull().defaultNow(),
   branchId: uuid("branch_id").notNull().references(() => branches.id),
   offerId: uuid("offer_id").references(() => offers.id),
   units: smallint("units").notNull(),

@@ -3,9 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { copyText, haptic, nativePick, shareToChat } from "../telegram";
-import { Sticker } from "../ui/Sticker";
 import { dayMonth, money, roleName, useCurrent, V, type StaffRow } from "./api";
-import { Buttons, Note, Person, Sheet, Sk, VPage } from "./ui";
+import { Buttons, Note, Person, Sheet, Sk, VPage, VSticker } from "./ui";
 import s from "./V.module.css";
 
 const roleTag = { owner: "tag", manager: "tagYellow", cashier: "tagGreen" } as const;
@@ -32,7 +31,7 @@ export function VTeam() {
     <VPage title="Команда" back>
       <div className={s.teamHead}>
         <div><h1 className={s.h1}>Команда</h1><p className={s.muted} style={{ marginTop: 4 }}>{data ? `${active} адам` : " "}</p></div>
-        <Sticker name="hello" size={88} />
+        <VSticker name="team" size={84} at={[308, 92]} />
       </div>
       <div className={s.card}>
         {data === null ? <div className={s.row}><Sk h={40} /></div> : data.staff.map((x) => (

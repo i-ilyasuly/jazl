@@ -2,12 +2,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useGo } from "../nav";
 import { haptic, nativeAlert, nativePick, openChat } from "../telegram";
-import { Sticker } from "../ui/Sticker";
 import { Switch } from "../ui/SubPage";
 import { Tile } from "../ui/Tile";
 import { SUPPORT_BOT } from "../config";
 import { dayMonth, money, roleName, useCurrent, V, type VOffer } from "./api";
-import { OfferPic, Sk, VPage } from "./ui";
+import { Buttons, OfferPic, Sk, VPage, VSticker } from "./ui";
 import s from "./V.module.css";
 
 const soon = () => nativeAlert("Бұл бөлім келесі кезеңде қосылады.");
@@ -68,12 +67,12 @@ export function VReport() {
   const max = Math.max(1, ...(r?.bars.map((b) => b.amount) ?? [1]));
   const maxI = r ? r.bars.findIndex((b) => b.amount === max) : -1;
   const label = (l: string) => (period === "week" ? DOW[new Date(l).getDay()] : period === "all" ? ["қаң", "ақп", "нау", "сәу", "мам", "мау", "шіл", "там", "қыр", "қаз", "қар", "жел"][Number(l.slice(5, 7)) - 1] : l);
-  if (me && me.role !== "owner") return <VPage tab="report"><div className={s.state}><Sticker name="lock" size={120} /><h2 className={s.stateTitle}>Рұқсат жоқ</h2><p className={s.stateText}>Есеп пен төлемді тек мекеме иесі көреді.</p></div></VPage>;
+  if (me && me.role !== "owner") return <NoAccess />;
   return (
     <VPage tab="report">
       <h1 className={s.h1}>Есеп</h1>
+      <VSticker name="money" size={108} at={[284, 126]} />
       <div className={`${s.hero} ${s.green}`} style={{ minHeight: 150 }}>
-        <span className={s.heroSticker}><Sticker name="bags" size={100} /></span>
         <span className={s.heroLabel}>Бүгін мекеме шотына түсті</span>
         <span className={s.heroBig}>{r ? money(r.today) : "–"}</span>
         <span className={s.heroPill}>{r?.testMode ? "Сынақ режимі" : "Түсті"}</span>
@@ -124,9 +123,9 @@ export function VMenu() {
   ]];
   return (
     <VPage back>
+      <VSticker name="city" size={96} at={[286, 110]} />
       <div className={s.cover}>
         {me.venue.coverUrl && <img className={s.coverImg} src={me.venue.coverUrl} alt="" />}
-        <span className={s.coverSticker}><Sticker name="shop" size={96} /></span>
         <span className={s.coverLogo}>{me.venue.logoUrl ? <img src={me.venue.logoUrl} alt="" /> : me.venue.name.slice(0, 1)}</span>
       </div>
       <h1 className={s.h1}>{me.venue.name}</h1>
@@ -145,6 +144,21 @@ export function VMenu() {
           ))}
         </div>
       ))}
+    </VPage>
+  );
+}
+
+/** Figma «13 · Рұқсат жоқ» (14012:9822): stop стикері 120, тақырып, түсініктеме, «Кассир режимі» */
+export function NoAccess() {
+  const go = useGo();
+  return (
+    <VPage>
+      <div className={s.state} style={{ top: "calc(351px + var(--top-shift))" }}>
+        <VSticker name="stop" size={120} />
+        <h2 className={s.stateTitle}>Қолжетімділік жоқ</h2>
+        <p className={s.stateText}>Бұл бөлім тек иесіне немесе басқарушыға ашық. Кассир рөлі үшін «Кассир» бөлімі қолжетімді.</p>
+      </div>
+      <Buttons main={{ text: "Кассир режимі", onClick: () => go("/v/cashier", "fade") }} />
     </VPage>
   );
 }

@@ -15,7 +15,8 @@ import { makeSessionQr } from "../qr.js";
 
 type Role = "owner" | "manager" | "cashier";
 const INVITE_MS = 24 * 3600_000;
-const SESSION_MS = 2 * 60_000;
+const SESSION_MS = 10 * 60_000; // кассир экраны ашық тұрғанда сеанс 10 минут (QR мен код әр 30 с жаңарады)
+const CODE_MS = 30_000;         // Патша (2026-11-17): 4 таңбалы код пен QR суреті 30 секунд сайын жаңарады
 const CANCEL_MS = 10 * 60_000;
 const DAY = sql`(date_trunc('day', now() at time zone 'Asia/Almaty') at time zone 'Asia/Almaty')`;
 const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f);
@@ -256,16 +257,24 @@ export function venueRoutes(cfg: Config, db: Db) {
     if (!me || (me.branchId && me.branchId !== br.id)) return deny(c);
     const [of] = await db.select().from(offers).where(and(eq(offers.id, b.data.offerId), eq(offers.venueId, br.venueId))).limit(1);
     if (!of) return c.json({ ok: false, error: "offer_not_found" }, 404);
+    const code = await freeCode();
+    const codeExp = new Date(Date.now() + CODE_MS);
+    const [s] = await db.insert(qrSessions).values({ code, codeExp, branchId: br.id, offerId: of.id, units: b.data.units, extra: b.data.extra, createdBy: c.get("user").id, expiresAt: new Date(Date.now() + SESSION_MS) }).returning();
+    return c.json({ ok: true, session: { id: s.id, code, codeExp, expiresAt: s.expiresAt, ...qrAt(s.id, codeExp) } });
+  });
+
+  /** 4 таңбалы код: қазір жарамды (30 с + 15 с шыдам) басқа сеанста жоқ болуы керек */
+  async function freeCode() {
     let code = "";
-    for (let i = 0; i < 8; i++) {
-      code = String(randomInt(100000, 1000000));
-      const [taken] = await db.select({ id: qrSessions.id }).from(qrSessions).where(and(eq(qrSessions.code, code), gt(qrSessions.expiresAt, new Date()))).limit(1);
+    for (let i = 0; i < 12; i++) {
+      code = String(randomInt(0, 10000)).padStart(4, "0");
+      const [taken] = await db.select({ id: qrSessions.id }).from(qrSessions).where(and(eq(qrSessions.code, code), gt(qrSessions.codeExp, new Date(Date.now() - 15_000)))).limit(1);
       if (!taken) break;
     }
-    const [s] = await db.insert(qrSessions).values({ code, branchId: br.id, offerId: of.id, units: b.data.units, extra: b.data.extra, createdBy: c.get("user").id, expiresAt: new Date(Date.now() + SESSION_MS) }).returning();
-    const unitPrice = Math.round(of.price / of.units);
-    return c.json({ ok: true, session: { id: s.id, code, expiresAt: s.expiresAt, amount: unitPrice * s.units, ...makeSessionQr(cfg.BOT_TOKEN, s.id) } });
-  });
+    return code;
+  }
+  /** QR суретінің мерзімі кодпен бірдей: екеуі бірге жаңарады */
+  const qrAt = (id: string, codeExp: Date) => makeSessionQr(cfg.BOT_TOKEN, id, Math.floor(codeExp.getTime() / 1000) - 30);
 
   // Кассир экраны әр 2 с сұрайды: жаңа QR суреті (30 с) + күйі (күтілуде / төленді / мерзімі өтті)
   r.get("/venue/qr/:id", async (c) => {
@@ -281,9 +290,15 @@ export function venueRoutes(cfg: Config, db: Db) {
     }
     if (x.s.cancelledAt) return c.json({ ok: true, status: "cancelled" });
     if (x.s.expiresAt.getTime() < Date.now()) return c.json({ ok: true, status: "expired" });
+    let { code, codeExp } = x.s;
+    if (codeExp.getTime() <= Date.now() + 1000) { // 30 с өтті — жаңа код пен QR
+      code = await freeCode(); codeExp = new Date(Date.now() + CODE_MS);
+      await db.update(qrSessions).set({ code, codeExp }).where(eq(qrSessions.id, x.s.id));
+    }
     const [of] = x.s.offerId ? await db.select().from(offers).where(eq(offers.id, x.s.offerId)).limit(1) : [];
-    return c.json({ ok: true, status: "waiting", code: x.s.code, expiresAt: x.s.expiresAt, units: x.s.units, extra: x.s.extra,
-      title: of ? of.title.split(" · ")[0] : null, amount: of ? Math.round(of.price / of.units) * x.s.units : null, ...makeSessionQr(cfg.BOT_TOKEN, x.s.id) });
+    // Кассирге баға көрсетілмейді (Патша, 2026-11-17) — тек пакет пен бірлік
+    return c.json({ ok: true, status: "waiting", code, codeExp, expiresAt: x.s.expiresAt, units: x.s.units, extra: x.s.extra,
+      title: of ? of.title.split(" · ")[0] : null, unitName: of?.unitName ?? null, ...qrAt(x.s.id, codeExp) });
   });
   r.post("/venue/qr/:id/cancel", async (c) => {
     const [x] = await db.select({ s: qrSessions, b: branches }).from(qrSessions).innerJoin(branches, eq(qrSessions.branchId, branches.id)).where(eq(qrSessions.id, c.req.param("id"))).limit(1);

@@ -5,6 +5,7 @@ import { useGo } from "../nav";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Emo } from "../ui/Emo";
+import { Sticker, type StickerName } from "../ui/Sticker";
 import type { OfferKind } from "../mocks/offers";
 import { useCurrent, type Role } from "./api";
 import homeIcon from "../assets/icons/navHome.svg";
@@ -86,8 +87,23 @@ export function Buttons({ main, second, enabled = true }: { main: Btn; second?: 
   );
 }
 
+/** Ескерту блогы — клиент бөліміндегі жалпы стиль (base.css .infoBox): дәйексөз белгісі мен сол жақ сызығы жоқ (Патша, 2026-11-17). */
 export function Note({ children, tone }: { children: ReactNode; tone?: "warn" | "ok" }) {
-  return <div className={`${s.note} ${tone ? s[tone] : ""}`}>{children}<i>”</i></div>;
+  return <p className={`t-sub2 infoBox ${tone === "warn" ? "infoWarn" : tone === "ok" ? "infoOk" : ""}`} style={{ textAlign: "left" }}>{children}</p>;
+}
+
+// Стикерлер — Figma-дағы «Стикер орны (duck TGS)» бойынша: түрі, орны (x, y — 412×917 кадрдағы), өлшемі дәл сол.
+// Анимациялы нұсқасы бар үйректер — Lottie (ui/Sticker), мекеме кітапханасындағылар (Figma «Стикер кітапханасы (мекеме)») — сурет.
+const statics = import.meta.glob("../assets/stickers/static/*.webp", { eager: true, import: "default" }) as Record<string, string>;
+export type VStickerName = StickerName | "chart" | "race" | "team" | "chef" | "city" | "money" | "clock" | "partyhat";
+export function VSticker({ name, size, at }: { name: VStickerName; size: number; at?: [number, number] }) {
+  const src = statics[`../assets/stickers/static/${name}.webp`];
+  const pos = at ? { position: "absolute" as const, left: `calc(50% - 206px + ${at[0]}px)`, top: `calc(${at[1]}px + var(--top-shift))`, zIndex: 2, pointerEvents: "none" as const } : undefined;
+  return (
+    <span className={s.vstk} style={{ width: size, height: size, ...pos }} aria-hidden>
+      {src ? <img src={src} width={size} height={size} alt="" draggable={false} /> : <Sticker name={name as StickerName} size={size} />}
+    </span>
+  );
 }
 
 /** Төменгі парақ (Figma: «Рөлдер мен рұқсаттар», «Соңғы қолдануды қайтару», «Қосымша тауар бағасы») */

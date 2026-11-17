@@ -64,6 +64,13 @@
       "when": 1794879576096,
       "tag": "0008_venue_figma",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794907851437,
+      "tag": "0009_qr_code_rotation",
+      "breakpoints": true
     }
   ]
 }
