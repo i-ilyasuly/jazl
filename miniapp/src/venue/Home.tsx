@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useGo } from "../nav";
 import { haptic, nativePick } from "../telegram";
 import { Tile } from "../ui/Tile";
-import { hm, isToday, money, roleName, useCurrent, V, type Dashboard, type Use } from "./api";
+import { hm, isToday, money, roleName, useCached, useCurrent, V, type Dashboard, type Use } from "./api";
 import { OfferPic, Sk, VPage, VSticker } from "./ui";
 import qrGlyph from "../assets/glyphs/qr-code.svg";
 import { achievementFor, NewVenueHome, Suspended } from "./States";
@@ -13,10 +13,8 @@ const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мам
 
 function useDashboard(branch?: string) {
   const me = useCurrent();
-  const [d, setD] = useState<Dashboard | null>(null);
-  const load = useCallback(async () => { if (me) { try { setD(await V.dashboard(me.venue.id, branch)); } catch { /* желі — қалады */ } } }, [me?.venue.id, branch]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [d, , load] = useCached<Dashboard>(me ? `dash:${me.venue.id}:${branch ?? ""}` : null, () => V.dashboard(me!.venue.id, branch));
   useEffect(() => {
-    void load();
     const t = window.setInterval(() => { if (document.visibilityState === "visible") void load(); }, 15000);
     return () => clearInterval(t);
   }, [load]);

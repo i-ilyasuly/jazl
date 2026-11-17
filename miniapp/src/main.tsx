@@ -50,6 +50,7 @@ import { Category } from "./screens/Category";
 import { MapScreen } from "./screens/MapScreen";
 import { VenuePage } from "./screens/VenuePage";
 import { Stub } from "./screens/Stub";
+import { VNavHost } from "./venue/ui";
 import { VGate, VJoin, VPending, VPickVenue, VWelcome } from "./venue/Entry";
 import { VCashier, VHome } from "./venue/Home";
 import { VPaid, VPay, VQr } from "./venue/Pay";
@@ -124,6 +125,7 @@ function Shell() {
     <div className="app">
       <FirstVisit key={path}><Outlet /></FirstVisit>
       {tab && <NavBar active={tab} />}
+      {path.startsWith("/v/") && <VNavHost path={path} />}
       {tab && <OfflineBar />}
       {locked && <Pin lock />}
       <Toast />

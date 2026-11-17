@@ -29,7 +29,6 @@ export function VPage({ title, back, children, tab, className }: { title?: strin
       <TelegramChrome mode={back ? "back" : "close"} onBack={onBack} />
       {title && <h1 className={s.pageTitle}>{title}</h1>}
       {children}
-      {tab && <VNav active={tab} />}
       {tab && <NewOrderBanner />}
     </div>
   );
@@ -37,7 +36,7 @@ export function VPage({ title, back, children, tab, className }: { title?: strin
 
 export type VTab = "home" | "cashier" | "offers" | "report" | "history";
 const ownerTabs = [
-  { key: "home", label: "Басты", icon: homeIcon, to: "/v" },
+  { key: "home", label: "Басты", icon: homeIcon, to: "/v/home" }, // «/v» емес: ол VGate арқылы қайта бағыттайды (жыпылықтау)
   { key: "cashier", label: "Кассир", icon: qrIcon, to: "/v/cashier" },
   { key: "offers", label: "Ұсыныстар", icon: packsIcon, to: "/v/offers" },
   { key: "report", label: "Есеп", icon: reportIcon, to: "/v/report" },
@@ -45,6 +44,24 @@ const ownerTabs = [
 const managerTabs = [ownerTabs[0], ownerTabs[1], ownerTabs[2], { key: "history", label: "Тарих", icon: historyIcon, to: "/v/history" }] as const;
 const cashierTabs = [{ key: "cashier", label: "Кассир", icon: qrIcon, to: "/v/cashier" }, { key: "history", label: "Тарих", icon: historyIcon, to: "/v/history" }] as const;
 export const tabsOf = (role: Role) => (role === "owner" ? ownerTabs : role === "manager" ? managerTabs : cashierTabs);
+
+/** Мекеме мәзірі бет ауысқанда қайта салынбайды (Shell-де бір рет, клиент мәзірі сияқты): тамшы табтан табқа сырғиды.
+ *  Қай бетте көрінетіні — жолдан: VPage-ке берілетін tab-пен бірдей. */
+export function vTabOf(path: string, role: Role | undefined): VTab | undefined {
+  if (path === "/v/home") return "home";
+  if (path === "/v/cashier") return "cashier";
+  if (path === "/v/offers" || (/^\/v\/offers\/[^/]+$/.test(path) && !/\/(new|review)$/.test(path))) return "offers";
+  if (path === "/v/report") return "report";
+  if (path === "/v/history" && role && role !== "owner") return "history";
+  return undefined;
+}
+export function VNavHost({ path }: { path: string }) {
+  const me = useCurrent();
+  const [sys] = useSys();
+  const t = vTabOf(path, me?.role);
+  const tab = t && me && tabsOf(me.role).some((x) => x.key === t) ? t : undefined;
+  return tab && !sys ? <VNav active={tab} /> : null;
+}
 
 /** Figma «Басты (иесі)» / «Кассир: басты (кассир рөлі)» төменгі мәзірі: клиент мәзірімен бір әйнек стилі, таб саны рөлге қарай. */
 export function VNav({ active }: { active: VTab }) {
