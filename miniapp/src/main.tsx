@@ -1,7 +1,7 @@
 import { StrictMode, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
-import { useLocked, useOnboarded } from "./store";
+import { loadCards, useLocked, useOnboarded } from "./store";
 import { Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
 import "./styles/base.css";
 import { initTelegram } from "./telegram";
@@ -33,6 +33,7 @@ import { Security } from "./screens/Security";
 import { City, Language } from "./screens/Choice";
 import { Favorites } from "./screens/Favorites";
 import { Payment } from "./screens/Payment";
+import { Pay3ds } from "./screens/Pay3ds";
 import { Gifts } from "./screens/Gifts";
 import { Pin } from "./screens/Pin";
 import { AppError } from "./screens/AppError";
@@ -83,9 +84,9 @@ initTelegram();
 {
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
   // Бот хабарламаларының батырмалары (backend/src/notify.ts): vo_ — тапсырыс, vc_ — шағым, pk_ — клиент пакеті, v_<бет> — мекеме беті
-  const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v|a)_([\w-]+)$/);
+  const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v|a|pay)_([\w-]+)$/);
   const vPage: Record<string, string> = { home: "/v", report: "/v/report", team: "/v/team", reviews: "/v/reviews", apply: "/v/apply/status", complaints: "/v/complaints" };
-  const to = m && (m[1] === "a" ? "/a" : m[1] === "v" ? vPage[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
+  const to = m && (m[1] === "a" ? "/a" : m[1] === "pay" ? `/pay/3ds/${m[2]}?wait=1` : m[1] === "v" ? vPage[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
   if (m && to) window.location.hash = "#" + to;
 }
 
@@ -162,6 +163,7 @@ const router = createHashRouter([
       { path: "/", element: <Home /> },
       { path: "/offer/:id", element: <OfferPage /> },
       { path: "/success/:id", element: <Success /> },
+      { path: "/pay/3ds/:id", element: <Pay3ds /> },
       { path: "/pay/:kind/:id", element: <PayResult /> },
       { path: "/profile/card-add", element: <CardAdd /> },
       { path: "/order/:packId", element: <Order /> },
@@ -282,7 +284,8 @@ warmImages();
 // B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
 void loadCatalog().then(() => window.dispatchEvent(new Event("jazl:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
-void loadStaff(); // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
+void loadStaff();
+void loadCards(); // сақталған карталар (сервер болса) // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

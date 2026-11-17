@@ -6,6 +6,7 @@ import { useGo } from "../nav";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { Sticker, type StickerName } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
+import { failText } from "../pay/checkout";
 import s from "./PayResult.module.css";
 
 type Kind = "fail" | "expired" | "stopped";
@@ -18,7 +19,8 @@ const copy: Record<Kind, { sticker: StickerName; title: string; text: string; re
 export function PayResult() {
   const { kind = "fail", id = "" } = useParams();
   const k = (kind in copy ? kind : "fail") as Kind;
-  const c = copy[k];
+  const reason = new URLSearchParams(window.location.hash.split("?")[1] ?? "").get("r");
+  const c = reason && k === "fail" ? { ...copy.fail, reason: "Себебі: " + (failText[reason] ?? failText.declined).toLowerCase().replace(/\.$/, "") + "." } : copy[k];
   const go = useGo();
   const offer = findOffer(id);
   const toOffer = useCallback((buy?: string) => go("/offer/" + offer.id, "back", { replace: true, state: buy ? { buy } : undefined }), [go, offer.id]);

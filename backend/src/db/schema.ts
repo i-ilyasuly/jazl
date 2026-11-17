@@ -209,8 +209,30 @@ export const payments = app.table("payments", {
   /** Қайталанған сұрау екінші рет төлем жасамауы үшін (клиент әр сатып алуға бір кілт жібереді) */
   idempotencyKey: text("idempotency_key"),
   paidAt: timestamp("paid_at", { withTimezone: true }),
+  /** Сатып алудың мазмұны (ұсыныс, көлем, сыйлық, көшіру, клиент деректері): төлем кейін (вебхук, 3-D Secure) расталғанда пакет осыдан жасалады */
+  meta: jsonb("meta"),
+  /** Сақталған карта (payment_cards), карта арқылы төленсе */
+  cardId: uuid("card_id"),
+  /** Сәтсіз төлемнің себебі (провайдерден): declined, insufficient_funds, 3ds_failed… */
+  failure: text("failure"),
   createdAt: created(),
 }, (t) => [uniqueIndex("payments_external").on(t.provider, t.externalId), uniqueIndex("payments_idem").on(t.userId, t.idempotencyKey)]);
+
+/** Сақталған карта (Figma «Төлем / Карта қосу (Telegram нативті)»): карта деректері бізде ЕШҚАШАН сақталмайды —
+ *  тек провайдердің токені, бренді, соңғы 4 цифры және мерзімі (PCI DSS талабы). */
+export const paymentCards = app.table("payment_cards", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  provider: text("provider").notNull(),
+  token: text("token").notNull(),
+  brand: text("brand").notNull(),
+  last4: text("last4").notNull(),
+  expMonth: smallint("exp_month").notNull(),
+  expYear: smallint("exp_year").notNull(),
+  holder: text("holder"),
+  removedAt: timestamp("removed_at", { withTimezone: true }),
+  createdAt: created(),
+}, (t) => [uniqueIndex("payment_cards_token").on(t.provider, t.token), index("payment_cards_user").on(t.userId)]);
 
 /** Чек. public — клиентке көрсетілетін бөлік; internal — тек біз үшін (комиссия, мекемеге төлем, құрылғы, баға көзі…).
  *  Чек өзгермейді: жазылған сәттегі деректердің суреті (мекеме атауы не баға кейін өзгерсе де чек сол күйі қалады). */
