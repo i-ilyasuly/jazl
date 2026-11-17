@@ -1,4 +1,4 @@
-// Figma «16»: клиенттің шағымы → мекеме қайтарады не қайтармайды (24 сағат); мерзімі өткен пакеттер (3 күн күту, сосын мекемеге есептеледі).
+// Figma «16»: клиенттің шағымы → мекеме қайтарады не қайтармайды (24 сағат); мерзімі өткен пакеттер (3 күн күту, сосын клиентке бонус).
 import { Hono } from "hono";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -9,12 +9,10 @@ import type { Notifier } from "../notify.js";
 import { getSettings } from "../settings.js";
 import { complaints, offers, packEvents, packs, redemptions, venueStaff } from "../db/schema.js";
 
-const CARRY_DAYS = 3;
 const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f);
 
 export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
-  const share = (n: number) => Math.round((n * (100 - cfg.MEDEO_FEE_PCT)) / 100);
   const staffOk = async (userId: string, venueId: string, roles = ["owner", "manager"]) => {
     const [x] = await db.select({ role: venueStaff.role, status: venueStaff.status }).from(venueStaff).where(and(eq(venueStaff.userId, userId), eq(venueStaff.venueId, venueId))).limit(1);
     return Boolean(x && x.status === "active" && roles.includes(x.role));
@@ -31,10 +29,33 @@ export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const open = await db.select({ id: complaints.id }).from(complaints).where(and(eq(complaints.packId, p.p.id), eq(complaints.status, "new"))).limit(1);
     if (open.length) return c.json({ ok: false, error: "already_open" }, 409);
     const [rd] = await db.select({ id: redemptions.id }).from(redemptions).where(and(eq(redemptions.packId, p.p.id), sql`${redemptions.cancelledAt} is null`, sql`${redemptions.createdAt} > now() - interval '7 days'`)).orderBy(desc(redemptions.createdAt)).limit(1);
-    const [x] = await db.insert(complaints).values({ userId: user.id, venueId: p.o.venueId, packId: p.p.id, redemptionId: rd?.id ?? null, reason: b.data.reason ?? null, text: b.data.text }).returning();
+    const refused = b.data.reason === "refused";
+    const [x] = await db.insert(complaints).values({ userId: user.id, venueId: p.o.venueId, packId: p.p.id, redemptionId: refused ? null : rd?.id ?? null, reason: b.data.reason ?? null, text: b.data.text }).returning();
+    const s = await getSettings(db);
+    // «Мекеме қабылдамады» (жабық болды / орын бермеді): клиент кінәлі емес — пакет мерзімі бірден 7 күнге ұзарады (бір пакетке ең көбі 2 рет).
+    // 30 күнде осындай шағым s.refusedPauseAt түрлі клиенттен түссе — мекеменің жаңа сатуы автоматты тоқтатылады (Басқару қайта қоса алады).
+    let extended = 0; let paused = false;
+    if (refused) {
+      const [{ n }] = (await db.execute(sql`select count(*)::int as n from app.pack_events where pack_id = ${p.p.id} and type = 'refused_extend'`)).rows as { n: number }[];
+      if (n < 2 && p.p.unitsLeft > 0 && ["active", "expired"].includes(p.p.status)) {
+        await db.execute(sql`update app.packs set valid_until = greatest(valid_until, now()) + interval '7 days', status = 'active' where id = ${p.p.id} and units_left > 0`);
+        await db.insert(packEvents).values({ packId: p.p.id, type: "refused_extend", unitsDelta: 0, meta: { complaintId: x.id, days: 7 } });
+        extended = 7;
+      }
+      const [{ users: who }] = (await db.execute(sql`select count(distinct c.user_id)::int as users from app.complaints c where c.venue_id = ${p.o.venueId} and c.reason = 'refused'
+        and c.created_at > now() - interval '30 days' and not (c.status = 'rejected' and exists (select 1 from app.admins a where a.user_id = c.decided_by))`)).rows as { users: number }[];
+      if (who >= s.refusedPauseAt) {
+        const res = await db.execute(sql`update app.venues set status = 'paused' where id = ${p.o.venueId} and status = 'active'`);
+        if (res.rowCount) {
+          paused = true;
+          await notify?.adminAutoPause(p.o.venueId, who);
+          await notify?.venueStatus(p.o.venueId, true, `30 күнде ${who} клиент «мекеме қабылдамады» деп шағымданды. Medeo тексергенше жаңа сату тоқтатылды`);
+        }
+      }
+    }
     await notify?.complaint(x.id);
-    await notify?.adminComplaint(x.id, (await getSettings(db)).complaintHours);
-    return c.json({ ok: true, complaint: { id: x.id, status: x.status } });
+    await notify?.adminComplaint(x.id, s.complaintHours);
+    return c.json({ ok: true, complaint: { id: x.id, status: x.status }, extended, venuePaused: paused });
   });
 
   // Мекеме: шағымдар тізімі
@@ -65,26 +86,29 @@ export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, returned: out.returned });
   });
 
-  // Мерзімі өткен пакеттер: 3 күн күту (клиент қайта алса — қалғаны көшеді), сосын қалған сома мекемеге есептеледі
+  // Мерзімі өткен пакеттер: 3 күн күту (клиент қайта алса — қалғаны көшеді), сосын қалған сома КЛИЕНТКЕ бонус болып қайтады.
+  // Мекемеге күйген ақшадан үлес жоқ (Патша, 2026-11-17): мекеме тек көрсеткен қызметі үшін алады — клиентке кедергі жасаудан пайда жоқ.
   r.get("/venue/:venueId/expired", async (c) => {
     const venueId = c.req.param("venueId");
     if (!(await staffOk(c.get("user").id, venueId))) return c.json({ ok: false, error: "forbidden" }, 403);
-    const rows = (await db.execute(sql`select p.id, p.units_left::int as left, p.valid_until, (p.price_paid / p.units_total)::int as unit_price, o.title, u.first_name, u.last_name,
-        exists (select 1 from app.pack_events e where e.pack_id = p.id and e.type = 'carry_out') as carried
-      from app.packs p join app.offers o on o.id = p.offer_id join app.users u on u.id = p.user_id
-      where o.venue_id = ${venueId} and p.valid_until < now() and p.valid_until > now() - interval '60 days' and (p.units_left > 0 or exists (select 1 from app.pack_events e where e.pack_id = p.id and e.type = 'carry_out'))
-      order by p.valid_until desc limit 100`)).rows as { id: string; left: number; valid_until: Date; unit_price: number; title: string; first_name: string; last_name: string | null; carried: boolean }[];
+    const grace = (await getSettings(db)).graceDays;
+    const rows = (await db.execute(sql`select p.id, coalesce(b.units, p.units_left)::int as left, p.valid_until, (p.price_paid / p.units_total)::int as unit_price, o.title, u.first_name, u.last_name,
+        exists (select 1 from app.pack_events e where e.pack_id = p.id and e.type = 'carry_out') as carried, b.id is not null as bonus
+      from app.packs p join app.offers o on o.id = p.offer_id join app.users u on u.id = p.user_id left join app.bonuses b on b.pack_id = p.id
+      where o.venue_id = ${venueId} and p.valid_until < now() and p.valid_until > now() - interval '60 days' and p.status in ('active','expired','used')
+        and (p.units_left > 0 or b.id is not null or exists (select 1 from app.pack_events e where e.pack_id = p.id and e.type = 'carry_out'))
+      order by p.valid_until desc limit 100`)).rows as { id: string; left: number; valid_until: Date; unit_price: number; title: string; first_name: string; last_name: string | null; carried: boolean; bonus: boolean }[];
     const now = Date.now();
     const items = rows.map((x) => {
-      const graceEnd = new Date(x.valid_until).getTime() + CARRY_DAYS * 86400_000;
-      const state = x.carried ? "carried" : graceEnd > now ? "waiting" : "credited";
+      const graceEnd = new Date(x.valid_until).getTime() + grace * 86400_000;
+      const state = x.carried ? "carried" : x.bonus || graceEnd <= now ? "bonus" : "waiting";
       return { id: x.id, title: x.title.split(" · ")[0], customer: short(x.first_name, x.last_name), units: x.left, expiredAt: x.valid_until, state,
-        daysLeft: Math.max(0, Math.ceil((graceEnd - now) / 86400_000)), amount: x.unit_price * x.left, venueAmount: share(x.unit_price * x.left) };
+        daysLeft: Math.max(0, Math.ceil((graceEnd - now) / 86400_000)), amount: x.unit_price * x.left };
     });
     const month = new Date(); month.setDate(1); month.setHours(0, 0, 0, 0);
     const waiting = items.filter((x) => x.state === "waiting");
-    const credited = items.filter((x) => x.state === "credited" && new Date(x.expiredAt).getTime() + CARRY_DAYS * 86400_000 >= month.getTime());
-    return c.json({ ok: true, summary: { waitingPacks: waiting.length, waitingUnits: waiting.reduce((a, x) => a + x.units, 0), creditedMonth: credited.reduce((a, x) => a + x.venueAmount, 0), creditedUnits: credited.reduce((a, x) => a + x.units, 0) }, items });
+    const bonus = items.filter((x) => x.state === "bonus" && new Date(x.expiredAt).getTime() + grace * 86400_000 >= month.getTime());
+    return c.json({ ok: true, summary: { waitingPacks: waiting.length, waitingUnits: waiting.reduce((a, x) => a + x.units, 0), bonusMonth: bonus.reduce((a, x) => a + x.amount, 0), bonusUnits: bonus.reduce((a, x) => a + x.units, 0) }, items });
   });
   return r;
 }

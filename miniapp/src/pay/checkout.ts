@@ -23,6 +23,9 @@ async function call(path: string, init: RequestInit): Promise<CheckoutResult> {
 /** Ескерту: 202 (action_required) api()-де ok саналады — жауап денесінен статусты оқимыз */
 export const checkoutCard = (offerSlug: string, card: CheckoutCard, extra: object = {}) =>
   call("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug, method: "card", card, idempotencyKey: newKey(), ...extra }) });
+/** Бонус бағаны толық жапса — картасыз (сервер карта не Kaspi сұрамайды) */
+export const checkoutBonus = (offerSlug: string, extra: object = {}) =>
+  call("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug, method: "test", useBonus: true, idempotencyKey: newKey(), ...extra }) });
 export const paymentStatus = (id: string) => call(`/v1/payments/${id}`, {});
 export const testConfirm = (id: string, approve: boolean) => call(`/v1/payments/${id}/test-3ds`, { method: "POST", body: JSON.stringify({ approve }) });
 

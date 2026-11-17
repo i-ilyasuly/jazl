@@ -79,7 +79,7 @@ export function AVenues() {
 }
 
 interface VCard { id: string; name: string; kind: string; kindName: string; city: string; status: string; statusNote: string | null; createdAt: string; rating: number | null; reviews: number; feePct: number; feeCustom: boolean;
-  sales30: number; salesGrowth: number | null; fee30: number; complaintShare: number; branches: number; offers: number; team: number; complaints: number; notes: number; activePacks: number; eligible8: boolean }
+  sales30: number; salesGrowth: number | null; fee30: number; complaintShare: number; branches: number; offers: number; team: number; complaints: number; notes: number; activePacks: number; eligible8: boolean; burnShare: number; burnAvg: number; refused30: number }
 export function AVenue() {
   const go = useGo();
   const { id = "" } = useParams();
@@ -110,6 +110,11 @@ export function AVenue() {
       <div className={v.stats}>
         <div className={v.stat}><span className={v.statLabel}>Рейтинг</span><span className={v.statNum}>★ {x.rating ? x.rating.toFixed(1).replace(".", ",") : "—"}</span><span className={`${v.tag} ${v.tagGray}`} style={{ alignSelf: "flex-start" }}>{x.reviews} пікір</span></div>
         <div className={v.stat}><span className={v.statLabel}>Шағым үлесі</span><span className={v.statNum}>{String(x.complaintShare).replace(".", ",")}%</span><span className={`${v.tag} ${x.complaintShare > 5 ? v.tagRed : v.tagGreen}`} style={{ alignSelf: "flex-start" }}>{x.complaintShare > 5 ? "жоғары" : "төмен"}</span></div>
+      </div>
+      {/* Айла белгілері (Патша, 2026-11-17): күйген бірлік үлесі платформа орташасынан екі есе жоғары болса не «қабылдамады» шағымы көп болса — қызыл */}
+      <div className={v.stats}>
+        <div className={v.stat}><span className={v.statLabel}>Күйген бірлік, 90 күн</span><span className={v.statNum}>{String(x.burnShare).replace(".", ",")}%</span><span className={`${v.tag} ${x.burnShare > Math.max(10, x.burnAvg * 2) ? v.tagRed : v.tagGray}`} style={{ alignSelf: "flex-start" }}>орташа {String(x.burnAvg).replace(".", ",")}%</span></div>
+        <div className={v.stat}><span className={v.statLabel}>«Қабылдамады», 30 күн</span><span className={v.statNum}>{x.refused30} клиент</span><span className={`${v.tag} ${x.refused30 >= 3 ? v.tagRed : v.tagGreen}`} style={{ alignSelf: "flex-start" }}>{x.refused30 >= 3 ? "тексеру керек" : "қалыпты"}</span></div>
       </div>
       <div className={v.card}>{rows.map((r) => (
         <button key={r.t} className={v.row} style={{ minHeight: 56 }} onClick={() => { haptic.tap(); r.on(); }}>

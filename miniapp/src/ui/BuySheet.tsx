@@ -7,7 +7,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, saving, type Offer } from "../mocks/offers";
 import { useGo } from "../nav";
 import { adoptPurchase, setDefaultMethod, setKaspiPhone, useDefaultMethod, useKaspiPhone, useMethods } from "../store";
-import { checkoutCard, hasServer } from "../pay/checkout";
+import { checkoutBonus, checkoutCard, hasServer } from "../pay/checkout";
+import { loadBonus, setBonusNext, useBonus } from "../pay/bonus";
+import { Switch } from "./SubPage";
 import { askPhone, haptic, inTelegram, openExternal, tg, useBackButton, useBottomButtons } from "../telegram";
 import burger from "../assets/icons/sheetBurger.svg";
 import chev from "../assets/icons/chevRight.svg";
@@ -55,6 +57,11 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
   const m = methods.find((x) => x.id === method) ?? methods[0];
   const newPrice = Math.round(offer.price * 1.08 / 100) * 100;
   const price = step === "price" ? newPrice : offer.price;
+  // Medeo бонусы: бағадан шегеріледі (әдепкі — қосулы), қалғаны таңдалған тәсілмен төленеді
+  const bonus = useBonus(true);
+  const [useB, setUseB] = useState(true);
+  const bonusUse = useB && hasServer() ? Math.min(bonus?.balance ?? 0, price) : 0;
+  const cash = price - bonusUse;
 
   const close = useMemo(() => () => { haptic.soft(); setClosing(true); setTimeout(onClose, 220); }, [onClose]);
   const back = useMemo(() => () => {
@@ -67,11 +74,21 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
 
   const fail = (kind: "fail" | "expired" | "stopped") => go(`/pay/${kind}/${offer.id}`, "up", { replace: true });
   const finish = () => {
+    // Бонус бағаны толық жапса — карта да, Kaspi да керек емес
+    if (bonusUse > 0 && cash === 0) {
+      setBonusNext(false); setBusy(true); tg?.MainButton?.showProgress?.(false);
+      void checkoutBonus(offer.id).then((r) => {
+        tg?.MainButton?.hideProgress?.(); setBusy(false); void loadBonus(true);
+        if (r.status === "paid") { adoptPurchase(offer.id, r.pack, "Medeo бонусы"); haptic.success(); onPaid(); return; }
+        haptic.error(); go(`/pay/fail/${offer.id}?r=${encodeURIComponent(r.status === "failed" ? r.reason : "declined")}`, "up", { replace: true });
+      });
+      return;
+    }
     // Карта (сақталған не бір реттік) және сервер бар: нақты төлем ағыны — бірден өтеді / банк растауы / өтпеді
     if (m?.card && hasServer() && (m.cardId || m.cryptogram)) {
-      setBusy(true); tg?.MainButton?.showProgress?.(false);
-      void checkoutCard(offer.id, m.cardId ? { id: m.cardId } : { cryptogram: m.cryptogram!, save: false }).then((r) => {
-        tg?.MainButton?.hideProgress?.(); setBusy(false);
+      setBonusNext(false); setBusy(true); tg?.MainButton?.showProgress?.(false);
+      void checkoutCard(offer.id, m.cardId ? { id: m.cardId } : { cryptogram: m.cryptogram!, save: false }, bonusUse ? { useBonus: true } : {}).then((r) => {
+        tg?.MainButton?.hideProgress?.(); setBusy(false); if (bonusUse) void loadBonus(true);
         if (r.status === "paid") { adoptPurchase(offer.id, r.pack, m.title); haptic.success(); onPaid(); return; }
         if (r.status === "action_required") {
           const q = `?offer=${encodeURIComponent(offer.id)}&label=${encodeURIComponent(m.title)}`;
@@ -107,6 +124,8 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
     if (!agree || busy) return;
     haptic.medium();
     if (demo() === "price" && step === "sum") { haptic.warning(); setStep("price"); return; }
+    setBonusNext(bonusUse > 0); // Kaspi/сынақ жолында сервер сұрауы осыны оқиды
+    if (bonusUse > 0 && cash === 0) { finish(); return; }
     if (m?.id === "kaspi") { if (saved) startWait(); else setStep("kaspi"); return; }
     finish();
   };
@@ -123,8 +142,8 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
     if (step === "kaspi") return { text: "Шот жіберу", onClick: sendBill };
     if (step === "wait") return { text: "Kaspi.kz ашу", onClick: () => { haptic.medium(); openExternal("https://kaspi.kz/"); } };
     if (step === "price") return { text: `Төлеу · ${fmt(newPrice)}`, shine: true, onClick: () => { haptic.medium(); if (m?.id === "kaspi") startWait(); else finish(); } };
-    return { text: `Төлеу · ${fmt(offer.price)}`, shine: true, onClick: pay };
-  }, [step, method, phone, keep, agree, busy, m?.id, saved, offer.price, newPrice, start, close]); // eslint-disable-line react-hooks/exhaustive-deps
+    return { text: cash === 0 && bonusUse ? "Бонуспен төлеу" : `Төлеу · ${fmt(cash)}`, shine: true, onClick: pay };
+  }, [step, method, phone, keep, agree, busy, m?.id, saved, offer.price, newPrice, start, close, cash, bonusUse]); // eslint-disable-line react-hooks/exhaustive-deps
   const second: Btn | undefined = useMemo(() => (step === "wait" || step === "price" ? { text: "Бас тарту", position: "left", onClick: close } : undefined), [step, close]);
   useBottomButtons(main, second);
 
@@ -147,6 +166,10 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
           <div className={`${s.row} ${s.muted}`}><span>Бөлек баға</span><s className="w-600">{fmt(offer.oldPrice)}</s></div>
           <div className={s.row}><span className={s.muted}>Үнем</span><span className={`w-600 ${s.green}`}>−{fmt(saving(offer))}</span></div>
           <div className={s.row}><span>Жиыны</span><span className={s.total}>{fmt(offer.price)}</span></div>
+          {(bonus?.balance ?? 0) > 0 && hasServer() && <>
+            <div className={s.row}><span className={s.muted}>Medeo бонусы · {fmt(bonus!.balance)}</span><span className={s.method}>{useB && <span className={`w-600 ${s.green}`}>−{fmt(bonusUse)}</span>}<Switch on={useB} onChange={(v) => { haptic.select(); setUseB(v); }} /></span></div>
+            {useB && <div className={s.row}><span>Төленеді</span><span className={s.total}>{fmt(cash)}</span></div>}
+          </>}
           <hr className={s.sep} />
           <button className={s.row} onClick={() => { haptic.tap(); setStep("method"); }}>
             <span className={s.muted}>Төлем тәсілі</span>

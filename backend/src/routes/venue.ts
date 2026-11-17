@@ -254,6 +254,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   }).strict();
   /** Жеңілдік кемінде 10% (Figma «Ұсыныс: жеңілдік 10%-дан аз»): әр көлем бағасы бөлек алғандағы сомадан ≤ 90% */
   const lowDiscount = (sizes: { units: number; price: number }[], regular: number) => sizes.find((x) => x.price > Math.floor(x.units * regular * 0.9));
+  // Жеңілдіктің жоғарғы шегі (Басқару → maxDiscount, әдепкі 30%): тым арзан пакетте мекеме клиенттің келмегенін қалайды (Патша, 2026-11-17)
+  const bigDiscount = async (sizes: { units: number; price: number }[], regular: number) => {
+    const max = (await getSettings(db)).maxDiscount;
+    return sizes.some((x) => x.price < Math.ceil((x.units * regular * (100 - max)) / 100)) ? max : 0;
+  };
+  const bigErr = (c: Context<Env>, max: number) => c.json({ ok: false, error: "big_discount", max }, 409);
   const slugOf = (t: string) => {
     const map: Record<string, string> = { а: "a", ә: "a", б: "b", в: "v", г: "g", ғ: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i", й: "i", к: "k", қ: "q", л: "l", м: "m", н: "n", ң: "n", о: "o", ө: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ұ: "u", ү: "u", ф: "f", х: "h", һ: "h", ц: "c", ч: "ch", ш: "sh", щ: "sh", ъ: "", ы: "y", і: "i", ь: "", э: "e", ю: "yu", я: "ya" };
     const base = [...t.toLowerCase()].map((ch) => map[ch] ?? ch).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "offer";
@@ -269,6 +275,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const d = b.data; const sizes = [...d.sizes].sort((a, z) => a.units - z.units);
     if (d.publish && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
+    { const max = d.publish ? await bigDiscount(sizes, d.regularUnitPrice) : 0; if (max) return bigErr(c, max); }
     const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
     const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
       regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about }, photos: d.photos, category: d.category ?? null, rules: d.rules,
@@ -289,6 +296,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     // Жарияланған ұсыныстың бағасын тек иесі «Бағаны өзгерту» арқылы өзгертеді (Figma «Рөлдер»)
     const keepSizes = !draft;
     if (d.publish && draft && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
+    { const max = d.publish && draft ? await bigDiscount(sizes, d.regularUnitPrice) : 0; if (max) return bigErr(c, max); }
     const next = d.publish && draft ? await statusAfterPublish() : cur.status;
     await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about },
       category: d.category ?? null, rules: d.rules, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
@@ -334,6 +342,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (!cur) return c.json({ ok: false, error: "not_found" }, 404);
     if (b.data.price < cur.price * 0.5 && !b.data.confirmDrop) return c.json({ ok: false, error: "big_drop", old: cur.price }, 409);
     if (lowDiscount([{ units: b.data.units, price: b.data.price }], o.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
+    { const max = await bigDiscount([{ units: b.data.units, price: b.data.price }], o.regularUnitPrice); if (max) return bigErr(c, max); }
     const next = sizes.map((x) => (x.units === b.data.units ? { ...x, price: b.data.price } : x));
     await db.update(offers).set({ sizes: o.sizes ? next : null, ...(b.data.units === o.units ? { price: b.data.price } : {}) }).where(eq(offers.id, o.id));
     if (b.data.price < cur.price * 0.7) await notify?.adminPriceDrop(o.id, cur.price, b.data.price); // Figma 18: 30%-дан артық түссе

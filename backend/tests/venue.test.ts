@@ -139,9 +139,12 @@ d("C мекеме бөлімі", () => {
     expect(o.stats.series).toHaveLength(7);
     const big = await post(`/v1/venue/${venueId}/offers/${d.offer.id}/price`, { units: 8, price: 5000 }, 701);
     expect(big.status).toBe(409); expect((await big.json()).error).toBe("big_drop");
-    expect((await post(`/v1/venue/${venueId}/offers/${d.offer.id}/price`, { units: 8, price: 5000, confirmDrop: true }, 701)).status).toBe(200);
+    // Растаса да — 30%-дан артық жеңілдік болмайды (Патша, 2026-11-17: жеңілдік шегі)
+    const cap = await post(`/v1/venue/${venueId}/offers/${d.offer.id}/price`, { units: 8, price: 5000, confirmDrop: true }, 701);
+    expect(cap.status).toBe(409); expect((await cap.json()).error).toBe("big_discount");
+    expect((await post(`/v1/venue/${venueId}/offers/${d.offer.id}/price`, { units: 8, price: 11600 }, 701)).status).toBe(200);
     expect((await post(`/v1/venue/${venueId}/offers/${d.offer.id}/price`, { units: 8, price: 9000 }, 702)).status).toBe(403);
-    expect((await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer.sizes[1].price).toBe(5000);
+    expect((await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer.sizes[1].price).toBe(11600);
     const d2 = await json(post(`/v1/venue/${venueId}/offers`, body, 701));
     await post(`/v1/venue/${venueId}/offers/${d2.offer.id}/remove`, {}, 701);
     expect((await get(`/v1/venue/${venueId}/offers/${d2.offer.id}`, 701)).status).toBe(404);
@@ -226,13 +229,13 @@ d("C мекеме бөлімі", () => {
     const c2 = await json(post("/v1/complaints", { packId: p2, text: "Дәмі ұнамады" }, 741));
     expect((await post(`/v1/venue/${venueId}/complaints/${c2.complaint.id}/resolve`, { action: "reject" }, 701)).status).toBe(400); // себебі керек
     expect((await post(`/v1/venue/${venueId}/complaints/${c2.complaint.id}/resolve`, { action: "reject", reply: "Тексердік, қате жоқ" }, 701)).status).toBe(200);
-    // мерзімі өткен: біреуі күтуде (1 күн бұрын), біреуі есептелген (10 күн бұрын)
+    // мерзімі өткен: біреуі күтуде (1 күн бұрын), біреуі күту кезеңі біткен (10 күн бұрын) — қалдық клиентке бонус, мекемеге емес
     const e1 = await buy(742); const e2 = await buy(743);
     await dbh.pool.query("update app.packs set valid_until = now() - interval '1 day' where id = $1", [e1]);
     await dbh.pool.query("update app.packs set valid_until = now() - interval '10 days' where id = $1", [e2]);
     const ex = await json(get(`/v1/venue/${venueId}/expired`, 701));
     expect(ex.items.find((x: { id: string }) => x.id === e1)).toMatchObject({ state: "waiting", daysLeft: 2, units: 4 });
-    expect(ex.items.find((x: { id: string }) => x.id === e2)).toMatchObject({ state: "credited" });
+    expect(ex.items.find((x: { id: string }) => x.id === e2)).toMatchObject({ state: "bonus" });
     const dash = (await json(get(`/v1/venue/${venueId}/dashboard`, 701))).dashboard;
     expect(dash.total).toBeGreaterThan(0); expect(dash).toHaveProperty("record"); expect(dash.offers).toBeGreaterThan(0);
   });

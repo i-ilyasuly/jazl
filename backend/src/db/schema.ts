@@ -218,6 +218,21 @@ export const payments = app.table("payments", {
   createdAt: created(),
 }, (t) => [uniqueIndex("payments_external").on(t.provider, t.externalId), uniqueIndex("payments_idem").on(t.userId, t.idempotencyKey)]);
 
+/** Medeo бонусы (Патша, 2026-11-17): мерзімі өтіп, көшірілмеген бірліктің құны мекемеге емес, клиентке бонус болып қайтады.
+ *  Бір пакет — бір бонус (pack_id бірегей). Жұмсау: ескісінен бастап left азаяды; мерзімі (expires_at) өткені есептелмейді. */
+export const bonuses = app.table("bonuses", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  /** breakage — күйген бірлік; manual — Басқару берген */
+  kind: text("kind").notNull().default("breakage"),
+  amount: integer("amount").notNull(),
+  left: integer("left").notNull(),
+  packId: uuid("pack_id").references(() => packs.id),
+  units: smallint("units").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: created(),
+}, (t) => [index("bonuses_user").on(t.userId, t.expiresAt), uniqueIndex("bonuses_pack").on(t.packId)]);
+
 /** Сақталған карта (Figma «Төлем / Карта қосу (Telegram нативті)»): карта деректері бізде ЕШҚАШАН сақталмайды —
  *  тек провайдердің токені, бренді, соңғы 4 цифры және мерзімі (PCI DSS талабы). */
 export const paymentCards = app.table("payment_cards", {

@@ -23,6 +23,9 @@ const DAYS = [7, 14, 30, 60, 90];
 const saving = (x: Size, reg: number) => Math.max(0, Math.round((1 - x.price / (x.units * reg)) * 100));
 
 /** Сипаттама белгілері: *жасыл* — артықшылық, _көк_ — маңызды, «> » жолы — ақпарат блогы, «• » — тізім */
+/** Жеңілдік шегі (Medeo ережесі, әдепкі 30%): тым арзан пакет мекемеге де, клиентке де зиян */
+const bigText = (e: unknown) => `Жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 30}%-дан аспауы керек. Тым арзан пакетте әр клиентке қызмет көрсету мекемеге шығын болады. Бағаны сәл көтеріңіз.`;
+
 export function Rich({ text }: { text: string }) {
   const inline = (t: string) => t.split(/(\*[^*]+\*|_[^_]+_)/g).map((p, i) =>
     p.startsWith("*") && p.endsWith("*") && p.length > 2 ? <b key={i} className="hl hl-green" style={{ background: "var(--hl-green-bg)", color: "var(--hl-green-text)", fontWeight: 400 }}>{p.slice(1, -1)}</b>
@@ -77,7 +80,7 @@ export function VOfferWizard() {
       haptic.success();
       // «Ұсыныс тексеруде» — тек Medeo тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
-    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : "Сақталмады. Қайталап көріңіз."); }
+    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
   }, [me, busy, d, id, status, go]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -381,7 +384,7 @@ function PriceSheet({ o, onClose, onDone }: { o: OfferFull; onClose: () => void;
       if (k === "big_drop") {
         const r = await nativePick("Баға қатты түсірілді", `Жаңа баға ${money(p)} — қазіргіден (${money(cur.price)}) 50%-дан көп төмен. Осы бағамен сатылған барлық пакет бойынша шығынға мекеме жауап береді.`, [{ id: "no", text: "Түзету" }, { id: "yes", text: "Шығынға өзім жауап беремін" }], "no");
         if (r === "yes") void save(true);
-      } else { haptic.error(); nativeAlert(k === "low_discount" ? "Жеңілдік 10%-дан аз болмауы керек." : "Сақталмады."); }
+      } else { haptic.error(); nativeAlert(k === "low_discount" ? "Жеңілдік 10%-дан аз болмауы керек." : k === "big_discount" ? bigText(e) : "Сақталмады."); }
     }
   };
   const diff = p - cur.price;

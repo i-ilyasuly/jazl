@@ -3,10 +3,10 @@
 // Өлшемдер: UI kit шкаласы және 4/8px тор (ұяшық 52/48, шет 16, белгі 13/16).
 import { api } from "../api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { fmt, unitPrice } from "../mocks/offers";
 import { useGo } from "../nav";
-import { getPack, offerOf, usePacks } from "../store";
+import { getPack, offerOf, syncServerPacks, usePacks } from "../store";
 import { nativeAlert, haptic, inTelegram, useBackButton, useBottomButtons, type BottomAction } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -27,7 +27,8 @@ function Bar({ left, main }: { left: BottomAction; main: BottomAction & { disabl
   );
 }
 
-const reasons = ["Қате дана алынды", "Қызмет көрсетілмеді", "Қате сома", "Басқа"];
+// code: refused — «Мекеме қабылдамады» (Патша, 2026-11-17): пакет мерзімі бірден 7 күнге ұзарады, қайталанса мекеме тоқтатылады
+const reasons: { t: string; code?: string }[] = [{ t: "Қате дана алынды" }, { t: "Мекеме қабылдамады", code: "refused" }, { t: "Қызмет көрсетілмеді" }, { t: "Қате сома" }, { t: "Басқа" }];
 
 /** «Шағым: қате қолдану»: /complaint/:packId — соңғы қолдануға шағым (мекемеге жіберіледі) */
 export function Complaint() {
@@ -36,20 +37,24 @@ export function Complaint() {
   const go = useGo();
   const pack = getPack(packId);
   const o = pack ? offerOf(pack) : null;
-  const [why, setWhy] = useState(0);
+  const [why, setWhy] = useState(() => Math.max(0, reasons.findIndex((x) => x.code && window.location.hash.includes("why=" + x.code))));
+  const refused = reasons[why].code === "refused";
   const [text, setText] = useState("");
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); go(-1, "back"); } }), [go]);
   const [busy, setBusy] = useState(false);
   // Серверге жіберу (Figma «16 · Шағым»): мекеме 24 сағат ішінде қайтарады не жауап береді. Үлгі пакетте (сервер id-сыз) — тек демо.
   const main = useMemo(() => ({ text: busy ? "Жіберілуде…" : "Жіберу", disabled: busy || text.trim().length < 5, onClick: async () => {
     if (text.trim().length < 5) { haptic.error(); return; }
-    if (/^[0-9a-f-]{36}$/.test(packId)) {
+    // Серверге пакеттің сервердегі id-і жіберіледі (жергілікті id — тек мини аппта)
+    const sid = pack?.serverId ?? (/^[0-9a-f-]{36}$/.test(packId) ? packId : null);
+    let extended = 0;
+    if (sid) {
       setBusy(true);
-      try { await api("/v1/complaints", { method: "POST", body: JSON.stringify({ packId, reason: reasons[why], text: text.trim() }) }); }
+      try { extended = (await api<{ extended?: number }>("/v1/complaints", { method: "POST", body: JSON.stringify({ packId: sid, reason: reasons[why].code ?? reasons[why].t, text: text.trim() }) })).extended ?? 0; if (extended) void syncServerPacks(); }
       catch (e) { setBusy(false); haptic.error(); const k = (e as { body?: { error?: string } }).body?.error; nativeAlert(k === "already_open" ? "Бұл пакет бойынша шағым қаралып жатыр." : "Жіберілмеді. Қайталап көріңіз."); return; }
     }
-    haptic.success(); go("/complaint/done", "up", { replace: true });
-  } }), [go, busy, text, why, packId]);
+    haptic.success(); go("/complaint/done", "up", { replace: true, state: { extended, refused: reasons[why].code === "refused" } });
+  } }), [go, busy, text, why, packId, pack?.serverId]);
   if (!pack || !o) return <SubPage title="Шағым жіберу"><p className={`t-sub2 ${b.empty}`}>Пакет табылмады</p></SubPage>;
   const last = pack.history.find((h) => h.title.includes("пайдаланылды"));
   return (
@@ -61,8 +66,8 @@ export function Complaint() {
       <h2 className={`t-sub2 w-600 ${b.h2} rise`} style={{ ["--i" as string]: 1 }}>Не болды?</h2>
       <Group i={1}>
         {reasons.map((k, i) => (
-          <button key={k} className={rp.row} onClick={() => { if (why !== i) { haptic.select(); setWhy(i); } }}>
-            <span className={rp.label}>{k}</span><span className={`${rp.radio} ${why === i ? rp.on : ""}`} />
+          <button key={k.t} className={rp.row} onClick={() => { if (why !== i) { haptic.select(); setWhy(i); } }}>
+            <span className={rp.label}>{k.t}</span><span className={`${rp.radio} ${why === i ? rp.on : ""}`} />
           </button>
         ))}
       </Group>
@@ -70,7 +75,9 @@ export function Complaint() {
       <label className={`${rp.area} ${s.area} rise`} style={{ ["--i" as string]: 2 }}>
         <textarea value={text} rows={1} maxLength={300} placeholder="Не болғанын қысқаша жаз" onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }} />
       </label>
-      <p className={`t-sub2 ${b.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 3 }}>Мекеме 24 сағат ішінде жауап береді. Қате расталса, дана пакетке қайтарылады.<i>”</i></p>
+      <p className={`t-sub2 ${b.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 3 }}>{refused
+        ? "Сенің кінәң жоқ: пакет мерзімі бірден 7 күнге ұзарады. Medeo мекемені тексереді — қайталанса, мекеменің сатуы тоқтатылады."
+        : "Мекеме 24 сағат ішінде жауап береді. Қате расталса, дана пакетке қайтарылады."}<i>”</i></p>
       <div style={{ height: 70 }} />
       <Bar left={left} main={main} />
     </SubPage>
@@ -80,6 +87,7 @@ export function Complaint() {
 /** «Шағым жіберілді»: /complaint/done */
 export function ComplaintDone() {
   const go = useGo();
+  const st = useLocation().state as { extended?: number; refused?: boolean } | null;
   const close = useCallback(() => go(-1, "back"), [go]);
   useBackButton(close);
   const main = useMemo(() => ({ text: "Түсінікті", onClick: () => { haptic.soft(); close(); } }), [close]);
@@ -90,7 +98,7 @@ export function ComplaintDone() {
       <div className={r.body}>
         <Sticker name="wait" size={120} className={r.sticker} />
         <h1 className={r.title}>Шағым жіберілді</h1>
-        <p className={r.text}>Мекеме 24 сағат ішінде жауап береді. Нәтижесін Telegram-да хабарлаймыз.</p>
+        <p className={r.text}>{st?.extended ? `Пакет мерзімі ${st.extended} күнге ұзартылды. Medeo мекемені тексереді, нәтижесін Telegram-да хабарлаймыз.` : st?.refused ? "Medeo мекемені тексереді. Нәтижесін Telegram-да хабарлаймыз." : "Мекеме 24 сағат ішінде жауап береді. Нәтижесін Telegram-да хабарлаймыз."}</p>
       </div>
       {!inTelegram && <div className={b.bar}><button className={b.btn} onClick={main.onClick}>{main.text}</button></div>}
     </div>
