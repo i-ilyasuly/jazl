@@ -54,6 +54,8 @@ export const venues = app.table("venues", {
   status: venueStatus("status").notNull().default("draft"),
   /** Jazl+ мекемені тоқтатса — себебі (Figma «Мекеме уақытша тоқтатылды») */
   statusNote: text("status_note"),
+  /** Jazl+ комиссиясы, % (Figma «Комиссия»: 10 — негізгі, 8 — жоғары рейтинг). null — әдепкі (JAZL_FEE_PCT) */
+  feePct: smallint("fee_pct"),
   createdAt: created(),
 }, (t) => [uniqueIndex("venues_slug").on(t.slug)]);
 
@@ -340,4 +342,41 @@ export const complaints = app.table("complaints", {
 export const notifyLog = app.table("notify_log", {
   key: text("key").primaryKey(),
   createdAt: created(),
+});
+
+/** Jazl+ Басқару (Figma «Jazl+ Басқару» 14060:7998): кіру — ADMIN_IDS тізіміндегі Telegram аккаунты + жеке PIN.
+ *  PIN 3 рет қате болса — 15 минутқа бұғатталады. */
+export const admins = app.table("admins", {
+  userId: uuid("user_id").primaryKey().references(() => users.id),
+  pinHash: text("pin_hash"),
+  failed: smallint("failed").notNull().default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  createdAt: created(),
+});
+
+/** Өзгерістер журналы (Figma «Өзгерістер журналы»): өшірілмейді, өзгертілмейді. */
+export const adminLog = app.table("admin_log", {
+  id: id(),
+  adminId: uuid("admin_id").notNull().references(() => users.id),
+  action: text("action").notNull(),
+  /** Адамға оқылатын нысан: «Dämdi Doner · 10% → 8%» */
+  target: text("target").notNull(),
+  meta: jsonb("meta"),
+  createdAt: created(),
+}, (t) => [index("admin_log_time").on(t.createdAt)]);
+
+/** Мекеме туралы ішкі жазбалар (Figma «Ішкі жазбалар»): тек Басқару командасы көреді. */
+export const venueNotes = app.table("venue_notes", {
+  id: id(),
+  venueId: uuid("venue_id").notNull().references(() => venues.id),
+  adminId: uuid("admin_id").notNull().references(() => users.id),
+  text: text("text").notNull(),
+  createdAt: created(),
+}, (t) => [index("venue_notes_venue").on(t.venueId)]);
+
+/** Платформа баптаулары (Figma «Бизнес-ережелер», «Техникалық жұмыстар»): кілт → мән */
+export const settings = app.table("settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

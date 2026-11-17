@@ -143,6 +143,25 @@ export function makeNotifier(db: Db, send: Sender) {
       await send({ chatId: Number(a.tg), ...m });
     }),
 
+    /** Jazl+ Басқару «Хабарлама жазу»: мекеме иесіне (иелеріне) не нақты пайдаланушыға */
+    toVenue: async (venueId: string, text: string) => { const to = await staff(venueId, ["owner"]); await sendAll(to, { text: `✉️ Jazl+: ${text}`, button: { text: "Ашу", start: "v_home" } }); return to.length; },
+    toUser: async (userId: string, text: string, start?: string) => {
+      const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${userId}`);
+      if (u) await send({ chatId: Number(u.tg), text: `✉️ Jazl+: ${text}`, ...(start ? { button: { text: "Ашу", start } } : {}) }).catch(() => null);
+    },
+    /** Мекемеге: ұсыныс тексерілді (жарияланды / түзету керек / тоқтатылды) */
+    offerReviewed: (offerId: string, result: "approved" | "fix" | "stopped", note?: string) => safe("offerReviewed", async () => {
+      const [o] = await rows<{ venue_id: string; title: string }>(sql`select venue_id, title from app.offers where id = ${offerId}`);
+      if (!o) return;
+      const t = head(o.title);
+      const text = result === "approved" ? `✅ «${t}» ұсынысы тексеруден өтіп, жарияланды.` : result === "fix" ? `✏️ «${t}» ұсынысына түзету керек: ${note ?? ""}` : `⛔ «${t}» ұсынысын Jazl+ тоқтатты${note ? `: ${note}` : "."}`;
+      await sendAll(await staff(o.venue_id, ["owner", "manager"]), { text, button: { text: "Ашу", start: "v_home" } });
+    }),
+    /** Мекемеге: Jazl+ тоқтатты / қайта қосты */
+    venueStatus: (venueId: string, paused: boolean, note?: string) => safe("venueStatus", async () => {
+      await sendAll(await staff(venueId, ["owner", "manager"]), { text: paused ? `⛔ Мекеме уақытша тоқтатылды${note ? `: ${note}` : "."} Сатылған пакеттерге қызмет көрсету жалғасады.` : "✅ Мекеме қайта іске қосылды. Жаңа пакеттер сатылады.", button: { text: "Ашу", start: "v_home" } });
+    }),
+
     /** Жоспарлы жұмыс (Cloud Scheduler, 15 минут сайын): өтінім нәтижелері, 22:00 күндік қорытынды, 10:00 мерзім ескертуі */
     tick: async (now = new Date()) => {
       const out = { applications: 0, daily: 0, expiry: 0 };

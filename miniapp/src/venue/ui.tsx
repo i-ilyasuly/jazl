@@ -18,14 +18,14 @@ import nav from "../ui/NavBar.module.css";
 import s from "./V.module.css";
 
 /** Бет: Telegram жүйелік батырмалары (браузерде), тақырып, мазмұн. back — «Артқа» (әйтпесе «Жабу» → клиент бөлімі). */
-export function VPage({ title, back, children, tab, className }: { title?: string; back?: boolean; children: ReactNode; tab?: VTab; className?: string }) {
+export function VPage({ title, back, children, tab, className, nav }: { title?: string; back?: boolean; children: ReactNode; tab?: VTab; className?: string; nav?: boolean }) {
   const go = useGo();
   const onBack = useCallback(() => (back ? go(-1, "back") : go("/profile", "fade")), [back, go]);
   useBackButton(onBack, Boolean(back));
   const [sys, retry] = useSys();
   if (sys) return <SysScreen sys={sys} retry={retry} />; // Figma 13: желі жоқ, сессия аяқталды, техникалық жұмыстар
   return (
-    <div className={`${s.page} ${title ? s.sub : ""} ${tab ? "" : s.navless} ${className ?? ""}`}>
+    <div className={`${s.page} ${title ? s.sub : ""} ${tab || nav ? "" : s.navless} ${className ?? ""}`}>
       <TelegramChrome mode={back ? "back" : "close"} onBack={onBack} />
       {title && <h1 className={s.pageTitle}>{title}</h1>}
       {children}

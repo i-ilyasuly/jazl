@@ -65,7 +65,8 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     const validUntil = new Date(now.getTime() + o.validDays * 86400_000);
     const regularTotal = o.regularUnitPrice * units;
     const saving = Math.max(0, regularTotal - size.price);
-    const fee = Math.round((size.price * cfg.JAZL_FEE_PCT) / 100);
+    const feePct = v.feePct ?? cfg.JAZL_FEE_PCT; // мекеменің өз комиссиясы (Jazl+ Басқару)
+    const fee = Math.round((size.price * feePct) / 100);
     const ip = (c.req.header("x-forwarded-for") ?? "").split(",")[0].trim();
     const methodLabel = body.methodLabel ?? { kaspi: "Kaspi Pay", card: "Банк картасы", test: "Сынақ төлемі" }[body.method];
 
@@ -125,7 +126,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
         client: { platform: c.req.header("x-tg-platform") ?? null, tgVersion: c.req.header("x-tg-version") ?? null, appVersion: c.req.header("x-app-version") ?? null, userAgent: c.req.header("user-agent") ?? null,
           ipHash: ip ? createHash("sha256").update(ip).digest("hex").slice(0, 16) : null, authDate: c.get("auth").authDate, startParam: c.get("auth").startParam ?? null },
         offer: { id: o.id, slug: o.slug, venueId: v.id, branchId: branch?.id ?? null, catalogPrice: o.price, sizesOffered: o.sizes ?? null, chosenUnits: units, priceSource: "server" },
-        money: { total: size.price, regularTotal, saving, jazlFeePct: cfg.JAZL_FEE_PCT, jazlFee: fee, venuePayout: size.price - fee, currency: "KZT" },
+        money: { total: size.price, regularTotal, saving, jazlFeePct: feePct, jazlFee: fee, venuePayout: size.price - fee, currency: "KZT" },
         payment: { id: pay.id, provider: cfg.PAYMENTS_MODE, externalId: pay.externalId, idempotencyKey: body.idempotencyKey, createdAt: pay.createdAt, paidAt },
         timing: { serverMs: Date.now() - t0 },
       };

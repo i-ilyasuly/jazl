@@ -28,6 +28,8 @@ const Env = z.object({
   /** 1 — техникалық жұмыстар: API 503 «maintenance» қайтарады */
   /** Жоспарлы жұмыс кілті (Cloud Scheduler → POST /cron/tick, X-Cron-Key). Жоқ болса /cron өшірулі. Secret Manager: jazl-cron-key */
   CRON_KEY: z.string().min(16).optional(),
+  /** Jazl+ Басқару: рұқсат етілген Telegram ID-лер, үтірмен (мысалы 123456789,987654321). Бос болса — Басқару ешкімге ашылмайды. */
+  ADMIN_IDS: z.string().default(""),
   MAINTENANCE: z.enum(["0", "1"]).default("0").transform((v) => v === "1"),
 });
 

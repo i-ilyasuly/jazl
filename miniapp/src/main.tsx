@@ -51,6 +51,14 @@ import { MapScreen } from "./screens/MapScreen";
 import { VenuePage } from "./screens/VenuePage";
 import { Stub } from "./screens/Stub";
 import { VNavHost } from "./venue/ui";
+import { ANavHost } from "./admin/ui";
+import { AGate, APin } from "./admin/Entry";
+import { AAttention, APulse } from "./admin/Pulse";
+import { AApp, AAppDone, AApps, ABranches, ANotes, ATeam, AVenue, AVenues } from "./admin/Venues";
+import { AOffer, AOffers } from "./admin/Offers";
+import { AComplaint, AComplaintSent, AComplaints } from "./admin/Complaints";
+import { APack, APacks } from "./admin/Packs";
+import { ALog, AMoney, AMore, ARules } from "./admin/More";
 import { VGate, VJoin, VPending, VPickVenue, VWelcome } from "./venue/Entry";
 import { VCashier, VHome } from "./venue/Home";
 import { VPaid, VPay, VQr } from "./venue/Pay";
@@ -79,9 +87,9 @@ initTelegram();
 {
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
   // Бот хабарламаларының батырмалары (backend/src/notify.ts): vo_ — тапсырыс, vc_ — шағым, pk_ — клиент пакеті, v_<бет> — мекеме беті
-  const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v)_([\w-]+)$/);
+  const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v|a)_([\w-]+)$/);
   const vPage: Record<string, string> = { home: "/v", report: "/v/report", team: "/v/team", reviews: "/v/reviews", apply: "/v/apply/status", complaints: "/v/complaints" };
-  const to = m && (m[1] === "v" ? vPage[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
+  const to = m && (m[1] === "a" ? "/a" : m[1] === "v" ? vPage[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
   if (m && to) window.location.hash = "#" + to;
 }
 
@@ -120,12 +128,13 @@ function Shell() {
   const locked = useLocked();
   // Патша (2026-11-17): «Jazl+» жүктелу экраны алынды — баптаулар оқылғанша (CloudStorage, ~50–200 мс) бос фон ғана
   if (onboarded === null) return <div className="app" />;
-  if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/v/") && path !== "/v") return <Navigate to="/welcome" replace />;
+  if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/v/") && path !== "/v" && !path.startsWith("/a")) return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
       <FirstVisit key={path}><Outlet /></FirstVisit>
       {tab && <NavBar active={tab} />}
       {path.startsWith("/v/") && <VNavHost path={path} />}
+      {path.startsWith("/a/") && <ANavHost path={path} />}
       {tab && <OfflineBar />}
       {locked && <Pin lock />}
       <Toast />
@@ -227,6 +236,31 @@ const router = createHashRouter([
       { path: "/profile/report/done", element: <ReportDone /> },
       // Мекеме бөлімі — Figma «Jazl+ Мекеме»
       { path: "/v", element: <VGate /> },
+      // Jazl+ Басқару (Figma 14060:7998)
+      { path: "/a", element: <AGate /> },
+      { path: "/a/pin", element: <APin /> },
+      { path: "/a/pin/setup", element: <APin setup /> },
+      { path: "/a/pulse", element: <APulse /> },
+      { path: "/a/attention", element: <AAttention /> },
+      { path: "/a/venues", element: <AVenues /> },
+      { path: "/a/venues/:id", element: <AVenue /> },
+      { path: "/a/venues/:id/notes", element: <ANotes /> },
+      { path: "/a/venues/:id/branches", element: <ABranches /> },
+      { path: "/a/venues/:id/team", element: <ATeam /> },
+      { path: "/a/apps", element: <AApps /> },
+      { path: "/a/apps/:id", element: <AApp /> },
+      { path: "/a/apps/:id/done", element: <AAppDone /> },
+      { path: "/a/offers", element: <AOffers /> },
+      { path: "/a/offers/:id", element: <AOffer /> },
+      { path: "/a/packs", element: <APacks /> },
+      { path: "/a/packs/:id", element: <APack /> },
+      { path: "/a/money", element: <AMoney /> },
+      { path: "/a/complaints", element: <AComplaints /> },
+      { path: "/a/complaints/:id", element: <AComplaint /> },
+      { path: "/a/complaints/:id/sent", element: <AComplaintSent /> },
+      { path: "/a/more", element: <AMore /> },
+      { path: "/a/rules", element: <ARules /> },
+      { path: "/a/log", element: <ALog /> },
       { path: "/v/welcome", element: <VWelcome /> },
       { path: "/v/apply", element: <VApplyIntro /> },
       { path: "/v/apply/terms", element: <VApplyTerms /> },

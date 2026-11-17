@@ -78,3 +78,11 @@ gcloud scheduler jobs create http jazl-tick --location europe-west3 --schedule "
   --uri "$(gcloud run services describe jazl-api --region europe-west3 --format='value(status.url)')/cron/tick" \
   --headers "X-Cron-Key=$(gcloud secrets versions access latest --secret jazl-cron-key)"
 ```
+
+## Jazl+ Басқару (src/routes/admin.ts, мини апп /a)
+Кіру: `ADMIN_IDS` (Telegram ID, үтірмен) + жеке PIN (scrypt, 3 қате → 15 мин бұғат) → `X-Admin-Token` (12 сағ). Қауіпті әрекеттер (комиссия, тоқтату,
+қолмен қайтару, ұзарту, баптаулар) денесіндегі `pin` арқылы қайта расталады; әр өзгеріс `app.admin_log`-қа жазылады.
+Баптаулар `app.settings` (maintenance, moderation, graceDays, complaintHours); `maintenance` қосулы болса `/v1/*` 503 (Басқарудан басқасы).
+```bash
+gcloud run services update jazl-api --region europe-west3 --update-env-vars ADMIN_IDS=<Telegram ID>
+```

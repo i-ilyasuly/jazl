@@ -23,6 +23,12 @@ const map: Record<string, [string, C]> = {
   "v:venue": ["store", "blue"], "v:venueOrange": ["store", "orange"], "v:venuePurple": ["store", "lavender"], "v:branch": ["map-pin", "green"], "v:team": ["user", "lavender"], "v:integration": ["refresh", "orange"],
   "v:reviews": ["star", "yellow"], "v:guide": ["file", "blue"], "v:settings": ["settings", "gray"], "v:support": ["message", "green"], "v:orders": ["list", "cyan"], "v:client": ["repeat", "blue"],
   "v:clock": ["clock", "blue"], "v:pin": ["lock", "blue"], "v:poster": ["qr-code", "yellow"], "v:expired": ["clock", "orange"], "v:file": ["file", "blue"], "v:bank": ["landmark", "green"], "v:photo": ["image", "orange"], "v:docs": ["file", "lavender"], "v:complaint": ["alert", "orange"], "v:carry": ["refresh", "green"], "v:extend": ["plus", "orange"], "v:preorder": ["shopping-cart", "lavender"],
+  // Jazl+ Басқару (Figma 14060:7998)
+  "a:apps": ["store", "blue"], "a:offers": ["tag", "lavender"], "a:complaints": ["message", "red"], "a:payfail": ["wallet", "orange"], "a:pos": ["refresh", "red"], "a:iban": ["landmark", "green"],
+  "a:grace": ["clock", "gray"], "a:fee": ["percent", "blue"], "a:branches": ["map-pin", "green"], "a:team": ["user", "orange"], "a:notes": ["file", "gray"], "a:packs": ["package", "green"],
+  "a:bell": ["bell", "orange"], "a:rules": ["sun", "blue"], "a:security": ["shield", "green"], "a:log": ["file", "gray"], "a:maint": ["triangle", "red"], "a:eye": ["eye", "gray"],
+  "a:pay": ["credit-card", "blue"], "a:settle": ["landmark", "green"], "a:recon": ["refresh", "red"], "a:refunds": ["undo-2", "orange"], "a:expired": ["clock", "gray"], "a:export": ["download", "lavender"],
+  "a:templates": ["file", "gray"], "a:repeat": ["flag", "orange"], "a:moderation": ["eye", "blue"],
   "🍔": ["utensils", "orange"], "🌯": ["utensils", "orange"], "🥙": ["utensils", "orange"], "🍕": ["utensils", "orange"], "🍵": ["coffee", "orange"], "💈": ["scissors", "purple"],
 };
 const norm = (e: string) => e.replace(/️/g, "").trim();
