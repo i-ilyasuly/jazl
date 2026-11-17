@@ -166,9 +166,17 @@ export function useBottomButtons(main: BottomAction, secondary?: BottomAction, e
  *  браузерде localStorage. */
 export const kv = {
   get(key: string): Promise<string | null> {
-    return new Promise((res) => {
-      if (inTelegram && at("6.9") && wa?.CloudStorage) wa.CloudStorage.getItem(key, (err, v) => res(err ? null : v || null));
-      else { try { res(localStorage.getItem(key)); } catch { res(null); } }
+    const raw = (k: string) => new Promise<string | null>((res) => {
+      if (inTelegram && at("6.9") && wa?.CloudStorage) wa.CloudStorage.getItem(k, (err, v) => res(err ? null : v || null));
+      else { try { res(localStorage.getItem(k)); } catch { res(null); } }
+    });
+    // Medeo. атауына ауысу (2026-11-17): кілттер medeo_* болды. Ескі @oylarbot ішінде сақталған jazl_* мәні (тіркелу, PIN, таңдаулылар,
+    // Kaspi нөмірі) жоғалмауы үшін — жаңасы жоқ болса, ескісін оқып, жаңа кілтке көшіреміз.
+    return raw(key).then(async (v) => {
+      if (v !== null || !key.startsWith("medeo_")) return v;
+      const old = await raw("jazl_" + key.slice(6));
+      if (old !== null) kv.set(key, old);
+      return old;
     });
   },
   set(key: string, value: string) {

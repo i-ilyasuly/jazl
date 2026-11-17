@@ -6,6 +6,22 @@
 const PRIMARY_API = (import.meta.env.VITE_API_URL as string | undefined) ?? "https://medeo-api-595435045772.europe-west3.run.app";
 const LEGACY_API = import.meta.env.VITE_API_URL ? null : "https://jazl-api-595435045772.europe-west3.run.app";
 export let API_URL = PRIMARY_API;
+/** Жаңа сервер осы сеанста бір рет жауап берсе (JSON) — енді ескісіне ешқашан ауыспаймыз (желі үзілісі ескіге жабыстырмайды) */
+let primaryAnswered = false;
+const isJson = (r: Response) => (r.headers.get("content-type") ?? "").includes("json");
+/** Серверге сұрау: medeo-api мүлде жоқ болса ғана (сеанстың басында) — бір рет jazl-api-ға ауысады. Барлық API сұрауы осы арқылы. */
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const canFallback = () => Boolean(LEGACY_API) && API_URL === PRIMARY_API && !primaryAnswered;
+  let res: Response;
+  try { res = await fetch(API_URL + path, init); }
+  catch (e) {
+    if (!canFallback() || init.signal?.aborted) throw e;
+    API_URL = LEGACY_API!; return fetch(API_URL + path, init);
+  }
+  if (API_URL === PRIMARY_API && isJson(res)) primaryAnswered = true;
+  else if (res.status === 404 && canFallback() && !isJson(res)) { API_URL = LEGACY_API!; return fetch(API_URL + path, init); } // Cloud Run: «сервис жоқ» беті
+  return res;
+}
 
 const devInit = () => { try { return import.meta.env.DEV ? localStorage.getItem("medeo_dev_init") ?? "" : ""; } catch { return ""; } }; // тек жергілікті әзірлеуде: браузерден сынау
 const initData = () => (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData || devInit();
@@ -23,13 +39,7 @@ export async function api<T>(path: string, init: RequestInit = {}, timeoutMs = 6
     if (wa?.version) headers.set("X-Tg-Version", wa.version);
     headers.set("X-App-Version", String(import.meta.env.VITE_APP_VERSION ?? "web"));
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-    let res: Response;
-    try { res = await fetch(API_URL + path, { ...init, headers, signal: ctl.signal }); }
-    catch (e) { if (LEGACY_API && API_URL === PRIMARY_API && !ctl.signal.aborted) { API_URL = LEGACY_API; res = await fetch(API_URL + path, { ...init, headers, signal: ctl.signal }); } else throw e; }
-    if (res.status === 404 && LEGACY_API && API_URL === PRIMARY_API && !(res.headers.get("content-type") ?? "").includes("json")) {
-      API_URL = LEGACY_API; // жаңа сервер әлі жоқ — ескісін қолданамыз
-      res = await fetch(API_URL + path, { ...init, headers, signal: ctl.signal });
-    }
+    const res = await apiFetch(path, { ...init, headers, signal: ctl.signal });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
       // Жүйелік күйлер (Figma 13): сессия аяқталды, техникалық жұмыстар — мекеме бөлімі арнайы бет көрсетеді

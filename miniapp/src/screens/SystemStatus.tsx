@@ -2,7 +2,7 @@
 // Сервер жұмыс істей ме, каталог қайдан келді (сервер не үлгі), Telegram арқылы кіру өтті ме — бәрі бір жерде.
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { api, API_URL } from "../api";
+import { api, API_URL, apiFetch } from "../api";
 import { catalogState, loadCatalog } from "../catalog";
 import { inTelegram, haptic } from "../telegram";
 import { Group, Note, Row, SubPage } from "../ui/SubPage";
@@ -66,7 +66,7 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
     let dead = false; let timer = 0; let tick = 0;
     const load = async () => {
       try {
-        const r = await fetch(API_URL + "/dev/qr", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "medeo" ? { branchId: pick.branchId, units } : { branchId: pick.branchId, amount }) });
+        const r = await apiFetch("/dev/qr", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "medeo" ? { branchId: pick.branchId, units } : { branchId: pick.branchId, amount }) });
         const j = await r.json() as { payload: string; exp: number | null };
         if (dead) return;
         setPayload(j.payload);
