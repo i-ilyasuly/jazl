@@ -1,0 +1,125 @@
+// Мекеме бөлімінің ортақ бөлшектері: бет қаңқасы, төменгі мәзір (Figma «Қалқымалы навигация»), екі батырма,
+// ескерту блогы, төменгі парақ, ұсыныс суреті, адам аватары.
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useGo } from "../nav";
+import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
+import { TelegramChrome } from "../ui/TelegramChrome";
+import { Emo } from "../ui/Emo";
+import type { OfferKind } from "../mocks/offers";
+import { useCurrent, type Role } from "./api";
+import homeIcon from "../assets/icons/navHome.svg";
+import qrIcon from "../assets/icons/navQr.svg";
+import packsIcon from "../assets/icons/navPacks.svg";
+import reportIcon from "../assets/icons/navReport.svg";
+import historyIcon from "../assets/icons/navHistory.svg";
+import nav from "../ui/NavBar.module.css";
+import s from "./V.module.css";
+
+/** Бет: Telegram жүйелік батырмалары (браузерде), тақырып, мазмұн. back — «Артқа» (әйтпесе «Жабу» → клиент бөлімі). */
+export function VPage({ title, back, children, tab, className }: { title?: string; back?: boolean; children: ReactNode; tab?: VTab; className?: string }) {
+  const go = useGo();
+  const onBack = useCallback(() => (back ? go(-1, "back") : go("/profile", "fade")), [back, go]);
+  useBackButton(onBack, Boolean(back));
+  return (
+    <div className={`${s.page} ${title ? s.sub : ""} ${tab ? "" : s.navless} ${className ?? ""}`}>
+      <TelegramChrome mode={back ? "back" : "close"} onBack={onBack} />
+      {title && <h1 className={s.pageTitle}>{title}</h1>}
+      {children}
+      {tab && <VNav active={tab} />}
+    </div>
+  );
+}
+
+export type VTab = "home" | "cashier" | "offers" | "report" | "history";
+const ownerTabs = [
+  { key: "home", label: "Басты", icon: homeIcon, to: "/v" },
+  { key: "cashier", label: "Кассир", icon: qrIcon, to: "/v/cashier" },
+  { key: "offers", label: "Ұсыныстар", icon: packsIcon, to: "/v/offers" },
+  { key: "report", label: "Есеп", icon: reportIcon, to: "/v/report" },
+] as const;
+const managerTabs = [ownerTabs[0], ownerTabs[1], ownerTabs[2], { key: "history", label: "Тарих", icon: historyIcon, to: "/v/history" }] as const;
+const cashierTabs = [{ key: "cashier", label: "Кассир", icon: qrIcon, to: "/v/cashier" }, { key: "history", label: "Тарих", icon: historyIcon, to: "/v/history" }] as const;
+export const tabsOf = (role: Role) => (role === "owner" ? ownerTabs : role === "manager" ? managerTabs : cashierTabs);
+
+/** Figma «Басты (иесі)» / «Кассир: басты (кассир рөлі)» төменгі мәзірі: клиент мәзірімен бір әйнек стилі, таб саны рөлге қарай. */
+export function VNav({ active }: { active: VTab }) {
+  const go = useGo();
+  const me = useCurrent();
+  const tabs = tabsOf(me?.role ?? "cashier");
+  const w = 370 / tabs.length;
+  const idx = Math.max(0, tabs.findIndex((t) => t.key === active));
+  const pill = useRef<HTMLDivElement>(null);
+  const prev = useRef(idx);
+  useLayoutEffect(() => {
+    if (prev.current === idx) return;
+    prev.current = idx;
+    pill.current?.animate([{ scale: "1 1" }, { scale: "1.16 0.86", offset: 0.4 }, { scale: "0.96 1.04", offset: 0.75 }, { scale: "1 1" }], { duration: 420, easing: "cubic-bezier(0.3, 0.7, 0.2, 1)" });
+  }, [idx]);
+  return (
+    <nav className={nav.nav} style={{ touchAction: "auto" }}>
+      <div ref={pill} className={nav.activeBg} style={{ width: w - 8, translate: `${idx * w}px 0` }} />
+      {tabs.map((t, i) => {
+        const on = t.key === active;
+        return (
+          <button key={t.key} className={nav.tab} style={{ left: 5 + i * w - 4, width: w }} onClick={() => { if (!on) { haptic.select(); go(t.to, "fade"); } }} aria-current={on ? "page" : undefined}>
+            <span className={nav.iconBox}><span className={`${nav.icon} ${on ? nav.iconActive : ""}`} style={{ maskImage: `url(${JSON.stringify(t.icon)})`, WebkitMaskImage: `url(${JSON.stringify(t.icon)})` }} /></span>
+            <span className={`${nav.label} ${on ? nav.labelActive : ""}`}>{t.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+export interface Btn { text: string; onClick: () => void; disabled?: boolean; shine?: boolean; danger?: boolean }
+/** Төменгі батырмалар: Telegram-да нативті MainButton (оң) + SecondaryButton (сол), браузерде Figma-дағы жолақ. */
+export function Buttons({ main, second, enabled = true }: { main: Btn; second?: Btn; enabled?: boolean }) {
+  const m = useMemo(() => ({ text: main.text, onClick: main.onClick, disabled: main.disabled, shine: main.shine }), [main.text, main.onClick, main.disabled, main.shine]);
+  const sc = useMemo(() => (second ? { text: second.text, onClick: second.onClick, position: "left" as const } : undefined), [second?.text, second?.onClick]); // eslint-disable-line react-hooks/exhaustive-deps
+  useBottomButtons(m, sc, enabled);
+  if (inTelegram || !enabled) return null;
+  return (
+    <div className={s.btnBar}>
+      {second && <button className={`${s.btn} ${s.btnSoft}`} onClick={second.onClick}>{second.text}</button>}
+      <button className={`${s.btn} ${main.danger ? s.btnRed : ""}`} disabled={main.disabled} onClick={main.onClick}>{main.text}</button>
+    </div>
+  );
+}
+
+export function Note({ children, tone }: { children: ReactNode; tone?: "warn" | "ok" }) {
+  return <div className={`${s.note} ${tone ? s[tone] : ""}`}>{children}<i>”</i></div>;
+}
+
+/** Төменгі парақ (Figma: «Рөлдер мен рұқсаттар», «Соңғы қолдануды қайтару», «Қосымша тауар бағасы») */
+export function Sheet({ title, children, onClose, grab = true }: { title?: string; children: ReactNode; onClose: () => void; grab?: boolean }) {
+  const [closing, setClosing] = useState(false);
+  const close = useCallback(() => { haptic.soft(); setClosing(true); setTimeout(onClose, 200); }, [onClose]);
+  useBackButton(close);
+  useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
+  return (
+    <div className={`${s.sheetRoot} ${closing ? s.closing : ""}`}>
+      <div className={s.scrim} onClick={close} />
+      <div className={s.sheet} role="dialog">
+        {grab && <span className={s.grab} />}
+        {title && <h2 className={s.sheetTitle}>{title}</h2>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export const OfferPic = ({ kind, size = 28 }: { kind: OfferKind; size?: number }) => <Emo kind={kind} size={size} />;
+
+const tones = ["#ff9500", "#8e7cf3", "#31d158", "#2aabee", "#ff6482", "#4378ff"];
+export function Person({ name, photo, online, size = 40 }: { name: string; photo?: string | null; online?: boolean; size?: number }) {
+  const c = tones[[...name].reduce((a, ch) => a + ch.charCodeAt(0), 0) % tones.length];
+  return (
+    <span className={s.person} style={{ width: size, height: size, background: c, fontSize: size * 0.42 }}>
+      {photo ? <img src={photo} alt="" /> : name.slice(0, 1).toUpperCase()}
+      {online && <i className={s.dotOnline} />}
+    </span>
+  );
+}
+
+/** Жүктелу қаңқасы */
+export const Sk = ({ w = "100%", h = 16 }: { w?: number | string; h?: number }) => <span className={s.sk} style={{ width: w, height: h }} />;

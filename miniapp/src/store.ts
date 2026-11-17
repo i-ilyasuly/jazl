@@ -149,7 +149,7 @@ export async function redeemOnServer(packId: string, qr: string, units = 1): Pro
   catch (e) { const b = (e as { body?: { error?: string; expectedUnits?: number; venue?: string } }).body; return { ok: false, error: b?.error ?? "network", expectedUnits: b?.expectedUnits, venue: b?.venue }; }
 }
 /** QR-ды тану (сервер): мекеме, кассир енгізген дана, банк сомасы, мерзімі. Сервер жоқ болса — null. */
-export interface QrInfo { kind: "dynamic" | "amount" | "static"; venue: { slug: string; name: string }; branch: { id: string; address: string }; units: number | null; amount: number | null; valid: boolean; expired: boolean }
+export interface QrInfo { kind: "dynamic" | "amount" | "static"; venue: { slug: string; name: string }; offer?: { slug: string; title: string } | null; branch: { id: string; address: string }; units: number | null; amount: number | null; valid: boolean; expired: boolean }
 export async function resolveQr(qr: string): Promise<QrInfo | { error: string } | null> {
   if (!qr) return null;
   try { return await api<QrInfo>("/v1/qr/resolve", { method: "POST", body: JSON.stringify({ qr }) }, 8000); }

@@ -1,6 +1,7 @@
 // Figma «23 · Шағым, код енгізу, бот»: «Шағым: қате қолдану» 14041:12738, «Шағым жіберілді» 14041:12839,
 // «Код енгізу» 14041:12879, «Код қате» 14041:12957. Бот хабарламалары (14044:12950) — түбірдегі бот коды, бұл жерде жоқ.
 // Өлшемдер: UI kit шкаласы және 4/8px тор (ұяшық 52/48, шет 16, белгі 13/16).
+import { api } from "../api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fmt, unitPrice } from "../mocks/offers";
@@ -97,8 +98,11 @@ export function CodeEntry() {
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); go(-1, "back"); } }), [go]);
   const main = useMemo(() => ({ text: "Растау", disabled: code.length < 6, onClick: () => {
     if (code.length < 6) return;
-    if (window.location.hash.includes("code=bad")) { haptic.error(); setError(true); setShake((n) => n + 1); return; }
-    haptic.medium(); go("/scan?via=code", "fade", { replace: true });
+    haptic.medium();
+    // Кассир QR-ының астындағы 6 таңбалы код → сервер сол сеанстың QR-ын қайтарады → әдеттегі төлем парағы
+    api<{ qr: string }>("/v1/qr/code", { method: "POST", body: JSON.stringify({ code }) })
+      .then((r) => go(`/scan?via=qr&qr=${encodeURIComponent(r.qr)}`, "fade", { replace: true }))
+      .catch(() => { haptic.error(); setError(true); setShake((n) => n + 1); });
   } }), [code, go]);
   return (
     <SubPage title="Код енгізу" top={92}>

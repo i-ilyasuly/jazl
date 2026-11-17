@@ -12,6 +12,7 @@ export const QR_TTL_SEC = 30;
 const GRACE_SEC = 15;
 
 export type ParsedQr =
+  | { kind: "session"; sessionId: string; exp: number; valid: boolean; expired: boolean }
   | { kind: "dynamic"; branchId: string; units: number; exp: number; valid: boolean; expired: boolean }
   | { kind: "amount"; branchId: string; amount: number }
   | { kind: "static"; branchId: string };
@@ -24,8 +25,21 @@ export function makeDynamicQr(secret: string, branchId: string, units: number, n
   return { payload: `JZQ2.${branchId}.${units}.${exp}.${sign(secret, branchId, units, exp)}`, exp, ttl: QR_TTL_SEC };
 }
 
+// 3) Кассир сеансы (Figma «Кассир: QR шығару», 2026-11-17): JZQ3.<sessionId>.<exp>.<sig> — пакет, дана, қосымша серверде (qr_sessions).
+const signS = (secret: string, id: string, exp: number) => createHmac("sha256", secret).update(`jzq3:${id}:${exp}`).digest("hex").slice(0, 16);
+export function makeSessionQr(secret: string, sessionId: string, now = Math.floor(Date.now() / 1000)) {
+  const exp = now + QR_TTL_SEC;
+  return { payload: `JZQ3.${sessionId}.${exp}.${signS(secret, sessionId, exp)}`, exp, ttl: QR_TTL_SEC };
+}
+
 export function parseQr(raw: string, secret: string, now = Math.floor(Date.now() / 1000)): ParsedQr | null {
   const t = raw.trim();
+  const ss = t.match(/^JZQ3\.([0-9a-f-]{36})\.(\d{9,11})\.([0-9a-f]{16})$/i);
+  if (ss) {
+    const [, id, e, sig] = ss; const exp = Number(e); const sessionId = id.toLowerCase();
+    const want = Buffer.from(signS(secret, sessionId, exp)); const got = Buffer.from(sig.toLowerCase());
+    return { kind: "session", sessionId, exp, valid: want.length === got.length && timingSafeEqual(want, got), expired: now > exp + GRACE_SEC };
+  }
   const d = t.match(/^JZQ2\.([0-9a-f-]{36})\.(\d{1,2})\.(\d{9,11})\.([0-9a-f]{16})$/i);
   if (d) {
     const [, branchId, u, e, sig] = d; const units = Number(u), exp = Number(e);

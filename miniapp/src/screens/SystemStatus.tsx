@@ -6,7 +6,7 @@ import { api, API_URL } from "../api";
 import { catalogState, loadCatalog } from "../catalog";
 import { inTelegram, haptic } from "../telegram";
 import { Group, Note, Row, SubPage } from "../ui/SubPage";
-import { desk, loadStaff, roleName, useStaff } from "../desk";
+import { V as desk, loadStaff, roleName, useStaff } from "../venue/api";
 import { useGo } from "../nav";
 
 type Me = { user: { firstName: string; lang: string; city: string } };
@@ -118,7 +118,7 @@ function TestDesk({ list }: { list: { venue: string; slug: string }[] }) {
   const venues = list.filter((b, i) => list.findIndex((x) => x.slug === b.slug) === i);
   const toggle = async (slug: string, leave: boolean) => {
     setBusy(slug);
-    try { await desk.devJoin(slug, leave); haptic.success(); await loadStaff(); if (!leave) go("/desk"); } catch { haptic.error(); } finally { setBusy(""); }
+    try { await desk.devJoin(slug, leave); haptic.success(); await loadStaff(); if (!leave) go("/v"); } catch { haptic.error(); } finally { setBusy(""); }
   };
   return (
     <Group header="Мекеме бөлімі · сынақ (C2)" i={4}>

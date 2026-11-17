@@ -3,13 +3,13 @@
 // бір бірлік екі рет жұмсалмайды. Әр қолдануға чек (receipts.kind = use | order) жазылады: алу тәсілі, слот, код — ішкі бөлікте.
 import { createHash, randomInt } from "node:crypto";
 import { Hono, type Context } from "hono";
-import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
-import { branches, offers, orders, packEvents, packs, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
-import { makeDynamicQr, parseQr } from "../qr.js";
+import { branches, offers, orders, packEvents, packs, qrSessions, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
+import { makeDynamicQr, makeSessionQr, parseQr } from "../qr.js";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type User = typeof users.$inferSelect;
@@ -21,14 +21,14 @@ export const branchQr = (cfg: Config, branchId: string) => `https://t.me/${cfg.M
 class UseError extends Error { constructor(public code: string, public status: 400 | 404 | 409 = 409, public extra: Record<string, unknown> = {}) { super(code); } }
 
 /** Пакеттен n бірлік алады (жолды бұғаттап). Қате болса UseError. check — бұғаттан кейінгі қосымша тексеру (мекеме, сома). */
-async function takeUnit(tx: Tx, packId: string, userId: string, n = 1, check?: (p: { venueId: string; unitPrice: number; units_left: number }) => void) {
+async function takeUnit(tx: Tx, packId: string, userId: string, n = 1, check?: (p: { venueId: string; offerId: string; unitPrice: number; units_left: number }) => void) {
   const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${packId} and p.user_id = ${userId} for update of p`);
-  const p = res.rows[0] as { id: string; units_left: number; units_total: number; price_paid: number; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string } | undefined;
+  const p = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; price_paid: number; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string } | undefined;
   if (!p) throw new UseError("pack_not_found", 404);
   if (p.status !== "active") throw new UseError("pack_" + p.status);
   if (new Date(p.valid_until).getTime() < Date.now()) throw new UseError("pack_expired");
   const unitPrice = Math.round(p.price_paid / p.units_total);
-  check?.({ venueId: p.venueId, unitPrice, units_left: p.units_left });
+  check?.({ venueId: p.venueId, offerId: p.offer_id, unitPrice, units_left: p.units_left });
   if (p.units_left < n) throw new UseError("no_units", 409, { left: p.units_left });
   const left = p.units_left - n;
   await tx.update(packs).set({ unitsLeft: left, status: left === 0 ? "used" : "active" }).where(eq(packs.id, packId));
@@ -53,16 +53,36 @@ export function usageRoutes(cfg: Config, db: Db) {
 
   // ── Кассадағы QR ──────────────────────────────────────────────
   // QR-ды алдын ала тану: қай мекеме, неше дана, мерзімі өтпеді ме (клиент төлем парағында көрсетеді)
+  // Кассир сеансы: пакет (ұсыныс), дана, мерзім, қолданылған ба
+  const sessionOf = async (id: string) => (await db.select({ s: qrSessions, o: offers }).from(qrSessions).leftJoin(offers, eq(qrSessions.offerId, offers.id)).where(eq(qrSessions.id, id)).limit(1))[0];
+
   r.post("/qr/resolve", async (c) => {
     const raw = String((await c.req.json().catch(() => ({})))?.qr ?? "");
     const q = parseQr(raw, cfg.BOT_TOKEN);
     if (!q) return c.json({ ok: false, error: "not_jazl_qr" }, 400);
     if (q.kind === "static" && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
-    const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, q.branchId)).limit(1);
+    let branchId: string; let units: number | null = null; let offer: { slug: string; title: string } | null = null; let valid = true; let expired = false;
+    if (q.kind === "session") {
+      const ss = q.valid ? await sessionOf(q.sessionId) : undefined;
+      if (!ss) return c.json({ ok: false, error: "bad_qr" }, 400);
+      if (ss.s.redemptionId) return c.json({ ok: false, error: "qr_used" }, 409);
+      if (ss.s.cancelledAt) return c.json({ ok: false, error: "qr_cancelled" }, 409);
+      branchId = ss.s.branchId; units = ss.s.units; offer = ss.o ? { slug: ss.o.slug, title: ss.o.title } : null;
+      expired = q.expired || ss.s.expiresAt.getTime() < Date.now();
+    } else { branchId = q.branchId; if (q.kind === "dynamic") { units = q.units; valid = q.valid; expired = q.expired; } }
+    const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, branchId)).limit(1);
     if (!br) return c.json({ ok: false, error: "branch_not_found" }, 404);
-    return c.json({ ok: true, kind: q.kind, venue: { slug: br.v.slug, name: br.v.name }, branch: { id: br.b.id, address: br.b.address },
-      units: q.kind === "dynamic" ? q.units : null, amount: q.kind === "amount" ? q.amount : null,
-      valid: q.kind === "dynamic" ? q.valid : true, expired: q.kind === "dynamic" ? q.expired : false });
+    return c.json({ ok: true, kind: q.kind === "session" ? "dynamic" : q.kind, venue: { slug: br.v.slug, name: br.v.name }, branch: { id: br.b.id, address: br.b.address },
+      units, offer, amount: q.kind === "amount" ? q.amount : null, valid, expired });
+  });
+
+  // Сканер істемесе: кассир QR-ының астындағы 6 таңбалы код (сеанс 2 минут жарамды) → сол сеанстың QR-ы
+  r.post("/qr/code", async (c) => {
+    const code = String((await c.req.json().catch(() => ({})))?.code ?? "").replace(/\D/g, "");
+    if (code.length !== 6) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [ss] = await db.select().from(qrSessions).where(and(eq(qrSessions.code, code), gt(qrSessions.expiresAt, new Date()), isNull(qrSessions.redemptionId), isNull(qrSessions.cancelledAt))).orderBy(desc(qrSessions.createdAt)).limit(1);
+    if (!ss) return c.json({ ok: false, error: "code_not_found" }, 404);
+    return c.json({ ok: true, qr: makeSessionQr(cfg.BOT_TOKEN, ss.id).payload });
   });
 
   const Redeem = z.object({ packId: z.string().uuid(), qr: z.string().min(5).max(300), units: z.number().int().min(1).max(20).default(1), idempotencyKey: z.string().min(8).max(64) }).strict();
@@ -72,20 +92,31 @@ export function usageRoutes(cfg: Config, db: Db) {
     const user = c.get("user");
     const q = parseQr(b.data.qr, cfg.BOT_TOKEN);
     if (!q) return c.json({ ok: false, error: "not_jazl_qr" }, 400);
-    if (q.kind === "dynamic" && !q.valid) return c.json({ ok: false, error: "bad_qr" }, 400);
-    if (q.kind === "dynamic" && q.expired) return c.json({ ok: false, error: "qr_expired" }, 409);
+    if ((q.kind === "dynamic" || q.kind === "session") && !q.valid) return c.json({ ok: false, error: "bad_qr" }, 400);
+    if ((q.kind === "dynamic" || q.kind === "session") && q.expired) return c.json({ ok: false, error: "qr_expired" }, 409);
+    const ss = q.kind === "session" ? await sessionOf(q.sessionId) : undefined;
+    if (q.kind === "session" && !ss) return c.json({ ok: false, error: "bad_qr" }, 400);
     if (q.kind === "static" && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
     const units = b.data.units;
     if (q.kind === "dynamic" && units !== q.units) return c.json({ ok: false, error: "units_mismatch", expectedUnits: q.units }, 409);
-    const branchId = q.branchId;
+    if (ss && units !== ss.s.units) return c.json({ ok: false, error: "units_mismatch", expectedUnits: ss.s.units }, 409);
+    const branchId = ss ? ss.s.branchId : (q as { branchId: string }).branchId;
     const prev = await db.select().from(redemptions).where(and(eq(redemptions.packId, b.data.packId), eq(redemptions.idempotencyKey, b.data.idempotencyKey))).limit(1);
     if (prev[0]) { const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.packId, b.data.packId), eq(receipts.kind, "use"), sql`${receipts.internal}->>'redemptionId' = ${prev[0].id}`)).limit(1); return c.json({ ok: true, repeated: true, receipt: rc ? { id: rc.id, no: "JZ-" + rc.no } : null }); }
     const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, branchId)).limit(1);
     if (!br || !br.b.active) return c.json({ ok: false, error: "branch_not_found" }, 404);
     try {
       const out = await db.transaction(async (tx) => {
+        // Сеанс бір рет қана төленеді: жолды бұғаттаймыз (екі клиент бір QR-ды қатар сканерлесе — біреуі ғана өтеді)
+        if (ss) {
+          const lk = (await tx.execute(sql`select redemption_id, cancelled_at, expires_at from app.qr_sessions where id = ${ss.s.id} for update`)).rows[0] as { redemption_id: string | null; cancelled_at: Date | null; expires_at: Date };
+          if (lk.redemption_id) throw new UseError("qr_used");
+          if (lk.cancelled_at) throw new UseError("qr_cancelled");
+          if (new Date(lk.expires_at).getTime() < Date.now()) throw new UseError("qr_expired");
+        }
         const p = await takeUnit(tx, b.data.packId, user.id, units, (x) => {
           if (x.venueId !== br.v.id) throw new UseError("other_venue", 409, { venue: br.v.name });
+          if (ss?.o && x.offerId !== ss.o.id) throw new UseError("other_offer", 409, { offer: ss.o.title });
           if (q.kind === "amount") {
             // Банк терминалы: сома = дана × 1 бірлік бағасы болуы керек
             if (q.amount % x.unitPrice !== 0) throw new UseError("amount_mismatch", 409, { amount: q.amount, unitPrice: x.unitPrice });
@@ -93,14 +124,15 @@ export function usageRoutes(cfg: Config, db: Db) {
             if (k !== units) throw new UseError("units_mismatch", 409, { expectedUnits: k, amount: q.amount, unitPrice: x.unitPrice });
           }
         });
-        const [rd] = await tx.insert(redemptions).values({ packId: p.id, branchId, units, idempotencyKey: b.data.idempotencyKey }).returning();
+        const [rd] = await tx.insert(redemptions).values({ packId: p.id, branchId, units, idempotencyKey: b.data.idempotencyKey, cashierId: ss?.s.createdBy ?? null }).returning();
+        if (ss) await tx.update(qrSessions).set({ redemptionId: rd.id }).where(eq(qrSessions.id, ss.s.id));
         await tx.insert(packEvents).values({ packId: p.id, type: "use", unitsDelta: -units, meta: { via: "scan", qr: q.kind, branchId, redemptionId: rd.id } });
         const now = new Date();
         const [rc] = await tx.insert(receipts).values({ kind: "use", userId: user.id, packId: p.id, venueId: br.v.id, branchId, total: p.unitPrice * units,
           public: { title: units > 1 ? `${units} бірлік пайдаланылды` : "Бірлік пайдаланылды", status: "Расталды", dateLocal: almaty(now), seller: { name: br.v.name, address: br.b.address, bin: null },
-            item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : "Кассадағы Jazl QR" },
+            item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : "Кассадағы Jazl QR", extra: ss && ss.s.extra ? { amount: ss.s.extra, note: "кассада бөлек төленеді" } : null },
           internal: { version: 1, redemptionId: rd.id, ...meta(c, user), item: { title: p.title, units, unitName: p.unitName, packSlug: p.slug },
-            fulfillment: { type: "scan", slot: null, code: null, branchId, qr: q.kind, qrAmount: q.kind === "amount" ? q.amount : null }, status: { current: "done", history: [{ status: "done", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
+            fulfillment: { type: "scan", slot: null, code: null, branchId, qr: q.kind, qrAmount: q.kind === "amount" ? q.amount : null, sessionId: ss?.s.id ?? null, cashierId: ss?.s.createdBy ?? null, extra: ss?.s.extra ?? 0 }, status: { current: "done", history: [{ status: "done", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
         return { left: p.left, units, receipt: { id: rc.id, no: "JZ-" + rc.no } };
       });
       return c.json({ ok: true, repeated: false, ...out });
@@ -171,7 +203,7 @@ export function usageRoutes(cfg: Config, db: Db) {
   });
 
   // ── Мекеме персоналы (кассир, менеджер, иесі) ─────────────────────
-  const staffVenues = async (userId: string) => (await db.select({ venueId: venueStaff.venueId }).from(venueStaff).where(eq(venueStaff.userId, userId))).map((x) => x.venueId);
+  const staffVenues = async (userId: string) => (await db.select({ venueId: venueStaff.venueId }).from(venueStaff).where(and(eq(venueStaff.userId, userId), eq(venueStaff.status, "active")))).map((x) => x.venueId);
 
   r.get("/venue/orders", async (c) => {
     const vs = await staffVenues(c.get("user").id);
@@ -179,8 +211,8 @@ export function usageRoutes(cfg: Config, db: Db) {
     const rows = await db.select({ o: orders, off: offers, u: users, b: branches }).from(orders).innerJoin(packs, eq(orders.packId, packs.id)).innerJoin(offers, eq(packs.offerId, offers.id))
       .innerJoin(users, eq(orders.userId, users.id)).innerJoin(branches, eq(orders.branchId, branches.id))
       .where(and(inArray(branches.venueId, vs), inArray(orders.status, ["sent", "accepted", "ready"]), gt(orders.createdAt, new Date(Date.now() - 7 * 86400_000)))).orderBy(orders.scheduledAt, orders.createdAt);
-    // Кассирге кодты көрсетпейміз — клиент айтады, кассир тексереді
-    return c.json({ ok: true, orders: rows.map((x) => ({ id: x.o.id, no: x.o.no, type: x.o.type, status: x.o.status, scheduledAt: x.o.scheduledAt, courier: x.o.courier, title: x.off.title, customer: x.u.firstName, username: x.u.username, branch: x.b.address, branchId: x.b.id, createdAt: x.o.createdAt })) });
+    // Figma «Тапсырыстар» (14010:8161): мекеме тапсырыс кодын көреді — клиент айтқан кодпен салыстырады
+    return c.json({ ok: true, orders: rows.map((x) => ({ id: x.o.id, no: x.o.no, type: x.o.type, status: x.o.status, scheduledAt: x.o.scheduledAt, courier: x.o.courier, title: x.off.title, customer: x.u.firstName, username: x.u.username, branch: x.b.address, branchId: x.b.id, createdAt: x.o.createdAt, code: x.o.code, slug: x.off.slug, doneAt: x.o.doneAt })) });
   });
 
   const Status = z.object({ status: z.enum(["accepted", "ready", "missed"]) }).strict();
@@ -209,17 +241,6 @@ export function usageRoutes(cfg: Config, db: Db) {
     await db.update(orders).set({ status: "done", doneAt: new Date(), doneBy: staff.id }).where(eq(orders.id, row.o.id));
     await db.execute(sql`update app.receipts set internal = jsonb_set(jsonb_set(internal, '{status,current}', '"done"'), '{status,history}', (internal->'status'->'history') || jsonb_build_object('status','done','at', now(), 'by', ${staff.id}::text)) where internal->>'orderId' = ${row.o.id}`);
     return c.json({ ok: true, order: { no: row.o.no, title: row.off.title, customer: row.u.firstName, type: row.o.type } });
-  });
-
-  // Кассирдің динамикалық QR-ы: дана санын енгізеді → 30 с жарамды QR (экранда әр 30 с жаңарады)
-  const MakeQr = z.object({ branchId: z.string().uuid(), units: z.number().int().min(1).max(20) }).strict();
-  r.post("/venue/qr", async (c) => {
-    const b = MakeQr.safeParse(await c.req.json().catch(() => null));
-    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
-    const vs = await staffVenues(c.get("user").id);
-    const [br] = await db.select().from(branches).where(eq(branches.id, b.data.branchId)).limit(1);
-    if (!br || !vs.includes(br.venueId)) return c.json({ ok: false, error: "not_found" }, 404);
-    return c.json({ ok: true, ...makeDynamicQr(cfg.BOT_TOKEN, br.id, b.data.units) });
   });
 
   // Кассирге соңғы қолданулар (30 мин) және 10 минут ішінде бас тарту — клиент қате мекеме/дана растаса

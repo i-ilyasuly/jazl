@@ -85,10 +85,17 @@ export function GiftSend() {
             <span className={`${s.avatar} ${userOk ? "" : s.tg}`}>{userOk ? <b className={s.letter}>{user.slice(0, 1).toUpperCase()}</b> : <img src={tgIcon} width={24} height={24} alt="" />}</span>
             <span className={s.cText}>
               <input className={`t-text ${s.toInput}`} value={to} onChange={(e) => setTo(e.target.value)} placeholder="@username" autoCapitalize="none" autoCorrect="off" spellCheck={false} inputMode="text" />
-              <span className={`t-sub2 ${s.muted}`}>{userOk ? `Тек @${user} қабылдай алады · төлемнен кейін оның чаты ашылады` : to.trim() ? "Латын әріп, сан, _ — 4–32 таңба" : "Бос қалса — төлемнен кейін Telegram тізімінен таңдайсың"}</span>
             </span>
+            {to && <button type="button" className={s.clear} onClick={() => { haptic.soft(); setTo(""); }} aria-label="Тазалау" />}
           </label>
         </section>
+        {/* Telegram Mini Apps UI Kit «Section Footer»: картаның астындағы бөлек түсініктеме — белгішесі күйге қарай (ақпарат / дұрыс / қате) */}
+        <p className={`${s.footer} ${userOk ? s.footOk : to.trim() ? s.footBad : ""} rise`} role={to.trim() && !userOk ? "alert" : undefined}>
+          <i className={s.footIcon} aria-hidden />
+          <span>{userOk ? <>Тек <b>@{user}</b> қабылдай алады.<br />Төлемнен кейін оның чаты ашылады.</>
+            : to.trim() ? "Username: латын әріп, сан және _ · 4–32 таңба"
+            : "Бос қалдырсаң — төлемнен кейін Telegram тізімінен алушыны таңдайсың."}</span>
+        </p>
 
         <section className={`${s.card} rise`} style={{ ["--i" as string]: 1 }}>
           <h2 className={`t-sub2 w-600 ${s.head}`}>Құттықтау<span className={`t-cap1 ${s.count}`}>{msg.length} / {MAX}</span></h2>

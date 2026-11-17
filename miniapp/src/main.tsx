@@ -50,12 +50,13 @@ import { Category } from "./screens/Category";
 import { MapScreen } from "./screens/MapScreen";
 import { VenuePage } from "./screens/VenuePage";
 import { Stub } from "./screens/Stub";
-import { DeskHome } from "./screens/DeskHome";
-import { DeskQr } from "./screens/DeskQr";
-import { DeskCode } from "./screens/DeskCode";
-import { DeskStaff } from "./screens/DeskStaff";
-import { StaffJoin } from "./screens/StaffJoin";
-import { loadStaff } from "./desk";
+import { VGate, VJoin, VPending, VPickVenue, VWelcome } from "./venue/Entry";
+import { VCashier, VHome } from "./venue/Home";
+import { VPaid, VPay, VQr } from "./venue/Pay";
+import { VHistory, VOrder, VOrders, VRefunded } from "./venue/History";
+import { VMenu, VOffers, VReport } from "./venue/Manage";
+import { VInvite, VStaff, VTeam } from "./venue/Team";
+import { loadStaff } from "./venue/api";
 import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
 import { warmImages } from "./ui/imageCache";
@@ -70,7 +71,7 @@ initTelegram();
 {
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
   const m = sp?.match(/^(gift|venue|offer|rc|staff)_([\w-]+)$/);
-  const to = m && { gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/desk/join/" }[m[1] as "gift" | "venue" | "offer" | "rc" | "staff"];
+  const to = m && { gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/" }[m[1] as "gift" | "venue" | "offer" | "rc" | "staff"];
   if (m && to) window.location.hash = "#" + to + m[2];
 }
 
@@ -108,7 +109,7 @@ function Shell() {
   const onboarded = useOnboarded();
   const locked = useLocked();
   if (onboarded === null) return <div className="app"><Splash /></div>;
-  if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/desk")) return <Navigate to="/welcome" replace />;
+  if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/v/") && path !== "/v") return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
       <FirstVisit key={path}><Outlet /></FirstVisit>
@@ -212,11 +213,28 @@ const router = createHashRouter([
       { path: "/profile/about", element: <About /> },
       { path: "/profile/delete", element: <DeleteData /> },
       { path: "/profile/report/done", element: <ReportDone /> },
-      { path: "/desk", element: <DeskHome /> },
-      { path: "/desk/qr", element: <DeskQr /> },
-      { path: "/desk/code", element: <DeskCode /> },
-      { path: "/desk/staff", element: <DeskStaff /> },
-      { path: "/desk/join/:code", element: <StaffJoin /> },
+      // Мекеме бөлімі — Figma «Jazl+ Мекеме»
+      { path: "/v", element: <VGate /> },
+      { path: "/v/welcome", element: <VWelcome /> },
+      { path: "/v/join", element: <VJoin /> },
+      { path: "/v/join/:code", element: <VJoin /> },
+      { path: "/v/pending", element: <VPending /> },
+      { path: "/v/pick", element: <VPickVenue /> },
+      { path: "/v/home", element: <VHome /> },
+      { path: "/v/cashier", element: <VCashier /> },
+      { path: "/v/pay", element: <VPay /> },
+      { path: "/v/pay/qr/:id", element: <VQr /> },
+      { path: "/v/pay/done/:id", element: <VPaid /> },
+      { path: "/v/history", element: <VHistory /> },
+      { path: "/v/refunded/:n", element: <VRefunded /> },
+      { path: "/v/orders", element: <VOrders /> },
+      { path: "/v/orders/:id", element: <VOrder /> },
+      { path: "/v/offers", element: <VOffers /> },
+      { path: "/v/report", element: <VReport /> },
+      { path: "/v/menu", element: <VMenu /> },
+      { path: "/v/team", element: <VTeam /> },
+      { path: "/v/team/invite", element: <VInvite /> },
+      { path: "/v/team/:uid", element: <VStaff /> },
       { path: "*", element: <Stub /> },
     ],
   },
