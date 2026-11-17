@@ -9,6 +9,7 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
+import type { Notifier } from "../notify.js";
 import { gifts, offers, packEvents, packs, payments, ratings, receipts, users, venues } from "../db/schema.js";
 import { GIFT_DAYS } from "./purchases.js";
 
@@ -17,7 +18,7 @@ const REFUND_DAYS = 14;
 class B4Error extends Error { constructor(public code: string, public status: 400 | 404 | 409 = 409) { super(code); } }
 const almaty = (d: Date) => d.toLocaleString("ru-RU", { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-export function b4Routes(cfg: Config, db: Db) {
+export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
   const fail = (c: Context<Env>, e: unknown) => { if (e instanceof B4Error) return c.json({ ok: false, error: e.code }, e.status); throw e; };
 
@@ -35,6 +36,7 @@ export function b4Routes(cfg: Config, db: Db) {
       where id = (select id from app.receipts where pack_id = ${p.p.id} and kind in ('use','order') order by created_at desc limit 1)`);
     const [agg] = await db.select({ a: avg(ratings.stars), n: count() }).from(ratings).where(eq(ratings.venueId, p.o.venueId));
     await db.update(venues).set({ rating: Math.round(Number(agg.a) * 10) / 10, reviewsCount: Number(agg.n) }).where(eq(venues.id, p.o.venueId));
+    await notify?.review(p.o.venueId, b.data.stars, text);
     return c.json({ ok: true, venueRating: Math.round(Number(agg.a) * 10) / 10 });
   });
 

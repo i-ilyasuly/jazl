@@ -8,6 +8,7 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
+import type { Notifier } from "../notify.js";
 import { branches, offers, orders, packEvents, packs, qrSessions, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
 import { makeDynamicQr, makeSessionQr, parseQr } from "../qr.js";
 import { branchStatus } from "../hours.js";
@@ -45,7 +46,7 @@ function meta(c: Context<Env>, user: User) {
   };
 }
 
-export function usageRoutes(cfg: Config, db: Db) {
+export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
   const fail = (c: Context<Env>, e: unknown) => {
     if (e instanceof UseError) return c.json({ ok: false, error: e.code, ...e.extra }, e.status);
@@ -137,9 +138,11 @@ export function usageRoutes(cfg: Config, db: Db) {
             item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : "Кассадағы Jazl QR", extra: ss && ss.s.extra ? { amount: ss.s.extra, note: "кассада бөлек төленеді" } : null },
           internal: { version: 1, redemptionId: rd.id, ...meta(c, user), item: { title: p.title, units, unitName: p.unitName, packSlug: p.slug },
             fulfillment: { type: "scan", slot: null, code: null, branchId, qr: q.kind, qrAmount: q.kind === "amount" ? q.amount : null, sessionId: ss?.s.id ?? null, cashierId: ss?.s.createdBy ?? null, extra: ss?.s.extra ?? 0 }, status: { current: "done", history: [{ status: "done", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
-        return { left: p.left, units, receipt: { id: rc.id, no: "JZ-" + rc.no } };
+        return { left: p.left, units, receipt: { id: rc.id, no: "JZ-" + rc.no }, rid: rd.id };
       });
-      return c.json({ ok: true, repeated: false, ...out });
+      const { rid, ...res } = out;
+      await notify?.used(rid, res.receipt.no);
+      return c.json({ ok: true, repeated: false, ...res });
     } catch (e) { return fail(c, e); }
   });
 
@@ -175,6 +178,7 @@ export function usageRoutes(cfg: Config, db: Db) {
             status: { current: "sent", history: [{ status: "sent", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
         return { order: orderDto(o), left: p.left, receipt: { id: rc.id, no: "JZ-" + rc.no } };
       });
+      await notify?.order(out.order.id);
       return c.json({ ok: true, repeated: false, ...out });
     } catch (e) { return fail(c, e); }
   });
@@ -227,6 +231,7 @@ export function usageRoutes(cfg: Config, db: Db) {
     const [row] = await db.select({ o: orders, b: branches }).from(orders).innerJoin(branches, eq(orders.branchId, branches.id)).where(eq(orders.id, c.req.param("id"))).limit(1);
     if (!row || !vs.includes(row.b.venueId)) return c.json({ ok: false, error: "not_found" }, 404);
     await db.update(orders).set({ status: b.data.status }).where(eq(orders.id, row.o.id));
+    if (b.data.status === "ready" && row.o.status !== "ready") await notify?.orderReady(row.o.id);
     return c.json({ ok: true });
   });
 

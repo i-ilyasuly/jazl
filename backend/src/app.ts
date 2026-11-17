@@ -16,12 +16,15 @@ import { venueRoutes } from "./routes/venue.js";
 import { applyRoutes } from "./routes/apply.js";
 import { complaintRoutes } from "./routes/complaints.js";
 import { localMediaRoutes } from "./media.js";
+import { makeNotifier, noopSender, telegramSender, type Sender } from "./notify.js";
 
 type User = typeof users.$inferSelect;
 export type Env = { Variables: { user: User; auth: { authDate: number; startParam?: string } } };
 
-export function createApp(cfg: Config, db: Db) {
+export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   const app = new Hono<Env>();
+  // Бот хабарламалары: тестте — ештеңе жібермейді (не тест өз жинағышын береді)
+  const notify = makeNotifier(db, opts.send ?? (cfg.NODE_ENV === "test" ? noopSender : telegramSender(cfg)));
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
   app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version", "X-File-Name"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 }));
 
@@ -41,6 +44,11 @@ export function createApp(cfg: Config, db: Db) {
     if (!v) return c.notFound();
     const pdf = await guidePdf(v.name, `https://t.me/${cfg.MINIAPP_BOT_USERNAME}`);
     return c.body(new Uint8Array(pdf), 200, { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Jazl-kassa.pdf"` });
+  });
+  // Жоспарлы жұмыс: Cloud Scheduler 15 минут сайын шақырады (өтінім нәтижелері, 22:00 қорытынды, мерзім ескертуі)
+  app.post("/cron/tick", async (c) => {
+    if (!cfg.CRON_KEY || c.req.header("X-Cron-Key") !== cfg.CRON_KEY) return c.json({ ok: false, error: "not_found" }, 404);
+    return c.json({ ok: true, sent: await notify.tick() });
   });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db));
@@ -77,20 +85,23 @@ export function createApp(cfg: Config, db: Db) {
 
   app.get("/v1/me", (c) => c.json({ ok: true, user: publicUser(c.get("user")) }));
 
-  const Patch = z.object({ lang: z.enum(["kk", "ru"]).optional(), city: z.string().min(2).max(40).optional() }).strict();
+  // notify — клиенттің бот хабарландыру баптаулары (Figma «Хабарландырулар»): мерзім ескертуі т.б.
+  const Patch = z.object({ lang: z.enum(["kk", "ru"]).optional(), city: z.string().min(2).max(40).optional(),
+    notify: z.object({ expiry: z.boolean(), rating: z.boolean(), offers: z.boolean(), promo: z.boolean() }).partial().strict().optional() }).strict();
   app.patch("/v1/me", async (c) => {
     const body = Patch.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ ok: false, error: "bad_request" }, 400);
-    const [row] = await db.update(users).set(body.data).where(sql`${users.id} = ${c.get("user").id}`).returning();
+    const { notify, ...rest } = body.data;
+    const [row] = await db.update(users).set({ ...rest, ...(notify ? { notify: sql`coalesce(${users.notify}, '{}'::jsonb) || ${JSON.stringify(notify)}::jsonb` } : {}) }).where(sql`${users.id} = ${c.get("user").id}`).returning();
     return c.json({ ok: true, user: publicUser(row) });
   });
 
   app.route("/v1", purchaseRoutes(cfg, db));
-  app.route("/v1", applyRoutes(cfg, db));
-  app.route("/v1", complaintRoutes(cfg, db));
-  app.route("/v1", venueRoutes(cfg, db));
-  app.route("/v1", usageRoutes(cfg, db));
-  app.route("/v1", b4Routes(cfg, db));
+  app.route("/v1", applyRoutes(cfg, db, notify));
+  app.route("/v1", complaintRoutes(cfg, db, notify));
+  app.route("/v1", venueRoutes(cfg, db, notify));
+  app.route("/v1", usageRoutes(cfg, db, notify));
+  app.route("/v1", b4Routes(cfg, db, notify));
 
   app.notFound((c) => c.json({ ok: false, error: "not_found" }, 404));
   app.onError((err, c) => { console.error(err); return c.json({ ok: false, error: "internal" }, 500); });

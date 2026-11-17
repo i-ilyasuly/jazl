@@ -268,6 +268,8 @@ export function readNotice(id: string) {
 }
 export function setNoticePref(k: keyof NoticePrefs, v: boolean) {
   prefs = { ...prefs, [k]: v }; emit(); kv.set("jazl_notice_prefs", JSON.stringify(prefs));
+  // Серверге де: бот хабарламалары (мысалы, мерзім ескертуі) осы баптауға қарайды
+  void api("/v1/me", { method: "PATCH", body: JSON.stringify({ notify: { [k]: v } }) }).catch(() => null);
 }
 void kv.get("jazl_notice_prefs").then((v) => { if (v) { try { prefs = { ...prefs, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
 void kv.get("jazl_read").then((v) => { if (v) { const ids = v.split(","); notices = notices.map((n) => ({ ...n, read: ids.includes(n.id) })); count(); emit(); } });

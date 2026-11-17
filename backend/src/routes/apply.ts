@@ -9,6 +9,7 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
+import type { Notifier } from "../notify.js";
 import { branches, venueApplications, venueDocs, venueStaff, venues } from "../db/schema.js";
 import { MediaError, mediaStore, type MediaKind } from "../media.js";
 
@@ -64,7 +65,7 @@ export function missing(d: AppData, docs: string[]) {
   return m;
 }
 
-export function applyRoutes(cfg: Config, db: Db) {
+export function applyRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
   const current = async (userId: string) => (await db.select().from(venueApplications).where(and(eq(venueApplications.userId, userId), inArray(venueApplications.status, ["draft", "review", "need_info", "rejected", "approved"]))).orderBy(desc(venueApplications.createdAt)).limit(1))[0];
   const docsOf = async (appId: string) => db.select({ kind: venueDocs.kind, fileName: venueDocs.fileName, size: venueDocs.size, mime: venueDocs.mime }).from(venueDocs).where(eq(venueDocs.applicationId, appId));
@@ -143,6 +144,7 @@ export function applyRoutes(cfg: Config, db: Db) {
     const a = await current(c.get("user").id);
     if (!a || a.status !== "review") return c.json({ ok: false, error: "not_in_review" }, 409);
     const venueId = await approve(db, a);
+    await notify?.application(a.id);
     return c.json({ ok: true, venueId });
   });
   return r;

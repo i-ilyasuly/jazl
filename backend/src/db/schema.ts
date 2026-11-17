@@ -30,6 +30,8 @@ export const users = app.table("users", {
   city: text("city").notNull().default("karaganda"),
   phone: text("phone"),
   pinHash: text("pin_hash"),
+  /** Клиенттің бот хабарландыру баптаулары (Figma «Хабарландырулар»): { expiry, rating, offers, promo } */
+  notify: jsonb("notify"),
   createdAt: created(),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex("users_telegram_id").on(t.telegramId)]);
@@ -333,3 +335,9 @@ export const complaints = app.table("complaints", {
   decidedAt: timestamp("decided_at", { withTimezone: true }),
   createdAt: created(),
 }, (t) => [index("complaints_venue").on(t.venueId, t.status)]);
+
+/** Бот хабарламаларының журналы (notify.ts): кілт бойынша бір рет жіберу — күндік қорытынды, мерзім ескертуі, өтінім нәтижесі қайталанбайды. */
+export const notifyLog = app.table("notify_log", {
+  key: text("key").primaryKey(),
+  createdAt: created(),
+});

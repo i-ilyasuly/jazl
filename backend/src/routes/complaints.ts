@@ -5,12 +5,13 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
+import type { Notifier } from "../notify.js";
 import { complaints, offers, packEvents, packs, redemptions, venueStaff } from "../db/schema.js";
 
 const CARRY_DAYS = 3;
 const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f);
 
-export function complaintRoutes(cfg: Config, db: Db) {
+export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
   const share = (n: number) => Math.round((n * (100 - cfg.JAZL_FEE_PCT)) / 100);
   const staffOk = async (userId: string, venueId: string, roles = ["owner", "manager"]) => {
@@ -30,6 +31,7 @@ export function complaintRoutes(cfg: Config, db: Db) {
     if (open.length) return c.json({ ok: false, error: "already_open" }, 409);
     const [rd] = await db.select({ id: redemptions.id }).from(redemptions).where(and(eq(redemptions.packId, p.p.id), sql`${redemptions.cancelledAt} is null`, sql`${redemptions.createdAt} > now() - interval '7 days'`)).orderBy(desc(redemptions.createdAt)).limit(1);
     const [x] = await db.insert(complaints).values({ userId: user.id, venueId: p.o.venueId, packId: p.p.id, redemptionId: rd?.id ?? null, reason: b.data.reason ?? null, text: b.data.text }).returning();
+    await notify?.complaint(x.id);
     return c.json({ ok: true, complaint: { id: x.id, status: x.status } });
   });
 
@@ -74,6 +76,7 @@ export function complaintRoutes(cfg: Config, db: Db) {
       return { status: 200 as const, returned };
     });
     if (out.status !== 200) return c.json({ ok: false, error: out.error }, out.status);
+    await notify?.complaintDone(c.req.param("id"), out.returned);
     return c.json({ ok: true, returned: out.returned });
   });
 
