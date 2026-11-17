@@ -126,6 +126,10 @@ export async function syncServerPacks() {
   try {
     const j = await api<{ packs: SrvPack[] }>("/v1/packs");
     const known = new Set(packs.map((p) => p.serverId).filter(Boolean));
+    // Бұрыннан бар пакеттердің санын сервермен теңестіреміз (басқа құрылғыда не кассада өзгерсе)
+    let changed = false;
+    packs = packs.map((p) => { const x = j.packs.find((y) => y.id === p.serverId); if (!x || (x.unitsLeft === p.left && x.unitsTotal === p.total)) return p; changed = true; return { ...p, left: x.unitsLeft, total: x.unitsTotal, expired: x.status === "expired" }; });
+    if (changed) emit();
     const add: Pack[] = j.packs.filter((x) => !known.has(x.id)).map((x) => {
       const days = Math.max(0, Math.ceil((new Date(x.validUntil).getTime() - Date.now()) / 86400000));
       return { id: "s" + x.id.slice(0, 8), offerId: x.offerSlug, total: x.unitsTotal, left: x.unitsLeft, daysLeft: days, until: inDays(days), expired: x.status === "expired",
@@ -139,9 +143,9 @@ export async function syncServerPacks() {
 const newKey = () => (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + Date.now());
 const srvError = (e: unknown) => ((e as { body?: { error?: string } }).body?.error ?? "network");
 /** Кассадағы QR арқылы бір бірлік (серверде). Қате болса — себебі (other_venue, no_units, not_jazl_qr, …). */
-export async function redeemOnServer(packId: string, qr: string, units = 1): Promise<{ ok: true; receiptId?: string } | { ok: false; error: string; expectedUnits?: number; venue?: string } | null> {
+export async function redeemOnServer(packId: string, qr: string, units = 1): Promise<{ ok: true; receiptId?: string; left?: number } | { ok: false; error: string; expectedUnits?: number; venue?: string } | null> {
   const p = getPack(packId); if (!p?.serverId || !qr) return null;
-  try { const j = await api<{ receipt?: { id: string } }>("/v1/redeem", { method: "POST", body: JSON.stringify({ packId: p.serverId, qr, units, idempotencyKey: newKey() }) }, 12000); return { ok: true, receiptId: j.receipt?.id }; }
+  try { const j = await api<{ receipt?: { id: string }; left?: number }>("/v1/redeem", { method: "POST", body: JSON.stringify({ packId: p.serverId, qr, units, idempotencyKey: newKey() }) }, 12000); return { ok: true, receiptId: j.receipt?.id, left: j.left }; }
   catch (e) { const b = (e as { body?: { error?: string; expectedUnits?: number; venue?: string } }).body; return { ok: false, error: b?.error ?? "network", expectedUnits: b?.expectedUnits, venue: b?.venue }; }
 }
 /** QR-ды тану (сервер): мекеме, кассир енгізген дана, банк сомасы, мерзімі. Сервер жоқ болса — null. */
@@ -150,6 +154,14 @@ export async function resolveQr(qr: string): Promise<QrInfo | { error: string } 
   if (!qr) return null;
   try { return await api<QrInfo>("/v1/qr/resolve", { method: "POST", body: JSON.stringify({ qr }) }, 8000); }
   catch (e) { const st = (e as { status?: number }).status; return st && st < 500 && st !== 401 ? { error: srvError(e) } : null; }
+}
+
+/** Серверде шегерілген соң: жергілікті санды сервердің санына теңестіреді (Патша: «төлемнен кейін басқа сан шығады»). */
+export function applyServerUse(packId: string, left: number, units: number) {
+  const p = getPack(packId); if (!p) return;
+  for (let i = 0; i < units; i++) redeemOne(packId);
+  packs = packs.map((x) => (x.id === packId ? { ...x, left } : x));
+  emit();
 }
 
 export function redeem(packId: string, n = 1): boolean {
@@ -256,6 +268,7 @@ void kv.get("jazl_read").then((v) => { if (v) { const ids = v.split(","); notice
 export interface Settings { lock: boolean; bio: boolean; autolock: string; onCard: boolean; onMethods: boolean; onOpen: boolean; lang: "tg" | "kk" | "ru"; astanaNotify: boolean; geo: "unknown" | "granted" | "denied" }
 let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true, onMethods: true, onOpen: true, lang: "tg", astanaNotify: false, geo: "unknown" };
 export const useSettings = () => useSyncExternalStore(subscribe, () => settings);
+export const getSettings = () => settings;
 export function setSettings(patch: Partial<Settings>) { settings = { ...settings, ...patch }; emit(); kv.set("jazl_settings", JSON.stringify(settings)); }
 void kv.get("jazl_settings").then((v) => { if (v) { try { settings = { ...settings, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
 
@@ -299,6 +312,10 @@ export function savePin(v: string) { pin = pinHash(v); kv.set("jazl_pin_h", pin)
 // ұзақ тұрса құлыпталады. Демо: ?lock=1 (PIN қойылмаған болса, демо коды 1111).
 let locked = false;
 export const useLocked = () => useSyncExternalStore(subscribe, () => locked);
+/** PIN сканерлеу алдында сұралады (Патша, 2026-11-17); расталған соң 3 минут бойы төлемде қайта сұралмайды. */
+let pinOkUntil = 0;
+export const markPinOk = () => { pinOkUntil = Date.now() + 3 * 60_000; };
+export const pinFresh = () => Date.now() < pinOkUntil;
 export function unlockApp() { locked = false; emit(); }
 const lockOn = () => settings.lock && settings.onOpen && pin !== null;
 void Promise.all([kv.get("jazl_pin_h"), kv.get("jazl_settings")]).then(([h, st]) => {

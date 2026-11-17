@@ -78,6 +78,7 @@ export function Success() {
 
 export function Paid() {
   const { id } = useParams();
+  const units = Math.max(1, Number(new URLSearchParams(window.location.hash.split("?")[1] ?? "").get("u") ?? 1));
   usePacks();
   const go = useGo();
   const pack = getPack(id);
@@ -87,8 +88,8 @@ export function Paid() {
   const o = offerOf(pack);
   return (
     <ResultScreen
-      title="Төлем өтті" paid={`${fmt(Math.round(o.price / o.units))} • ${o.venue}`}
-      cardTitle={o.title} cardSub="Нұркен Әбдіров, 24" kind={o.kind}
+      title="Төлем өтті" paid={`${units > 1 ? units + " дана · " : ""}${fmt(Math.round(o.price / o.units) * units)} • ${o.venue}`}
+      cardTitle={o.title} cardSub={o.address || o.venue} kind={o.kind}
       total={pack.total} used={pack.total - pack.left} counter={`${pack.left} / ${pack.total} қалды`}
       next="Терминал төлемді растады, тамағыңды алуға болады"
       main={{ text: "Дайын", onClick: toPacks }} secondary={{ text: "Чекті көру", onClick: receipt }} onClose={toPacks}

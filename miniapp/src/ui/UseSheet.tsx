@@ -5,7 +5,8 @@ import { Tile } from "./Tile";
 import { useEffect, useMemo, useState } from "react";
 import { useGo } from "../nav";
 import { offerOf, type Pack } from "../store";
-import { haptic, inTelegram, scanQrNative, useBackButton, useBottomButtons } from "../telegram";
+import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
+import { startScan } from "../scanFlow";
 import s from "./UseSheet.module.css";
 
 type Way = "plan" | "scan" | "order";
@@ -29,12 +30,7 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
        { id: "scan", icon: "▦", title: "Сканер", sub: "Мекемедесің: кассаның QR-ын сканерле" }];
   const next = useMemo(() => ({ text: "Жалғастыру", shine: true, onClick: () => {
     haptic.medium();
-    if (way === "scan") {
-      // Нативті сканер бірден ашылады; QR оқылса ғана төлем беті ашылады
-      const r = scanQrNative();
-      if (!r) go("/scan?pack=" + pack.id, "up", { replace: false });
-      else void r.then((qr) => { if (qr !== false) { onClose(); go(`/scan?pack=${pack.id}&via=qr&qr=${encodeURIComponent(qr)}`, "up"); } });
-    }
+    if (way === "scan") { onClose(); startScan(go, pack.id); } // PIN (қосулы болса) → нативті сканер → төлем
     else if (way === "plan") go("/book/" + pack.id, "forward");
     else go("/order/" + pack.id, "forward");
   } }), [way, go, pack.id, onClose]);

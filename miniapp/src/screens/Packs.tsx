@@ -6,6 +6,7 @@ import { kindPic } from "../ui/Emo";
 import { Emo } from "../ui/Emo";
 import { useEffect, useRef, useState } from "react";
 import { preloadSticker } from "../ui/Sticker";
+import { syncServerPacks } from "../store";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
 import { useGo } from "../nav";
@@ -80,7 +81,8 @@ export function Packs() {
   const [rating, setRating] = useState<{ act: Activity; stars: number } | null>(null);
   const hidden = useRateHidden();
   const pending = acts.find((a) => a.action === "rate" && !hidden.includes(a.id));
-  useEffect(() => { if (pending) void preloadSticker("love"); }, [pending]); // бағалау шақыруы көрінсе — стикер алдын ала жүктеледі
+  useEffect(() => { if (pending) void preloadSticker("love"); }, [pending]);
+  useEffect(() => { void syncServerPacks(); }, []); // қалған бірліктер сервердегі санмен бірдей болсын // бағалау шақыруы көрінсе — стикер алдын ала жүктеледі
   // Алғашқы кіру көрсеткіші: бір рет көрсетіледі («Түсінікті» басылғанша). Демо: ?hint=1
   const [hint, setHint] = useState(false);
   useEffect(() => {
