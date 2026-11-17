@@ -25,6 +25,8 @@ const Env = z.object({
   /** Суреттер бакеті (Google Cloud Storage, жария оқу). Жоқ болса — MEDIA_DIR (жергілікті) не сурет жүктеу өшірулі */
   MEDIA_BUCKET: z.string().optional(),
   MEDIA_DIR: z.string().optional(),
+  /** 1 — техникалық жұмыстар: API 503 «maintenance» қайтарады */
+  MAINTENANCE: z.enum(["0", "1"]).default("0").transform((v) => v === "1"),
 });
 
 export type Config = z.infer<typeof Env>;

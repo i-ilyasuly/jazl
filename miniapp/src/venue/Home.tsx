@@ -6,6 +6,7 @@ import { Tile } from "../ui/Tile";
 import { hm, isToday, money, roleName, useCurrent, V, type Dashboard, type Use } from "./api";
 import { OfferPic, Sk, VPage, VSticker } from "./ui";
 import qrGlyph from "../assets/glyphs/qr-code.svg";
+import { achievementFor, NewVenueHome, Suspended } from "./States";
 import s from "./V.module.css";
 
 const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
@@ -62,7 +63,12 @@ export function VHome() {
   const me = useCurrent();
   const [branch, setBranch] = useState<string | undefined>();
   const d = useDashboard(branch);
+  // Жетістік (100-ші қолдану, рекорд күн) — бір рет қана
+  useEffect(() => { if (me && d) void achievementFor(me.venue.id, d as Parameters<typeof achievementFor>[1]).then((to) => to && go(to, "up")); }, [d?.total, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!me) return <VPage tab="home"><Sk h={200} /></VPage>;
+  if (me.venue.status === "paused") return <Suspended note={me.venue.statusNote ?? null} />;
+  if (d && (d as Dashboard & { offers: number }).offers === 0) return <NewVenueHome d={d as Parameters<typeof NewVenueHome>[0]["d"]} />;
+  const complaintsN = (d as (Dashboard & { complaints?: number }) | null)?.complaints ?? 0;
   const now = new Date();
   const diff = d ? d.today - d.yesterday : 0;
   const pct = d && d.revenueYesterday ? Math.round(((d.revenueToday - d.revenueYesterday) / d.revenueYesterday) * 100) : null;
@@ -114,6 +120,7 @@ export function VHome() {
         <button className={s.qa} onClick={() => go(me.role === "owner" ? "/v/report" : "/v/history")}><Tile e="v:report" size={40} />Есеп</button>
       </div>
 
+      {complaintsN > 0 && <button className="t-sub2 infoBox infoWarn" style={{ textAlign: "left" }} onClick={() => go("/v/complaints")}>{complaintsN} жаңа шағым: 24 сағат ішінде жауап беріңіз →</button>}
       <div className={s.sectionHead}><h2 className={s.sectionTitle}>Соңғы қолданулар</h2><button className={s.link} onClick={() => go("/v/history")}>Барлығы</button></div>
       <div className={s.card}>
         {d === null ? <div className={s.row}><Sk h={40} /></div> : d.recent.length === 0 ? <div className={s.row}><span className={s.rowSub}>Бүгін әзірге қолдану жоқ</span></div>

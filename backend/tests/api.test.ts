@@ -93,4 +93,10 @@ d("API", () => {
     expect(r.headers.get("access-control-allow-methods")).toContain("PUT");
     expect(r.headers.get("access-control-allow-headers")).toContain("X-File-Name");
   });
+  it("техникалық жұмыстар: MAINTENANCE=1 — /v1 503 maintenance, /health жұмыс істейді", async () => {
+    const m = createApp(loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test", MAINTENANCE: "1" }), dbh.db);
+    const r = await m.request("/v1/me");
+    expect(r.status).toBe(503); expect((await r.json()).error).toBe("maintenance");
+    expect((await m.request("/health")).status).toBe(200);
+  });
 });

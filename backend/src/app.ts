@@ -14,6 +14,7 @@ import { devQrRoutes, usageRoutes } from "./routes/usage.js";
 import { b4Routes } from "./routes/b4.js";
 import { venueRoutes } from "./routes/venue.js";
 import { applyRoutes } from "./routes/apply.js";
+import { complaintRoutes } from "./routes/complaints.js";
 import { localMediaRoutes } from "./media.js";
 
 type User = typeof users.$inferSelect;
@@ -45,6 +46,11 @@ export function createApp(cfg: Config, db: Db) {
   app.route("/v1/catalog", catalogRoutes(db));
 
   // Аутентификация: Authorization: tma <initData>. Пайдаланушы бірінші рет кірсе — жазылады, әйтпесе деректері жаңарады.
+  // Техникалық жұмыстар (Figma 13 «Техникалық жұмыстар»): MAINTENANCE=1 болса, API 503 қайтарады — мини апп арнайы бетті көрсетеді
+  app.use("/v1/*", async (c, next) => {
+    if (cfg.MAINTENANCE && c.req.method !== "OPTIONS") return c.json({ ok: false, error: "maintenance" }, 503);
+    await next();
+  });
   app.use("/v1/*", async (c, next) => {
     if (c.req.method === "OPTIONS" || c.req.path.startsWith("/v1/catalog")) return next();
     const h = c.req.header("Authorization") ?? "";
@@ -81,6 +87,7 @@ export function createApp(cfg: Config, db: Db) {
 
   app.route("/v1", purchaseRoutes(cfg, db));
   app.route("/v1", applyRoutes(cfg, db));
+  app.route("/v1", complaintRoutes(cfg, db));
   app.route("/v1", venueRoutes(cfg, db));
   app.route("/v1", usageRoutes(cfg, db));
   app.route("/v1", b4Routes(cfg, db));

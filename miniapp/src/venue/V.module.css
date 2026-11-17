@@ -259,3 +259,6 @@ button.row:active { background: rgba(34, 154, 240, 0.06); }
 
 /* Стикер (Figma орны) және күй беті: стикер → тақырып → мәтін */
 .vstk { display: block; flex: none; }
+/* «Жаңа тапсырыс» баннері (Figma 14012:9904): жоғарғы қара тақта */
+.banner { position: fixed; z-index: 80; left: 50%; translate: -50% 0; top: calc(8px + var(--tg-safe-area-inset-top, 0px)); width: min(396px, calc(100vw - 16px)); display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; background: rgba(17, 26, 38, 0.94); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); animation: bannerIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes bannerIn { from { transform: translateY(-120%); } }

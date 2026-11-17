@@ -61,6 +61,7 @@ export function VOffers() {
 
 const DOW = ["Жс", "Дс", "Сс", "Ср", "Бс", "Жм", "Сб"];
 export function VReport() {
+  const go = useGo();
   const me = useCurrent();
   const [period, setPeriod] = useState<"week" | "month" | "all">("week");
   const [r, setR] = useState<Awaited<ReturnType<typeof V.report>> | null>(null);
@@ -90,7 +91,7 @@ export function VReport() {
           ))}
         </div>
       </div>
-      <h2 className={s.blueHead}>Төлемдер</h2>
+      <div className={s.sectionHead}><h2 className={s.blueHead}>Төлемдер</h2><button className={s.link} onClick={() => go("/v/expired")}>Мерзімі өткен пакеттер</button></div>
       <div className={s.card}>
         {r === null ? <div className={s.row}><Sk h={40} /></div> : r.days.length === 0 ? <div className={s.row}><span className={s.rowSub}>Әзірге төлем жоқ</span></div>
           : r.days.map((d) => (
@@ -114,6 +115,8 @@ export function VMenu() {
     { e: "v:branch", t: "Филиалдар", sub: `${me.venue.branchesTotal} филиал`, on: () => go("/v/branches"), hide: me.role === "cashier" },
     { e: "v:team", t: "Команда", on: () => go("/v/team"), hide: me.role === "cashier" },
     { e: "v:orders", t: "Алдын ала тапсырыстар", on: () => go("/v/orders") },
+    { e: "v:complaint", t: "Шағымдар", on: () => go("/v/complaints"), hide: me.role === "cashier" },
+    { e: "v:expired", t: "Мерзімі өткен пакеттер", on: () => go("/v/expired"), hide: me.role === "cashier" },
     { e: "v:integration", t: "Интеграция", on: soon, hide: !owner },
     { e: "v:reviews", t: "Пікірлер", sub: `${me.venue.reviews} пікір`, on: () => go("/v/reviews"), hide: me.role === "cashier" },
   ], [

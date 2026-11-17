@@ -67,7 +67,7 @@ export function venueRoutes(cfg: Config, db: Db) {
     const rows = await db.select({ s: venueStaff, v: venues }).from(venueStaff).innerJoin(venues, eq(venueStaff.venueId, venues.id)).where(eq(venueStaff.userId, c.get("user").id));
     const out = await Promise.all(rows.map(async (x) => {
       const brs = await db.select({ id: branches.id, address: branches.address }).from(branches).where(and(eq(branches.venueId, x.v.id), eq(branches.active, true))).orderBy(asc(branches.createdAt));
-      return { venue: { id: x.v.id, slug: x.v.slug, name: x.v.name, kind: x.v.kind, city: x.v.city, logoUrl: x.v.logoUrl, coverUrl: x.v.coverUrl, rating: x.v.rating, reviews: x.v.reviewsCount, branchesTotal: brs.length },
+      return { venue: { id: x.v.id, slug: x.v.slug, name: x.v.name, kind: x.v.kind, city: x.v.city, status: x.v.status, statusNote: x.v.statusNote, logoUrl: x.v.logoUrl, coverUrl: x.v.coverUrl, rating: x.v.rating, reviews: x.v.reviewsCount, branchesTotal: brs.length },
         role: x.s.role, status: x.s.status, branchId: x.s.branchId, branches: x.s.branchId ? brs.filter((b) => b.id === x.s.branchId) : brs };
     }));
     return c.json({ ok: true, staff: out });
@@ -177,7 +177,16 @@ export function venueRoutes(cfg: Config, db: Db) {
     const mine = me.role === "cashier" ? all.filter((u) => u.cashier_id === c.get("user").id) : all;
     const act = (await db.execute(sql`select count(*)::int as packs, coalesce(sum(p.units_left), 0)::int as units from app.packs p join app.offers o on o.id = p.offer_id
       where o.venue_id = ${venueId} and p.status = 'active' and p.valid_until > now()`)).rows[0] as { packs: number; units: number };
-    return c.json({ ok: true, dashboard: {
+    // Жетістіктер (Figma 13): барлық уақыттағы қолданулар және бүгінге дейінгі рекорд күн; жаңа мекеме тізімі үшін санақтар
+    const totals = (await db.execute(sql`select
+        ((select count(*) from app.redemptions r join app.branches b on b.id = r.branch_id where b.venue_id = ${venueId} and r.cancelled_at is null)
+         + (select count(*) from app.orders o join app.branches b on b.id = o.branch_id where b.venue_id = ${venueId} and o.status not in ('cancelled','failed')))::int as total,
+        coalesce((select max(n) from (select count(*) as n from app.redemptions r join app.branches b on b.id = r.branch_id
+          where b.venue_id = ${venueId} and r.cancelled_at is null and r.created_at < ${DAY} group by date_trunc('day', r.created_at at time zone 'Asia/Almaty')) d), 0)::int as record,
+        (select count(*) from app.offers where venue_id = ${venueId} and status in ('active','review'))::int as offers,
+        (select count(*) from app.venue_staff where venue_id = ${venueId} and role = 'cashier')::int as cashiers,
+        (select count(*) from app.complaints where venue_id = ${venueId} and status = 'new')::int as complaints`)).rows[0] as { total: number; record: number; offers: number; cashiers: number; complaints: number };
+    return c.json({ ok: true, dashboard: { ...totals,
       today: series[6], yesterday: series[5], series, revenueToday: sum(keys[6]), revenueYesterday: sum(keys[5]),
       cashierToday: mine.filter((u) => dayKey(u.at) === keys[6]).length, cashierRevenue: sum(keys[6], mine),
       activePacks: act.packs, unitsLeft: act.units, recent: (me.role === "cashier" ? mine : all).slice(0, 5).map(useDto) } });
@@ -276,7 +285,7 @@ export function venueRoutes(cfg: Config, db: Db) {
     await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about },
       category: d.category ?? null, rules: d.rules, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
       ...(keepSizes ? {} : { units: sizes[0].units, price: sizes[0].price, sizes: sizes.length > 1 ? sizes : null }),
-      ...(d.publish && draft ? { status: statusAfterPublish() } : {}) }).where(eq(offers.id, cur.id));
+      ...(d.publish && draft ? { status: statusAfterPublish(), reviewNote: null } : {}) }).where(eq(offers.id, cur.id)); // түзетіп қайта жіберсе — ескерту өшеді
     return c.json({ ok: true, status: d.publish && draft ? statusAfterPublish() : cur.status });
   });
 
@@ -297,7 +306,7 @@ export function venueRoutes(cfg: Config, db: Db) {
     const bySize = (await db.execute(sql`select units_total::int as units, count(*)::int as n from app.packs where offer_id = ${o.id} and status not in ('pending_payment','refunded') group by 1`)).rows as { units: number; n: number }[];
     const sizes = (o.sizes as { units: number; price: number }[] | null) ?? [{ units: o.units, price: o.price }];
     const all = sizes.some((x) => x.units === o.units) ? sizes : [{ units: o.units, price: o.price }, ...sizes];
-    return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], kind: o.kind, status: o.status, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "",
+    return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], kind: o.kind, status: o.status, reviewNote: o.reviewNote, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "",
       regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, photos: o.photos, rules: o.rules ?? { carry: true, extend: true, preorder: true, branches: null },
       sizes: all.sort((a, z) => a.units - z.units).map((x) => ({ ...x, sold: bySize.find((y) => y.units === x.units)?.n ?? 0 })),
       stats: { ...st, revenue: share(st.gross), series, growth: prev ? Math.round(((now7 - prev) / prev) * 100) : null } } });

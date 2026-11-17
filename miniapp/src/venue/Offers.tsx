@@ -5,7 +5,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
-import { haptic, nativeAlert, nativePick } from "../telegram";
+import { haptic, kv, nativeAlert, nativePick } from "../telegram";
 import { Switch } from "../ui/SubPage";
 import { Tile } from "../ui/Tile";
 import { api } from "../api";
@@ -16,7 +16,7 @@ import s from "./V.module.css";
 
 type Size = { units: number; price: number };
 interface Draft { title: string; category: string; about: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; branches: string[] | null } }
-interface OfferFull extends Draft { id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
+interface OfferFull extends Draft { id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 const cats = { food: ["Донер", "Бургер", "Шаурма", "Кофе", "Басқа"], coffee: ["Кофе", "Шай", "Десерт", "Басқа"], hair: ["Шаш қию", "Сақал", "Балалар", "Басқа"] };
 const DAYS = [7, 14, 30, 60, 90];
@@ -65,8 +65,10 @@ export function VOfferWizard() {
   const low = d.sizes.find((x) => saving(x, d.regularUnitPrice) < 10);
   const locked = Boolean(id) && status !== "draft"; // жарияланған ұсыныстың бағасы — тек «Бағаны өзгерту» арқылы
 
-  const save = useCallback(async (publish: boolean) => {
+  const [terms, setTerms] = useState(false);
+  const save = useCallback(async (publish: boolean, accepted = false) => {
     if (!me || busy) return;
+    if (publish && status === "draft" && !accepted && !(await kv.get("jazl_offer_terms"))) { setTerms(true); return; }
     setBusy(true); haptic.medium();
     const body = { ...d, category: d.category || undefined, publish };
     try {
@@ -77,7 +79,7 @@ export function VOfferWizard() {
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
     } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
-  }, [me, busy, d, id, status, go]);
+  }, [me, busy, d, id, status, go]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const next = useCallback(() => {
     if (step === 1 && d.title.trim().length < 2) { haptic.error(); return nativeAlert("Ұсыныс атауын жазыңыз."); }
@@ -87,6 +89,7 @@ export function VOfferWizard() {
   const back = useCallback(() => { if (step === 1) go(-1, "back"); else setStep((x) => x - 1); }, [step, go]);
 
   if (!me) return <VPage back><Sk h={200} /></VPage>;
+  if (terms) return <OfferTerms onBack={() => setTerms(false)} onAccept={() => { kv.set("jazl_offer_terms", "1"); setTerms(false); void save(true, true); }} />;
   if (editAbout) return <AboutEditor value={d.about} onDone={(v) => { up({ about: v }); setEditAbout(false); }} />;
   const label = ["Негізгі", "Көлем және баға", "Мерзім және ережелер", "Алдын ала қарау"][step - 1];
   const branches = me.branches;
@@ -317,6 +320,10 @@ export function VOfferPage() {
   const owner = me.role === "owner";
   return (
     <VPage title={o.title} back tab="offers">
+      {o.reviewNote?.text && <>
+        <p className="t-sub2 infoBox infoWarn" style={{ margin: 0 }}>Jazl+ түзету сұрады: «{o.reviewNote.text}». Түзеткен соң ұсыныс қайта тексеріледі.</p>
+        <button className={s.btn} style={{ flex: "none" }} onClick={() => go(`/v/offers/${o.id}/edit`)}>Түзету</button>
+      </>}
       <div className={s.head}>
         <span className={s.ocPic} style={{ width: 64, height: 64, borderRadius: 16, overflow: "hidden" }}>{o.photos?.[0] ? <img src={o.photos[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <OfferPic kind={o.kind} size={38} />}</span>
         <span className={s.headText}>
@@ -387,5 +394,25 @@ function PriceSheet({ o, onClose, onDone }: { o: OfferFull; onClose: () => void;
       <Note tone="warn">Жаңа баға тек жаңа пакеттерге қолданылады. Бар пакеттер ескі бағамен жүре береді, ал қайта алғанда клиентке баға өзгергені көрсетіледі.</Note>
       <Buttons main={{ text: "Сақтау", onClick: () => void save(), disabled: !p || p === cur.price }} second={{ text: "Бас тарту", onClick: onClose }} />
     </Sheet>
+  );
+}
+
+/** Figma «Шарттар: баға және комиссия» (14045:10669) — бірінші ұсынысты жарияламас бұрын бір рет */
+function OfferTerms({ onBack, onAccept }: { onBack: () => void; onAccept: () => void }) {
+  const [ok, setOk] = useState(false);
+  const blocks: [string, string][] = [
+    ["Баға бойынша міндеттеме", "Пакетті сатып алған клиентке көрсетілген бағамен қызмет көрсетуге міндеттенесіз. Баға кейін өзгерсе, бұрын сатылған пакетке әсер етпейді."],
+    ["Комиссия", "Әр сатылымнан 10%. Рейтингі жоғары болса — 8%. Бұл тек мекемеге көрінеді, клиентке көрсетілмейді."],
+    ["Мерзімі өткен пакет", "Жарамдылық және жеңілдік кезеңінен кейін қолданылмаған дананың сомасы мекемеге есептеледі."],
+    ["Қайтару және шағым", "Қате қолдану расталса, дана клиентке қайтарылады, төлем есепте түзетіледі."],
+  ];
+  return (
+    <VPage title="Ұсыныс шарттары" back>
+      {blocks.map(([t, x]) => <div key={t} className={s.card} style={{ padding: "12px 16px" }}><h3 className={s.blueHead} style={{ padding: 0 }}>{t}</h3><p style={{ marginTop: 6, fontSize: 16, lineHeight: "22px" }}>{x}</p></div>)}
+      <button onClick={() => { haptic.select(); setOk(!ok); }} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 16 }}>
+        <span style={{ width: 22, height: 22, borderRadius: 6, background: ok ? "#229af0" : "none", boxShadow: ok ? "none" : "inset 0 0 0 2px #b0b5ba", color: "#fff", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700 }}>{ok ? "✓" : ""}</span>Шарттармен таныстым
+      </button>
+      <Buttons main={{ text: "Қабылдау", onClick: onAccept, disabled: !ok }} second={{ text: "Артқа", onClick: onBack }} />
+    </VPage>
   );
 }
