@@ -174,8 +174,9 @@ export const kv = {
     // Kaspi нөмірі) жоғалмауы үшін — жаңасы жоқ болса, ескісін оқып, жаңа кілтке көшіреміз.
     return raw(key).then(async (v) => {
       if (v !== null || !key.startsWith("medeo_")) return v;
-      const old = await raw("jazl_" + key.slice(6));
-      if (old !== null) kv.set(key, old);
+      const oldKey = "jazl_" + key.slice(6);
+      const old = await raw(oldKey);
+      if (old !== null) { kv.set(key, old); kv.set(oldKey, ""); } // бір рет көшіріп, ескісін тазартамыз — бос мән кейін «тірілмейді»
       return old;
     });
   },

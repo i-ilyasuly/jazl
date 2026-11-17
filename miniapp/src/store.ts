@@ -330,7 +330,8 @@ export function adoptPurchase(offerId: string, p: { id: string; receipt: { id: s
 
 // ── PIN ─────────────────────────────────────────────────────────────────────
 // Ескерту: нағыз жүйеде PIN серверде тексеріледі. Бэкенд қосылғанша құрылғыда тек хэші сақталады (кодтың өзі емес).
-const pinHash = (v: string) => { let h = 2166136261; for (const c of "medeo+pin:" + v) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+// Тұз «jazl+pin:» ӘДЕЙІ өзгертілмейді (Medeo. атауына ауысқанда): ескі ботта қойылған PIN-дер жарамды қалуы үшін. Пайдаланушыға көрінбейді.
+const pinHash = (v: string) => { let h = 2166136261; for (const c of "jazl+pin:" + v) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 let pin: string | null = null;
 export const hasPin = () => pin !== null;
 export const checkPin = (v: string) => pin === pinHash(v);
@@ -457,7 +458,7 @@ export const useOnboarded = () => useSyncExternalStore(subscribe, () => onboarde
 /** «Деректерді жою» (Figma 18): құрылғыдағы барлық Medeo деректерін тазартып, онбордингке қайтарады.
  *  Бэкенд қосылғанда: DELETE /me (аккаунт пен пакеттер серверде жойылады). */
 export function resetAll() {
-  for (const k of ["medeo_onboarded", "medeo_settings", "medeo_pin_h", "medeo_favs", "medeo_kaspi_phone", "medeo_notice_prefs", "medeo_read", "medeo_bot_ok", "medeo_nav_hints", "medeo_packs_hint"]) kv.set(k, "");
+  for (const n of ["onboarded", "settings", "pin_h", "favs", "kaspi_phone", "notice_prefs", "read", "bot_ok", "nav_hints", "packs_hint", "recent", "soon"]) { kv.set("medeo_" + n, ""); kv.set("jazl_" + n, ""); } // ескі (Medeo.-ға дейінгі) кілттер де
   try { for (const k of Object.keys(localStorage)) if (k.startsWith("medeo_") || k.startsWith("jazl_")) localStorage.removeItem(k); } catch { /* жеке режим */ }
   window.location.replace(window.location.pathname + "#/welcome");
   setTimeout(() => window.location.reload(), 50);
