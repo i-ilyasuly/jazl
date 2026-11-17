@@ -17,3 +17,6 @@
 :global(:root[data-theme="dark"]) .white { background: var(--surface-card); }
 /* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
 button.pill:active { opacity: 0.55; }
+
+/* Jazl+ Басқару десктопта: Telegram батырмаларының көшірмесі керек емес */
+:global(html[data-desk]) .pill { display: none; }

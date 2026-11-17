@@ -30,6 +30,8 @@ const Env = z.object({
   CRON_KEY: z.string().min(16).optional(),
   /** Jazl+ Басқару: рұқсат етілген Telegram ID-лер, үтірмен (мысалы 123456789,987654321). Бос болса — Басқару ешкімге ашылмайды. */
   ADMIN_IDS: z.string().default(""),
+  /** Басқарудың веб-мекенжайы (бот хабарламасындағы батырмалар осында апарады) */
+  ADMIN_WEB_URL: z.string().url().default("https://miniapp-fkro.vercel.app"),
   MAINTENANCE: z.enum(["0", "1"]).default("0").transform((v) => v === "1"),
 });
 

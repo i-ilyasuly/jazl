@@ -1,6 +1,6 @@
 // Мекеме бөлімінің ортақ бөлшектері: бет қаңқасы, төменгі мәзір (Figma «Қалқымалы навигация»), екі батырма,
 // ескерту блогы, төменгі парақ, ұсыныс суреті, адам аватары.
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useGo } from "../nav";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -17,12 +17,17 @@ import historyIcon from "../assets/icons/navHistory.svg";
 import nav from "../ui/NavBar.module.css";
 import s from "./V.module.css";
 
+/** Бет режимі: page — толық бет; col — десктоптағы тізім бағаны; panel — десктоптағы оң жақ панель (Jazl+ Басқару, Figma «22 · Кең экран») */
+export const PageMode = createContext<"page" | "col" | "panel">("page");
+
 /** Бет: Telegram жүйелік батырмалары (браузерде), тақырып, мазмұн. back — «Артқа» (әйтпесе «Жабу» → клиент бөлімі). */
 export function VPage({ title, back, children, tab, className, nav }: { title?: string; back?: boolean; children: ReactNode; tab?: VTab; className?: string; nav?: boolean }) {
   const go = useGo();
   const onBack = useCallback(() => (back ? go(-1, "back") : go("/profile", "fade")), [back, go]);
-  useBackButton(onBack, Boolean(back));
+  const mode = useContext(PageMode);
+  useBackButton(onBack, Boolean(back) && mode === "page");
   const [sys, retry] = useSys();
+  if (mode !== "page") return <div className={mode === "col" ? s.deskCol : s.deskPanel}>{title && <h1 className={mode === "col" ? s.h1 : s.deskPanelTitle}>{title}</h1>}{children}</div>;
   if (sys) return <SysScreen sys={sys} retry={retry} />; // Figma 13: желі жоқ, сессия аяқталды, техникалық жұмыстар
   return (
     <div className={`${s.page} ${title ? s.sub : ""} ${tab || nav ? "" : s.navless} ${className ?? ""}`}>

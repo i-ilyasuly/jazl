@@ -1,9 +1,10 @@
 // Figma «01 · Кіру және қауіпсіздік» (14062:9692): Кіру, Рұқсат жоқ, PIN енгізу / қате / бұғатталды.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BOT_APP_LINK } from "../config";
 import { useGo } from "../nav";
 import { copyText, haptic, inTelegram, tg } from "../telegram";
 import { Buttons, VPage, VSticker } from "../venue/ui";
-import { hasToken, me, pinLogin, setToken, type Me } from "./api";
+import { getWidgetAuth, hasToken, isWeb, me, pinLogin, setToken, setWidgetAuth, webLogin, type Me, type WidgetAuth } from "./api";
 import { PinPad, pinError } from "./ui";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
@@ -19,9 +20,47 @@ export function AGate() {
     else if (m.session && hasToken()) go("/a/pulse", "fade", { replace: true });
   }, [m, go]);
   if (m === null) return <VPage><div className={v.state}><VSticker name="wait" size={100} /></div></VPage>;
+  if (m !== "err" && m.needLogin) return <AWebLogin />;
   if (m === "err" || !m.admin) return <ANoAccess id={m === "err" ? null : m.telegramId} />;
   if (!m.hasPin || (m.session && hasToken())) return <VPage><div className={v.state}><VSticker name="wait" size={100} /></div></VPage>;
   return <AWelcome name={m.name ?? ""} />;
+}
+
+/** Веб-кіру: Telegram Login Widget (ресми). Бот доменін BotFather-де /setdomain арқылы бекіту керек. */
+function AWebLogin() {
+  const go = useGo();
+  const box = useRef<HTMLDivElement>(null);
+  const [denied, setDenied] = useState<number | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const onAuth = useCallback(async (a: WidgetAuth) => {
+    setWidgetAuth(a);
+    try { const r = await webLogin(); haptic.success(); go(r.hasPin ? "/a/pin" : "/a/pin/setup", "fade"); }
+    catch (e) { const b = (e as { body?: { error?: string; telegramId?: number } }).body; if (b?.error === "forbidden") setDenied(b.telegramId ?? 0); else setMsg("Кіру расталмады. Қайталап көріңіз."); }
+  }, [go]);
+  useEffect(() => {
+    const w = window as unknown as { onJazlTgAuth?: (a: WidgetAuth) => void; __tgAuthTest?: WidgetAuth };
+    w.onJazlTgAuth = (a) => void onAuth(a);
+    if (import.meta.env.DEV && w.__tgAuthTest) { void onAuth(w.__tgAuthTest); return; } // тек жергілікті сынақ
+    const sc = document.createElement("script");
+    sc.async = true; sc.src = "https://telegram.org/js/telegram-widget.js?22";
+    sc.setAttribute("data-telegram-login", BOT_APP_LINK.split("/").pop() ?? "oylarbot");
+    sc.setAttribute("data-size", "large"); sc.setAttribute("data-radius", "12");
+    sc.setAttribute("data-onauth", "onJazlTgAuth(user)"); sc.setAttribute("data-request-access", "write");
+    box.current?.appendChild(sc);
+    return () => { delete w.onJazlTgAuth; };
+  }, [onAuth]);
+  if (denied !== null) return <ANoAccess id={denied || null} />;
+  return (
+    <VPage>
+      <div className={v.state} style={{ top: "calc(260px + var(--top-shift))" }}>
+        <VSticker name="hello" size={120} />
+        <h2 className={v.stateTitle}>Jazl+ Басқару</h2>
+        <p className={v.stateText}>Telegram аккаунтыңызбен кіріңіз. Басқару тек рұқсат тізіміндегі аккаунттарға ашылады, кейін PIN сұралады.</p>
+        <div ref={box} style={{ marginTop: 20, minHeight: 44 }} />
+        {msg && <p className={`${s.pinText} ${s.pinErr}`}>{msg}</p>}
+      </div>
+    </VPage>
+  );
 }
 
 /** Figma «Кіру»: hello стикері 120, «Қош келдіңіз, Исахан», «Жалғастыру» */
@@ -42,7 +81,7 @@ function AWelcome({ name }: { name: string }) {
 /** Figma «Рұқсат жоқ»: stop стикері; Telegram ID көрсетіледі — ADMIN_IDS-ке қосу үшін (Патша көшіріп алады) */
 export function ANoAccess({ id }: { id: number | null }) {
   const go = useGo();
-  const close = () => (inTelegram ? go("/profile", "fade") : tg?.close?.());
+  const close = () => (inTelegram ? tg?.close?.() : isWeb() ? window.location.reload() : go("/profile", "fade"));
   return (
     <VPage>
       <div className={v.state} style={{ top: "calc(280px + var(--top-shift))" }}>
@@ -66,8 +105,9 @@ export function APin({ setup }: { setup?: boolean }) {
     if (setup && !first) { setFirst(pin); setMsg(null); return "again"; }
     if (setup && pin !== first) { setFirst(""); setMsg("Кодтар сәйкес келмеді. Қайта ойлап табыңыз"); return "mismatch"; }
     try {
-      const r = await pinLogin(pin, setup);
-      setToken(r.token); haptic.success();
+      if (isWeb()) { if (!getWidgetAuth()) { go("/a", "fade", { replace: true }); return null; } await webLogin(pin, setup); }
+      else { const r = await pinLogin(pin, setup); setToken(r.token); }
+      haptic.success();
       go("/a/pulse", "fade", { replace: true });
       return null;
     } catch (e) {

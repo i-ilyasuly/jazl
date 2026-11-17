@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
 
-export interface Msg { chatId: number; text: string; button?: { text: string; start: string } }
+export interface Msg { chatId: number; text: string; button?: { text: string; start?: string; url?: string } }
 export type Sender = (m: Msg) => Promise<void>;
 
 /** Telegram Bot API арқылы жіберу. Токен журналға ешқашан жазылмайды. */
@@ -15,7 +15,7 @@ export function telegramSender(cfg: Config): Sender {
   return async (m) => {
     const body = {
       chat_id: m.chatId, text: m.text, link_preview_options: { is_disabled: true },
-      ...(m.button ? { reply_markup: { inline_keyboard: [[{ text: m.button.text, url: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=${m.button.start}` }]] } } : {}),
+      ...(m.button ? { reply_markup: { inline_keyboard: [[{ text: m.button.text, url: m.button.url ?? `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=${m.button.start}` }]] } } : {}),
     };
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(4000) });
     if (!r.ok) console.warn(`notify: telegram ${r.status} ${(await r.text().catch(() => "")).slice(0, 160)}`);
@@ -49,7 +49,14 @@ export const clientPrefDefaults = { expiry: true, rating: true, offers: true, pr
 type Row = Record<string, unknown>;
 export type Notifier = ReturnType<typeof makeNotifier>;
 
-export function makeNotifier(db: Db, send: Sender) {
+/** Басқару иесінің баптаулары (Figma «18 · Хабарлама баптаулары»). Шұғыл: complaint, payFail, pos, priceDrop. */
+export const adminPrefDefaults = { complaint: true, payFail: true, pos: true, priceDrop: true, application: true, moderation: true, daily: true, weekly: false, quiet: true };
+export type AdminPref = keyof typeof adminPrefDefaults;
+const URGENT: AdminPref[] = ["complaint", "payFail", "pos", "priceDrop"];
+
+export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; adminUrl?: string; feePct?: number } = {}) {
+  const adminTg = (opts.adminIds ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  const adminUrl = (path: string) => `${(opts.adminUrl ?? "").replace(/\/$/, "")}/#/a${path}`;
   const rows = async <T = Row>(q: ReturnType<typeof sql>) => (await db.execute(q)).rows as T[];
   const safe = async (what: string, f: () => Promise<void>) => { try { await f(); } catch (e) { console.warn(`notify ${what}: ${(e as Error).message}`); } };
   /** Кілт бойынша бір рет: журналда бар болса — false */
@@ -65,6 +72,14 @@ export function makeNotifier(db: Db, send: Sender) {
       && (!opt.pref || ({ ...venuePrefDefaults, ...(x.prefs ?? {}) })[opt.pref])).map((x) => Number(x.tg));
   };
 
+  /** Басқару иесіне (иелеріне): баптау және тыныш уақыт (23:00–08:00, шұғылдан басқасы жіберілмейді — таңғы қорытындыға кіреді) */
+  const toAdmins = async (kind: AdminPref, text: string, button?: { text: string; path: string }, now = new Date()) => {
+    if (!adminTg.length) return;
+    const list = await rows<{ tg: string; prefs: Partial<Record<AdminPref, boolean>> | null }>(sql`select u.telegram_id as tg, a.prefs from app.users u left join app.admins a on a.user_id = u.id where u.telegram_id::text in (${sql.join(adminTg.map((x) => sql`${x}`), sql`, `)})`);
+    const h = hourAt(now);
+    const to = list.filter((x) => { const p = { ...adminPrefDefaults, ...(x.prefs ?? {}) }; return p[kind] && (URGENT.includes(kind) || !p.quiet || (h >= 8 && h < 23)); }).map((x) => Number(x.tg));
+    await sendAll(to, { text, ...(button ? { button: { text: button.text, url: adminUrl(button.path) } } : {}) });
+  };
   const n = {
     /** 🛒 Жаңа тапсырыс / 🗓 Жаңа жазылу → филиал кассирлері, басқарушы, иесі */
     order: (orderId: string) => safe("order", async () => {
@@ -162,6 +177,31 @@ export function makeNotifier(db: Db, send: Sender) {
       await sendAll(await staff(venueId, ["owner", "manager"]), { text: paused ? `⛔ Мекеме уақытша тоқтатылды${note ? `: ${note}` : "."} Сатылған пакеттерге қызмет көрсету жалғасады.` : "✅ Мекеме қайта іске қосылды. Жаңа пакеттер сатылады.", button: { text: "Ашу", start: "v_home" } });
     }),
 
+    /** Басқаруға: жаңа мекеме өтінімі (Figma 18) */
+    adminApplication: (appId: string) => safe("adminApplication", async () => {
+      const [a] = await rows<{ name: string | null; kind: string | null; docs: number }>(sql`select a.data->>'name' as name, a.data->>'kind' as kind, (select count(distinct kind) from app.venue_docs d where d.application_id = a.id)::int as docs from app.venue_applications a where a.id = ${appId}`);
+      if (!a) return;
+      const kinds: Record<string, string> = { food: "Тағамдар", coffee: "Кофе", hair: "Шаштараз" };
+      await toAdmins("application", `🏪 Жаңа мекеме өтінімі\n${a.name ?? "Атаусыз"} · ${kinds[a.kind ?? ""] ?? "—"} · Қарағанды. Құжаттар: ${a.docs} / 4 жүктелген.`, { text: "Өтінімді ашу", path: `/apps/${appId}` });
+    }),
+    /** Басқаруға: жаңа шағым (шұғыл) */
+    adminComplaint: (id: string, hours: number) => safe("adminComplaint", async () => {
+      const [x] = await rows<{ no: number; first_name: string; last_name: string | null; venue: string; reason: string | null; created_at: Date }>(sql`select (select count(*) from app.complaints c2 where c2.created_at <= c.created_at)::int as no, u.first_name, u.last_name, v.name as venue, c.reason, c.created_at
+        from app.complaints c join app.users u on u.id = c.user_id join app.venues v on v.id = c.venue_id where c.id = ${id}`);
+      if (!x) return;
+      await toAdmins("complaint", `💬 Жаңа шағым №${x.no}\n${short(x.first_name, x.last_name)} · ${x.venue}${x.reason ? ` · ${x.reason.toLowerCase()}` : ""}. Шешім мерзімі: ${when(new Date(new Date(x.created_at).getTime() + hours * 3600_000))}.`, { text: "Шағымды ашу", path: `/complaints/${id}` });
+    }),
+    /** Басқаруға: ұсыныс модерацияға түсті */
+    adminModeration: (offerId: string) => safe("adminModeration", async () => {
+      const [o] = await rows<{ title: string; venue: string; price: number }>(sql`select o.title, v.name as venue, o.price from app.offers o join app.venues v on v.id = o.venue_id where o.id = ${offerId}`);
+      if (o) await toAdmins("moderation", `🏷 Модерацияға ұсыныс түсті\n${o.title} · ${o.venue} · ${money(o.price)}`, { text: "Тексеру", path: `/offers/${offerId}` });
+    }),
+    /** Басқаруға: бағаның күрт түсуі (30%-дан артық, шұғыл) */
+    adminPriceDrop: (offerId: string, from: number, to: number) => safe("adminPriceDrop", async () => {
+      const [o] = await rows<{ title: string; venue: string }>(sql`select o.title, v.name as venue from app.offers o join app.venues v on v.id = o.venue_id where o.id = ${offerId}`);
+      if (o) await toAdmins("priceDrop", `📉 Баға күрт түсті: ${head(o.title)} · ${o.venue}\n${money(from)} → ${money(to)} (−${Math.round((1 - to / from) * 100)}%)`, { text: "Ұсынысты ашу", path: `/offers/${offerId}` });
+    }),
+
     /** Жоспарлы жұмыс (Cloud Scheduler, 15 минут сайын): өтінім нәтижелері, 22:00 күндік қорытынды, 10:00 мерзім ескертуі */
     tick: async (now = new Date()) => {
       const out = { applications: 0, daily: 0, expiry: 0 };
@@ -185,6 +225,23 @@ export function makeNotifier(db: Db, send: Sender) {
           if (!(await once(`daily:${s.venue_id}:${day}`))) continue;
           await sendAll(await staff(s.venue_id, ["owner"], { pref: "daily" }), { text: `📊 Бүгінгі қорытынды: ${s.uses} қолдану • ${s.orders} тапсырыс • ${money(s.amount)}.`, button: { text: "Есеп", start: "v_report" } });
           out.daily++;
+        }
+      }
+      if (h >= 9 && adminTg.length && (await once(`adm-daily:${day}`))) {
+        // 📊 Басқаруға кешегі қорытынды (Figma 18 «Күндік қорытынды · 13 қараша»), дүйсенбіде — апталық есеп
+        const y = new Date(new Date(`${day}T00:00:00+05:00`).getTime() - 86400_000); const t = new Date(`${day}T00:00:00+05:00`);
+        const sum = async (from: Date) => (await rows<{ sales: number; fee: number; packs: number; uses: number; complaints: number }>(sql`select
+          coalesce((select sum(p.price_paid) from app.packs p where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at >= ${from} and p.created_at < ${t}), 0)::int as sales,
+          coalesce((select sum(round(p.price_paid * coalesce(v.fee_pct, ${sql.raw(String(Number(opts.feePct ?? 10)))}) / 100.0)) from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at >= ${from} and p.created_at < ${t}), 0)::int as fee,
+          (select count(*) from app.packs where status <> 'pending_payment' and source <> 'carry' and created_at >= ${from} and created_at < ${t})::int as packs,
+          coalesce((select sum(units) from app.redemptions where cancelled_at is null and created_at >= ${from} and created_at < ${t}), 0)::int as uses,
+          (select count(*) from app.complaints where created_at >= ${from} and created_at < ${t})::int as complaints`))[0];
+        const d = await sum(y);
+        const label = `${Number(ymd(y).slice(8, 10))} ${MON[Number(ymd(y).slice(5, 7)) - 1]}`;
+        await toAdmins("daily", `📊 Күндік қорытынды · ${label}\nСатылым ${money(d.sales)} · комиссия ${money(d.fee)} · ${d.packs} пакет · ${d.uses} қолдану · ${d.complaints} шағым.`, { text: "Пульсті ашу", path: "/pulse" }, now);
+        if (new Date(`${day}T12:00:00+05:00`).getUTCDay() === 1) {
+          const w = await sum(new Date(t.getTime() - 7 * 86400_000));
+          await toAdmins("weekly", `🗓 Апталық есеп\nСатылым ${money(w.sales)} · комиссия ${money(w.fee)} · ${w.packs} пакет · ${w.uses} қолдану · ${w.complaints} шағым.`, { text: "Пульсті ашу", path: "/pulse" }, now);
         }
       }
       if (h >= 10 && h < 21) {

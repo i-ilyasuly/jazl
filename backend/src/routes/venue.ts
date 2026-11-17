@@ -273,6 +273,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
       regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about }, photos: d.photos, category: d.category ?? null, rules: d.rules,
       status: d.publish ? await statusAfterPublish() : "draft" }).returning();
+    if (o.status === "review") await notify?.adminModeration(o.id);
     return c.json({ ok: true, offer: { id: o.id, status: o.status } });
   });
 
@@ -293,6 +294,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
       category: d.category ?? null, rules: d.rules, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
       ...(keepSizes ? {} : { units: sizes[0].units, price: sizes[0].price, sizes: sizes.length > 1 ? sizes : null }),
       ...(d.publish && draft ? { status: next, reviewNote: null } : {}) }).where(eq(offers.id, cur.id)); // түзетіп қайта жіберсе — ескерту өшеді
+    if (d.publish && draft && next === "review") await notify?.adminModeration(cur.id);
     return c.json({ ok: true, status: next });
   });
 
@@ -334,6 +336,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (lowDiscount([{ units: b.data.units, price: b.data.price }], o.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
     const next = sizes.map((x) => (x.units === b.data.units ? { ...x, price: b.data.price } : x));
     await db.update(offers).set({ sizes: o.sizes ? next : null, ...(b.data.units === o.units ? { price: b.data.price } : {}) }).where(eq(offers.id, o.id));
+    if (b.data.price < cur.price * 0.7) await notify?.adminPriceDrop(o.id, cur.price, b.data.price); // Figma 18: 30%-дан артық түссе
     return c.json({ ok: true });
   });
 

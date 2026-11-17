@@ -15,7 +15,7 @@ import { b4Routes } from "./routes/b4.js";
 import { venueRoutes } from "./routes/venue.js";
 import { applyRoutes } from "./routes/apply.js";
 import { complaintRoutes } from "./routes/complaints.js";
-import { adminFileRoutes, adminRoutes } from "./routes/admin.js";
+import { adminFileRoutes, adminRoutes, adminSig, adminWebRoutes } from "./routes/admin.js";
 import { getSettings, refreshFees } from "./settings.js";
 import { localMediaRoutes } from "./media.js";
 import { makeNotifier, noopSender, telegramSender, type Sender } from "./notify.js";
@@ -26,7 +26,7 @@ export type Env = { Variables: { user: User; auth: { authDate: number; startPara
 export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   const app = new Hono<Env>();
   // Бот хабарламалары: тестте — ештеңе жібермейді (не тест өз жинағышын береді)
-  const notify = makeNotifier(db, opts.send ?? (cfg.NODE_ENV === "test" ? noopSender : telegramSender(cfg)));
+  const notify = makeNotifier(db, opts.send ?? (cfg.NODE_ENV === "test" ? noopSender : telegramSender(cfg)), { adminIds: cfg.ADMIN_IDS, adminUrl: cfg.ADMIN_WEB_URL, feePct: cfg.JAZL_FEE_PCT });
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
   app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version", "X-File-Name", "X-Admin-Token"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 }));
 
@@ -38,6 +38,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   // Ашық маршруттар (кірусіз): чек PDF (қолтаңбалы сілтеме), каталог
   app.route("/files", receiptFileRoutes(cfg, db));
   app.route("/files", adminFileRoutes(cfg, db));
+  app.route("/admin-web", adminWebRoutes(cfg, db)); // Басқаруға веб арқылы кіру (Telegram Login Widget + PIN)
   void refreshFees(db).catch(() => null); // мекеме комиссиялары (Jazl+ Басқару «Комиссия»)
   app.route("/media", localMediaRoutes(cfg)); // тек MEDIA_DIR болғанда (жергілікті)
   // «Кассаға нұсқау» PDF (ашық: ішінде тек мекеме атауы мен мини апп сілтемесі бар)
@@ -70,6 +71,16 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   app.use("/v1/*", async (c, next) => {
     if (c.req.method === "OPTIONS" || c.req.path.startsWith("/v1/catalog")) return next();
     const h = c.req.header("Authorization") ?? "";
+    // Басқарудың веб-сеансы: «adm <userId>.<exp>.<sig>» — тек /v1/admin/* үшін
+    if (h.startsWith("adm ") && c.req.path.startsWith("/v1/admin")) {
+      const [uid, e, sig] = h.slice(4).split(".");
+      const exp = Number(e);
+      if (!uid || !/^[0-9a-f-]{36}$/.test(uid) || !(exp > Date.now() / 1000) || sig !== adminSig(cfg, uid, exp)) return c.json({ ok: false, error: "admin_session" }, 401);
+      const [row] = await db.select().from(users).where(sql`${users.id} = ${uid}`).limit(1);
+      if (!row) return c.json({ ok: false, error: "admin_session" }, 401);
+      c.set("user", row); c.set("auth", { authDate: Math.floor(Date.now() / 1000) });
+      return next();
+    }
     const raw = h.startsWith("tma ") ? h.slice(4) : "";
     // Мини апп ашылған ботың токенімен қол қойылады: негізгі бот пен мини апп боты әртүрлі болуы мүмкін
     const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));

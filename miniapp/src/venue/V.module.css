@@ -262,3 +262,16 @@ button.row:active { background: rgba(34, 154, 240, 0.06); }
 /* «Жаңа тапсырыс» баннері (Figma 14012:9904): жоғарғы қара тақта */
 .banner { position: fixed; z-index: 80; left: 50%; translate: -50% 0; top: calc(8px + var(--tg-safe-area-inset-top, 0px)); width: min(396px, calc(100vw - 16px)); display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; background: rgba(17, 26, 38, 0.94); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); animation: bannerIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
 @keyframes bannerIn { from { transform: translateY(-120%); } }
+
+/* ── Jazl+ Басқару: кең экран (Figma «22 · Кең экран (десктоп)», 1440×900): сол жақ мәзір 240, тізім + оң жақ панель ── */
+:global(html[data-desk]) .page { padding: 32px 40px 56px 280px; min-height: 100vh; }
+:global(html[data-desk]) .page > * { max-width: 900px; width: 100%; }
+:global(html[data-desk]) .page.sub { padding-top: 32px; }
+:global(html[data-desk]) .pageTitle { position: static; width: auto; text-align: left; font-size: 28px; line-height: 34px; font-weight: 700; pointer-events: auto; }
+:global(html[data-desk]) .btnBar { position: static; translate: none; width: auto; padding: 4px 0 0; background: none; justify-content: flex-start; flex-direction: row-reverse; }
+:global(html[data-desk]) .btnBar .btn { flex: none; min-width: 150px; padding: 0 22px; height: 44px; font-size: 16px; }
+:global(html[data-desk]) .sheet { top: 50%; bottom: auto; translate: -50% -50%; width: 480px; max-height: 86vh; border-radius: 24px; padding: 18px 20px 20px; animation: fade 0.2s ease both; }
+:global(html[data-desk]) .grab { display: none; }
+.deskCol { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.deskPanel { display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 24px; background: rgba(118, 118, 128, 0.1); min-width: 0; }
+.deskPanelTitle { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }

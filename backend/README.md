@@ -86,3 +86,7 @@ gcloud scheduler jobs create http jazl-tick --location europe-west3 --schedule "
 ```bash
 gcloud run services update jazl-api --region europe-west3 --update-env-vars ADMIN_IDS=<Telegram ID>
 ```
+
+### Веб-кіру (Басқару тек веб арқылы)
+Браузерде `/#/a` → Telegram Login Widget (@oylarbot, BotFather-де `/setdomain` → мини апп домені) → PIN → «Authorization: adm <userId>.<exp>.<sig>» (12 сағ).
+`ADMIN_WEB_URL` — бот хабарламасындағы батырмалар апаратын мекенжай. Нативті қосымша сборкасы: `VITE_NO_ADMIN=1 npm run build` (Басқару бандлға кірмейді).

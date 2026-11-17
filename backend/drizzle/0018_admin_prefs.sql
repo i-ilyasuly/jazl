@@ -1,0 +1,1 @@
+ALTER TABLE "app"."admins" ADD COLUMN "prefs" jsonb;

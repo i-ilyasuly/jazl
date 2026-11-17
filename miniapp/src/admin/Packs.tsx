@@ -9,6 +9,7 @@ import { Buttons, Note, OfferPic, Sheet, Sk, VPage, VSticker } from "../venue/ui
 import type { OfferKind } from "../mocks/offers";
 import { A, dayMonth, money, post, when } from "./api";
 import { Field, PinSheet, RadioRow } from "./ui";
+import { useDesk } from "./Desk";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
@@ -19,8 +20,10 @@ export function APacks() {
   const go = useGo();
   const [sp] = useSearchParams();
   const [tab, setTab] = useState<Tab>((sp.get("tab") as Tab) || "active");
-  const [q, setQ] = useState(""); const [qq, setQq] = useState("");
+  const [q, setQ] = useState(sp.get("q") ?? ""); const [qq, setQq] = useState(sp.get("q") ?? "");
   useEffect(() => { const t = setTimeout(() => setQq(q.trim()), 350); return () => clearTimeout(t); }, [q]);
+  const desk = useDesk();
+  const sel = useParams().id;
   const [d] = useCached<{ counts: { active: number; expiring: number; grace: number }; packs: PRow[] }>(`a:packs:${tab}:${qq}`, () => A(`/packs?tab=${tab}&q=${encodeURIComponent(qq)}`));
   return (
     <VPage title="Пакеттер" back>
@@ -31,6 +34,17 @@ export function APacks() {
       <h2 className={v.sectionTitle}>{qq ? "Іздеу нәтижесі" : "Соңғы пакеттер"}</h2>
       {!d ? <Sk h={200} /> : d.packs.length === 0 ? (
         <div className={v.result}><VSticker name="search" size={100} /><h2 className={v.stateTitle}>Ештеңе табылмады</h2><p className={v.stateText}>Чек нөмірін (JZ-…), клиент атын не тапсырыс кодын тексеріңіз.</p></div>
+      ) : desk ? (
+        // Figma «Пакеттер / Desktop»: кесте (Пакет · Ұсыныс · Клиент · Қалдық · Мерзімі)
+        <table className={s.table}>
+          <thead><tr><th>Пакет</th><th>Ұсыныс</th><th>Клиент</th><th>Қалдық</th><th className={s.num}>Мерзімі</th></tr></thead>
+          <tbody>{d.packs.map((p) => (
+            <tr key={p.id} className={sel === p.id ? s.sel : ""} onClick={() => go(`/a/packs/${p.id}`)}>
+              <td>{p.ref}</td><td><b>{p.title} · {p.total} дана</b><small>{p.venue}</small></td><td>{p.customer}</td><td><b>{p.left} / {p.total}</b></td>
+              <td className={s.num}>{p.left === 0 ? <span className={`${v.tag} ${v.tagGray}`}>Жабылды</span> : p.daysLeft < 0 ? <span className={`${v.tag} ${v.tagYellow}`}>Күтуде</span> : <span style={{ color: p.daysLeft <= 3 ? "#b07a00" : undefined }}>{p.daysLeft} күн</span>}</td>
+            </tr>
+          ))}</tbody>
+        </table>
       ) : <div className={v.card}>{d.packs.map((p) => (
         <button key={p.id} className={v.row} style={{ minHeight: 64 }} onClick={() => go(`/a/packs/${p.id}`)}>
           <span className={v.ic} style={p.left === 0 || p.daysLeft < 0 ? { opacity: 0.5 } : undefined}><OfferPic kind={p.kind} size={26} /></span>

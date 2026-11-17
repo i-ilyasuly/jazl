@@ -8,8 +8,9 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
-import { adminLog, admins, venueApplications, venueNotes, venues } from "../db/schema.js";
-import type { Notifier } from "../notify.js";
+import { adminLog, admins, users, venueApplications, venueNotes, venues } from "../db/schema.js";
+import { validateLoginWidget } from "../auth/telegram.js";
+import { adminPrefDefaults, type Notifier } from "../notify.js";
 import { getSettings, refreshFees, setSetting, SETTING_DEFAULTS, type Settings } from "../settings.js";
 import { approve, bankOf, type AppData } from "./apply.js";
 import { decideComplaint } from "./complaints.js";
@@ -37,11 +38,28 @@ function pinOk(pin: string, stored: string) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/** Басқару токенінің қолтаңбасы (Mini App-та X-Admin-Token, вебте «Authorization: adm <userId>.<exp>.<sig>») */
+export const adminSig = (cfg: Config, userId: string, exp: number) => createHmac("sha256", cfg.BOT_TOKEN).update(`adm:${userId}:${exp}`).digest("hex").slice(0, 32);
+const adminIds = (cfg: Config) => new Set(cfg.ADMIN_IDS.split(",").map((x) => x.trim()).filter(Boolean));
+
+/** PIN тексеру (кіру мен қауіпті әрекет үшін ортақ): 3 қате → 15 минут бұғат */
+async function checkPinDb(db: Db, userId: string, pin: string): Promise<{ ok: true } | { ok: false; error: string; left?: number; until?: Date }> {
+  const [a] = await db.select().from(admins).where(eq(admins.userId, userId)).limit(1);
+  if (!a?.pinHash) return { ok: false, error: "no_pin" };
+  if (a.lockedUntil && a.lockedUntil.getTime() > Date.now()) return { ok: false, error: "locked", until: a.lockedUntil };
+  if (pinOk(pin, a.pinHash)) { await db.update(admins).set({ failed: 0, lockedUntil: null }).where(eq(admins.userId, userId)); return { ok: true }; }
+  const failed = a.failed + 1;
+  const lock = failed >= 3 ? new Date(Date.now() + LOCK_MIN * 60_000) : null;
+  await db.update(admins).set({ failed: lock ? 0 : failed, lockedUntil: lock }).where(eq(admins.userId, userId));
+  return lock ? { ok: false, error: "locked", until: lock } : { ok: false, error: "bad_pin", left: 3 - failed };
+}
+const weakPin = (p: string) => /^(\d)\1{3}$/.test(p) || ["1234", "4321", "0123"].includes(p);
+
 export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
-  const ids = new Set(cfg.ADMIN_IDS.split(",").map((x) => x.trim()).filter(Boolean));
+  const ids = adminIds(cfg);
   const isAdmin = (c: Context<Env>) => ids.has(String(c.get("user").telegramId));
-  const sign = (userId: string, exp: number) => createHmac("sha256", cfg.BOT_TOKEN).update(`adm:${userId}:${exp}`).digest("hex").slice(0, 32);
+  const sign = (userId: string, exp: number) => adminSig(cfg, userId, exp);
   const token = (userId: string) => { const exp = Math.floor(Date.now() / 1000) + TOKEN_TTL; return `${exp}.${sign(userId, exp)}`; };
   const tokenOk = (c: Context<Env>) => {
     const [e, s] = (c.req.header("X-Admin-Token") ?? "").split(".");
@@ -51,17 +69,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const rows = async <T = Row>(q: ReturnType<typeof sql>) => (await db.execute(q)).rows as T[];
   const log = (c: Context<Env>, action: string, target: string, meta?: object) => db.insert(adminLog).values({ adminId: c.get("user").id, action, target, meta: meta ?? null });
 
-  /** PIN тексеру (кіру мен қауіпті әрекет үшін ортақ): 3 қате → 15 минут бұғат */
-  async function checkPin(userId: string, pin: string): Promise<{ ok: true } | { ok: false; error: string; left?: number; until?: Date }> {
-    const [a] = await db.select().from(admins).where(eq(admins.userId, userId)).limit(1);
-    if (!a?.pinHash) return { ok: false, error: "no_pin" };
-    if (a.lockedUntil && a.lockedUntil.getTime() > Date.now()) return { ok: false, error: "locked", until: a.lockedUntil };
-    if (pinOk(pin, a.pinHash)) { await db.update(admins).set({ failed: 0, lockedUntil: null }).where(eq(admins.userId, userId)); return { ok: true }; }
-    const failed = a.failed + 1;
-    const lock = failed >= 3 ? new Date(Date.now() + LOCK_MIN * 60_000) : null;
-    await db.update(admins).set({ failed: lock ? 0 : failed, lockedUntil: lock }).where(eq(admins.userId, userId));
-    return lock ? { ok: false, error: "locked", until: lock } : { ok: false, error: "bad_pin", left: 3 - failed };
-  }
+  const checkPin = (userId: string, pin: string) => checkPinDb(db, userId, pin);
   const pinFail = (c: Context<Env>, p: { error: string; left?: number; until?: Date }) => c.json({ ok: false, error: p.error, left: p.left ?? null, until: p.until ?? null }, p.error === "locked" ? 423 : 403);
   const Pin = z.string().regex(/^\d{4}$/);
 
@@ -83,7 +91,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const [a] = await db.select().from(admins).where(eq(admins.userId, u.id)).limit(1);
     if (!a.pinHash) {
       if (!b.data.setup) return c.json({ ok: false, error: "no_pin" }, 409);
-      if (/^(\d)\1{3}$/.test(b.data.pin) || ["1234", "4321", "0123"].includes(b.data.pin)) return c.json({ ok: false, error: "weak_pin" }, 400);
+      if (weakPin(b.data.pin)) return c.json({ ok: false, error: "weak_pin" }, 400);
       await db.update(admins).set({ pinHash: hashPin(b.data.pin) }).where(eq(admins.userId, u.id));
       await log(c, "PIN орнатылды", u.firstName);
       return c.json({ ok: true, token: token(u.id) });
@@ -429,6 +437,64 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, money: { sales: now.sales, salesGrowth: growth(now.sales, prev.sales), fee: now.fee, feeGrowth: growth(now.fee, prev.fee), venue: m.venue, uses: m.uses, balance: m.balance, payments: m.payments, refunds: m.refunds, expired: m.expired, testMode: cfg.PAYMENTS_MODE === "test" } });
   });
 
+  // Төлемдер (Figma «Төлемдер»): барлығы / сәтті / күтуде / сәтсіз
+  r.get("/admin/payments", async (c) => {
+    const tab = c.req.query("tab") ?? "all";
+    const st = tab === "paid" ? sql`and p.status = 'paid'` : tab === "pending" ? sql`and p.status in ('created','pending')` : tab === "failed" ? sql`and p.status = 'failed'` : sql``;
+    const list = await rows<Row>(sql`select p.id, p.amount, p.status, p.method, p.created_at, u.first_name, u.last_name, o.title from app.payments p join app.users u on u.id = p.user_id
+      left join app.packs pk on pk.id = p.pack_id left join app.offers o on o.id = pk.offer_id where true ${st} order by p.created_at desc limit 200`);
+    const [n] = await rows<{ failed: number }>(sql`select count(*)::int as failed from app.payments where status = 'failed'`);
+    return c.json({ ok: true, counts: n, payments: list.map((x) => ({ id: x.id, amount: x.amount, status: x.status, method: x.method, at: x.created_at, customer: short(String(x.first_name), x.last_name as string | null), title: x.title ? head(String(x.title)) : "—" })) });
+  });
+  // Есеп айырысу (Figma «Мекемелермен есеп»): айлар бойынша — ақша әр қолданған сайын мекемеге өтеді
+  const settlements = async (month: string) => {
+    const from = new Date(`${month}-01T00:00:00+05:00`); const to = new Date(from); to.setMonth(to.getMonth() + 1);
+    return rows<{ id: string; name: string; status: string; fee: number; uses: number; amount: number; gross: number }>(sql`select v.id, v.name, v.status, coalesce(v.fee_pct, ${cfg.JAZL_FEE_PCT})::int as fee,
+        coalesce(sum(r.units), 0)::int as uses, coalesce(sum(r.units * (p.price_paid / p.units_total)), 0)::int as gross,
+        coalesce(sum(round(r.units * (p.price_paid / p.units_total) * (100 - coalesce(v.fee_pct, ${cfg.JAZL_FEE_PCT})) / 100.0)), 0)::int as amount
+      from app.venues v left join app.branches b on b.venue_id = v.id
+      left join app.redemptions r on r.branch_id = b.id and r.cancelled_at is null and r.created_at >= ${from} and r.created_at < ${to}
+      left join app.packs p on p.id = r.pack_id
+      where v.status in ('active','paused','closed') group by v.id order by amount desc, v.name`);
+  };
+  r.get("/admin/settlements", async (c) => {
+    const month = /^\d{4}-\d{2}$/.test(c.req.query("month") ?? "") ? c.req.query("month")! : new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" }).slice(0, 7);
+    return c.json({ ok: true, month, venues: await settlements(month) });
+  });
+  // Қайтарулар (Figma «Қайтарулар»): бірлік пакетке оралады, сомасы мекемеден ұсталады; ақшалай қайтару өшірулі
+  const refunds = (from: Date) => rows<Row>(sql`select e.id, e.type, e.units_delta::int as units, e.created_at, e.meta, u.first_name, u.last_name, o.title, v.name as venue, (p.price_paid / p.units_total)::int as unit_price
+      from app.pack_events e join app.packs p on p.id = e.pack_id join app.users u on u.id = p.user_id join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id
+      where e.type in ('complaint_refund','use_cancelled') and e.created_at >= ${from} order by e.created_at desc limit 200`);
+  const refundDto = (x: Row) => { const m = (x.meta ?? {}) as Record<string, unknown>; return { id: x.id, units: x.units, at: x.created_at, customer: short(String(x.first_name), x.last_name as string | null), title: head(String(x.title)), venue: x.venue,
+    amount: Number(x.unit_price) * Number(x.units), why: x.type === "complaint_refund" ? (m.platform ? "шағым · платформа есебінен" : "шағым") : m.via === "admin" ? "Басқару қайтарды" : "кассир қатесі", platform: Boolean(m.platform) }; };
+  r.get("/admin/refunds", async (c) => c.json({ ok: true, refunds: (await refunds(new Date(Date.now() - 90 * 86400_000))).map(refundDto) }));
+  // Экспорт (Figma «Экспорт»): CSV (Excel ашады), UTF-8 BOM
+  r.get("/admin/export", async (c) => {
+    const p = periodOf(c.req.query("period") ?? "30");
+    const parts = new Set((c.req.query("parts") ?? "payments,settlements").split(","));
+    const esc = (v: unknown) => { const t = v === null || v === undefined ? "" : String(v); return /[";\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+    const lines: string[] = [];
+    const add = (r2: unknown[]) => lines.push(r2.map(esc).join(";"));
+    if (parts.has("payments")) {
+      add(["Төлемдер"]); add(["Күні", "Клиент", "Ұсыныс", "Тәсіл", "Сома", "Күйі"]);
+      for (const x of await rows<Row>(sql`select p.created_at, p.amount, p.status, p.method, u.first_name, u.last_name, o.title from app.payments p join app.users u on u.id = p.user_id left join app.packs pk on pk.id = p.pack_id left join app.offers o on o.id = pk.offer_id where p.created_at >= ${p.from} order by p.created_at`))
+        add([new Date(x.created_at as string).toLocaleString("ru-RU", { timeZone: "Asia/Almaty" }), short(String(x.first_name), x.last_name as string | null), x.title ? head(String(x.title)) : "", x.method, x.amount, x.status]);
+      add([]);
+    }
+    if (parts.has("settlements")) {
+      const month = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" }).slice(0, 7);
+      add([`Мекемелермен есеп · ${month}`]); add(["Мекеме", "Қолдану", "Жалпы сома", "Комиссия, %", "Мекемеге"]);
+      for (const x of await settlements(month)) add([x.name, x.uses, x.gross, x.fee, x.amount]);
+      add([]);
+    }
+    if (parts.has("refunds")) {
+      add(["Қайтарулар"]); add(["Күні", "Клиент", "Ұсыныс", "Мекеме", "Бірлік", "Сома", "Себебі"]);
+      for (const x of (await refunds(p.from)).map(refundDto)) add([new Date(x.at as string).toLocaleString("ru-RU", { timeZone: "Asia/Almaty" }), x.customer, x.title, x.venue, x.units, x.amount, x.why]);
+    }
+    await log(c, "Экспорт жүктелді", `${[...parts].join(", ")} · ${c.req.query("period") ?? "30"}`);
+    return c.body("\uFEFF" + lines.join("\r\n"), 200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="jazl-export.csv"` });
+  });
+
   // ── 08 · Шағымдар ──────────────────────────────────────────────
   // new — мекеме әлі жауап бермеген; review — мекеме қайтармаған (Jazl+ қайта қарай алады); done — шешілген
   r.get("/admin/complaints", async (c) => {
@@ -511,6 +577,17 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     await log(c, b.data.key === "maintenance" ? (b.data.value ? "Техникалық жұмыстар қосылды" : "Техникалық жұмыстар өшірілді") : `${names[b.data.key]} өзгерді`, `Бизнес-ережелер · ${fmt(before)} → ${fmt(b.data.value)}`);
     return c.json({ ok: true });
   });
+  // Figma «18 · Хабарлама баптаулары»
+  r.get("/admin/prefs", async (c) => {
+    const [a] = await db.select({ p: admins.prefs }).from(admins).where(eq(admins.userId, c.get("user").id)).limit(1);
+    return c.json({ ok: true, prefs: { ...adminPrefDefaults, ...((a?.p as object) ?? {}) } });
+  });
+  r.put("/admin/prefs", async (c) => {
+    const b = z.object(Object.fromEntries(Object.keys(adminPrefDefaults).map((k) => [k, z.boolean()])) as Record<keyof typeof adminPrefDefaults, z.ZodBoolean>).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    await db.update(admins).set({ prefs: b.data }).where(eq(admins.userId, c.get("user").id));
+    return c.json({ ok: true });
+  });
   r.get("/admin/log", async (c) => c.json({ ok: true, log: await rows(sql`select l.id, l.action, l.target, l.created_at as at, u.first_name as author from app.admin_log l join app.users u on u.id = l.admin_id order by l.created_at desc limit 200`) }));
 
   return r;
@@ -526,6 +603,41 @@ export function adminFileRoutes(cfg: Config, db: Db) {
     const [d] = (await db.execute(sql`select file_name, mime, bytes from app.venue_docs where id = ${id}`)).rows as { file_name: string; mime: string; bytes: Buffer }[];
     if (!d) return c.json({ ok: false, error: "not_found" }, 404);
     return c.body(new Uint8Array(d.bytes), 200, { "Content-Type": d.mime, "Content-Disposition": `inline; filename="${encodeURIComponent(d.file_name)}"`, "Cache-Control": "private, no-store" });
+  });
+  return r;
+}
+
+/** Веб-кіру (Telegram Login Widget + PIN): Басқару тек веб арқылы ашылады. Жауаптағы token — «<userId>.<exp>.<sig>». */
+export function adminWebRoutes(cfg: Config, db: Db) {
+  const r = new Hono();
+  const ids = adminIds(cfg);
+  const Body = z.object({ auth: z.record(z.string(), z.union([z.string(), z.number()])), pin: z.string().regex(/^\d{4}$/).optional(), setup: z.boolean().optional() });
+  r.post("/login", async (c) => {
+    const b = Body.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));
+    let v = validateLoginWidget(b.data.auth, tokens[0], 24 * 3600);
+    for (const t of tokens.slice(1)) { if (v.ok || v.reason !== "bad_hash") break; v = validateLoginWidget(b.data.auth, t, 24 * 3600); }
+    if (!v.ok) return c.json({ ok: false, error: "unauthorized", reason: v.reason }, 401);
+    const u = v.user;
+    if (!ids.has(String(u.id))) return c.json({ ok: false, error: "forbidden", telegramId: u.id }, 403);
+    const [row] = await db.insert(users).values({ telegramId: u.id, firstName: u.first_name, lastName: u.last_name, username: u.username, photoUrl: u.photo_url })
+      .onConflictDoUpdate({ target: users.telegramId, set: { firstName: u.first_name, lastName: u.last_name ?? null, username: u.username ?? null, lastSeenAt: sql`now()` } }).returning();
+    await db.insert(admins).values({ userId: row.id }).onConflictDoNothing();
+    const [a] = await db.select().from(admins).where(eq(admins.userId, row.id)).limit(1);
+    if (!b.data.pin) return c.json({ ok: true, hasPin: Boolean(a.pinHash), name: row.firstName, lockedUntil: a.lockedUntil && a.lockedUntil.getTime() > Date.now() ? a.lockedUntil : null });
+    if (!a.pinHash) {
+      if (!b.data.setup) return c.json({ ok: false, error: "no_pin" }, 409);
+      if (weakPin(b.data.pin)) return c.json({ ok: false, error: "weak_pin" }, 400);
+      await db.update(admins).set({ pinHash: hashPin(b.data.pin) }).where(eq(admins.userId, row.id));
+      await db.insert(adminLog).values({ adminId: row.id, action: "PIN орнатылды", target: `${row.firstName} · веб` });
+    } else {
+      const p = await checkPinDb(db, row.id, b.data.pin);
+      if (!p.ok) return c.json({ ok: false, error: p.error, left: p.left ?? null, until: p.until ?? null }, p.error === "locked" ? 423 : 403);
+    }
+    const exp = Math.floor(Date.now() / 1000) + TOKEN_TTL;
+    await db.insert(adminLog).values({ adminId: row.id, action: "Вебке кірді", target: row.firstName });
+    return c.json({ ok: true, token: `${row.id}.${exp}.${adminSig(cfg, row.id, exp)}`, name: row.firstName });
   });
   return r;
 }
