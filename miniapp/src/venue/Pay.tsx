@@ -33,7 +33,7 @@ export function VPay() {
     setBusy(true); haptic.medium();
     const d: Draft = { branchId: branch, offer, units, extras: extras.filter((x) => x.qty > 0) };
     try { const ss = await V.qr(branch, offer.id, units, extraSum(d)); draft = d; go(`/v/pay/qr/${ss.id}`, "forward"); }
-    catch (e) { haptic.error(); await nativePick("QR шықпады", err(e) === "network" ? "Желі жоқ. Қайталап көріңіз." : "Қайталап көріңіз.", [{ id: "ok", text: "Жақсы" }], "ok"); }
+    catch (e) { haptic.error(); await nativePick("QR шықпады", err(e) === "branch_closed" ? "Филиал қазір жабық (жұмыс уақытынан тыс не уақытша жабылған). «Мәзір → Филиалдар» бөлімінде ашуға болады." : err(e) === "network" ? "Желі жоқ. Қайталап көріңіз." : "Қайталап көріңіз.", [{ id: "ok", text: "Жақсы" }], "ok"); }
     finally { setBusy(false); }
   }, [offer, branch, units, extras, busy, go]);
 

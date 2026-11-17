@@ -157,4 +157,29 @@ d("C мекеме бөлімі", () => {
     expect((await up(701, new TextEncoder().encode("not an image"))).status).toBe(400);
     expect((await up(701, png, "text/plain")).status).toBe(415);
   });
+  it("филиалдар: уақытша жабу QR-ды тоқтатады, ашу; кесте мен мереке күні; соңғы филиал өшпейді", async () => {
+    const list = await json(get(`/v1/venue/${venueId}/branches`, 701));
+    expect(list.branches[0]).toMatchObject({ id: branchId, status: { open: true } });
+    expect((await get(`/v1/venue/${venueId}/branches`, 702)).status).toBe(403);
+    await post(`/v1/venue/${venueId}/branches/${branchId}/close`, { for: "1h", reason: "Үзіліс" }, 701);
+    expect((await json(get(`/v1/venue/${venueId}/branches`, 701))).branches[0].status).toMatchObject({ open: false, kind: "temp", reason: "Үзіліс" });
+    const q = await post("/v1/venue/qr", { branchId, offerId: donerId, units: 1 }, 701);
+    expect(q.status).toBe(409); expect((await q.json()).error).toBe("branch_closed");
+    const p = await buy(720);
+    const r = await post("/v1/redeem", { packId: p, qr: "JZB1:" + branchId, idempotencyKey: key() }, 720);
+    expect(r.status).toBe(409); expect((await r.json()).error).toBe("branch_closed");
+    await post(`/v1/venue/${venueId}/branches/${branchId}/open`, {}, 701);
+    expect((await post("/v1/redeem", { packId: p, qr: "JZB1:" + branchId, idempotencyKey: key() }, 720)).status).toBe(200);
+    // Бүгінгі күн — мереке, жабық
+    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
+    const days = Array.from({ length: 7 }, () => ({ on: true, open: "00:00", close: "00:00" }));
+    const put = (holidays: object[]) => app.request(`/v1/venue/${venueId}/branches/${branchId}`, { method: "PUT", headers: h(701), body: JSON.stringify({ address: "Нұркен Әбдіров, 24", is247: false, days, holidays }) });
+    expect((await put([{ name: "Наурыз", from: today, to: today, closed: true }])).status).toBe(200);
+    expect((await json(get(`/v1/venue/${venueId}/branches`, 701))).branches[0].status).toMatchObject({ open: false, kind: "holiday" });
+    await put([]);
+    expect((await json(get(`/v1/venue/${venueId}/branches`, 701))).branches[0].status.open).toBe(true); // 00:00–00:00 — тәулік бойы
+    expect((await post(`/v1/venue/${venueId}/branches/${branchId}/remove`, {}, 701)).status).toBe(409);
+    const add = await json(post(`/v1/venue/${venueId}/branches`, { address: "Бұхар-Жырау, 52" }, 701));
+    expect((await post(`/v1/venue/${venueId}/branches/${add.id}/remove`, {}, 701)).status).toBe(200);
+  });
 });

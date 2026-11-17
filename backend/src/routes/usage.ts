@@ -10,6 +10,7 @@ import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import { branches, offers, orders, packEvents, packs, qrSessions, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
 import { makeDynamicQr, makeSessionQr, parseQr } from "../qr.js";
+import { branchStatus } from "../hours.js";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type User = typeof users.$inferSelect;
@@ -106,6 +107,8 @@ export function usageRoutes(cfg: Config, db: Db) {
     if (prev[0]) { const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.packId, b.data.packId), eq(receipts.kind, "use"), sql`${receipts.internal}->>'redemptionId' = ${prev[0].id}`)).limit(1); return c.json({ ok: true, repeated: true, receipt: rc ? { id: rc.id, no: "JZ-" + rc.no } : null }); }
     const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, branchId)).limit(1);
     if (!br || !br.b.active) return c.json({ ok: false, error: "branch_not_found" }, 404);
+    const bs = branchStatus(br.b);
+    if (!bs.open) return c.json({ ok: false, error: "branch_closed", venue: br.v.name }, 409); // Figma: жұмыс уақытынан тыс QR төлем қабылданбайды
     try {
       const out = await db.transaction(async (tx) => {
         // Сеанс бір рет қана төленеді: жолды бұғаттаймыз (екі клиент бір QR-ды қатар сканерлесе — біреуі ғана өтеді)

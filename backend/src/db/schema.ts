@@ -61,6 +61,11 @@ export const branches = app.table("branches", {
   phone: text("phone"),
   allowsCourier: boolean("allows_courier").notNull().default(false),
   active: boolean("active").notNull().default(true),
+  /** Figma «07 · Филиалдар»: 24/7, уақытша жабу (дейін, себебі), мереке/ерекше күндер [{ name, from, to, closed, open?, close? }] */
+  is247: boolean("is_247").notNull().default(false),
+  closedUntil: timestamp("closed_until", { withTimezone: true }),
+  closedReason: text("closed_reason"),
+  holidays: jsonb("holidays"),
   createdAt: created(),
 }, (t) => [index("branches_venue").on(t.venueId)]);
 

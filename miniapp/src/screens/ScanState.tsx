@@ -16,10 +16,10 @@ import { Sticker, type StickerName } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import s from "./PayResult.module.css";
 
-export const scanStates = ["fail", "pending", "limit", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "othervenue"] as const;
+export const scanStates = ["fail", "pending", "limit", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "othervenue", "closed"] as const;
 export type ScanKind = (typeof scanStates)[number];
 /** QR оқылған бойда белгілі болатын күйлер (төлемге дейін). Қалғаны төлемнен кейін шығады. */
-export const scanEarly: ScanKind[] = ["othervenue", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc"];
+export const scanEarly: ScanKind[] = ["closed", "othervenue", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc"];
 
 interface Copy { sticker: StickerName; title: string; text: string; note?: string; left?: string; main: string }
 const copy: Record<ScanKind, Copy> = {
@@ -37,6 +37,8 @@ const copy: Record<ScanKind, Copy> = {
   desktop: { sticker: "phone", title: "Сканерді телефонда аш", text: "Компьютерде камера қолжетімсіз. Jazl+ қолданбасын телефоннан аш.", left: "Код енгізу", main: "Түсінікті" },
   pinintro: { sticker: "lock", title: "Төлем үшін PIN орнат", text: "PIN әр төлемді растайды. Саусақ ізін де қосуға болады.", main: "PIN орнату" },
   // Патша (2026-11-17): басқа мекеменің QR-ы — сол мекемеде пакет болмаса
+  // Figma «07 · Филиалдар»: жұмыс уақытынан тыс не уақытша жабық филиалда QR төлем қабылданбайды
+  closed: { sticker: "sleep", title: "Мекеме қазір жабық", text: "Бұл филиал қазір төлем қабылдамайды. Бірлік жұмсалған жоқ — жұмыс уақытында қайта сканерле.", main: "Түсінікті" },
   othervenue: { sticker: "stop", title: "Бұл QR басқа мекеменікі", text: "Бұл мекемеде белсенді пакетің жоқ. Пакет таңдаған мекеменің кассасындағы QR-ды сканерле.", main: "Түсінікті" },
   kyc: { sticker: "lock", title: "Төлеу үшін жеке басыңды растау керек", text: "Банк талабы бойынша бір рет. Деректер банкте сақталады.", note: "Бұл қадам тек банк-серіктес талап етсе көрсетіледі.", left: "Кейін", main: "Растау" },
 };
