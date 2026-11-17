@@ -88,10 +88,10 @@ export function Packs() {
   useEffect(() => {
     if (/[?&]hint=1/.test(window.location.hash)) { setHint(true); return; }
     let live = true;
-    void kv.get("jazl_packs_hint").then((v) => { if (live && !v) setHint(true); });
+    void kv.get("medeo_packs_hint").then((v) => { if (live && !v) setHint(true); });
     return () => { live = false; };
   }, []);
-  const closeHint = () => { setHint(false); kv.set("jazl_packs_hint", "1"); };
+  const closeHint = () => { setHint(false); kv.set("medeo_packs_hint", "1"); };
   // Табтар арасында свайп (Патша, 2026-11-16): көлденең сүйреу > 64px не жылдам сілтеу — көрші табқа өтеді;
   // табтың «тамшысы» навигациядағыдай саусақпен бірге жүреді, ауысқанда серпіліп созылады.
   const thumb = useRef<HTMLSpanElement>(null);

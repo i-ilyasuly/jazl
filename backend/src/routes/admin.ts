@@ -1,4 +1,4 @@
-// Jazl+ Басқару (Figma «Jazl+ Басқару» 14060:7998): платформа иесінің беттері.
+// Medeo Басқару (Figma «Medeo Басқару» 14060:7998): платформа иесінің беттері.
 // Кіру: ADMIN_IDS тізіміндегі Telegram аккаунты (initData) + жеке PIN → 12 сағаттық X-Admin-Token.
 // Қауіпті әрекеттер (комиссия, тоқтату, қолмен қайтару, ұзарту, техникалық жұмыстар) PIN-мен қайта расталады. Әр өзгеріс — admin_log.
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
@@ -115,7 +115,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   };
 
   // ── 02 · Пульс ──────────────────────────────────────────────────
-  const feeExpr = sql.raw(`coalesce(v.fee_pct, ${Number(cfg.JAZL_FEE_PCT)})`);
+  const feeExpr = sql.raw(`coalesce(v.fee_pct, ${Number(cfg.MEDEO_FEE_PCT)})`);
   const salesIn = async (from: Date, to: Date) => (await rows<{ sales: number; fee: number; packs: number }>(sql`
     select coalesce(sum(p.price_paid), 0)::int as sales, coalesce(sum(round(p.price_paid * ${feeExpr} / 100.0)), 0)::int as fee, count(*)::int as packs
     from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id
@@ -191,7 +191,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       (select count(*) from app.complaints where venue_id = ${id})::int as complaints,
       (select count(*) from app.venue_notes where venue_id = ${id})::int as notes,
       (select count(*) from app.packs p join app.offers o on o.id = p.offer_id where o.venue_id = ${id} and p.status = 'active' and p.units_left > 0 and p.valid_until > now())::int as active_packs`);
-    const fee = v.fee_pct ?? cfg.JAZL_FEE_PCT;
+    const fee = v.fee_pct ?? cfg.MEDEO_FEE_PCT;
     const complaintShare = s.uses30 ? Math.round((s.complaints30 / s.uses30) * 1000) / 10 : 0;
     return c.json({ ok: true, venue: { id: v.id, name: v.name, kind: v.kind, kindName: kindName[v.kind as string], city: v.city, status: v.status, statusNote: v.status_note, createdAt: v.created_at, rating: v.rating, reviews: v.reviews,
       feePct: fee, feeCustom: v.fee_pct !== null, sales30: s.sales30, salesGrowth: growth(s.sales30, s.prev30), fee30: Math.round((s.sales30 * fee) / 100), complaintShare,
@@ -205,8 +205,8 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const bad = await danger(c, b.data.pin); if (bad) return bad;
     const [v] = await db.select().from(venues).where(eq(venues.id, c.req.param("id"))).limit(1);
     if (!v) return c.json({ ok: false, error: "not_found" }, 404);
-    const before = v.feePct ?? cfg.JAZL_FEE_PCT;
-    await db.update(venues).set({ feePct: b.data.feePct === cfg.JAZL_FEE_PCT ? null : b.data.feePct }).where(eq(venues.id, v.id));
+    const before = v.feePct ?? cfg.MEDEO_FEE_PCT;
+    await db.update(venues).set({ feePct: b.data.feePct === cfg.MEDEO_FEE_PCT ? null : b.data.feePct }).where(eq(venues.id, v.id));
     await refreshFees(db);
     await log(c, "Комиссия өзгерді", `${v.name} · ${before}% → ${b.data.feePct}%`, { venueId: v.id, before, after: b.data.feePct });
     return c.json({ ok: true });
@@ -351,9 +351,9 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   });
 
   // ── 06 · Пакеттер және қолданулар ───────────────────────────────
-  const packRef = sql`(select 'JZ-' || rc.no from app.receipts rc where rc.pack_id = p.id and rc.kind in ('purchase','gift') order by rc.created_at limit 1)`;
+  const packRef = sql`(select 'MD-' || rc.no from app.receipts rc where rc.pack_id = p.id and rc.kind in ('purchase','gift') order by rc.created_at limit 1)`;
   r.get("/admin/packs", async (c) => {
-    const tab = c.req.query("tab") ?? "active"; const q = (c.req.query("q") ?? "").trim().replace(/^JZ-?/i, ""); const like = `%${q}%`;
+    const tab = c.req.query("tab") ?? "active"; const q = (c.req.query("q") ?? "").trim().replace(/^(JZ|MD)-?/i, ""); const like = `%${q}%`;
     const s = await getSettings(db);
     const cond = tab === "expiring" ? sql`p.status = 'active' and p.units_left > 0 and p.valid_until between now() and now() + interval '7 days'`
       : tab === "grace" ? sql`p.units_left > 0 and p.valid_until < now() and p.valid_until > now() - make_interval(days => ${s.graceDays})`
@@ -371,7 +371,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   });
   r.get("/admin/packs/:id", async (c) => {
     const id = c.req.param("id");
-    const [p] = await rows<Row>(sql`select p.*, o.title, o.unit_name, v.name as venue, v.id as venue_id, coalesce(v.fee_pct, ${cfg.JAZL_FEE_PCT})::int as fee_pct, u.first_name, u.last_name, ${packRef} as ref
+    const [p] = await rows<Row>(sql`select p.*, o.title, o.unit_name, v.name as venue, v.id as venue_id, coalesce(v.fee_pct, ${cfg.MEDEO_FEE_PCT})::int as fee_pct, u.first_name, u.last_name, ${packRef} as ref
       from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id join app.users u on u.id = p.user_id where p.id = ${id}`);
     if (!p) return c.json({ ok: false, error: "not_found" }, 404);
     const unitPrice = Math.round(Number(p.price_paid) / Number(p.units_total));
@@ -428,7 +428,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const p = periodOf(c.req.query("period") ?? "30");
     const [now, prev] = await Promise.all([salesIn(p.from, p.to), salesIn(p.prevFrom, p.prevTo)]);
     const [m] = await rows<{ venue: number; uses: number; balance: number; payments: number; refunds: number; expired: number }>(sql`select
-      coalesce((select sum(round(r.units * (pk.price_paid / pk.units_total) * (100 - coalesce(v.fee_pct, ${cfg.JAZL_FEE_PCT})) / 100.0)) from app.redemptions r join app.packs pk on pk.id = r.pack_id join app.offers o on o.id = pk.offer_id join app.venues v on v.id = o.venue_id where r.cancelled_at is null and r.created_at >= ${p.from}), 0)::int as venue,
+      coalesce((select sum(round(r.units * (pk.price_paid / pk.units_total) * (100 - coalesce(v.fee_pct, ${cfg.MEDEO_FEE_PCT})) / 100.0)) from app.redemptions r join app.packs pk on pk.id = r.pack_id join app.offers o on o.id = pk.offer_id join app.venues v on v.id = o.venue_id where r.cancelled_at is null and r.created_at >= ${p.from}), 0)::int as venue,
       (select count(*) from app.redemptions where cancelled_at is null and created_at >= ${p.from})::int as uses,
       coalesce((select sum(units_left * (price_paid / units_total)) from app.packs where status = 'active' and units_left > 0 and valid_until > now()), 0)::int as balance,
       (select count(*) from app.payments where status = 'paid' and created_at >= ${p.from})::int as payments,
@@ -449,9 +449,9 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   // Есеп айырысу (Figma «Мекемелермен есеп»): айлар бойынша — ақша әр қолданған сайын мекемеге өтеді
   const settlements = async (month: string) => {
     const from = new Date(`${month}-01T00:00:00+05:00`); const to = new Date(from); to.setMonth(to.getMonth() + 1);
-    return rows<{ id: string; name: string; status: string; fee: number; uses: number; amount: number; gross: number }>(sql`select v.id, v.name, v.status, coalesce(v.fee_pct, ${cfg.JAZL_FEE_PCT})::int as fee,
+    return rows<{ id: string; name: string; status: string; fee: number; uses: number; amount: number; gross: number }>(sql`select v.id, v.name, v.status, coalesce(v.fee_pct, ${cfg.MEDEO_FEE_PCT})::int as fee,
         coalesce(sum(r.units), 0)::int as uses, coalesce(sum(r.units * (p.price_paid / p.units_total)), 0)::int as gross,
-        coalesce(sum(round(r.units * (p.price_paid / p.units_total) * (100 - coalesce(v.fee_pct, ${cfg.JAZL_FEE_PCT})) / 100.0)), 0)::int as amount
+        coalesce(sum(round(r.units * (p.price_paid / p.units_total) * (100 - coalesce(v.fee_pct, ${cfg.MEDEO_FEE_PCT})) / 100.0)), 0)::int as amount
       from app.venues v left join app.branches b on b.venue_id = v.id
       left join app.redemptions r on r.branch_id = b.id and r.cancelled_at is null and r.created_at >= ${from} and r.created_at < ${to}
       left join app.packs p on p.id = r.pack_id
@@ -492,11 +492,11 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       for (const x of (await refunds(p.from)).map(refundDto)) add([new Date(x.at as string).toLocaleString("ru-RU", { timeZone: "Asia/Almaty" }), x.customer, x.title, x.venue, x.units, x.amount, x.why]);
     }
     await log(c, "Экспорт жүктелді", `${[...parts].join(", ")} · ${c.req.query("period") ?? "30"}`);
-    return c.body("\uFEFF" + lines.join("\r\n"), 200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="jazl-export.csv"` });
+    return c.body("\uFEFF" + lines.join("\r\n"), 200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="medeo-export.csv"` });
   });
 
   // ── 08 · Шағымдар ──────────────────────────────────────────────
-  // new — мекеме әлі жауап бермеген; review — мекеме қайтармаған (Jazl+ қайта қарай алады); done — шешілген
+  // new — мекеме әлі жауап бермеген; review — мекеме қайтармаған (Medeo қайта қарай алады); done — шешілген
   r.get("/admin/complaints", async (c) => {
     const tab = c.req.query("tab") ?? "new"; const venueId = c.req.query("venue") ?? "";
     const s = await getSettings(db);
@@ -559,7 +559,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   });
 
   // ── 15 · Баптаулар, журнал ─────────────────────────────────────
-  r.get("/admin/settings", async (c) => c.json({ ok: true, settings: await getSettings(db, true), defaults: SETTING_DEFAULTS, feePct: cfg.JAZL_FEE_PCT, paymentsMode: cfg.PAYMENTS_MODE }));
+  r.get("/admin/settings", async (c) => c.json({ ok: true, settings: await getSettings(db, true), defaults: SETTING_DEFAULTS, feePct: cfg.MEDEO_FEE_PCT, paymentsMode: cfg.PAYMENTS_MODE }));
   const SetBody = z.object({ key: z.enum(["maintenance", "maintenanceText", "moderation", "graceDays", "complaintHours"]), value: z.union([z.boolean(), z.number().int().min(1).max(30), z.string().trim().min(5).max(200)]), pin: z.string().optional() });
   r.post("/admin/settings", async (c) => {
     const b = SetBody.safeParse(await c.req.json().catch(() => null));
@@ -615,7 +615,7 @@ export function adminWebRoutes(cfg: Config, db: Db) {
   r.post("/login", async (c) => {
     const b = Body.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
-    const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));
+    const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.LEGACY_MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));
     let v = validateLoginWidget(b.data.auth, tokens[0], 24 * 3600);
     for (const t of tokens.slice(1)) { if (v.ok || v.reason !== "bad_hash") break; v = validateLoginWidget(b.data.auth, t, 24 * 3600); }
     if (!v.ok) return c.json({ ok: false, error: "unauthorized", reason: v.reason }, 401);

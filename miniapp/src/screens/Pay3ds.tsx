@@ -57,7 +57,7 @@ export function Pay3ds() {
         <h1 className={s.title}>{wait ? "Банк растауын күтудеміз" : "Төлемді банкте растаңыз"}</h1>
         <p className={s.text}>{wait ? "Банк бетінде төлемді растаңыз. Расталған сәтте пакет өзі қосылады." : "Банк картаңызға жіберген SMS кодын енгізіңіз (3-D Secure)."}</p>
         <div className={s.kvBox}>
-          <p><span>Алушы</span><b>Jazl+</b></p>
+          <p><span>Алушы</span><b>Medeo</b></p>
           {sum && <p><span>Сома</span><b>{sum}</b></p>}
           <p><span>Карта</span><b>{label}</b></p>
         </div>

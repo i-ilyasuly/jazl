@@ -1,4 +1,4 @@
-# Jazl+ API — Cloud Run контейнері (Node 22). Құру: docker build -t jazl-api .
+# Medeo API — Cloud Run контейнері (Node 22). Құру: docker build -t medeo-api .
 FROM node:22-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./

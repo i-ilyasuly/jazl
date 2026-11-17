@@ -86,10 +86,10 @@ export function NavBar({ active }: { active: TabKey }) {
   useEffect(() => {
     if (/[?&]tips=1/.test(window.location.hash)) { setTip(0); return; }
     let live = true;
-    void kv.get("jazl_nav_hints").then((v) => { if (live && !v) setTip(0); });
+    void kv.get("medeo_nav_hints").then((v) => { if (live && !v) setTip(0); });
     return () => { live = false; };
   }, []);
-  const nextTip = () => { haptic.tap(); if (tip + 1 < tips.length) setTip(tip + 1); else { setTip(-1); kv.set("jazl_nav_hints", "1"); } };
+  const nextTip = () => { haptic.tap(); if (tip + 1 < tips.length) setTip(tip + 1); else { setTip(-1); kv.set("medeo_nav_hints", "1"); } };
   const shown = active === "home" && tip >= 0 ? tips[tip] : null;
   return (
     <nav ref={navEl} className={s.nav} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; setLens(null); }}>

@@ -27,7 +27,7 @@ export type Env = { Variables: { user: User; auth: { authDate: number; startPara
 export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   const app = new Hono<Env>();
   // Бот хабарламалары: тестте — ештеңе жібермейді (не тест өз жинағышын береді)
-  const notify = makeNotifier(db, opts.send ?? (cfg.NODE_ENV === "test" ? noopSender : telegramSender(cfg)), { adminIds: cfg.ADMIN_IDS, adminUrl: cfg.ADMIN_WEB_URL, feePct: cfg.JAZL_FEE_PCT });
+  const notify = makeNotifier(db, opts.send ?? (cfg.NODE_ENV === "test" ? noopSender : telegramSender(cfg)), { adminIds: cfg.ADMIN_IDS, adminUrl: cfg.ADMIN_WEB_URL, feePct: cfg.MEDEO_FEE_PCT });
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
   app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version", "X-File-Name", "X-Admin-Token"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 }));
 
@@ -41,7 +41,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   app.route("/files", adminFileRoutes(cfg, db));
   app.route("/admin-web", adminWebRoutes(cfg, db));
   app.route("/payments/webhook", paymentWebhookRoutes(cfg, db)); // төлем провайдерінің вебхугы (қолтаңбамен) // Басқаруға веб арқылы кіру (Telegram Login Widget + PIN)
-  void refreshFees(db).catch(() => null); // мекеме комиссиялары (Jazl+ Басқару «Комиссия»)
+  void refreshFees(db).catch(() => null); // мекеме комиссиялары (Medeo Басқару «Комиссия»)
   app.route("/media", localMediaRoutes(cfg)); // тек MEDIA_DIR болғанда (жергілікті)
   // «Кассаға нұсқау» PDF (ашық: ішінде тек мекеме атауы мен мини апп сілтемесі бар)
   app.get("/files/guide/:file", async (c) => {
@@ -50,7 +50,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
     const [v] = await db.select({ name: venues.name }).from(venues).where(sql`${venues.id} = ${id}`).limit(1);
     if (!v) return c.notFound();
     const pdf = await guidePdf(v.name, `https://t.me/${cfg.MINIAPP_BOT_USERNAME}`);
-    return c.body(new Uint8Array(pdf), 200, { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Jazl-kassa.pdf"` });
+    return c.body(new Uint8Array(pdf), 200, { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Medeo-kassa.pdf"` });
   });
   // Жоспарлы жұмыс: Cloud Scheduler 15 минут сайын шақырады (өтінім нәтижелері, 22:00 қорытынды, мерзім ескертуі)
   app.post("/cron/tick", async (c) => {
@@ -63,7 +63,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   // Аутентификация: Authorization: tma <initData>. Пайдаланушы бірінші рет кірсе — жазылады, әйтпесе деректері жаңарады.
   // Техникалық жұмыстар (Figma 13 «Техникалық жұмыстар»): MAINTENANCE=1 болса, API 503 қайтарады — мини апп арнайы бетті көрсетеді
   app.use("/v1/*", async (c, next) => {
-    // Jazl+ Басқару «Техникалық жұмыстар» (дерекқор баптауы) не MAINTENANCE=1. Басқарудың өзі жұмыс істей береді — әйтпесе өшіре алмайды.
+    // Medeo Басқару «Техникалық жұмыстар» (дерекқор баптауы) не MAINTENANCE=1. Басқарудың өзі жұмыс істей береді — әйтпесе өшіре алмайды.
     if (c.req.method !== "OPTIONS" && !c.req.path.startsWith("/v1/admin")) {
       const s = await getSettings(db).catch(() => null);
       if (cfg.MAINTENANCE || s?.maintenance) return c.json({ ok: false, error: "maintenance", text: s?.maintenanceText ?? null }, 503);
@@ -85,7 +85,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
     }
     const raw = h.startsWith("tma ") ? h.slice(4) : "";
     // Мини апп ашылған ботың токенімен қол қойылады: негізгі бот пен мини апп боты әртүрлі болуы мүмкін
-    const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));
+    const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.LEGACY_MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));
     let r = validateInitData(raw, tokens[0], cfg.INIT_DATA_TTL);
     for (const t of tokens.slice(1)) { if (r.ok || r.reason !== "bad_hash") break; r = validateInitData(raw, t, cfg.INIT_DATA_TTL); }
     if (!r.ok) return c.json({ ok: false, error: "unauthorized", reason: r.reason }, 401);

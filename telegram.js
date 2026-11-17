@@ -76,7 +76,7 @@ async function sendMainMenu(chatId) {
   await streamRichResponse(
     chatId,
     [{ thinking: 'Негізгі басқару панелі жүктелуде...' }],
-    `<h2>Jazl — Басқару панелі</h2>` +
+    `<h2>Medeo — Басқару панелі</h2>` +
     `<p>Жүйенің барлық қызметтері мен жазылымдар каталогы төмендегі бөлімдерде қолжетімді:</p>` +
     `<hr/>` +
     `<details><summary>Жылдам әрекеттер нұсқаулығы</summary>` +
@@ -85,7 +85,7 @@ async function sendMainMenu(chatId) {
     {
       reply_markup: {
         inline_keyboard: [
-          [{ text: 'Jazl Маркетплейсін ашу', web_app: { url: miniAppUrl }, style: 'primary' }],
+          [{ text: 'Medeo Маркетплейсін ашу', web_app: { url: miniAppUrl }, style: 'primary' }],
           [{ text: 'Менің жазылымдарым', callback_data: 'my_subs' }]
         ]
       }

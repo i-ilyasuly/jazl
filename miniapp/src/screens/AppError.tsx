@@ -21,7 +21,7 @@ const copy: Record<Kind, { sticker: StickerName; title: string; text: string; le
   maintenance: { sticker: "repair", title: "Техникалық жұмыстар", text: "Қызмет уақытша қолжетімсіз. Шамамен 30 минуттан кейін қайта кір", main: "Тексеру" },
   session: { sticker: "sleep", title: "Сессия аяқталды", text: "Қауіпсіздік үшін қолданбаны қайта аш.", main: "Қайта ашу" },
   banned: { sticker: "stop", title: "Аккаунт уақытша шектелген", text: "Күдікті әрекеттер байқалды. Қолдауға жазсаң, көмектесеміз.", main: "Қолдауға жазу" },
-  city: { sticker: "search", title: "Қалаңда Jazl+ әлі жоқ", text: "Қала ашылғанда хабарлаймыз.", left: "Басқа қала", main: "Хабарла" },
+  city: { sticker: "search", title: "Қалаңда Medeo әлі жоқ", text: "Қала ашылғанда хабарлаймыз.", left: "Басқа қала", main: "Хабарла" },
 };
 
 export function AppError() {

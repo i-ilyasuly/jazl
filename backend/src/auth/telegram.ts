@@ -38,7 +38,7 @@ export function signInitData(fields: Record<string, string>, botToken: string): 
 }
 
 /** Telegram Login Widget (веб-сайтқа кіру, core.telegram.org/widgets/login#checking-authorization): кілт — SHA256(бот токені).
- *  Jazl+ Басқару тек веб арқылы ашылады (Патша, 2026-11-17) — сол үшін. */
+ *  Medeo Басқару тек веб арқылы ашылады (Патша, 2026-11-17) — сол үшін. */
 export type LoginWidgetData = { id: number; first_name: string; last_name?: string; username?: string; photo_url?: string; auth_date: number; hash: string };
 export function validateLoginWidget(d: Record<string, unknown>, botToken: string, ttlSec: number, now = Math.floor(Date.now() / 1000)): { ok: true; user: TgUser; authDate: number } | { ok: false; reason: "bad_hash" | "expired" } {
   const hash = String(d.hash ?? "");

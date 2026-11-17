@@ -1,4 +1,4 @@
-# Jazl+ API (backend/)
+# Medeo API (backend/)
 
 Мини апп пен мекеме бөлімінің жаңа бэкенді. **Түбірдегі бот кодынан бөлек** — оған тимейді, бір дерекқорда
 `app` схемасында қатар тұра алады (ескі боттың `public` кестелері өзгермейді, тестпен тексерілген).
@@ -22,9 +22,9 @@
 ## Жергілікті іске қосу
 ```bash
 cd backend && npm ci
-export DATABASE_URL=postgres://postgres@127.0.0.1:5432/jazl DB_SSL=disable BOT_TOKEN=<тест бот токені>
+export DATABASE_URL=postgres://postgres@127.0.0.1:5432/medeo DB_SSL=disable BOT_TOKEN=<тест бот токені>
 npm run db:migrate && npm run dev        # http://localhost:8080/health
-TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5432/jazl_test npm test
+TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5432/medeo_test npm test
 ```
 Құрылым өзгерсе: `src/db/schema.ts` түзетіп, `npm run db:generate -- --name <атауы>` → жаңа миграция `drizzle/` ішінде.
 
@@ -39,17 +39,17 @@ gcloud services enable run.googleapis.com sqladmin.googleapis.com secretmanager.
 # 1) Дерекқор. Бот қолданып жүрген PostgreSQL-ды қайта пайдаланамыз (жаңа кестелер app схемасында).
 #    Егер ол Cloud SQL болса — инстанс атауын білу жеткілікті; болмаса жаңасын ашамыз (ең кіші тариф).
 # 2) Құпиялар
-printf '%s' "<бот токені>" | gcloud secrets create jazl-bot-token --data-file=-      # бар болса: versions add
-printf '%s' "<DATABASE_URL>" | gcloud secrets create jazl-database-url --data-file=-
+printf '%s' "<бот токені>" | gcloud secrets create medeo-bot-token --data-file=-      # бар болса: versions add
+printf '%s' "<DATABASE_URL>" | gcloud secrets create medeo-database-url --data-file=-
 
 # 3) Миграция (бір реттік job) және API
-gcloud run jobs deploy jazl-migrate --source backend --region $REGION \
+gcloud run jobs deploy medeo-migrate --source backend --region $REGION \
   --command node --args dist/db/migrate.js \
-  --set-secrets DATABASE_URL=jazl-database-url:latest,BOT_TOKEN=jazl-bot-token:latest
-gcloud run jobs execute jazl-migrate --region $REGION --wait
+  --set-secrets DATABASE_URL=medeo-database-url:latest,BOT_TOKEN=medeo-bot-token:latest
+gcloud run jobs execute medeo-migrate --region $REGION --wait
 
-gcloud run deploy jazl-api --source backend --region $REGION --allow-unauthenticated \
-  --set-secrets DATABASE_URL=jazl-database-url:latest,BOT_TOKEN=jazl-bot-token:latest \
+gcloud run deploy medeo-api --source backend --region $REGION --allow-unauthenticated \
+  --set-secrets DATABASE_URL=medeo-database-url:latest,BOT_TOKEN=medeo-bot-token:latest \
   --set-env-vars ALLOWED_ORIGINS=https://<мини апп домені>,NODE_ENV=production \
   --min-instances 0 --max-instances 3
 # Cloud SQL болса: екеуіне де --add-cloudsql-instances $PROJECT:$REGION:<инстанс> және DATABASE_URL ішінде host=/cloudsql/...
@@ -59,9 +59,9 @@ gcloud run deploy jazl-api --source backend --region $REGION --allow-unauthentic
 ## Каталогты толтыру (seed)
 `seed/catalog.json` — мини апптағы үлгі деректерден жасалған (`npm run seed:build`). Дерекқорға жазу:
 ```bash
-gcloud run jobs deploy jazl-seed --source backend --region europe-west3 --command node --args dist/db/seed.js \
-  --set-secrets DATABASE_URL=jazl-database-url:latest,BOT_TOKEN=jazl-bot-token:latest --max-retries 0
-gcloud run jobs execute jazl-seed --region europe-west3 --wait
+gcloud run jobs deploy medeo-seed --source backend --region europe-west3 --command node --args dist/db/seed.js \
+  --set-secrets DATABASE_URL=medeo-database-url:latest,BOT_TOKEN=medeo-bot-token:latest --max-retries 0
+gcloud run jobs execute medeo-seed --region europe-west3 --wait
 ```
 Қайта іске қосуға болады — slug бойынша жаңартады, екі еселемейді.
 
@@ -72,21 +72,21 @@ gcloud run jobs execute jazl-seed --region europe-west3 --wait
 - Жоспарлы (`POST /cron/tick`, `X-Cron-Key: $CRON_KEY`, 15 минут сайын): өтінім нәтижесі (күй дерекқорда қолмен өзгерсе де), 22:00 күндік қорытынды (иесіне),
   10:00–21:00 мерзім ескертуі (пакет 3 күннен кейін бітеді). Қайталанбауы — `app.notify_log` кілті.
 ```bash
-openssl rand -hex 24 | tr -d '\n' | gcloud secrets create jazl-cron-key --data-file=-
-gcloud run deploy jazl-api --source backend --region europe-west3 --update-secrets CRON_KEY=jazl-cron-key:latest
-gcloud scheduler jobs create http jazl-tick --location europe-west3 --schedule "*/15 * * * *" --time-zone Asia/Almaty --http-method POST \
-  --uri "$(gcloud run services describe jazl-api --region europe-west3 --format='value(status.url)')/cron/tick" \
-  --headers "X-Cron-Key=$(gcloud secrets versions access latest --secret jazl-cron-key)"
+openssl rand -hex 24 | tr -d '\n' | gcloud secrets create medeo-cron-key --data-file=-
+gcloud run deploy medeo-api --source backend --region europe-west3 --update-secrets CRON_KEY=medeo-cron-key:latest
+gcloud scheduler jobs create http medeo-tick --location europe-west3 --schedule "*/15 * * * *" --time-zone Asia/Almaty --http-method POST \
+  --uri "$(gcloud run services describe medeo-api --region europe-west3 --format='value(status.url)')/cron/tick" \
+  --headers "X-Cron-Key=$(gcloud secrets versions access latest --secret medeo-cron-key)"
 ```
 
-## Jazl+ Басқару (src/routes/admin.ts, мини апп /a)
+## Medeo Басқару (src/routes/admin.ts, мини апп /a)
 Кіру: `ADMIN_IDS` (Telegram ID, үтірмен) + жеке PIN (scrypt, 3 қате → 15 мин бұғат) → `X-Admin-Token` (12 сағ). Қауіпті әрекеттер (комиссия, тоқтату,
 қолмен қайтару, ұзарту, баптаулар) денесіндегі `pin` арқылы қайта расталады; әр өзгеріс `app.admin_log`-қа жазылады.
 Баптаулар `app.settings` (maintenance, moderation, graceDays, complaintHours); `maintenance` қосулы болса `/v1/*` 503 (Басқарудан басқасы).
 ```bash
-gcloud run services update jazl-api --region europe-west3 --update-env-vars ADMIN_IDS=<Telegram ID>
+gcloud run services update medeo-api --region europe-west3 --update-env-vars ADMIN_IDS=<Telegram ID>
 ```
 
 ### Веб-кіру (Басқару тек веб арқылы)
-Браузерде `/#/a` → Telegram Login Widget (@oylarbot, BotFather-де `/setdomain` → мини апп домені) → PIN → «Authorization: adm <userId>.<exp>.<sig>» (12 сағ).
+Браузерде `/#/a` → Telegram Login Widget (@Mmedeo_bot, BotFather-де `/setdomain` → мини апп домені) → PIN → «Authorization: adm <userId>.<exp>.<sig>» (12 сағ).
 `ADMIN_WEB_URL` — бот хабарламасындағы батырмалар апаратын мекенжай. Нативті қосымша сборкасы: `VITE_NO_ADMIN=1 npm run build` (Басқару бандлға кірмейді).

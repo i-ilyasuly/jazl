@@ -178,7 +178,7 @@ export function VOrder() {
         <div className={s.kv}><span>Филиал</span><b>{o.branch}</b></div>
         <div className={s.kv}><span>Код (клиент айтады)</span><b style={{ color: "var(--link)" }}>{o.code}</b></div>
       </div>
-      <Note tone="ok">Төлем: «Jazl алдын ала төленген». Мекеме шотына: <b>{money(o.venueAmount)}</b></Note>
+      <Note tone="ok">Төлем: «Medeo алдын ала төленген». Мекеме шотына: <b>{money(o.venueAmount)}</b></Note>
       {!closed && <Buttons main={{ text: busy ? "…" : o.status === "sent" ? "Қабылдау" : o.status === "accepted" ? "Дайын" : "Берілді", onClick: () => void act(), shine: true, disabled: busy }} second={{ text: "Клиент келмеді", onClick: () => void missed() }} />}
       {closed && <Buttons main={{ text: "Тапсырыстарға", onClick: () => go("/v/orders", "back") }} />}
     </VPage>

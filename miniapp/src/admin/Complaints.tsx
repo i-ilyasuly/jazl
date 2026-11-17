@@ -76,7 +76,7 @@ export function AComplaint() {
       <div className={v.card} style={{ padding: "4px 16px" }}>
         {kv("Мекеме", c.venue)}{kv("Ұсыныс", c.offer)}{kv("Қолдану", c.usedAt ? when(c.usedAt) : "—")}{kv("Кассир", c.cashier ?? "—")}{kv("Шегерілгені", <span className={s.red}>{c.units} бірлік · {money(c.amount)}</span>)}{kv("Түсті", when(c.at))}
       </div>
-      {c.reply && <><h2 className={v.blueHead}>{c.byAdmin ? "Jazl+ шешімі" : "Мекеме жауабы"}</h2><p className={s.quoteBlue}>«{c.reply}»</p></>}
+      {c.reply && <><h2 className={v.blueHead}>{c.byAdmin ? "Medeo шешімі" : "Мекеме жауабы"}</h2><p className={s.quoteBlue}>«{c.reply}»</p></>}
       {!open && <Note tone="ok">{c.status === "refunded" ? "Шешілді: бірлік клиентке қайтарылды." : "Шешілді: шағым жабылды."}</Note>}
       {open && <Buttons main={{ text: "Шешім шығару", onClick: () => setSheet(true) }} second={{ text: "Мекемеге жазу", onClick: () => go(`/a/venues/${c.venueId}`) }} />}
       {sheet && <DecideSheet c={c} onClose={() => setSheet(false)} done={(side) => go(`/a/complaints/${c.id}/sent?side=${side}`, "up", { replace: true })} />}

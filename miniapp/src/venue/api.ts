@@ -1,4 +1,4 @@
-// Мекеме бөлімі (Figma «Jazl+ Мекеме», 13986:7998): серверге сұраулар және «мен қай мекеменің қызметкерімін» күйі.
+// Мекеме бөлімі (Figma «Medeo Мекеме», 13986:7998): серверге сұраулар және «мен қай мекеменің қызметкерімін» күйі.
 // Бір мини апп: Профильде «Мекеме бөлімі» → мекеме режимі (өз төменгі мәзірі: Басты · Кассир · Ұсыныстар · Есеп; кассирде Кассир · Тарих).
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api } from "../api";
@@ -33,13 +33,13 @@ export const current = (): StaffOf | null => {
   return act.length ? act[Math.min(pick, act.length - 1)] : null;
 };
 export const useCurrent = () => { useStaff(); usePick(); return current(); };
-export function setPick(i: number) { pick = i; emit(); kv.set("jazl_v_pick", String(i)); }
+export function setPick(i: number) { pick = i; emit(); kv.set("medeo_v_pick", String(i)); }
 
 export async function loadStaff() {
   try {
     const r = await api<{ staff: StaffOf[] }>("/v1/venue/me");
     staff = r.staff;
-    const saved = Number(await kv.get("jazl_v_pick"));
+    const saved = Number(await kv.get("medeo_v_pick"));
     if (saved > 0) pick = saved;
   } catch { staff = staff ?? []; }
   emit();

@@ -1,5 +1,6 @@
 // Figma 18 · Баптаулар және көмек: «Сұрақ қою / ЖҚС» (13886:39537), «Қолданба туралы» (13940:8432),
 // «Деректі жою: кіріспе» (13940:8380), «Деректі жою: растау» (13940:8406)
+import { Brand } from "../ui/Brand";
 import { Fragment, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useGo } from "../nav";
 import { SUPPORT_BOT } from "../config";
@@ -65,7 +66,7 @@ export function About() {
       {/* Логотип әлі дайын емес — орнында бос дөңгелек (Figma дизайн ережесі) */}
       <div className={s.about}>
         <span className={s.logo} />
-        <h2 className={s.name}>Jazl+</h2>
+        <h2 className={s.name}><Brand /></h2>
         <p className={`t-sub2 ${s.ver}`}>Нұсқа 0.1.0</p>
       </div>
       <Group i={1}>

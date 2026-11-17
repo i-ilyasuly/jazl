@@ -1,10 +1,11 @@
-// Figma «22 · Кең экран (десктоп)» (14068:9930): Jazl+ Басқару тек веб арқылы ашылады (Патша, 2026-11-17) — компьютерде
+// Figma «22 · Кең экран (десктоп)» (14068:9930): Medeo Басқару тек веб арқылы ашылады (Патша, 2026-11-17) — компьютерде
 // сол жақта мәзір (240), жоғарыда ортақ іздеу мен қоңырау, ортада тізім, оң жақта таңдалған жазбаның панелі.
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useGo } from "../nav";
 import { haptic, inTelegram } from "../telegram";
 import { PageMode, VSticker } from "../venue/ui";
+import { Brand } from "../ui/Brand";
 import { useCached } from "../venue/api";
 import { A, logout } from "./api";
 import type { Attention } from "./Pulse";
@@ -50,13 +51,13 @@ export function DeskShell({ path }: { path: string }) {
   const [a] = useCached<{ attention: Attention }>("a:attention", () => A("/attention"));
   const [q, setQ] = useState(useLocation().search.match(/q=([^&]*)/)?.[1] ?? "");
   const badge = { apps: a?.attention.apps ?? 0, offers: (a?.attention.offers_new ?? 0) + (a?.attention.offers_changed ?? 0), complaints: a?.attention.complaints ?? 0 } as Record<string, number>;
-  const name = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name ?? (() => { try { return localStorage.getItem("jazl_adm_name") ?? "Иесі"; } catch { return "Иесі"; } })();
+  const name = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name ?? (() => { try { return localStorage.getItem("medeo_adm_name") ?? "Иесі"; } catch { return "Иесі"; } })();
   const search = () => { const x = q.trim(); if (!x) return; go(/^(jz-?)?\d{4,}$/i.test(x) ? `/a/packs?q=${encodeURIComponent(x)}` : `/a/venues?q=${encodeURIComponent(x)}`); };
   if (path === "/a" || path.startsWith("/a/pin")) return null;
   return (
     <>
       <aside className={s.side}>
-        <div className={s.logo}>Jazl+ <span>Басқару</span></div>
+        <div className={s.logo}><b><Brand /></b> <span>Басқару</span></div>
         {items.map((it) => {
           const on = it.m.some((m) => path === m || path.startsWith(m + "/"));
           const n = it.b ? badge[it.b] : 0;

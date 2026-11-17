@@ -34,7 +34,7 @@ export function Notifications() {
   const [ask, setAsk] = useState(false);
   const [snack, setSnack] = useState(false);
   useEffect(() => { if (!snack) return; const t = setTimeout(() => setSnack(false), 2600); return () => clearTimeout(t); }, [snack]);
-  const granted = () => { haptic.success(); setAccess("ok"); setSnack(true); kv.set("jazl_bot_ok", "1"); };
+  const granted = () => { haptic.success(); setAccess("ok"); setSnack(true); kv.set("medeo_bot_ok", "1"); };
   const refused = () => { haptic.warning(); setAccess("denied"); };
   // Telegram ішінде — нативті requestWriteAccess диалогы; браузерде — соның көшірмесі
   const request = () => {
@@ -50,7 +50,7 @@ export function Notifications() {
         <div key={access} className={`${s.banner} infoBox ${access === "denied" ? `${s.warn} infoWarn` : ""} rise`} role="status">
           <span className={s.bar} />
           <p className={`t-sub2 w-600 ${s.bannerText}`}>{access === "need" ? "Хабарлама алу үшін ботқа рұқсат бер" : "Рұқсат берілмеді. Ботты ашып, Start түймесін бас."}</p>
-          <button className={`t-sub2 w-600 ${s.bannerBtn}`} onClick={access === "need" ? request : () => { haptic.tap(); openChat("oylarbot"); }}>
+          <button className={`t-sub2 w-600 ${s.bannerBtn}`} onClick={access === "need" ? request : () => { haptic.tap(); openChat("Mmedeo_bot"); }}>
             {access === "need" ? "Рұқсат беру" : "Ботты ашу"}
           </button>
           <span className={s.mark} aria-hidden>”</span>
@@ -69,7 +69,7 @@ export function Notifications() {
         ))}
       </Group>
       {snack && <div className={`t-sub2 ${s.snack}`} role="status">Хабарландырулар қосылды</div>}
-      {ask && <Confirm title="Хабарламаға рұқсат" text="Jazl+ ботына сізге хабарлама жіберуге рұқсат бересіз бе?" cancel="Бас тарту" ok="Рұқсат ету"
+      {ask && <Confirm title="Хабарламаға рұқсат" text="Medeo ботына сізге хабарлама жіберуге рұқсат бересіз бе?" cancel="Бас тарту" ok="Рұқсат ету"
         onClose={() => setAsk(false)} onOk={granted} onCancel={refused} />}
     </SubPage>
   );

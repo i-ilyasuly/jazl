@@ -30,7 +30,7 @@ export const testConfirm = (id: string, approve: boolean) => call(`/v1/payments/
 export const hasServer = () => {
   const w = window as unknown as { Telegram?: { WebApp?: { initData?: string } } };
   if (w.Telegram?.WebApp?.initData) return true;
-  try { return import.meta.env.DEV && Boolean(localStorage.getItem("jazl_dev_init")); } catch { return false; }
+  try { return import.meta.env.DEV && Boolean(localStorage.getItem("medeo_dev_init")); } catch { return false; }
 };
 /** Қате себебі → клиентке түсінікті мәтін (Figma «Төлем өтпеді») */
 export const failText: Record<string, string> = {

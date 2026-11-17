@@ -4,16 +4,16 @@ import QRCode from "qrcode";
 import { fileURLToPath } from "node:url";
 
 const font = (n: string) => fileURLToPath(new URL(`../../assets/fonts/${n}.ttf`, import.meta.url));
-export const GUIDE_STEPS = ["Клиент «Jazl бойынша» дейді", "Пакетті таңда, QR шығар", "Клиент сканерлейді, төлем өтті", "Қосымша тауарды бөлек төлет (қолма-қол / басқа банк)"];
+export const GUIDE_STEPS = ["Клиент «Medeo бойынша» дейді", "Пакетті таңда, QR шығар", "Клиент сканерлейді, төлем өтті", "Қосымша тауарды бөлек төлет (қолма-қол / басқа банк)"];
 
 export async function guidePdf(venue: string, appUrl: string): Promise<Buffer> {
   const W = 298, H = 420, P = 22; // A6
-  const doc = new PDFDocument({ size: [W, H], margin: 0, info: { Title: `Jazl+ кассаға нұсқау — ${venue}`, Author: "Jazl+" } });
+  const doc = new PDFDocument({ size: [W, H], margin: 0, info: { Title: `Medeo кассаға нұсқау — ${venue}`, Author: "Medeo" } });
   doc.registerFont("R", font("MedeoSans-Regular")); doc.registerFont("B", font("MedeoSans-Bold"));
   const chunks: Buffer[] = []; doc.on("data", (c: Buffer) => chunks.push(c));
   const done = new Promise<Buffer>((res) => doc.on("end", () => res(Buffer.concat(chunks))));
   doc.rect(0, 0, W, H).fill("#FFFFFF");
-  doc.font("B").fontSize(20).fillColor("#111A26").text("Jazl+ бойынша төлем", P, P, { width: W - 2 * P });
+  doc.font("B").fontSize(20).fillColor("#111A26").text("Medeo бойынша төлем", P, P, { width: W - 2 * P });
   doc.font("R").fontSize(10).fillColor("#5F6B7A").text(`${venue} · кассир үшін 3 қадам`, P, P + 28);
   let y = P + 58;
   GUIDE_STEPS.forEach((t, i) => {

@@ -34,7 +34,7 @@ export function SoonSheet({ pct, onClose }: { pct: number; venues?: number; onCl
         {!inTelegram && <div className={s.bar}><button key={String(on)} className={`${s.btn} ${on ? s.btnDone : ""}`} onClick={on ? undefined : subscribe.onClick}>{on ? "Хабарланады" : "Ашылғанда хабарла"}</button></div>}
       </div>
       {snack && <div className={s.snack}>Санат ашылғанда хабарлаймыз</div>}
-      {ask && <Confirm title="Хабарламаға рұқсат" text="Jazl+ ботына сізге хабарлама жіберуге рұқсат бересіз бе?" cancel="Бас тарту" ok="Рұқсат ету" onClose={() => setAsk(false)} onOk={done} />}
+      {ask && <Confirm title="Хабарламаға рұқсат" text="Medeo ботына сізге хабарлама жіберуге рұқсат бересіз бе?" cancel="Бас тарту" ok="Рұқсат ету" onClose={() => setAsk(false)} onOk={done} />}
     </div>
   );
 }

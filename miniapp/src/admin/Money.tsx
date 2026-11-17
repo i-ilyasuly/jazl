@@ -87,13 +87,13 @@ async function download(period: string, parts: string[]) {
     const headers: Record<string, string> = {};
     // A() JSON қайтарады — мұнда файл керек, сондықтан тақырыптарды өзіміз қоямыз
     const web = isWeb();
-    const tok = (() => { try { return web ? localStorage.getItem("jazl_adm_web") ?? "" : sessionStorage.getItem("jazl_adm") ?? ""; } catch { return ""; } })();
+    const tok = (() => { try { return web ? localStorage.getItem("medeo_adm_web") ?? "" : sessionStorage.getItem("medeo_adm") ?? ""; } catch { return ""; } })();
     if (web) { const [, e, sg] = tok.split("."); headers.Authorization = "adm " + tok; headers["X-Admin-Token"] = `${e}.${sg}`; }
-    else { headers.Authorization = "tma " + (window.Telegram?.WebApp?.initData || (import.meta.env.DEV ? localStorage.getItem("jazl_dev_init") ?? "" : "")); headers["X-Admin-Token"] = tok; }
+    else { headers.Authorization = "tma " + (window.Telegram?.WebApp?.initData || (import.meta.env.DEV ? localStorage.getItem("medeo_dev_init") ?? "" : "")); headers["X-Admin-Token"] = tok; }
     const res = await fetch(`${API_URL}/v1/admin/export?period=${period}&parts=${parts.join(",")}`, { headers });
     if (!res.ok) throw new Error("http_" + res.status);
     const blob = await res.blob();
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `jazl-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `medeo-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     haptic.success();
   } catch { haptic.error(); nativeAlert("Жүктелмеді. Қайталап көріңіз."); }

@@ -139,7 +139,7 @@ export function applyRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, application: await view(x) });
   });
 
-  // Сынақ режимі ғана: өтінімді өзің мақұлдау (Jazl+ басқару беті жасалғанша). Нақты режимде 404.
+  // Сынақ режимі ғана: өтінімді өзің мақұлдау (Medeo басқару беті жасалғанша). Нақты режимде 404.
   r.post("/venue/application/dev-approve", async (c) => {
     if (cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "disabled" }, 404);
     const a = await current(c.get("user").id);

@@ -26,8 +26,8 @@ export function Scan() {
   // ауысамыз (ескертумен), ол мекемеде пакет жоқ болса — «Бұл QR басқа мекеменікі» беті. Ешқашан бөтен пакеттен шегерілмейді.
   const qr = params.get("qr") ?? "";
   const qrLocal = useMemo(() => {
-    const dyn = qr.match(/^JZQ2\.([0-9a-f-]{36})\.(\d{1,2})\./i);
-    const branchId = dyn?.[1] ?? qr.match(/(?:JZB1:|br_)([0-9a-f-]{36})/i)?.[1];
+    const dyn = qr.match(/^(?:MD|JZ)Q2\.([0-9a-f-]{36})\.(\d{1,2})\./i);
+    const branchId = dyn?.[1] ?? qr.match(/(?:(?:MD|JZ)B1:|br_)([0-9a-f-]{36})/i)?.[1];
     return { branchId, units: dyn ? Number(dyn[2]) : null, amount: Number(qr.match(/[?&]amount=(\d+)/)?.[1] ?? 0) || null };
   }, [qr]);
   const [qrInfo, setQrInfo] = useState<QrInfo | { error: string } | null>(null);
@@ -54,10 +54,10 @@ export function Scan() {
   const demo = params.get("scan") ?? "";
   const demoKind = (scanStates as readonly string[]).includes(demo) ? (demo as ScanKind) : null;
   const toState = useCallback((k: ScanKind, extra = "") => go(`/scan/state/${k}?${pack ? "pack=" + pack.id : ""}${extra}`, "up", { replace: true }), [go, pack]);
-  // QR басқа мекеменікі және онда пакет жоқ; QR мерзімі өткен; Jazl QR емес — бірден тиісті бет
+  // QR басқа мекеменікі және онда пакет жоқ; QR мерзімі өткен; Medeo QR емес — бірден тиісті бет
   useEffect(() => {
     if (via !== "qr" || !qr) return;
-    if (qrInfo && "error" in qrInfo) { toState(qrInfo.error === "not_jazl_qr" ? "notqr" : qrInfo.error === "branch_not_found" ? "notpartner" : "fail"); return; }
+    if (qrInfo && "error" in qrInfo) { toState((qrInfo.error === "not_medeo_qr" || qrInfo.error === "not_jazl_qr") ? "notqr" : qrInfo.error === "branch_not_found" ? "notpartner" : "fail"); return; }
     if (info?.expired) { toState("expired"); return; }
     if (qrVenue && venuePacks.length === 0) toState("othervenue", "&v=" + encodeURIComponent(qrVenue));
   }, [qrInfo, qrVenue, venuePacks.length]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -79,7 +79,7 @@ export function Scan() {
   const [sel, setSel] = useState("");
   const chosen = opts.find((x) => x.id === sel) ?? opts[0];
   const multi = opts.length > 1;
-  // Дана санын клиент өзгертпейді: Jazl QR — кассир енгізгені; банк QR — сома ÷ 1 бірлік бағасы; тұрақты QR — 1
+  // Дана санын клиент өзгертпейді: Medeo QR — кассир енгізгені; банк QR — сома ÷ 1 бірлік бағасы; тұрақты QR — 1
   const chosenPrice = chosen?.price ?? amount;
   const needUnits = qrAmount && chosenPrice ? (qrAmount % chosenPrice === 0 ? qrAmount / chosenPrice : -1) : null;
   const units = qrUnits ?? (needUnits && needUnits > 0 ? needUnits : 1);
@@ -148,7 +148,7 @@ export function Scan() {
         if (r.ok) { srvLeft = r.left; finish(); return; }
         if (r.error === "units_mismatch") { finish("amount"); return; }
         if (r.error === "other_venue") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/othervenue?v=${encodeURIComponent(r.venue ?? "")}`, "up", { replace: true }); return; }
-        const map: Record<string, ScanKind> = { branch_closed: "closed", other_offer: "nopack", qr_used: "expired", qr_cancelled: "expired", not_jazl_qr: "notqr", bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
+        const map: Record<string, ScanKind> = { branch_closed: "closed", other_offer: "nopack", qr_used: "expired", qr_cancelled: "expired", not_medeo_qr: "notqr", not_jazl_qr: "notqr", /* ескі сервер (Medeo.-ға дейінгі) */ bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
         finish(map[r.error] ?? "fail");
       });
     },
@@ -179,7 +179,7 @@ export function Scan() {
       <p className={`t-sub2 ${s.hint}`}>Кассадағы терминал экранындағы QR-ды рамкаға келтір</p>
       <button className={s.frame} onClick={detect} aria-label="QR рамкасы"><img src={frame} width={260} height={260} alt="" /></button>
       {!found && <span className={s.line} />}
-      <p className={`t-cap1 ${s.tip}`}>Төлеу үшін кассирге «Jazl бойынша» деп айт</p>
+      <p className={`t-cap1 ${s.tip}`}>Төлеу үшін кассирге «Medeo бойынша» деп айт</p>
       <button className={`t-sub2 w-600 ${s.codeBtn}`} onClick={() => { haptic.tap(); go("/scan/code"); }}>Код енгізу</button>
       <button className={`${s.round} ${s.flash} ${torch ? s.on : ""}`} onClick={() => { haptic.tap(); setTorch(!torch); }} aria-label="Фонарь"><img src={flash} width={24} height={24} alt="" /></button>
       <button className={`${s.round} ${s.gallery}`} onClick={() => haptic.tap()} aria-label="Галерея"><img src={gallery} width={28} height={28} alt="" /></button>

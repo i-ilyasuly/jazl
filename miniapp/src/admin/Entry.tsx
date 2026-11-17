@@ -1,6 +1,7 @@
 // Figma «01 · Кіру және қауіпсіздік» (14062:9692): Кіру, Рұқсат жоқ, PIN енгізу / қате / бұғатталды.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BOT_APP_LINK } from "../config";
+import { Brand } from "../ui/Brand";
 import { useGo } from "../nav";
 import { copyText, haptic, inTelegram, tg } from "../telegram";
 import { Buttons, VPage, VSticker } from "../venue/ui";
@@ -38,23 +39,23 @@ function AWebLogin() {
     catch (e) { const b = (e as { body?: { error?: string; telegramId?: number } }).body; if (b?.error === "forbidden") setDenied(b.telegramId ?? 0); else setMsg("Кіру расталмады. Қайталап көріңіз."); }
   }, [go]);
   useEffect(() => {
-    const w = window as unknown as { onJazlTgAuth?: (a: WidgetAuth) => void; __tgAuthTest?: WidgetAuth };
-    w.onJazlTgAuth = (a) => void onAuth(a);
+    const w = window as unknown as { onMedeoTgAuth?: (a: WidgetAuth) => void; __tgAuthTest?: WidgetAuth };
+    w.onMedeoTgAuth = (a) => void onAuth(a);
     if (import.meta.env.DEV && w.__tgAuthTest) { void onAuth(w.__tgAuthTest); return; } // тек жергілікті сынақ
     const sc = document.createElement("script");
     sc.async = true; sc.src = "https://telegram.org/js/telegram-widget.js?22";
-    sc.setAttribute("data-telegram-login", BOT_APP_LINK.split("/").pop() ?? "oylarbot");
+    sc.setAttribute("data-telegram-login", BOT_APP_LINK.split("/").pop() ?? "Mmedeo_bot");
     sc.setAttribute("data-size", "large"); sc.setAttribute("data-radius", "12");
-    sc.setAttribute("data-onauth", "onJazlTgAuth(user)"); sc.setAttribute("data-request-access", "write");
+    sc.setAttribute("data-onauth", "onMedeoTgAuth(user)"); sc.setAttribute("data-request-access", "write");
     box.current?.appendChild(sc);
-    return () => { delete w.onJazlTgAuth; };
+    return () => { delete w.onMedeoTgAuth; };
   }, [onAuth]);
   if (denied !== null) return <ANoAccess id={denied || null} />;
   return (
     <VPage>
       <div className={v.state} style={{ top: "calc(260px + var(--top-shift))" }}>
         <VSticker name="hello" size={120} />
-        <h2 className={v.stateTitle}>Jazl+ Басқару</h2>
+        <h2 className={v.stateTitle}><Brand /> Басқару</h2>
         <p className={v.stateText}>Telegram аккаунтыңызбен кіріңіз. Басқару тек рұқсат тізіміндегі аккаунттарға ашылады, кейін PIN сұралады.</p>
         <div ref={box} style={{ marginTop: 20, minHeight: 44 }} />
         {msg && <p className={`${s.pinText} ${s.pinErr}`}>{msg}</p>}
@@ -71,7 +72,7 @@ function AWelcome({ name }: { name: string }) {
       <div className={v.state} style={{ top: "calc(300px + var(--top-shift))" }}>
         <VSticker name="hello" size={120} />
         <h2 className={v.stateTitle}>Қош келдіңіз, {name}</h2>
-        <p className={v.stateText}>Jazl+ Басқару тек рұқсат тізіміндегі Telegram аккаунттарына ашылады. Аккаунтыңыз расталды.</p>
+        <p className={v.stateText}>Medeo Басқару тек рұқсат тізіміндегі Telegram аккаунттарына ашылады. Аккаунтыңыз расталды.</p>
       </div>
       <Buttons main={{ text: "Жалғастыру", onClick: () => go("/a/pin", "fade") }} />
     </VPage>

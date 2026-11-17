@@ -1,4 +1,4 @@
-// Jazl+ дерекқор құрылымы. Барлық кесте «app» схемасында — ескі боттың кестелеріне (public схема) тимейді,
+// Medeo дерекқор құрылымы. Барлық кесте «app» схемасында — ескі боттың кестелеріне (public схема) тимейді,
 // бір дерекқорда қатар тұра алады. Ақша — теңгемен бүтін сан (тиынсыз). Уақыт — timestamptz (UTC).
 // Логикасы мен ID ережесі: Drive «14 Бэкенд логикасы».
 import { sql } from "drizzle-orm";
@@ -52,9 +52,9 @@ export const venues = app.table("venues", {
   gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
   tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
   status: venueStatus("status").notNull().default("draft"),
-  /** Jazl+ мекемені тоқтатса — себебі (Figma «Мекеме уақытша тоқтатылды») */
+  /** Medeo мекемені тоқтатса — себебі (Figma «Мекеме уақытша тоқтатылды») */
   statusNote: text("status_note"),
-  /** Jazl+ комиссиясы, % (Figma «Комиссия»: 10 — негізгі, 8 — жоғары рейтинг). null — әдепкі (JAZL_FEE_PCT) */
+  /** Medeo комиссиясы, % (Figma «Комиссия»: 10 — негізгі, 8 — жоғары рейтинг). null — әдепкі (MEDEO_FEE_PCT) */
   feePct: smallint("fee_pct"),
   createdAt: created(),
 }, (t) => [uniqueIndex("venues_slug").on(t.slug)]);
@@ -128,7 +128,7 @@ export const offers = app.table("offers", {
   rules: jsonb("rules"),
   promoted: boolean("promoted").notNull().default(false),
   status: offerStatus("status").notNull().default("draft"),
-  /** Jazl+ тексерушісінің ескертуі (Figma «Ұсыныс: түзету сұралды»): { text, field, at } */
+  /** Medeo тексерушісінің ескертуі (Figma «Ұсыныс: түзету сұралды»): { text, field, at } */
   reviewNote: jsonb("review_note"),
   createdAt: created(),
 }, (t) => [uniqueIndex("offers_slug").on(t.slug), index("offers_venue").on(t.venueId)]);
@@ -238,7 +238,7 @@ export const paymentCards = app.table("payment_cards", {
  *  Чек өзгермейді: жазылған сәттегі деректердің суреті (мекеме атауы не баға кейін өзгерсе де чек сол күйі қалады). */
 export const receipts = app.table("receipts", {
   id: id(),
-  /** Адамға оқылатын нөмір: JZ-100001 */
+  /** Адамға оқылатын нөмір: MD-100001 (бұрын JZ-) */
   no: bigint("no", { mode: "number" }).notNull().generatedAlwaysAsIdentity({ startWith: 100001 }),
   /** purchase | use | order | refund | extend | gift */
   kind: text("kind").notNull(),
@@ -323,7 +323,7 @@ export const venueApplications = app.table("venue_applications", {
   userId: uuid("user_id").notNull().references(() => users.id),
   status: text("status").notNull().default("draft"),
   data: jsonb("data").notNull().default(sql`'{}'::jsonb`),
-  /** Jazl+ командасының ескертуі (қосымша ақпарат не бас тарту себебі) */
+  /** Medeo командасының ескертуі (қосымша ақпарат не бас тарту себебі) */
   note: text("note"),
   venueId: uuid("venue_id").references(() => venues.id),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
@@ -366,7 +366,7 @@ export const notifyLog = app.table("notify_log", {
   createdAt: created(),
 });
 
-/** Jazl+ Басқару (Figma «Jazl+ Басқару» 14060:7998): кіру — ADMIN_IDS тізіміндегі Telegram аккаунты + жеке PIN.
+/** Medeo Басқару (Figma «Medeo Басқару» 14060:7998): кіру — ADMIN_IDS тізіміндегі Telegram аккаунты + жеке PIN.
  *  PIN 3 рет қате болса — 15 минутқа бұғатталады. */
 export const admins = app.table("admins", {
   userId: uuid("user_id").primaryKey().references(() => users.id),

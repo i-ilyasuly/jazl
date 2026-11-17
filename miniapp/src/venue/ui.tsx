@@ -17,7 +17,7 @@ import historyIcon from "../assets/icons/navHistory.svg";
 import nav from "../ui/NavBar.module.css";
 import s from "./V.module.css";
 
-/** Бет режимі: page — толық бет; col — десктоптағы тізім бағаны; panel — десктоптағы оң жақ панель (Jazl+ Басқару, Figma «22 · Кең экран») */
+/** Бет режимі: page — толық бет; col — десктоптағы тізім бағаны; panel — десктоптағы оң жақ панель (Medeo Басқару, Figma «22 · Кең экран») */
 export const PageMode = createContext<"page" | "col" | "panel">("page");
 
 /** Бет: Telegram жүйелік батырмалары (браузерде), тақырып, мазмұн. back — «Артқа» (әйтпесе «Жабу» → клиент бөлімі). */

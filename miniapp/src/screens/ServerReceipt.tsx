@@ -2,6 +2,7 @@
 // көк бас (бренд, мекеме, нөмір) → тесікті қағаз → сома мен мәртебе → нүктелі жолдар → жасыл үнем жолағы →
 // «билет» кесігі → тексеру QR-ы. Төменде «Чекті жүктеу (PDF)». Ішкі бөлік (комиссия т.б.) мұнда келмейді.
 // Маршруттар: /receipt/srv/:id және /receipt/no/:no (чектегі QR → t.me/<бот>?startapp=rc_<нөмір>).
+import { Brand } from "../ui/Brand";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import QRCode from "qrcode";
@@ -65,7 +66,7 @@ export function ServerReceipt() {
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} onDark />
       <header className={s.head}>
-        <div className={s.brandRow}><b className={s.brand}>Jazl+</b><span className={s.tag}>ЭЛЕКТРОНДЫҚ ЧЕК</span></div>
+        <div className={s.brandRow}><b className={s.brand}><Brand /></b><span className={s.tag}>ЭЛЕКТРОНДЫҚ ЧЕК</span></div>
         <h1 className={s.venue}>{rc.seller.name}</h1>
         {rc.seller.address && <p className={s.addr}>{rc.seller.address}</p>}
         <p className={`${s.meta} mono`}>{rc.no} · {rc.dateLocal}</p>
@@ -116,10 +117,10 @@ export function ServerReceipt() {
         <div className={s.cut} aria-hidden />
         <div className={s.verify}>
           <span className={s.qr} dangerouslySetInnerHTML={{ __html: qr }} />
-          <span className={s.vText}><b>Чекті тексеру</b><small>QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Jazl+ ботында ашылады.</small><em className="mono">{rc.no}</em></span>
+          <span className={s.vText}><b>Чекті тексеру</b><small>QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Medeo ботында ашылады.</small><em className="mono">{rc.no}</em></span>
         </div>
         {rc.payment?.mode === "test" && <p className={s.test}>Сынақ төлемі — ақша алынған жоқ</p>}
-        <p className={s.legal}>{rc.pack ? rc.pack.howToUse + ". " : ""}Jazl+ — агент: пакет мекемеден Jazl+ сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.</p>
+        <p className={s.legal}>{rc.pack ? rc.pack.howToUse + ". " : ""}Medeo — агент: пакет мекемеден Medeo сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.</p>
       </article>
       {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={() => void download()}>{main.text}</button></div>}
     </div>

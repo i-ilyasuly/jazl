@@ -1,4 +1,4 @@
-// Jazl+ Басқару (Figma 14060:7998): кіру (ADMIN_IDS + PIN), пульс, өтінімдер, модерация, комиссия, тоқтату, шағым шешімі, пакеттер, техникалық жұмыстар, журнал
+// Medeo Басқару (Figma 14060:7998): кіру (ADMIN_IDS + PIN), пульс, өтінімдер, модерация, комиссия, тоқтату, шағым шешімі, пакеттер, техникалық жұмыстар, журнал
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
 import { createApp } from "../src/app.js";
@@ -13,7 +13,7 @@ const URL = process.env.TEST_DATABASE_URL;
 const TOKEN = "123456:TEST-token-not-real";
 const d = URL ? describe : describe.skip;
 
-d("Jazl+ Басқару", () => {
+d("Medeo Басқару", () => {
   const ADMIN = 901, OTHER = 902, CLIENT = 903, OWNER = 904;
   const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test", ADMIN_IDS: `${ADMIN}, 999` });
   let dbh: ReturnType<typeof createDb>; let app: ReturnType<typeof createApp>;
@@ -55,7 +55,7 @@ d("Jazl+ Басқару", () => {
 
   it("пульс: сатылым, комиссия, қолданылған бірлік, назар керек, тірі лента", async () => {
     const pk = (await json(post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT))).pack;
-    await post("/v1/redeem", { packId: pk.id, qr: "JZB1:" + branchId, idempotencyKey: key() }, CLIENT);
+    await post("/v1/redeem", { packId: pk.id, qr: "MDB1:" + branchId, idempotencyKey: key() }, CLIENT);
     const p = (await json(get("/v1/admin/pulse?period=today"))).pulse;
     expect(p.sales).toBeGreaterThan(0);
     expect(p.fee).toBe(Math.round(p.sales * 0.1));
@@ -128,9 +128,9 @@ d("Jazl+ Басқару", () => {
     expect((await post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT)).status).toBe(200);
   });
 
-  it("шағым: мекеме қайтармаса — «Қаралуда»; Jazl+ клиент пайдасына шешеді → бірлік оралады", async () => {
+  it("шағым: мекеме қайтармаса — «Қаралуда»; Medeo клиент пайдасына шешеді → бірлік оралады", async () => {
     const pk = (await json(post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT))).pack.id;
-    await post("/v1/redeem", { packId: pk, qr: "JZB1:" + branchId, idempotencyKey: key() }, CLIENT);
+    await post("/v1/redeem", { packId: pk, qr: "MDB1:" + branchId, idempotencyKey: key() }, CLIENT);
     const c = (await json(post("/v1/complaints", { packId: pk, reason: "Қос қолдану", text: "Екі рет сканерленді" }, CLIENT))).complaint;
     expect((await json(get("/v1/admin/complaints?tab=new"))).complaints.some((x: { id: string }) => x.id === c.id)).toBe(true);
     await post(`/v1/venue/${venueId}/complaints/${c.id}/resolve`, { action: "reject", reply: "Бәрі дұрыс болды" }, OWNER);
@@ -151,7 +151,7 @@ d("Jazl+ Басқару", () => {
     const id = list.packs.find((p: { left: number; total: number }) => p.left < p.total).id;
     const p = (await json(get(`/v1/admin/packs/${id}`))).pack;
     expect(p.timeline.some((e: { type: string }) => e.type === "use")).toBe(true);
-    expect(p.ref).toMatch(/^JZ-\d+$/);
+    expect(p.ref).toMatch(/^MD-\d+$/);
     expect((await json(get(`/v1/admin/packs?q=${p.ref}`))).packs[0].id).toBe(id);
     const before = new Date(p.validUntil).getTime();
     expect((await post(`/v1/admin/packs/${id}/extend`, { days: 7, pin: "5821" })).status).toBe(200);
@@ -198,7 +198,7 @@ d("Jazl+ Басқару", () => {
   it("Басқаруға бот хабарламалары (Figma 18): шағым — веб-сілтемемен; баптау өшсе келмейді; тыныш уақытта тек шұғыл", async () => {
     const before = sent.length;
     const pk = (await json(post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT))).pack.id;
-    await post("/v1/redeem", { packId: pk, qr: "JZB1:" + branchId, idempotencyKey: key() }, CLIENT);
+    await post("/v1/redeem", { packId: pk, qr: "MDB1:" + branchId, idempotencyKey: key() }, CLIENT);
     await post("/v1/complaints", { packId: pk, reason: "Қос қолдану", text: "Тағы да екі рет" }, CLIENT);
     const m = sent.slice(before).find((x) => x.chatId === ADMIN && x.text.startsWith("💬 Жаңа шағым"));
     expect(m?.button?.url).toMatch(/#\/a\/complaints\/[0-9a-f-]{36}$/);

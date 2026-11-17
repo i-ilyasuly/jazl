@@ -1,6 +1,6 @@
-# Jazl+ Mini App
+# Medeo Mini App
 
-Jazl+ клиент қосымшасының Telegram Mini App фронтенді. Дизайн көзі: Figma, «Jazl+» беті (412×917, Android, Roboto).
+Medeo клиент қосымшасының Telegram Mini App фронтенді. Дизайн көзі: Figma, «Medeo» беті (412×917, Android, Roboto).
 
 ## Іске қосу
 

@@ -131,10 +131,10 @@ async function handleGiftCallback(cb) {
       VALUES ($1, $2, $3, $4, $5, 'PENDING')
     `, [giftCode, uRes.rows[0].id, tgId, firstName, cat.id]);
 
-    const botUser = cachedBotUsername || 'JazlBot';
+    const botUser = cachedBotUsername || 'Mmedeo_bot';
     const giftLink = `https://t.me/${botUser}?start=${giftCode}`;
     const shareText = encodeURIComponent(
-      `Сізге ${firstName} атынан Jazl арқылы сыйлық жіберілді: ${cat.venue_name} (${cat.units_total} ${cat.unit_name} айлық жазылымы). Сыйлықты қабылдау үшін сілтемені басыңыз:`
+      `Сізге ${firstName} атынан Medeo арқылы сыйлық жіберілді: ${cat.venue_name} (${cat.units_total} ${cat.unit_name} айлық жазылымы). Сыйлықты қабылдау үшін сілтемені басыңыз:`
     );
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(giftLink)}&text=${shareText}`;
 

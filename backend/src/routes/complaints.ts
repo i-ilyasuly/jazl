@@ -14,7 +14,7 @@ const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f
 
 export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
-  const share = (n: number) => Math.round((n * (100 - cfg.JAZL_FEE_PCT)) / 100);
+  const share = (n: number) => Math.round((n * (100 - cfg.MEDEO_FEE_PCT)) / 100);
   const staffOk = async (userId: string, venueId: string, roles = ["owner", "manager"]) => {
     const [x] = await db.select({ role: venueStaff.role, status: venueStaff.status }).from(venueStaff).where(and(eq(venueStaff.userId, userId), eq(venueStaff.venueId, venueId))).limit(1);
     return Boolean(x && x.status === "active" && roles.includes(x.role));
@@ -90,7 +90,7 @@ export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
 }
 
 /** Шағым шешімі: refund — байланысты қолдану жойылып, бірлік пакетке оралады; reject — шағым жабылады.
- *  Мекеме (venueId беріледі) не Jazl+ Басқару (override: мекеме қайтармаған шағымды клиент пайдасына қайта шешу). */
+ *  Мекеме (venueId беріледі) не Medeo Басқару (override: мекеме қайтармаған шағымды клиент пайдасына қайта шешу). */
 export async function decideComplaint(db: Db, id: string, action: "refund" | "reject", reply: string, by: string, venueId?: string, override = false) {
   return db.transaction(async (tx) => {
     const x = (await tx.execute(sql`select * from app.complaints where id = ${id} ${venueId ? sql`and venue_id = ${venueId}` : sql``} for update`)).rows[0] as { id: string; status: string; pack_id: string; redemption_id: string | null } | undefined;

@@ -34,13 +34,13 @@ d("B3 қолдану", () => {
 
   it("QR: бір бірлік шегеріледі, «use» чегі жазылады", async () => {
     const p = await buy();
-    const r = await (await post("/v1/redeem", { packId: p, qr: `https://t.me/oylarbot?startapp=br_${damdiBranch}`, idempotencyKey: key() })).json();
+    const r = await (await post("/v1/redeem", { packId: p, qr: `https://t.me/Mmedeo_bot?startapp=br_${damdiBranch}`, idempotencyKey: key() })).json();
     expect(r).toMatchObject({ ok: true, left: 3 });
     const rc = (await dbh.pool.query("select internal from app.receipts where id = $1", [r.receipt.id])).rows[0].internal;
     expect(rc.fulfillment).toMatchObject({ type: "scan", branchId: damdiBranch });
     expect(rc.customer.fullName).toBe("Клиент601");
   });
-  it("бөтен мекеменің QR-ы — 409, бірлік орнында; Jazl QR емес — 400", async () => {
+  it("бөтен мекеменің QR-ы — 409, бірлік орнында; Medeo QR емес — 400", async () => {
     const p = await buy();
     expect((await post("/v1/redeem", { packId: p, qr: "JZB1:" + kebabBranch, idempotencyKey: key() })).status).toBe(409);
     expect((await left(p)).units_left).toBe(4);
@@ -80,7 +80,7 @@ d("B3 қолдану", () => {
   });
   it("банк терминалы: 3 000 ₸ = 2 донер — 1 дана жіберсе «+ басыңыз» (expectedUnits 2); 2000 ₸ — сома сәйкес емес", async () => {
     const p = await buy();
-    const qr = `https://t.me/oylarbot?startapp=br_${damdiBranch}&amount=3000`;
+    const qr = `https://t.me/Mmedeo_bot?startapp=br_${damdiBranch}&amount=3000`;
     const one = await (await post("/v1/redeem", { packId: p, qr, units: 1, idempotencyKey: key() })).json();
     expect(one).toMatchObject({ error: "units_mismatch", expectedUnits: 2, unitPrice: 1500 });
     expect((await (await post("/v1/redeem", { packId: p, qr, units: 2, idempotencyKey: key() })).json()).left).toBe(2);

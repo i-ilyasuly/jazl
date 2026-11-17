@@ -66,7 +66,7 @@ export function Profile() {
   // C2: мекеме қызметкеріне ең үстінде «Касса» жолы (клиентке көрінбейді)
   const isAdmin = useIsAdmin();
   const top: RowDef[] = [
-    ...(isAdmin ? [{ icon: "", tile: "a:security", title: "Jazl+ Басқару", sub: "Платформа иесінің беті", to: "/a" }] : []),
+    ...(isAdmin ? [{ icon: "", tile: "a:security", title: "Medeo Басқару", sub: "Платформа иесінің беті", to: "/a" }] : []),
     ...(staff && staff.length ? [{ icon: "", tile: "🏪", title: "Мекеме бөлімі", sub: `${staff[0].venue.name} · ${staff[0].status === "pending" ? "растау күтуде" : roleName[staff[0].role]}${staff.length > 1 ? ` · +${staff.length - 1}` : ""}`, to: "/v" }] : []),
   ];
   const all: typeof groups = top.length ? [{ rows: top }, ...groups] : groups;
@@ -113,7 +113,7 @@ export function Profile() {
             ))}
           </section>
         ))}
-        <button className={`t-cap1 ${s.version}`} onClick={() => go("/profile/about")}>Jazl+ v0.1 (MVP)</button>
+        <button className={`t-cap1 ${s.version}`} onClick={() => go("/profile/about")}>Medeo v0.1 (MVP)</button>
       </div>
       {how && <HowSheet onClose={() => setHow(false)} />}
       {ask && <Confirm title="Сұрақ қою" text="Алдымен жиі қойылатын сұрақтарды қарап шық: жауап сол жерде болуы мүмкін." cancel="Сұрақ қою" ok="ЖҚС-ке өту"

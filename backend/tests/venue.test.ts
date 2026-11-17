@@ -1,4 +1,4 @@
-// C · мекеме бөлімі (Figma «Jazl+ Мекеме»): шақыру коды → растау, рөлдер, кассир QR сеансы (пакет + дана, 6 таңбалы код, бір рет),
+// C · мекеме бөлімі (Figma «Medeo Мекеме»): шақыру коды → растау, рөлдер, кассир QR сеансы (пакет + дана, 6 таңбалы код, бір рет),
 // басты бет, тарих, ұсыныстар, есеп (TEST_DATABASE_URL)
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
@@ -14,7 +14,7 @@ const TOKEN = "123456:TEST-token-not-real";
 const d = URL ? describe : describe.skip;
 
 d("C мекеме бөлімі", () => {
-  const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test", MEDIA_DIR: "/tmp/jazl-media-test" });
+  const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test", MEDIA_DIR: "/tmp/medeo-media-test" });
   let dbh: ReturnType<typeof createDb>; let app: ReturnType<typeof createApp>;
   let venueId = ""; let branchId = ""; let donerId = ""; let otherOfferId = "";
   const h = (id: number) => ({ Authorization: "tma " + signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id, first_name: "Адам" + id, last_name: "Тест", username: "u" + id }) }, TOKEN), "Content-Type": "application/json" });
@@ -72,7 +72,7 @@ d("C мекеме бөлімі", () => {
 
   it("кассир QR: пакет + дана → клиент сканерлейді → «Төлем өтті»; сеанс бір рет қана", async () => {
     const s = (await json(post("/v1/venue/qr", { branchId, offerId: donerId, units: 2, extra: 500 }, 702))).session;
-    expect(s.code).toMatch(/^\d{4}$/); expect(s.payload).toMatch(/^JZQ3\./);
+    expect(s.code).toMatch(/^\d{4}$/); expect(s.payload).toMatch(/^MDQ3\./);
     const info = await json(post("/v1/qr/resolve", { qr: s.payload }, 710));
     expect(info).toMatchObject({ ok: true, units: 2, offer: { slug: "doner" }, valid: true, expired: false });
     const p = await buy(710);
@@ -100,7 +100,7 @@ d("C мекеме бөлімі", () => {
     }
     const s2 = (await json(post("/v1/venue/qr", { branchId, offerId: donerId, units: 1 }, 701))).session;
     const byCode = await json(post("/v1/qr/code", { code: s2.code }, 713));
-    expect(byCode.qr).toMatch(/^JZQ3\./);
+    expect(byCode.qr).toMatch(/^MDQ3\./);
     await post(`/v1/venue/qr/${s2.id}/cancel`, {}, 701);
     expect((await json(get(`/v1/venue/qr/${s2.id}`, 701))).status).toBe("cancelled");
     expect((await post("/v1/qr/code", { code: s2.code }, 713)).status).toBe(404);
@@ -130,7 +130,7 @@ d("C мекеме бөлімі", () => {
     expect(d.offer.status).toBe("draft");
     expect((await post(`/v1/venue/${venueId}/offers`, { ...body, publish: true, sizes: [{ units: 4, price: 7900 }] }, 701)).status).toBe(409); // 1,25% ғана жеңілдік
     expect((await app.request(`/v1/venue/${venueId}/offers/${d.offer.id}`, { method: "PUT", headers: h(701), body: JSON.stringify({ ...body, publish: true, sizes: [{ units: 4, price: 6000 }, { units: 8, price: 11200 }] }) })).status).toBe(200);
-    // Жарияланған жаңа ұсыныс Jazl+ тексеруіне түседі (Басқару «Модерация» қосулы — әдепкі)
+    // Жарияланған жаңа ұсыныс Medeo тексеруіне түседі (Басқару «Модерация» қосулы — әдепкі)
     expect((await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer.status).toBe("review");
     await dbh.pool.query("update app.offers set status = 'active' where id = $1", [d.offer.id]); // Басқару бекітті
     const o = (await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer;

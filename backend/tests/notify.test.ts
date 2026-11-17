@@ -78,7 +78,7 @@ d("Бот хабарламалары", () => {
 
   it("QR қолдану → клиентке «✅ Қолданылды»", async () => {
     const p = await buy(CLIENT);
-    const r = await json(post("/v1/redeem", { packId: p, qr: "JZB1:" + branchId, idempotencyKey: key() }, CLIENT));
+    const r = await json(post("/v1/redeem", { packId: p, qr: "MDB1:" + branchId, idempotencyKey: key() }, CLIENT));
     expect(r.ok).toBe(true);
     expect(to(CLIENT).at(-1)?.text).toContain("✅ Қолданылды");
     expect(to(CLIENT).at(-1)?.text).toContain(r.receipt.no);
@@ -86,7 +86,7 @@ d("Бот хабарламалары", () => {
 
   it("шағым → иесіне (кассирге емес); шешім → клиентке", async () => {
     const p = await buy(CLIENT);
-    await post("/v1/redeem", { packId: p, qr: "JZB1:" + branchId, idempotencyKey: key() }, CLIENT);
+    await post("/v1/redeem", { packId: p, qr: "MDB1:" + branchId, idempotencyKey: key() }, CLIENT);
     const cashBefore = to(CASH).length;
     const c = await json(post("/v1/complaints", { packId: p, reason: "Қате қолдану", text: "Мен бүгін келмедім" }, CLIENT));
     expect(to(OWNER).at(-1)?.text).toMatch(/^⚠️ Жаңа шағым: қате қолдану/);

@@ -1,5 +1,5 @@
 // Бот хабарламалары (Figma «16 · Бот хабарламалары (мекеме)» 14045:11127 және «Бот хабарламалары (клиент)» 14044:12950).
-// Хабар мини апп ашылатын боттан (@oylarbot: MINIAPP_BOT_TOKEN, жоқ болса BOT_TOKEN) жіберіледі. Батырма — t.me/<бот>?startapp=<кілт>:
+// Хабар мини апп ашылатын боттан (@Mmedeo_bot: MINIAPP_BOT_TOKEN, жоқ болса BOT_TOKEN) жіберіледі. Батырма — t.me/<бот>?startapp=<кілт>:
 // Telegram мини аппты бірден тиісті бетте ашады (main.tsx start_param).
 // Хабар жіберілмесе (бот бұғатталған, желі) — тек журналға жазылады: негізгі әрекет (тапсырыс, шағым) ешқашан құламайды.
 import { sql } from "drizzle-orm";
@@ -126,7 +126,7 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
       if (!x) return;
       const text = x.status === "refunded"
         ? `✅ ${x.name} шағымыңызды қанағаттандырды: ${returned} дана пакетіңізге қайтарылды.${x.reply ? ` Жауабы: «${x.reply}»` : ""}`
-        : `💬 ${x.name} шағымыңызға жауап берді: «${x.reply ?? ""}». Келіспесеңіз — Jazl+ қолдауына жазыңыз.`;
+        : `💬 ${x.name} шағымыңызға жауап берді: «${x.reply ?? ""}». Келіспесеңіз — Medeo қолдауына жазыңыз.`;
       await send({ chatId: Number(x.tg), text, button: { text: "Пакетті ашу", start: `pk_${x.pack_id}` } });
     }),
 
@@ -152,27 +152,27 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
         select a.status, a.note, u.telegram_id as tg, coalesce(v.name, a.data->>'name') as name from app.venue_applications a join app.users u on u.id = a.user_id left join app.venues v on v.id = a.venue_id where a.id = ${appId}`);
       if (!a || !["approved", "need_info", "rejected"].includes(a.status) || !(await once(`app:${appId}:${a.status}`))) return;
       const nm = a.name ? `«${a.name}» ` : "";
-      const m = a.status === "approved" ? { text: `🎉 Өтінім мақұлданды! ${nm}Jazl+-қа қосылды. Енді бірінші ұсынысты жариялаңыз.`, button: { text: "Мекемеге өту", start: "v_home" } }
+      const m = a.status === "approved" ? { text: `🎉 Өтінім мақұлданды! ${nm}Medeo-ға қосылды. Енді бірінші ұсынысты жариялаңыз.`, button: { text: "Мекемеге өту", start: "v_home" } }
         : a.status === "need_info" ? { text: `✏️ Өтінімге түзету керек${a.note ? `: ${a.note}` : "."}`, button: { text: "Түзету", start: "v_apply" } }
         : { text: `Өтінім қабылданбады${a.note ? `: ${a.note}` : "."} Сұрағыңыз болса — қолдауға жазыңыз.`, button: { text: "Толығырақ", start: "v_apply" } };
       await send({ chatId: Number(a.tg), ...m });
     }),
 
-    /** Jazl+ Басқару «Хабарлама жазу»: мекеме иесіне (иелеріне) не нақты пайдаланушыға */
-    toVenue: async (venueId: string, text: string) => { const to = await staff(venueId, ["owner"]); await sendAll(to, { text: `✉️ Jazl+: ${text}`, button: { text: "Ашу", start: "v_home" } }); return to.length; },
+    /** Medeo Басқару «Хабарлама жазу»: мекеме иесіне (иелеріне) не нақты пайдаланушыға */
+    toVenue: async (venueId: string, text: string) => { const to = await staff(venueId, ["owner"]); await sendAll(to, { text: `✉️ Medeo: ${text}`, button: { text: "Ашу", start: "v_home" } }); return to.length; },
     toUser: async (userId: string, text: string, start?: string) => {
       const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${userId}`);
-      if (u) await send({ chatId: Number(u.tg), text: `✉️ Jazl+: ${text}`, ...(start ? { button: { text: "Ашу", start } } : {}) }).catch(() => null);
+      if (u) await send({ chatId: Number(u.tg), text: `✉️ Medeo: ${text}`, ...(start ? { button: { text: "Ашу", start } } : {}) }).catch(() => null);
     },
     /** Мекемеге: ұсыныс тексерілді (жарияланды / түзету керек / тоқтатылды) */
     offerReviewed: (offerId: string, result: "approved" | "fix" | "stopped", note?: string) => safe("offerReviewed", async () => {
       const [o] = await rows<{ venue_id: string; title: string }>(sql`select venue_id, title from app.offers where id = ${offerId}`);
       if (!o) return;
       const t = head(o.title);
-      const text = result === "approved" ? `✅ «${t}» ұсынысы тексеруден өтіп, жарияланды.` : result === "fix" ? `✏️ «${t}» ұсынысына түзету керек: ${note ?? ""}` : `⛔ «${t}» ұсынысын Jazl+ тоқтатты${note ? `: ${note}` : "."}`;
+      const text = result === "approved" ? `✅ «${t}» ұсынысы тексеруден өтіп, жарияланды.` : result === "fix" ? `✏️ «${t}» ұсынысына түзету керек: ${note ?? ""}` : `⛔ «${t}» ұсынысын Medeo тоқтатты${note ? `: ${note}` : "."}`;
       await sendAll(await staff(o.venue_id, ["owner", "manager"]), { text, button: { text: "Ашу", start: "v_home" } });
     }),
-    /** Мекемеге: Jazl+ тоқтатты / қайта қосты */
+    /** Мекемеге: Medeo тоқтатты / қайта қосты */
     venueStatus: (venueId: string, paused: boolean, note?: string) => safe("venueStatus", async () => {
       await sendAll(await staff(venueId, ["owner", "manager"]), { text: paused ? `⛔ Мекеме уақытша тоқтатылды${note ? `: ${note}` : "."} Сатылған пакеттерге қызмет көрсету жалғасады.` : "✅ Мекеме қайта іске қосылды. Жаңа пакеттер сатылады.", button: { text: "Ашу", start: "v_home" } });
     }),

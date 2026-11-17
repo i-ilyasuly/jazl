@@ -1,5 +1,5 @@
 {
-  "name": "jazl-backend",
+  "name": "medeo-backend",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {

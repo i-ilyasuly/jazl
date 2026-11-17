@@ -129,7 +129,7 @@ export function RebuyDone() {
       title="Пакет қайта алынды" paid={`Төлем қабылданды · ${fmt(paid)}`}
       cardTitle={o.title} cardSub={`${o.venue} · ${o.distance}`} kind={o.kind}
       total={pack.total} used={0} counter={`${pack.left} / ${pack.total} · 30 күн`}
-      next={pack.carried ? "Қалған бірлік жаңа пакетке қосылды" : "Келесі қадам: мекемеде «Jazl бойынша» деп айт"}
+      next={pack.carried ? "Қалған бірлік жаңа пакетке қосылды" : "Келесі қадам: мекемеде «Medeo бойынша» деп айт"}
       main={{ text: "Пакеттерге өту", onClick: toPacks }} secondary={{ text: "Жабу", onClick: close }} onClose={close}
     />
   );

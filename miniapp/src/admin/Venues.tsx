@@ -168,7 +168,7 @@ function MsgSheet({ x, onClose }: { x: VCard; onClose: () => void }) {
   const send = async () => {
     if (text.trim().length < 3 || busy) return;
     setBusy(true);
-    try { const r = await post<{ sent: number }>(`/venues/${x.id}/message`, { text: text.trim() }); haptic.success(); nativeAlert(r.sent ? "Хабарлама мекеме иесіне Jazl+ боты арқылы жіберілді." : "Мекеме иесі ботқа рұқсат бермеген: хабар жетпеуі мүмкін."); onClose(); }
+    try { const r = await post<{ sent: number }>(`/venues/${x.id}/message`, { text: text.trim() }); haptic.success(); nativeAlert(r.sent ? "Хабарлама мекеме иесіне Medeo боты арқылы жіберілді." : "Мекеме иесі ботқа рұқсат бермеген: хабар жетпеуі мүмкін."); onClose(); }
     catch { haptic.error(); } finally { setBusy(false); }
   };
   return (

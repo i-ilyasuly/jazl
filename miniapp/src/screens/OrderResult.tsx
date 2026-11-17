@@ -58,7 +58,7 @@ export function OrderDone() {
         <h1 className={p.title}>{o.title.startsWith("Шаш") ? "Жазылу расталды" : "Тапсырыс жіберілді"}</h1>
         <p className={p.text}>№{o.no} • мекеменің тапсырыс жүйесіне түсті</p>
         <OrderCard id={id} />
-        <p className={`${s.note} infoBox infoWarn`}>Мекемеге келгенде кассирге «Jazl, тапсырыс {o.no}» және кодты айт. Курьер жалдасаң, ол кодты айтады.<i>”</i></p>
+        <p className={`${s.note} infoBox infoWarn`}>Мекемеге келгенде кассирге «Medeo, тапсырыс {o.no}» және кодты айт. Курьер жалдасаң, ол кодты айтады.<i>”</i></p>
       </div>
       <Bar left={left} main={main} />
     </div>
@@ -93,7 +93,7 @@ export function OrderView() {
 type Kind = "fail" | "noaccept" | "nounits" | "closed";
 const copy: Record<Kind, { sticker: StickerName; title: string; text: string; note?: string; left: string; main: string }> = {
   fail: { sticker: "cry", title: "Тапсырыс мекемеге жетпеді", text: "Бірлік пакетіңе қайтарылды. Қайта көр немесе мекемеге барып кассирге айт.", left: "Көмек", main: "Қайта көру" },
-  noaccept: { sticker: "stop", title: "Бұл мекеме алдын ала тапсырыс қабылдамайды", text: "Мекемеге барып, кассирге «Jazl бойынша» деп айтып, QR-ды сканерле.", left: "Жабу", main: "Сканерлеу" },
+  noaccept: { sticker: "stop", title: "Бұл мекеме алдын ала тапсырыс қабылдамайды", text: "Мекемеге барып, кассирге «Medeo бойынша» деп айтып, QR-ды сканерле.", left: "Жабу", main: "Сканерлеу" },
   nounits: { sticker: "empty", title: "Тапсырыс беру мүмкін емес", text: "Пакетте бос бірлік қалмады немесе пакеттің мерзімі өтті.", note: "Қайта алсаң, жаңа бірліктер қосылады.", left: "Жабу", main: "Қайта алу" },
   closed: { sticker: "sleep", title: "Қазір тапсырыс қабылданбайды", text: "Мекеме қазір жабық: тапсырыс ертең 10:00-де қайта ашылады. Пакетің сақталады.", left: "Артқа", main: "Мекеме беті" },
 };

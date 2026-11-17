@@ -131,7 +131,7 @@ export function MapScreen() {
           </>
         )}
       </div>
-      {ask && <Confirm title="Орналасу рұқсаты" text="Jazl+ жақын маңдағы мекемелерді көрсету үшін орналасқан жеріңді білгісі келеді." cancel="Бас тарту" ok="Рұқсат ету" onClose={() => { setAsk(false); if (st.geo === "unknown") setSettings({ geo: "denied" }); }} onOk={() => { haptic.success(); setSettings({ geo: "granted" }); }} />}
+      {ask && <Confirm title="Орналасу рұқсаты" text="Medeo жақын маңдағы мекемелерді көрсету үшін орналасқан жеріңді білгісі келеді." cancel="Бас тарту" ok="Рұқсат ету" onClose={() => { setAsk(false); if (st.geo === "unknown") setSettings({ geo: "denied" }); }} onOk={() => { haptic.success(); setSettings({ geo: "granted" }); }} />}
     </div>
   );
 }
