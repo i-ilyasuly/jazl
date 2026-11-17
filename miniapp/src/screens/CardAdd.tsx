@@ -1,15 +1,18 @@
-// Figma «Төлем / Карта қосу (Telegram нативті)» 13886:25021.
-// Нақты өнімде карта Telegram-ның нативті төлем формасы (bot invoice → openInvoice) арқылы енгізіледі;
-// бұл бет сол форманың үлгісі. Карта деректері ешқайда сақталмайды — тек соңғы 4 цифр мен мерзімі.
+// Figma «Төлем / Карта қосу (Telegram нативті)» 13886:25021 — Telegram-ның карта енгізу формасының үлгісі (Патша, 2026-11-17).
+// Карта нөмірі, мерзімі, CVC біздің серверге ЕШҚАШАН жіберілмейді: pay/tokenize.ts оларды провайдердің криптограммасына айналдырады,
+// «Картаны сақтау» қосулы болса — сервер провайдерден токен алып, тек бренд, соңғы 4 цифр мен мерзімді сақтайды.
 import { useMemo, useState } from "react";
 import { useGo } from "../nav";
+import { api } from "../api";
 import { addMethod } from "../store";
-import { haptic, inTelegram, useBottomButtons } from "../telegram";
+import { haptic, inTelegram, nativeAlert, useBottomButtons } from "../telegram";
+import { brandOf as brandName, luhn as luhnOk, tokenizeCard } from "../pay/tokenize";
+import { hasServer } from "../pay/checkout";
 import { Group, Row, SubPage, Switch } from "../ui/SubPage";
 import s from "./CardAdd.module.css";
 
-const brandOf = (n: string) => (/^4/.test(n) ? "VISA" : /^(5[1-5]|2[2-7])/.test(n) ? "Mastercard" : /^220[0-4]/.test(n) ? "МИР" : "");
-const luhn = (n: string) => { let sum = 0; for (let i = 0; i < n.length; i++) { let d = +n[n.length - 1 - i]; if (i % 2) { d *= 2; if (d > 9) d -= 9; } sum += d; } return sum % 10 === 0; };
+const brandOf = (n: string) => { const b = brandName(n); return b === "Visa" ? "VISA" : b; };
+const luhn = luhnOk;
 
 export function CardAdd() {
   const go = useGo();
@@ -18,17 +21,29 @@ export function CardAdd() {
   const [cvc, setCvc] = useState("");
   const [name, setName] = useState("");
   const [keep, setKeep] = useState(true);
-  const brand = brandOf(num);
+  const [busy, setBusy] = useState(false);
+  // Сатып алу парағынан келсе (state.back) — карта сол төлемге таңдалады
+    const brand = brandOf(num);
   const mm = +exp.slice(0, 2), yy = +exp.slice(2);
   const now = new Date(); const cy = now.getFullYear() % 100, cm = now.getMonth() + 1;
   const expOk = exp.length === 4 && mm >= 1 && mm <= 12 && (yy > cy || (yy === cy && mm >= cm));
   const ok = num.length === 16 && luhn(num) && expOk && cvc.length === 3 && name.trim().length > 2;
-  const save = useMemo(() => ({ text: "Сақтау", onClick: () => {
-    if (!ok) { haptic.error(); return; }
-    haptic.success();
-    if (keep) addMethod({ id: "card" + num.slice(-4), emoji: "💳", title: `${brand || "Карта"} •• ${num.slice(-4)}`, sub: `Жарамдылық мерзімі ${exp.slice(0, 2)}/${exp.slice(2)}`, card: true });
-    go(-1, "back");
-  } }), [ok, keep, num, exp, brand, go]);
+  const save = useMemo(() => ({ text: busy ? "…" : "Сақтау", disabled: busy, onClick: async () => {
+    if (!ok || busy) { haptic.error(); return; }
+    setBusy(true);
+    try {
+      const t = await tokenizeCard({ number: num, exp, cvc, holder: name });
+      const title = `${t.brand} •• ${t.last4}`; const sub = `Жарамдылық мерзімі ${t.exp}`;
+      if (!hasServer()) addMethod({ id: "card" + t.last4, emoji: "💳", title, sub, card: true }); // үлгі режим (браузер)
+      else if (keep) {
+        const r = await api<{ card: { id: string; brand: string; last4: string; exp: string } }>("/v1/cards", { method: "POST", body: JSON.stringify({ cryptogram: t.cryptogram }) });
+        addMethod({ id: "card:" + r.card.id, emoji: "💳", title: `${r.card.brand} •• ${r.card.last4}`, sub: `Жарамдылық мерзімі ${r.card.exp}`, card: true, cardId: r.card.id });
+      } else addMethod({ id: "once:" + t.last4, emoji: "💳", title, sub: "Бір реттік · сақталмайды", card: true, cryptogram: t.cryptogram });
+      haptic.success();
+      go(-1, "back");
+    } catch { haptic.error(); nativeAlert("Картаны қосу мүмкін болмады. Деректерді тексеріп, қайталап көр."); }
+    finally { setBusy(false); }
+  } }), [ok, keep, num, exp, cvc, name, busy, go]);
   useBottomButtons(save);
 
   return (
@@ -61,7 +76,7 @@ export function CardAdd() {
       <Group i={1}>
         <Row wrap title="Картаны сақтау" sub="Келесі төлемдер үшін. Карта деректері төлем провайдеріне қауіпсіз жіберіледі." right={<Switch on={keep} onChange={setKeep} />} inset={16} />
       </Group>
-      {!inTelegram && <div className={s.bar}><button className={s.btn} disabled={!ok} onClick={save.onClick}>Сақтау</button></div>}
+      {!inTelegram && <div className={s.bar}><button className={s.btn} disabled={!ok || busy} onClick={() => void save.onClick()}>{save.text}</button></div>}
     </SubPage>
   );
 }

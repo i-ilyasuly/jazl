@@ -6,7 +6,8 @@ import { kindPic } from "./Emo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, saving, type Offer } from "../mocks/offers";
 import { useGo } from "../nav";
-import { setDefaultMethod, setKaspiPhone, useDefaultMethod, useKaspiPhone, useMethods } from "../store";
+import { adoptPurchase, setDefaultMethod, setKaspiPhone, useDefaultMethod, useKaspiPhone, useMethods } from "../store";
+import { checkoutCard, hasServer } from "../pay/checkout";
 import { askPhone, haptic, inTelegram, openExternal, tg, useBackButton, useBottomButtons } from "../telegram";
 import burger from "../assets/icons/sheetBurger.svg";
 import chev from "../assets/icons/chevRight.svg";
@@ -66,6 +67,22 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
 
   const fail = (kind: "fail" | "expired" | "stopped") => go(`/pay/${kind}/${offer.id}`, "up", { replace: true });
   const finish = () => {
+    // Карта (сақталған не бір реттік) және сервер бар: нақты төлем ағыны — бірден өтеді / банк растауы / өтпеді
+    if (m?.card && hasServer() && (m.cardId || m.cryptogram)) {
+      setBusy(true); tg?.MainButton?.showProgress?.(false);
+      void checkoutCard(offer.id, m.cardId ? { id: m.cardId } : { cryptogram: m.cryptogram!, save: false }).then((r) => {
+        tg?.MainButton?.hideProgress?.(); setBusy(false);
+        if (r.status === "paid") { adoptPurchase(offer.id, r.pack, m.title); haptic.success(); onPaid(); return; }
+        if (r.status === "action_required") {
+          const q = `?offer=${encodeURIComponent(offer.id)}&label=${encodeURIComponent(m.title)}`;
+          if (r.confirmUrl.startsWith("app:")) go(r.confirmUrl.slice(4) + q, "up", { replace: true }); // сынақ: мини апптағы банк растауы
+          else { openExternal(r.confirmUrl); go(`/pay/3ds/${r.paymentId}${q}&wait=1`, "up", { replace: true }); } // банктің беті → нәтижені күтеміз
+          return;
+        }
+        haptic.error(); go(`/pay/fail/${offer.id}?r=${encodeURIComponent(r.reason)}`, "up", { replace: true });
+      });
+      return;
+    }
     setBusy(true);
     tg?.MainButton?.showProgress?.(false);
     const t = window.setTimeout(() => {

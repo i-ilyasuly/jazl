@@ -15,6 +15,7 @@ import { b4Routes } from "./routes/b4.js";
 import { venueRoutes } from "./routes/venue.js";
 import { applyRoutes } from "./routes/apply.js";
 import { complaintRoutes } from "./routes/complaints.js";
+import { paymentRoutes, paymentWebhookRoutes } from "./routes/payments.js";
 import { adminFileRoutes, adminRoutes, adminSig, adminWebRoutes } from "./routes/admin.js";
 import { getSettings, refreshFees } from "./settings.js";
 import { localMediaRoutes } from "./media.js";
@@ -38,7 +39,8 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   // Ашық маршруттар (кірусіз): чек PDF (қолтаңбалы сілтеме), каталог
   app.route("/files", receiptFileRoutes(cfg, db));
   app.route("/files", adminFileRoutes(cfg, db));
-  app.route("/admin-web", adminWebRoutes(cfg, db)); // Басқаруға веб арқылы кіру (Telegram Login Widget + PIN)
+  app.route("/admin-web", adminWebRoutes(cfg, db));
+  app.route("/payments/webhook", paymentWebhookRoutes(cfg, db)); // төлем провайдерінің вебхугы (қолтаңбамен) // Басқаруға веб арқылы кіру (Telegram Login Widget + PIN)
   void refreshFees(db).catch(() => null); // мекеме комиссиялары (Jazl+ Басқару «Комиссия»)
   app.route("/media", localMediaRoutes(cfg)); // тек MEDIA_DIR болғанда (жергілікті)
   // «Кассаға нұсқау» PDF (ашық: ішінде тек мекеме атауы мен мини апп сілтемесі бар)
@@ -116,6 +118,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   });
 
   app.route("/v1", purchaseRoutes(cfg, db));
+  app.route("/v1", paymentRoutes(cfg, db));
   app.route("/v1", adminRoutes(cfg, db, notify));
   app.route("/v1", applyRoutes(cfg, db, notify));
   app.route("/v1", complaintRoutes(cfg, db, notify));

@@ -15,6 +15,8 @@ const Env = z.object({
   INIT_DATA_TTL: z.coerce.number().default(24 * 3600),
   /** Төлем режимі: test — ақша жүрмейді (Kaspi келісімі біткенше) */
   PAYMENTS_MODE: z.enum(["test"]).default("test"),
+  /** Карта төлемінің провайдері (src/payments): test — сынақ (ақша жүрмейді). Кейін: halyk | freedom | tiptop (шарт пен кілттер келгенде). */
+  PAYMENTS_PROVIDER: z.enum(["test"]).default("test"),
   /** Jazl комиссиясы, % (ішкі есеп: мекемеге төленетін соманы есептеу) */
   JAZL_FEE_PCT: z.coerce.number().default(10),
   /** Мини апп ашылатын бот (чектегі тексеру QR-ы: t.me/<бот>?startapp=rc_<нөмір>) */

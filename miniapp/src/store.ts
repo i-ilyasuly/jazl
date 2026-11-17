@@ -101,9 +101,11 @@ export const getPack = (id?: string) => packs.find((p) => p.id === id);
 export function buyPack(offerId: string, methodLabel = "Kaspi Pay"): string {
   const o = findOffer(offerId);
   const id = "p" + (Date.now() % 100000);
-  packs = [{ id, offerId, total: o.units, left: o.units, daysLeft: 30, until: inDays(30),
-    history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: `бүгін • ${methodLabel}`, right: `${o.units} бірлік` }] }, ...packs];
+  const pre = adopted.get(offerId); adopted.delete(offerId);
+  packs = [{ id, offerId, total: o.units, left: o.units, daysLeft: 30, until: inDays(30), ...(pre ? { serverId: pre.serverId, receiptId: pre.receiptId, receiptNo: pre.receiptNo } : {}),
+    history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: `бүгін • ${pre?.label ?? methodLabel}`, right: `${o.units} бірлік` }] }, ...packs];
   emit();
+  if (pre) return id; // карта арқылы серверде төленіп қойған — қайта сатып алмаймыз
   // B2: серверде де сатып алынады (сынақ төлемі). Сәтті болса — пакетке сервер ID мен чек нөмірі жазылады.
   void buyOnServer(id, offerId, methodLabel);
   return id;
@@ -292,7 +294,7 @@ export function toggleRestock(id: string) { restock = restock.includes(id) ? res
 void kv.get("jazl_favs").then((v) => { if (v !== null) { favs = v ? v.split(",") : []; emit(); } });
 
 // ── Төлем тәсілдері ─────────────────────────────────────────────────────────
-export interface PayMethod { id: string; emoji: string; title: string; sub: string; card: boolean }
+export interface PayMethod { id: string; emoji: string; title: string; sub: string; card: boolean; /** серверде сақталған карта */ cardId?: string; /** бір реттік карта (сақталмаған): провайдер криптограммасы */ cryptogram?: string }
 let methods: PayMethod[] = [
   { id: "kaspi", emoji: "🏦", title: "Kaspi Pay", sub: "Шот Kaspi.kz қосымшасына жіберіледі", card: false },
   { id: "visa4417", emoji: "💳", title: "Visa •• 4417", sub: "Жарамдылық мерзімі 08/28", card: true },
@@ -307,7 +309,24 @@ let kaspiPhone = "";
 export const useKaspiPhone = () => useSyncExternalStore(subscribe, () => kaspiPhone);
 export function setKaspiPhone(v: string) { kaspiPhone = v; emit(); kv.set("jazl_kaspi_phone", v); }
 void kv.get("jazl_kaspi_phone").then((v) => { if (v) { kaspiPhone = v; emit(); } });
-export function removeMethod(id: string) { methods = methods.filter((m) => m.id !== id); if (defaultMethod === id) defaultMethod = "kaspi"; emit(); }
+export function removeMethod(id: string) {
+  const m = methods.find((x) => x.id === id);
+  methods = methods.filter((x) => x.id !== id); if (defaultMethod === id) defaultMethod = "kaspi"; emit();
+  if (m?.cardId) void api(`/v1/cards/${m.cardId}/remove`, { method: "POST" }).catch(() => null);
+}
+/** Сервердегі сақталған карталар (карта деректері емес — тек бренд, соңғы 4 цифр, мерзім) */
+export async function loadCards() {
+  try {
+    const j = await api<{ cards: { id: string; brand: string; last4: string; exp: string }[] }>("/v1/cards");
+    const once = methods.filter((m) => m.cryptogram);
+    methods = [methods[0], ...j.cards.map((c) => ({ id: "card:" + c.id, emoji: "💳", title: `${c.brand} •• ${c.last4}`, sub: `Жарамдылық мерзімі ${c.exp}`, card: true, cardId: c.id })), ...once];
+    if (!methods.some((m) => m.id === defaultMethod)) defaultMethod = "kaspi";
+    emit();
+  } catch { /* сервер жоқ — үлгі карталар қалады */ }
+}
+/** Карта арқылы серверде сатып алынған пакет: Success беті buyPack-та екінші рет сатып алмай, осыны қолданады */
+const adopted = new Map<string, { serverId: string; receiptId?: string; receiptNo?: string; label: string }>();
+export function adoptPurchase(offerId: string, p: { id: string; receipt: { id: string; no: string } | null }, label: string) { adopted.set(offerId, { serverId: p.id, receiptId: p.receipt?.id, receiptNo: p.receipt?.no, label }); }
 
 // ── PIN ─────────────────────────────────────────────────────────────────────
 // Ескерту: нағыз жүйеде PIN серверде тексеріледі. Бэкенд қосылғанша құрылғыда тек хэші сақталады (кодтың өзі емес).
