@@ -78,6 +78,13 @@
       "when": 1794909384859,
       "tag": "0010_offer_editor",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794910550152,
+      "tag": "0011_branch_hours",
+      "breakpoints": true
     }
   ]
 }

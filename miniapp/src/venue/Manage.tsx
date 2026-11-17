@@ -111,7 +111,7 @@ export function VMenu() {
   const owner = me.role === "owner";
   const rows: { e: string; t: string; sub?: string; on: () => void; hide?: boolean }[][] = [[
     { e: "v:venue", t: "Мекеме профилі", on: soon, hide: !owner },
-    { e: "v:branch", t: "Филиалдар", sub: `${me.venue.branchesTotal} филиал`, on: soon },
+    { e: "v:branch", t: "Филиалдар", sub: `${me.venue.branchesTotal} филиал`, on: () => go("/v/branches"), hide: me.role === "cashier" },
     { e: "v:team", t: "Команда", on: () => go("/v/team"), hide: me.role === "cashier" },
     { e: "v:orders", t: "Алдын ала тапсырыстар", on: () => go("/v/orders") },
     { e: "v:integration", t: "Интеграция", on: soon, hide: !owner },

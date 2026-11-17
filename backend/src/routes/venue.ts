@@ -12,6 +12,7 @@ import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import { branches, offers, packs, qrSessions, redemptions, staffInvites, users, venueStaff, venues } from "../db/schema.js";
 import { makeSessionQr } from "../qr.js";
+import { branchStatus } from "../hours.js";
 import { MAX_BYTES, MediaError, mediaStore, type MediaKind } from "../media.js";
 
 type Role = "owner" | "manager" | "cashier";
@@ -346,6 +347,71 @@ export function venueRoutes(cfg: Config, db: Db) {
     } catch (e) { if (e instanceof MediaError) return c.json({ ok: false, error: e.code }, e.status); throw e; }
   });
 
+  // ── 07 · Филиалдар (Figma 14009:8007, 14019:*): тізім, өңдеу (24/7, апта күндері, мереке күндері), уақытша жабу ──
+  const Hm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+  const BranchBody = z.object({
+    address: z.string().trim().min(3).max(120), is247: z.boolean(),
+    days: z.array(z.object({ on: z.boolean(), open: Hm, close: Hm })).length(7),
+    holidays: z.array(z.object({ name: z.string().trim().min(1).max(40), from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), closed: z.boolean(), open: Hm.optional(), close: Hm.optional() })).max(30),
+  }).strict();
+  const branchOf = async (venueId: string, id: string) => (await db.select().from(branches).where(and(eq(branches.id, id), eq(branches.venueId, venueId), eq(branches.active, true))).limit(1))[0];
+
+  r.get("/venue/:venueId/branches", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const list = await db.select().from(branches).where(and(eq(branches.venueId, venueId), eq(branches.active, true))).orderBy(asc(branches.createdAt));
+    const today = await uses(venueId, DAY);
+    const staffN = (await db.execute(sql`select branch_id, count(*)::int as n from app.venue_staff where venue_id = ${venueId} and role = 'cashier' and status = 'active' group by 1`)).rows as { branch_id: string | null; n: number }[];
+    const allCashiers = staffN.filter((x) => !x.branch_id).reduce((a, x) => a + x.n, 0);
+    return c.json({ ok: true, today: today.filter((u) => !u.cancelled_at).length, branches: list.map((b) => ({
+      id: b.id, address: b.address, is247: b.is247, hours: b.hours, holidays: b.holidays ?? [], closedUntil: b.closedUntil, closedReason: b.closedReason, status: branchStatus(b),
+      today: today.filter((u) => u.branch_id === b.id && !u.cancelled_at).length, cashiers: (staffN.find((x) => x.branch_id === b.id)?.n ?? 0) + allCashiers })) });
+  });
+  r.post("/venue/:venueId/branches", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner"]))) return deny(c);
+    const b = z.object({ address: z.string().trim().min(3).max(120) }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [x] = await db.insert(branches).values({ venueId, address: b.data.address, hours: { days: Array.from({ length: 7 }, () => ({ on: true, open: "09:00", close: "22:00" })) } }).returning();
+    return c.json({ ok: true, id: x.id });
+  });
+  r.put("/venue/:venueId/branches/:id", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const b = BranchBody.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const br = await branchOf(venueId, c.req.param("id")); if (!br) return c.json({ ok: false, error: "not_found" }, 404);
+    await db.update(branches).set({ address: b.data.address, is247: b.data.is247, hours: { days: b.data.days }, holidays: b.data.holidays }).where(eq(branches.id, br.id));
+    return c.json({ ok: true });
+  });
+  // Уақытша жабу (Figma «Уақытша жабу»): 1 сағат, 3 сағат, бүгін, ертеңге дейін; себебі
+  r.post("/venue/:venueId/branches/:id/close", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const b = z.object({ for: z.enum(["1h", "3h", "today", "tomorrow"]), reason: z.string().max(40) }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const br = await branchOf(venueId, c.req.param("id")); if (!br) return c.json({ ok: false, error: "not_found" }, 404);
+    const until = b.data.for === "1h" ? sql`now() + interval '1 hour'` : b.data.for === "3h" ? sql`now() + interval '3 hours'` : b.data.for === "today" ? sql`${DAY} + interval '1 day'` : sql`${DAY} + interval '2 days'`;
+    await db.execute(sql`update app.branches set closed_until = ${until}, closed_reason = ${b.data.reason} where id = ${br.id}`);
+    return c.json({ ok: true });
+  });
+  r.post("/venue/:venueId/branches/:id/open", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const br = await branchOf(venueId, c.req.param("id")); if (!br) return c.json({ ok: false, error: "not_found" }, 404);
+    await db.update(branches).set({ closedUntil: null, closedReason: null }).where(eq(branches.id, br.id));
+    return c.json({ ok: true });
+  });
+  r.post("/venue/:venueId/branches/:id/remove", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner"]))) return deny(c);
+    const br = await branchOf(venueId, c.req.param("id")); if (!br) return c.json({ ok: false, error: "not_found" }, 404);
+    const n = (await db.execute(sql`select count(*)::int as n from app.branches where venue_id = ${venueId} and active`)).rows[0] as { n: number };
+    if (n.n <= 1) return c.json({ ok: false, error: "last_branch" }, 409);
+    await db.update(branches).set({ active: false }).where(eq(branches.id, br.id)); // тарих сақталады — тек белсенді емес
+    return c.json({ ok: true });
+  });
+
   // ── 09 · Есеп (тек иесі) ─────────────────────────────────────
   r.get("/venue/:venueId/report", async (c) => {
     const venueId = c.req.param("venueId");
@@ -376,6 +442,8 @@ export function venueRoutes(cfg: Config, db: Db) {
     if (!me || (me.branchId && me.branchId !== br.id)) return deny(c);
     const [of] = await db.select().from(offers).where(and(eq(offers.id, b.data.offerId), eq(offers.venueId, br.venueId))).limit(1);
     if (!of) return c.json({ ok: false, error: "offer_not_found" }, 404);
+    const bs = branchStatus(br);
+    if (!bs.open) return c.json({ ok: false, error: "branch_closed", status: bs }, 409); // жұмыс уақытынан тыс QR жоқ
     const code = await freeCode();
     const codeExp = new Date(Date.now() + CODE_MS);
     const [s] = await db.insert(qrSessions).values({ code, codeExp, branchId: br.id, offerId: of.id, units: b.data.units, extra: b.data.extra, createdBy: c.get("user").id, expiresAt: new Date(Date.now() + SESSION_MS) }).returning();
