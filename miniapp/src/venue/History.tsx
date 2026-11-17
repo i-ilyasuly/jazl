@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { haptic, nativePick } from "../telegram";
-import { dayKey, dayMonth, err, hm, isToday, money, useCurrent, V, type Use, type VOrder } from "./api";
+import { dayKey, dayMonth, err, hm, isToday, money, useCached, useCurrent, V, type Use, type VOrder } from "./api";
 import { UseRow } from "./Home";
 import { Buttons, Note, Sheet, Sk, VPage, VSticker } from "./ui";
 import s from "./V.module.css";
@@ -16,10 +16,9 @@ export function VHistory() {
   const me = useCurrent();
   const [days, setDays] = useState(1);
   const [branch, setBranch] = useState<string | undefined>();
-  const [data, setData] = useState<{ summary: { count: number; amount: number; refunds: number }; items: Use[] } | null>(null);
+  const [data, , reloadData] = useCached<{ summary: { count: number; amount: number; refunds: number }; items: Use[] }>(me ? `hist:${me.venue.id}:${days}:${branch ?? ""}` : null, () => V.history(me!.venue.id, days, branch), { summary: { count: 0, amount: 0, refunds: 0 }, items: [] });
   const [refund, setRefund] = useState<Use | null>(null);
-  const load = useCallback(async () => { if (me) { try { setData(await V.history(me.venue.id, days, branch)); } catch { setData({ summary: { count: 0, amount: 0, refunds: 0 }, items: [] }); } } }, [me?.venue.id, days, branch]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setData(null); void load(); }, [load]);
+  const load = reloadData;
   async function pickBranch() {
     if (!me || me.branches.length < 2) return;
     const id = await nativePick("Филиал", "Қай филиал?", [{ id: "all", text: "Барлығы" }, ...me.branches.slice(0, 2).map((b) => ({ id: b.id, text: b.address }))], "all");

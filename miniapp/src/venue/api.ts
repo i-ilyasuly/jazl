@@ -1,6 +1,6 @@
 // Мекеме бөлімі (Figma «Jazl+ Мекеме», 13986:7998): серверге сұраулар және «мен қай мекеменің қызметкерімін» күйі.
 // Бір мини апп: Профильде «Мекеме бөлімі» → мекеме режимі (өз төменгі мәзірі: Басты · Кассир · Ұсыныстар · Есеп; кассирде Кассир · Тарих).
-import { useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api } from "../api";
 import { kv } from "../telegram";
 import type { OfferKind } from "../mocks/offers";
@@ -72,6 +72,25 @@ export const V = {
   join: (code: string) => post<{ venue: string; role: Role; status: "active" | "pending" }>("/v1/venue/join", { code }),
   devJoin: (venueSlug: string, leave = false) => post<{ venue: string }>("/v1/venue/dev-join", leave ? { venueSlug, leave } : { venueSlug }),
 };
+
+// ── Беттер арасындағы кэш (Патша, 2026-11-17: «әр бетке өткен сайын қайта жүктеледі») ──
+// Таб ауысқанда бет бұрын алынған деректі бірден көрсетеді, жаңасы фонда келіп, үнсіз ауыстырады (stale-while-revalidate).
+const cache = new Map<string, unknown>();
+export function useCached<T>(key: string | null, fetcher: () => Promise<T>, fallback?: T): [T | null, (v: T | ((p: T | null) => T)) => void, () => Promise<void>] {
+  const [data, setData] = useState<T | null>(() => (key && cache.has(key) ? (cache.get(key) as T) : null));
+  const keyRef = useRef(key); keyRef.current = key;
+  const fRef = useRef(fetcher); fRef.current = fetcher;
+  const set = useCallback((v: T | ((p: T | null) => T)) => {
+    setData((p) => { const n = typeof v === "function" ? (v as (p: T | null) => T)(p) : v; if (keyRef.current) cache.set(keyRef.current, n); return n; });
+  }, []);
+  const reload = useCallback(async () => {
+    const k = keyRef.current; if (!k) return;
+    try { const v = await fRef.current(); cache.set(k, v); if (keyRef.current === k) setData(v); }
+    catch { if (fallback !== undefined && !cache.has(k) && keyRef.current === k) setData(fallback); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!key) return; setData(cache.has(key) ? (cache.get(key) as T) : null); void reload(); }, [key, reload]);
+  return [data, set, reload];
+}
 
 // ── Пішімдеу ──
 export const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ") + " ₸";

@@ -5,7 +5,7 @@ import { haptic, nativeAlert, nativePick, openChat } from "../telegram";
 import { Switch } from "../ui/SubPage";
 import { Tile } from "../ui/Tile";
 import { SUPPORT_BOT } from "../config";
-import { dayMonth, money, roleName, useCurrent, V, type VOffer } from "./api";
+import { dayMonth, money, roleName, useCached, useCurrent, V, type VOffer } from "./api";
 import { Buttons, OfferPic, Sk, VPage, VSticker } from "./ui";
 import s from "./V.module.css";
 
@@ -14,10 +14,9 @@ const soon = () => nativeAlert("Бұл бөлім келесі кезеңде қ
 export function VOffers() {
   const go = useGo();
   const me = useCurrent();
-  const [list, setList] = useState<VOffer[] | null>(null);
+  const [list, setList, reloadList] = useCached<VOffer[]>(me ? `offers:${me.venue.id}` : null, () => V.offers(me!.venue.id), []);
   const [tab, setTab] = useState<"active" | "draft" | "archive">("active");
-  const load = useCallback(() => { if (me) V.offers(me.venue.id).then(setList).catch(() => setList([])); }, [me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(load, [load]);
+  const load = () => void reloadList();
   const of = (t: typeof tab) => (list ?? []).filter((o) => (t === "active" ? o.status === "active" || o.status === "paused" : t === "draft" ? o.status === "draft" || o.status === "review" : o.status === "ended"));
   async function toggle(o: VOffer, on: boolean) {
     if (!me) return;
@@ -25,7 +24,7 @@ export function VOffers() {
       const r = await nativePick("Ұсынысты тоқтату?", "Жаңа клиенттер сатып ала алмайды. Сатылған пакеттер жарамды болып қалады.", [{ id: "no", text: "Жоқ" }, { id: "yes", text: "Тоқтату" }], "yes");
       if (r !== "yes") return;
     }
-    setList((l) => l?.map((x) => (x.id === o.id ? { ...x, status: on ? "active" : "paused" } : x)) ?? l);
+    setList((l) => (l ?? []).map((x) => (x.id === o.id ? { ...x, status: on ? "active" : "paused" } : x)));
     try { await V.offerStatus(me.venue.id, o.id, on ? "active" : "paused"); haptic.success(); } catch { haptic.error(); load(); }
   }
   const shown = of(tab);
@@ -64,8 +63,7 @@ export function VReport() {
   const go = useGo();
   const me = useCurrent();
   const [period, setPeriod] = useState<"week" | "month" | "all">("week");
-  const [r, setR] = useState<Awaited<ReturnType<typeof V.report>> | null>(null);
-  useEffect(() => { if (me) { setR(null); V.report(me.venue.id, period).then(setR).catch(() => null); } }, [me?.venue.id, period]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [r] = useCached<Awaited<ReturnType<typeof V.report>>>(me ? `report:${me.venue.id}:${period}` : null, () => V.report(me!.venue.id, period));
   const max = Math.max(1, ...(r?.bars.map((b) => b.amount) ?? [1]));
   const maxI = r ? r.bars.findIndex((b) => b.amount === max) : -1;
   const label = (l: string) => (period === "week" ? DOW[new Date(l).getDay()] : period === "all" ? ["қаң", "ақп", "нау", "сәу", "мам", "мау", "шіл", "там", "қыр", "қаз", "қар", "жел"][Number(l.slice(5, 7)) - 1] : l);

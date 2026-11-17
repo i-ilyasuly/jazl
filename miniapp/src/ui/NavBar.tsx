@@ -56,6 +56,15 @@ export function NavBar({ active }: { active: TabKey }) {
   // Әйнек «линза» (iOS 26 / Telegram iOS сияқты): табты басып тұрып оңға-солға жылжытса, таңдау саусақпен бірге жүреді,
   // жіберген жердегі таб ашылады (Патша, 2026-11-16).
   const [lens, setLens] = useState<number | null>(null); // тамшының сол жақ шеті, px
+  // Саусақ жіберілген таб: бет ауысқанша (idx жаңарғанша) тамшы сонда тұрады — әйтпесе алдымен ескі табқа қайтып, сосын қайта келеді
+  const [landing, setLanding] = useState<number | null>(null);
+  useEffect(() => {
+    if (landing === null) return;
+    if (landing === idx) { setLanding(null); return; }
+    const t = setTimeout(() => setLanding(null), 900); // бет ауыспаса (мысалы, Сканер) — орнына оралады
+    return () => clearTimeout(t);
+  }, [landing, idx]);
+  const at = lens !== null ? lens / 94 : landing ?? idx;
   const drag = useRef<{ x0: number; moved: boolean; id: number } | null>(null);
   const navEl = useRef<HTMLElement>(null);
   const suppress = useRef(false);
@@ -71,7 +80,7 @@ export function NavBar({ active }: { active: TabKey }) {
   const onUp = (e: React.PointerEvent) => {
     const d = drag.current; drag.current = null; if (!d?.moved) return;
     suppress.current = true; setTimeout(() => { suppress.current = false; }, 0);
-    const i = Math.round(posOf(e.clientX) / 94); setLens(null); act(i);
+    const i = Math.round(posOf(e.clientX) / 94); if (tabs[i]?.key !== "scan") setLanding(i); setLens(null); act(i);
   };
   const [tip, setTip] = useState(-1);
   useEffect(() => {
@@ -84,9 +93,9 @@ export function NavBar({ active }: { active: TabKey }) {
   const shown = active === "home" && tip >= 0 ? tips[tip] : null;
   return (
     <nav ref={navEl} className={s.nav} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; setLens(null); }}>
-      <div ref={pill} className={`${s.activeBg} ${lens !== null ? s.lens : ""}`} style={{ translate: `${lens ?? idx * 94}px 0` }} />
+      <div ref={pill} className={`${s.activeBg} ${lens !== null ? s.lens : ""}`} style={{ translate: `${lens ?? (landing ?? idx) * 94}px 0` }} />
       {tabs.map((t, i) => {
-        const on = lens !== null ? Math.round(lens / 94) === i : t.key === active;
+        const on = Math.round(at) === i;
         return (
           <button key={t.key} className={s.tab} style={{ left: 1 + i * 94 }} onClick={() => { if (!suppress.current) act(i); }}>
             <span className={`${s.iconBox} ${on && !first.current ? s["play_" + t.key] : ""}`}>

@@ -21,19 +21,25 @@ export function preloadSticker(name: StickerName) {
 
 // ЕРЕЖЕ (Патша, 2026-11-17, ескі «үздіксіз қайталансын» ережесінің орнына): стикер бет ашылғанда бір рет ойнайды да,
 // соңғы кадрында тоқтайды. Үстінен басқанда басынан қайта ойнайды.
-type Anim = { destroy(): void; play(): void; pause(): void; goToAndPlay(v: number, f: boolean): void; isPaused: boolean; addEventListener(e: string, f: () => void): void };
+type Anim = { destroy(): void; play(): void; pause(): void; goToAndPlay(v: number, f: boolean): void; goToAndStop(v: number, f: boolean): void; totalFrames: number; isPaused: boolean; addEventListener(e: string, f: () => void): void };
+// Бетке қайта оралғанда (мысалы, мәзірде табтан табқа) стикер қайта ойнамайды — бірден соңғы кадрда тұрады (Патша, 2026-11-17)
+const seen = new Set<string>();
 export function Sticker({ name, size = 120, className }: { name: StickerName; size?: number; className?: string }) {
   const box = useRef<HTMLSpanElement>(null);
   const anim = useRef<Anim | null>(null);
   const [ready, setReady] = useState(false);
+  const [instant, setInstant] = useState(false);
   useEffect(() => {
     let dead = false; let io: IntersectionObserver | undefined; let played = false;
+    const key = window.location.hash.split("?")[0] + "|" + name;
+    const again = seen.has(key);
     setReady(false);
     void preloadSticker(name).then(([m, data]) => {
       if (dead || !box.current) return;
       const a = m.default.loadAnimation({ container: box.current, renderer: "svg", loop: false, autoplay: false, animationData: data }) as unknown as Anim;
       anim.current = a;
-      a.addEventListener("complete", () => { played = true; });
+      a.addEventListener("complete", () => { played = true; seen.add(key); });
+      if (again) { played = true; a.goToAndStop(a.totalFrames - 1, true); setInstant(true); setReady(true); return; }
       setReady(true);
       // Бірінші рет экранға шыққанда ойнайды (бет төменде болса — көрінген сәтте), бір рет қана
       io = new IntersectionObserver(([e]) => { if (e.isIntersecting && !played) a.play(); else if (!e.isIntersecting && !played) a.pause(); });
@@ -42,5 +48,5 @@ export function Sticker({ name, size = 120, className }: { name: StickerName; si
     return () => { dead = true; io?.disconnect(); anim.current?.destroy(); anim.current = null; };
   }, [name]);
   const replay = () => { const a = anim.current; if (a && a.isPaused) a.goToAndPlay(0, true); };
-  return <span ref={box} className={className} aria-hidden onClick={replay} style={{ cursor: "pointer", display: "block", width: size, height: size, opacity: ready ? 1 : 0, transform: ready ? "none" : "scale(0.85)", transition: "opacity 0.3s ease, transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1)" }} />;
+  return <span ref={box} className={className} aria-hidden onClick={replay} style={{ cursor: "pointer", display: "block", width: size, height: size, opacity: ready ? 1 : 0, transform: ready ? "none" : "scale(0.85)", transition: instant ? "none" : "opacity 0.3s ease, transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1)" }} />;
 }
