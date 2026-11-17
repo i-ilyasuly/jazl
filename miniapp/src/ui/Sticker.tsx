@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 export type StickerName = "egg" | "search" | "love" | "cry" | "sleep" | "stop" | "shop" | "wait" | "think" | "empty" | "lock" | "offline" | "party" | "phone" | "gift" | "hello" | "bags" | "archive" | "clean" | "sad" | "repair"
   // Мекеме бөлімі (Figma «Стикер кітапханасы (мекеме)»; design/sticker-packs: HalloDuck, UtyaDuck)
-  | "chart" | "race" | "team" | "chef" | "city" | "money" | "clock" | "partyhat";
+  | "chart" | "race" | "team" | "chef" | "city" | "money" | "clock" | "partyhat" | "painter";
 const files = import.meta.glob("../assets/stickers/*.json", { import: "default" }) as Record<string, () => Promise<object>>;
 
 type Lottie = typeof import("lottie-web/build/player/lottie_light");

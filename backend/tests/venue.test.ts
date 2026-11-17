@@ -122,4 +122,25 @@ d("C мекеме бөлімі", () => {
     const prof = (await json(get(`/v1/venue/${venueId}/staff/${await userId(702)}`, 701))).staff;
     expect(prof.today.count).toBe(1);
   });
+  it("ұсыныс құру: жоба → жариялау (жеңілдік ≥10%), ұсыныс беті, бағаны өзгерту (50%+ түсіру — растау), өшіру", async () => {
+    const body = { title: "Тауық бургер", category: "Бургер", about: "Тауық еті, *соус*", sizes: [{ units: 4, price: 7600 }], regularUnitPrice: 2000, validDays: 30,
+      rules: { carry: true, extend: true, preorder: false, branches: null }, publish: false };
+    expect((await post(`/v1/venue/${venueId}/offers`, body, 702)).status).toBe(403); // кассир құра алмайды
+    const d = await json(post(`/v1/venue/${venueId}/offers`, body, 701));
+    expect(d.offer.status).toBe("draft");
+    expect((await post(`/v1/venue/${venueId}/offers`, { ...body, publish: true, sizes: [{ units: 4, price: 7900 }] }, 701)).status).toBe(409); // 1,25% ғана жеңілдік
+    expect((await app.request(`/v1/venue/${venueId}/offers/${d.offer.id}`, { method: "PUT", headers: h(701), body: JSON.stringify({ ...body, publish: true, sizes: [{ units: 4, price: 6000 }, { units: 8, price: 11200 }] }) })).status).toBe(200);
+    const o = (await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer;
+    expect(o).toMatchObject({ status: "active", category: "Бургер", about: "Тауық еті, *соус*" });
+    expect(o.sizes.map((x: { units: number }) => x.units)).toEqual([4, 8]);
+    expect(o.stats.series).toHaveLength(7);
+    const big = await post(`/v1/venue/${venueId}/offers/${d.offer.id}/price`, { units: 8, price: 5000 }, 701);
+    expect(big.status).toBe(409); expect((await big.json()).error).toBe("big_drop");
+    expect((await post(`/v1/venue/${venueId}/offers/${d.offer.id}/price`, { units: 8, price: 5000, confirmDrop: true }, 701)).status).toBe(200);
+    expect((await post(`/v1/venue/${venueId}/offers/${d.offer.id}/price`, { units: 8, price: 9000 }, 702)).status).toBe(403);
+    expect((await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer.sizes[1].price).toBe(5000);
+    const d2 = await json(post(`/v1/venue/${venueId}/offers`, body, 701));
+    await post(`/v1/venue/${venueId}/offers/${d2.offer.id}/remove`, {}, 701);
+    expect((await get(`/v1/venue/${venueId}/offers/${d2.offer.id}`, 701)).status).toBe(404);
+  });
 });
