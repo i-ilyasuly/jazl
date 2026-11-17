@@ -412,6 +412,30 @@ export function venueRoutes(cfg: Config, db: Db) {
     return c.json({ ok: true });
   });
 
+  // ── 10 · Пікірлер (Figma 14011:9042, 9146, 9272) ──
+  r.get("/venue/:venueId/reviews", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const f = c.req.query("filter") ?? "all";
+    const all = (await db.execute(sql`select r.id, r.stars::int, r.text, r.reply, r.replied_at, r.created_at, u.first_name, u.last_name, o.title,
+        (select b.address from app.redemptions rd join app.branches b on b.id = rd.branch_id where rd.pack_id = r.pack_id order by rd.created_at desc limit 1) as branch
+      from app.ratings r join app.users u on u.id = r.user_id left join app.packs p on p.id = r.pack_id left join app.offers o on o.id = p.offer_id
+      where r.venue_id = ${venueId} order by r.created_at desc limit 300`)).rows as { id: string; stars: number; text: string | null; reply: string | null; replied_at: Date | null; created_at: Date; first_name: string; last_name: string | null; title: string | null; branch: string | null }[];
+    const dist = [5, 4, 3, 2, 1].map((st) => all.filter((x) => x.stars === st).length);
+    const avg = all.length ? Math.round((all.reduce((a, x) => a + x.stars, 0) / all.length) * 10) / 10 : null;
+    const items = all.filter((x) => (f === "noreply" ? !x.reply && x.text : f === "low" ? x.stars <= 3 : true)).slice(0, 100);
+    return c.json({ ok: true, summary: { avg, count: all.length, dist, noReply: all.filter((x) => !x.reply && x.text).length },
+      items: items.map((x) => ({ id: x.id, stars: x.stars, text: x.text, reply: x.reply, repliedAt: x.replied_at, at: x.created_at, customer: short(x.first_name, x.last_name), offer: x.title?.split(" · ")[0] ?? null, branch: x.branch })) });
+  });
+  r.post("/venue/:venueId/reviews/:id/reply", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const b = z.object({ text: z.string().trim().min(2).max(300) }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const res = await db.execute(sql`update app.ratings set reply = ${b.data.text}, replied_at = now() where id = ${c.req.param("id")} and venue_id = ${venueId} returning id`);
+    return res.rows.length ? c.json({ ok: true }) : c.json({ ok: false, error: "not_found" }, 404);
+  });
+
   // ── 09 · Есеп (тек иесі) ─────────────────────────────────────
   r.get("/venue/:venueId/report", async (c) => {
     const venueId = c.req.param("venueId");
