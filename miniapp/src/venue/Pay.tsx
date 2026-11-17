@@ -91,6 +91,7 @@ export function VQr() {
   const [st, setSt] = useState<QrState | null>(null);
   const [svg, setSvg] = useState("");
   const [now, setNow] = useState(Date.now());
+  const shownCode = useRef("");
   const shownExp = useRef(0); // көрсетіліп тұрған QR суретінің мерзімі: сервер жаңа код бергенде ғана суретті ауыстырамыз
   useEffect(() => {
     let dead = false;
@@ -99,8 +100,10 @@ export function VQr() {
         const r = await V.qrState(id); if (dead) return;
         setSt(r);
         if (r.status === "paid") { haptic.success(); go(`/v/pay/done/${id}`, "forward", { replace: true, state: r.paid }); }
-        if (r.status === "waiting" && r.exp !== shownExp.current) {
-          shownExp.current = r.exp;
+        // Сурет тек код ауысқанда (әр 30 с) не көрсетілген QR-дың мерзімі бітуге 5 с қалғанда ғана қайта салынады —
+        // әр 2 с-тағы сұрауда жаңармайды (Патша, 2026-11-17: «2 секунд сайын жаңарып жатыр»)
+        if (r.status === "waiting" && (r.code !== shownCode.current || Date.now() / 1000 > shownExp.current - 5)) {
+          shownExp.current = r.exp; shownCode.current = r.code;
           setSvg(await QRCode.toString(r.payload, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#111a26", light: "#ffffff" } }));
         }
       } catch { /* желі — келесі айналым */ }

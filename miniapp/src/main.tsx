@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
 import { useLocked, useOnboarded } from "./store";
-import { Splash, Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
+import { Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
 import "./styles/base.css";
 import { initTelegram } from "./telegram";
 import { Home } from "./screens/Home";
@@ -108,7 +108,8 @@ function Shell() {
   const tab = tabOf[path] ?? (path.startsWith("/category/") ? "home" : undefined);
   const onboarded = useOnboarded();
   const locked = useLocked();
-  if (onboarded === null) return <div className="app"><Splash /></div>;
+  // Патша (2026-11-17): «Jazl+» жүктелу экраны алынды — баптаулар оқылғанша (CloudStorage, ~50–200 мс) бос фон ғана
+  if (onboarded === null) return <div className="app" />;
   if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/v/") && path !== "/v") return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
