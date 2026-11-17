@@ -14,11 +14,13 @@ import { TelegramChrome } from "../ui/TelegramChrome";
 import s from "./ServerReceipt.module.css";
 
 interface Rc {
-  id: string; no: string; total: number; status: string; title: string; dateLocal: string; verifyUrl: string;
+  id: string; no: string; kind?: string; total: number; status: string; title: string; dateLocal: string; verifyUrl: string;
+  left?: number; via?: string; extra?: { amount: number; note: string } | null;
   seller: { name: string; address: string | null; bin: string | null };
-  item: { title: string; units: number; unitName: string; pricePerUnit: number; regularPricePerUnit: number; regularTotal: number; saving: number; discountPct: number };
-  payment: { label: string; ref: string; mode: string };
-  pack: { validFrom: string; validUntil: string; validDays: number; howToUse: string };
+  item: { title: string; units: number; unitName: string; pricePerUnit: number; regularPricePerUnit?: number; regularTotal?: number; saving?: number; discountPct?: number };
+  /** Тек сатып алу чегінде. Қолдану/тапсырыс чегінде жоқ (бұрын осыдан бет құлайтын — Патша, 2026-11-17) */
+  payment?: { label: string; ref: string; mode: string };
+  pack?: { validFrom: string; validUntil: string; validDays: number; howToUse: string };
 }
 
 const Row = ({ k, v, mono, copy }: { k: string; v: string; mono?: boolean; copy?: boolean }) => (
@@ -58,6 +60,7 @@ export function ServerReceipt() {
     <div className={s.page}><TelegramChrome mode="back" onBack={back} /><p className={`t-sub2 ${s.state}`}>{err ? "Чекті жүктеу мүмкін болмады" : "Жүктелуде…"}</p></div>
   );
   const i = rc.item;
+  const buy = Boolean(rc.payment && rc.pack);
   return (
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} onDark />
@@ -70,40 +73,53 @@ export function ServerReceipt() {
       <article className={s.paper}>
         <span className={s.perf} aria-hidden />
         <p className={s.title}>{rc.title}</p>
-        <p className={s.total}>{fmt(rc.total)}</p>
+        <p className={s.total}>{buy ? fmt(rc.total) : `${i.units} ${i.unitName}`}</p>
         <span className={s.status}>{rc.status}</span>
 
-        <h2 className={s.sec}>Сатып алынды</h2>
-        <Row k="Пакет" v={i.title} />
-        <Row k="Көлемі" v={`${i.units} ${i.unitName}`} />
-        <Row k="1 бірлік бағасы" v={fmt(i.pricePerUnit)} />
-        <Row k="Бөлек алғанда" v={`${fmt(i.regularPricePerUnit)} / ${i.unitName}`} />
-        <Row k="Бөлек алғандағы сомасы" v={fmt(i.regularTotal)} />
-        <div className={s.save}><span>Сіздің үнеміңіз</span><b>{fmt(i.saving)} · {i.discountPct}%</b></div>
+        {buy ? <>
+          <h2 className={s.sec}>Сатып алынды</h2>
+          <Row k="Пакет" v={i.title} />
+          <Row k="Көлемі" v={`${i.units} ${i.unitName}`} />
+          <Row k="1 бірлік бағасы" v={fmt(i.pricePerUnit)} />
+          <Row k="Бөлек алғанда" v={`${fmt(i.regularPricePerUnit ?? 0)} / ${i.unitName}`} />
+          <Row k="Бөлек алғандағы сомасы" v={fmt(i.regularTotal ?? 0)} />
+          <div className={s.save}><span>Сіздің үнеміңіз</span><b>{fmt(i.saving ?? 0)} · {i.discountPct ?? 0}%</b></div>
+        </> : <>
+          <h2 className={s.sec}>Қолданылды</h2>
+          <Row k="Пакет" v={i.title} />
+          <Row k="Көлемі" v={`${i.units} ${i.unitName}`} />
+          {rc.left != null && <Row k="Пакетте қалды" v={`${rc.left} ${i.unitName}`} />}
+          {rc.via && <Row k="Тәсілі" v={rc.via} />}
+          {rc.extra?.amount ? <Row k="Қосымша" v={`${fmt(rc.extra.amount)} · кассада бөлек`} /> : null}
+          <Row k="Уақыты" v={rc.dateLocal} />
+          <Row k="Чек №" v={rc.no} copy />
+        </>}
 
         <h2 className={s.sec}>Мекеме</h2>
         <Row k="Атауы" v={rc.seller.name} />
         {rc.seller.address && <Row k="Мекенжайы" v={rc.seller.address} />}
         {rc.seller.bin && <Row k="БСН" v={rc.seller.bin} mono />}
 
-        <h2 className={s.sec}>Төлем</h2>
-        <Row k="Тәсілі" v={rc.payment.label} />
-        <Row k="Уақыты" v={rc.dateLocal} />
-        <Row k="Чек №" v={rc.no} copy />
-        <Row k="Транзакция" v={rc.payment.ref.slice(0, 18)} copy />
+        {rc.payment && rc.pack && <>
+          <h2 className={s.sec}>Төлем</h2>
+          <Row k="Тәсілі" v={rc.payment.label} />
+          <Row k="Уақыты" v={rc.dateLocal} />
+          <Row k="Чек №" v={rc.no} copy />
+          <Row k="Транзакция" v={rc.payment.ref.slice(0, 18)} copy />
 
-        <h2 className={s.sec}>Пакет мерзімі</h2>
-        <Row k="Басталды" v={rc.pack.validFrom} />
-        <Row k="Аяқталады" v={rc.pack.validUntil} />
-        <Row k="Мерзімі" v={`${rc.pack.validDays} күн`} />
+          <h2 className={s.sec}>Пакет мерзімі</h2>
+          <Row k="Басталды" v={rc.pack.validFrom} />
+          <Row k="Аяқталады" v={rc.pack.validUntil} />
+          <Row k="Мерзімі" v={`${rc.pack.validDays} күн`} />
+        </>}
 
         <div className={s.cut} aria-hidden />
         <div className={s.verify}>
           <span className={s.qr} dangerouslySetInnerHTML={{ __html: qr }} />
           <span className={s.vText}><b>Чекті тексеру</b><small>QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Jazl+ ботында ашылады.</small><em className="mono">{rc.no}</em></span>
         </div>
-        {rc.payment.mode === "test" && <p className={s.test}>Сынақ төлемі — ақша алынған жоқ</p>}
-        <p className={s.legal}>{rc.pack.howToUse}. Jazl+ — агент: пакет мекемеден Jazl+ сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.</p>
+        {rc.payment?.mode === "test" && <p className={s.test}>Сынақ төлемі — ақша алынған жоқ</p>}
+        <p className={s.legal}>{rc.pack ? rc.pack.howToUse + ". " : ""}Jazl+ — агент: пакет мекемеден Jazl+ сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.</p>
       </article>
       {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={() => void download()}>{main.text}</button></div>}
     </div>

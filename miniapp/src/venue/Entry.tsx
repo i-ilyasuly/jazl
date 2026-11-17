@@ -8,7 +8,7 @@ import { Sticker } from "../ui/Sticker";
 import { Tile } from "../ui/Tile";
 import { SUPPORT_BOT } from "../config";
 import { err, loadStaff, roleName, setPick, useStaff, V } from "./api";
-import { Buttons, VPage } from "./ui";
+import { Buttons, VPage, VSticker } from "./ui";
 import s from "./V.module.css";
 
 /** /v — кім екеніне қарай: қызметкер емес → Қош келдіңіз; расталмаған → күту; бірнеше мекеме → таңдау; әйтпесе рөлдің басты беті */
@@ -32,8 +32,8 @@ export function VWelcome() {
   const join = useCallback(() => go("/v/join"), [go]);
   return (
     <VPage>
-      <div className={s.result} style={{ marginTop: 20 }}>
-        <Sticker name="egg" size={140} />
+      <div className={s.result} style={{ marginTop: 24 }}>
+        <VSticker name="egg" size={150} />
         <h1 className={s.resultTitle} style={{ fontSize: 26 }}>Jazl+ Мекеме</h1>
         <p className={s.stateText}>Пакеттер, кассир режимі және есептер бір жерде</p>
       </div>
@@ -89,8 +89,8 @@ export function VJoin() {
   const back = useCallback(() => go(-1, "back"), [go]);
   return (
     <VPage title="Шақыру коды" back>
-      <div className={s.result}>
-        <Sticker name={bad ? "think" : "lock"} size={110} />
+      <div className={s.result} style={{ marginTop: 10 }}>
+        <VSticker name={bad ? "think" : "lock"} size={110} />
         <h2 className={s.resultTitle} style={{ fontSize: 22 }}>{bad ? "Код қате" : "Кодты енгіз"}</h2>
         <p className={s.stateText}>{bad ? "Код дұрыс емес немесе мерзімі өтті. Мекеме иесінен жаңа код сұра." : "Мекеме иесі жіберген 6 таңбалы код. Ол қосымшада «Кассир шақыру» арқылы жасалады."}</p>
       </div>
@@ -118,8 +118,8 @@ export function VPending() {
   const contact = useCallback(() => openChat(SUPPORT_BOT), []);
   return (
     <VPage>
-      <div className={s.state}>
-        <Sticker name="wait" size={140} />
+      <div className={s.state} style={{ top: "calc(362px + var(--top-shift))" }}>
+        <VSticker name="wait" size={120} />
         <h2 className={s.stateTitle}>Сұраныс жіберілді</h2>
         <p className={s.stateText}>Мекеме иесі растағанша күтіңіз. Растау кезінде Telegram арқылы хабарлаймыз.</p>
       </div>

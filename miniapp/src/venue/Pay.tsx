@@ -1,15 +1,14 @@
 // Figma «05 · Кассир»: Клиенттің пакетін таңда (14015:7998), Қосымша баға теру (14015:8108), Төлем QR (14015:8259),
 // Төлем өтті (14015:8306), QR мерзімі өтті (14015:8971).
-// Жазба «Кассир қалай жұмыс істейді»: кассир соманы термейді — пакетті таңдайды, QR дана бағасын көрсетеді; қосымша тауар пакеттен
-// алынбайды, клиент оны кассада бөлек төлейді. QR суреті әр 30 с жаңарады (Патшаның ережесі), сеанс 2 минут жарамды, астында 6 таңбалы код.
+// Патша (2026-11-17): кассир беттерінде баға мүлде көрсетілмейді — тек пакет пен бірлік; «Қосымша баға» алынды.
+// QR суреті мен астындағы 4 таңбалы код әр 30 секунд сайын бірге жаңарады; сеанс кассир экраны ашық тұрғанда 10 минут.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { useGo } from "../nav";
 import { haptic, nativePick } from "../telegram";
-import { Sticker } from "../ui/Sticker";
-import { dayMonth, err, hm, money, useCurrent, V, type Paid, type QrState, type VOffer } from "./api";
-import { Buttons, Note, OfferPic, Sheet, Sk, VPage } from "./ui";
+import { dayMonth, err, hm, useCurrent, V, type Paid, type QrState, type VOffer } from "./api";
+import { Buttons, Note, OfferPic, Sk, VPage, VSticker } from "./ui";
 import s from "./V.module.css";
 
 interface Draft { branchId: string; offer: VOffer; units: number; extras: { amount: number; qty: number }[] }
@@ -23,14 +22,11 @@ export function VPay() {
   const [branch, setBranch] = useState(draft?.branchId ?? me?.branchId ?? me?.branches[0]?.id ?? "");
   const [offerId, setOfferId] = useState(draft?.offer.id ?? "");
   const [units, setUnits] = useState(draft?.units ?? 1);
-  const [extras, setExtras] = useState(draft?.extras ?? []);
-  const [keypad, setKeypad] = useState(false);
+  const extras: Draft["extras"] = []; // қосымша баға алынды (Патша, 2026-11-17) — сеансқа 0 жіберіледі
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (me) V.offers(me.venue.id).then((l) => { const act = l.filter((o) => o.status === "active"); setOffers(act); setOfferId((x) => x || act[0]?.id || ""); }).catch(() => setOffers([])); }, [me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!branch && me?.branches[0]) setBranch(me.branches[0].id); }, [me, branch]);
   const offer = offers?.find((o) => o.id === offerId);
-  const fromPack = offer ? offer.unitPrice * units : 0;
-  const cash = extras.reduce((a, x) => a + x.amount * x.qty, 0);
 
   const make = useCallback(async () => {
     if (!offer || !branch || busy) return;
@@ -58,7 +54,7 @@ export function VPay() {
         : offers.map((o) => (
           <button key={o.id} className={`${s.offer} ${o.id === offerId ? s.offerOn : ""}`} onClick={() => { haptic.select(); setOfferId(o.id); setUnits(1); }}>
             <span className={s.offerPic}><OfferPic kind={o.kind} size={30} /></span>
-            <span className={s.rowText}><span className={s.offerName}>{o.title}</span><span className={s.offerSub}>Бірлік {money(o.unitPrice)}</span></span>
+            <span className={s.rowText}><span className={s.offerName}>{o.title}</span><span className={s.offerSub}>Пакет: {[...new Set(o.sizes)].join(" · ")} бірлік</span></span>
             <span className={`${s.check} ${o.id === offerId ? s.checkOn : ""}`} />
           </button>
         ))}
@@ -70,26 +66,10 @@ export function VPay() {
         </div>
       </div>
 
-      <h2 className={s.blueHead}>Қосымша (пакеттен алынбайды)</h2>
-      <div className={s.card}>
-        {extras.map((x, i) => (
-          <div key={i} className={s.stepRow}>
-            <span className={s.rowText}><span className={s.rowTitle}>Басқа баға</span><span className={s.rowSub}>{money(x.amount)}</span></span>
-            <Stepper value={x.qty} min={0} max={20} onChange={(q) => setExtras((l) => l.map((y, k) => (k === i ? { ...y, qty: q } : y)).filter((y) => y.qty > 0))} />
-          </div>
-        ))}
-        <div className={s.stepRow}>
-          <span className={s.rowText}><span className={s.rowTitle}>+ Басқа баға</span><span className={s.rowSub}>Қолмен енгізу</span></span>
-          <div className={s.stepper}><button className={s.stepBtn} disabled aria-label="Азайту">−</button><span className={s.stepVal}>0</span><button className={s.stepBtn} onClick={() => { haptic.tap(); setKeypad(true); }} aria-label="Қосу">+</button></div>
-        </div>
-      </div>
-
       <div className={s.sum}>
-        <div className={s.kv}><span>Пакеттен төленеді</span><b className={s.blue}>{money(fromPack)}</b></div>
-        {cash > 0 && <div className={s.kv}><span>Клиент кассада төлейді</span><b>{money(cash)}</b></div>}
+        <div className={s.kv}><span>Пакеттен алынады</span><b className={s.blue}>{units} бірлік</b></div>
       </div>
-      <Buttons main={{ text: busy ? "QR жасалуда…" : `QR шығару · ${money(fromPack)}`, onClick: () => void make(), disabled: !offer || busy, shine: true }} />
-      {keypad && <ExtraPad onClose={() => setKeypad(false)} onDone={(a) => { setKeypad(false); if (a > 0) setExtras((l) => [...l, { amount: a, qty: 1 }]); }} />}
+      <Buttons main={{ text: busy ? "QR жасалуда…" : `QR шығару · ${units} бірлік`, onClick: () => void make(), disabled: !offer || busy, shine: true }} />
     </VPage>
   );
 }
@@ -104,28 +84,6 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
   );
 }
 
-/** Figma «Қосымша баға теру»: 700 ₸ үлкен сан, 3×4 пернетақта, сары ескерту. */
-function ExtraPad({ onClose, onDone }: { onClose: () => void; onDone: (amount: number) => void }) {
-  const [v, setV] = useState("");
-  const press = (k: string) => { haptic.select(); setV((x) => (k === "del" ? x.slice(0, -1) : k === "," ? x : (x + k).replace(/^0+/, "").slice(0, 7))); };
-  const amount = Number(v || 0);
-  return (
-    <Sheet title="Қосымша тауар бағасы" onClose={onClose} grab={false}>
-      <div className={s.card} style={{ padding: "12px 16px", textAlign: "center" }}>
-        <span className={s.rowSub}>Тауар атауы (міндетті емес)</span>
-        <div className={s.big} style={{ fontSize: 32, lineHeight: "40px", color: "var(--text-strong)" }}>{amount.toLocaleString("ru-RU")} ₸</div>
-      </div>
-      <div className={s.keys}>
-        {["1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0", "del"].map((k) => (
-          <button key={k} className={s.key} onClick={() => press(k)} aria-label={k === "del" ? "Өшіру" : k}>{k === "del" ? "⌫" : k}</button>
-        ))}
-      </div>
-      <Note tone="warn">Бұл сома клиенттің пакет балансынан алынбайды. Клиент қолма-қол немесе басқа банк арқылы төлейді.</Note>
-      <Buttons main={{ text: amount ? `Қосу · ${money(amount)}` : "Қосу", onClick: () => onDone(amount), disabled: !amount }} second={{ text: "Бас тарту", onClick: onClose }} />
-    </Sheet>
-  );
-}
-
 /** Төлем QR: сурет әр 30 с жаңарады, сеанс 2 минут; клиент төлесе — «Төлем өтті», мерзімі өтсе — «QR мерзімі өтті». */
 export function VQr() {
   const go = useGo();
@@ -133,7 +91,7 @@ export function VQr() {
   const [st, setSt] = useState<QrState | null>(null);
   const [svg, setSvg] = useState("");
   const [now, setNow] = useState(Date.now());
-  const shownExp = useRef(0); // көрсетіліп тұрған QR суретінің мерзімі: 5 с қалғанда ғана жаңасымен ауыстырамыз (әр 2 с жыпылықтамау үшін)
+  const shownExp = useRef(0); // көрсетіліп тұрған QR суретінің мерзімі: сервер жаңа код бергенде ғана суретті ауыстырамыз
   useEffect(() => {
     let dead = false;
     const poll = async () => {
@@ -141,7 +99,7 @@ export function VQr() {
         const r = await V.qrState(id); if (dead) return;
         setSt(r);
         if (r.status === "paid") { haptic.success(); go(`/v/pay/done/${id}`, "forward", { replace: true, state: r.paid }); }
-        if (r.status === "waiting" && Date.now() / 1000 > shownExp.current - 5) {
+        if (r.status === "waiting" && r.exp !== shownExp.current) {
           shownExp.current = r.exp;
           setSvg(await QRCode.toString(r.payload, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#111a26", light: "#ffffff" } }));
         }
@@ -164,25 +122,23 @@ export function VQr() {
   const expired = st?.status === "expired" || (st?.status === "waiting" && new Date(st.expiresAt).getTime() <= now);
   if (expired) return (
     <VPage>
-      <div className={s.state}><Sticker name="sleep" size={140} /><h2 className={s.stateTitle}>QR мерзімі өтті</h2><p className={s.stateText}>Қауіпсіздік үшін QR 2 минуттан кейін өшеді. Жаңасын шығар.</p></div>
+      <div className={s.state} style={{ top: "calc(362px + var(--top-shift))" }}><VSticker name="sleep" size={120} /><h2 className={s.stateTitle}>QR мерзімі өтті</h2><p className={s.stateText}>Қауіпсіздік үшін QR 10 минуттан кейін өшеді. Жаңасын шығар.</p></div>
       <Buttons main={{ text: "Жаңа QR", onClick: () => void again() }} second={{ text: "Бас тарту", onClick: () => go("/v/cashier", "back", { replace: true }) }} />
     </VPage>
   );
-  const left = st?.status === "waiting" ? Math.max(0, Math.round((new Date(st.expiresAt).getTime() - now) / 1000)) : 120;
+  const left = st?.status === "waiting" ? Math.max(0, Math.round((new Date(st.codeExp).getTime() - now) / 1000)) : 30;
   const w = st?.status === "waiting" ? st : null; // сеанс деректері серверден (бет қайта ашылса да)
-  const extra = w ? w.extra : draft ? extraSum(draft) : 0;
   return (
     <VPage title="Төлем QR" back>
-      <div className={s.amount}>{w?.amount != null ? money(w.amount) : <Sk w={140} h={36} />}</div>
+      <div className={s.amount}>{w ? `${w.units} бірлік` : <Sk w={140} h={36} />}</div>
       {w?.title && <p className={`${s.muted} ${s.amountSub}`}>{w.title} × {w.units} • пакеттен</p>}
       <div className={s.qrCard}>
         <span className={`${s.qrImg} ${svg ? "" : s.qrFade}`} dangerouslySetInnerHTML={{ __html: svg }} />
         <span className={s.valid}><i className={s.clock} />Жарамдылығы {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}</span>
-        <span className={`${s.bar} ${left < 30 ? s.low : ""}`}><i style={{ width: `${(left / 120) * 100}%` }} /></span>
+        <span className={`${s.bar} ${left <= 5 ? s.low : ""}`}><i style={{ width: `${(left / 30) * 100}%` }} /></span>
       </div>
-      {st?.status === "waiting" && <div className={s.code}><span>Код</span><b>{st.code.slice(0, 3)} {st.code.slice(3)}</b></div>}
+      {st?.status === "waiting" && <div className={s.code}><span>Код</span><b>{st.code}</b></div>}
       <p className={`t-cap1 ${s.muted} ${s.center}`} style={{ marginTop: -6 }}>Сканер істемесе, клиент осы кодты енгізеді</p>
-      {extra > 0 && <span className={s.extraPill}>Қосымша {money(extra)}: кассада төленеді</span>}
       <span className={s.wait}><span className={s.dots}><i /><i /><i /></span>Клиент төлемін күтеміз</span>
       <Note>Клиент Jazl+ қолданбасындағы сканермен осы QR-ды оқысын.</Note>
       <Buttons main={{ text: "Пакетті өзгерту", onClick: () => void change() }} second={{ text: "Бас тарту", onClick: () => void cancel() }} />
@@ -200,18 +156,17 @@ export function VPaid() {
   const receipt = useCallback(() => { if (p?.receiptId) go(`/receipt/srv/${p.receiptId}`); }, [p, go]);
   return (
     <VPage>
-      <div className={s.result}>
-        <Sticker name="party" size={120} />
+      <div className={s.result} style={{ marginTop: -6 }}>
+        <VSticker name="partyhat" size={120} />
         <h1 className={s.resultTitle}>Төлем өтті</h1>
-        <span className={s.resultSum}>{p ? "+" + money(p.venueAmount) : <Sk w={140} h={36} />}</span>
-        <p className={`t-sub2 ${s.muted}`}>Ақша сол сәтте мекеме шотына бөлінді</p>
+        <span className={s.resultSum}>{p ? `${p.units} бірлік` : <Sk w={140} h={36} />}</span>
+        <p className={`t-sub2 ${s.muted}`}>Клиенттің пакетінен шегерілді</p>
       </div>
       {p && (
         <div className={s.card}>
           <div className={s.kv}><span>Клиент</span><b>{p.customer}</b></div>
           <div className={s.kv}><span>Пакет</span><b>{p.title} × {p.units}</b></div>
           <div className={s.kv}><span>Пакет күйі</span><span className={s.tag}>{p.left} / {p.total} бірлік қалды</span></div>
-          {p.extra > 0 && <div className={s.kv}><span>Қосымша</span><b>{money(p.extra)} • кассада төленеді</b></div>}
           <div className={s.kv}><span>Уақыты</span><b>{dayMonth(p.at)}, {hm(p.at)}</b></div>
           {p.ref && <div className={s.kv}><span>Банк референсі</span><b>{p.ref}</b></div>}
         </div>

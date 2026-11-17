@@ -4,10 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { haptic, nativePick } from "../telegram";
-import { Sticker } from "../ui/Sticker";
 import { dayKey, dayMonth, err, hm, isToday, money, useCurrent, V, type Use, type VOrder } from "./api";
 import { UseRow } from "./Home";
-import { Buttons, Note, Sheet, Sk, VPage } from "./ui";
+import { Buttons, Note, Sheet, Sk, VPage, VSticker } from "./ui";
 import s from "./V.module.css";
 
 const ranges = [{ d: 1, t: "Бүгін" }, { d: 7, t: "7 күн" }, { d: 30, t: "30 күн" }];
@@ -87,7 +86,7 @@ export function VRefunded() {
   const { n = "1" } = useParams();
   return (
     <VPage>
-      <div className={s.state}><Sticker name="love" size={140} /><h2 className={s.stateTitle}>Қайтарылды</h2><p className={s.stateText}>Клиентке {n} дана қайтарылды. Түзету «Есеп» бөлімінде көрінеді.</p></div>
+      <div className={s.state} style={{ top: "calc(362px + var(--top-shift))" }}><VSticker name="party" size={120} /><h2 className={s.stateTitle}>Қайтарылды</h2><p className={s.stateText}>Клиентке {n} дана қайтарылды. Түзету «Есеп» бөлімінде көрінеді.</p></div>
       <Buttons main={{ text: "Түсінікті", onClick: () => go(-1, "back") }} />
     </VPage>
   );
@@ -110,7 +109,7 @@ export function VOrders() {
     <VPage title="Тапсырыстар" back>
       <div className={s.teamHead}>
         <div><h1 className={s.h1} style={{ maxWidth: 230 }}>Алдын ала тапсырыс</h1><p className={s.muted} style={{ marginTop: 6 }}>Клиент тапсырысы осында келеді</p></div>
-        <Sticker name="shop" size={96} />
+        <VSticker name="chef" size={92} at={[300, 90]} />
       </div>
       {list === null ? <Sk h={80} /> : list.length === 0 ? <div className={s.card}><div className={s.row}><span className={s.rowSub}>Қазір белсенді тапсырыс жоқ</span></div></div>
         : list.map((o) => {

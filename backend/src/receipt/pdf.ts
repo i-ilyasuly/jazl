@@ -7,11 +7,12 @@ import { fileURLToPath } from "node:url";
 
 const font = (n: string) => fileURLToPath(new URL(`../../assets/fonts/${n}.ttf`, import.meta.url));
 export interface PublicReceipt {
-  no: string; total: number; status: string; title: string; dateLocal: string;
+  no: string; total: number; status: string; title: string; dateLocal: string; kind?: string; left?: number; via?: string; extra?: { amount: number; note: string } | null;
   seller: { name: string; address: string | null; bin: string | null; kind?: string };
-  item: { title: string; units: number; unitName: string; pricePerUnit: number; regularPricePerUnit: number; regularTotal: number; saving: number; discountPct: number };
-  payment: { label: string; ref: string; mode: string };
-  pack: { validFrom: string; validUntil: string; validDays: number; howToUse: string };
+  item: { title: string; units: number; unitName: string; pricePerUnit: number; regularPricePerUnit?: number; regularTotal?: number; saving?: number; discountPct?: number };
+  /** Тек сатып алу чегінде; қолдану/тапсырыс чегінде жоқ */
+  payment?: { label: string; ref: string; mode: string };
+  pack?: { validFrom: string; validUntil: string; validDays: number; howToUse: string };
   verifyUrl: string;
 }
 
@@ -43,7 +44,9 @@ export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
 
   let y = y0 + 26;
   doc.font("S").fontSize(10).fillColor(C.sub).text(r.title, x, y, { width: w, align: "center" }); y += 18;
-  doc.font("B").fontSize(34).fillColor(C.ink).text(money(r.total), x, y, { width: w, align: "center" }); y += 46;
+  // Қолдану чегінде ақша емес, дана көрсетіледі (Патша: кассир мен клиентке қолдануда баға көрсетілмейді)
+  const buy = Boolean(r.payment && r.pack);
+  doc.font("B").fontSize(34).fillColor(C.ink).text(buy ? money(r.total) : `${r.item.units} ${r.item.unitName}`, x, y, { width: w, align: "center" }); y += 46;
   // Мәртебе белгісі
   const st = r.status.toUpperCase(); doc.font("B").fontSize(9);
   const sw = doc.widthOfString(st, { characterSpacing: 1.2 }) + 22;
@@ -61,33 +64,46 @@ export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
     y += 20;
   };
 
-  section("Сатып алынды");
-  row("Пакет", r.item.title);
-  row("Көлемі", `${r.item.units} ${r.item.unitName}`);
-  row("1 бірлік бағасы", money(r.item.pricePerUnit));
-  row("Бөлек алғанда", `${money(r.item.regularPricePerUnit)} / ${r.item.unitName}`);
-  row("Бөлек алғандағы сомасы", money(r.item.regularTotal));
-  // Үнем — жасыл жолақ
-  y += 4; doc.roundedRect(x + 16, y, w - 32, 34, 8).fill(C.greenBg);
-  doc.font("S").fontSize(10).fillColor(C.green).text("Сіздің үнеміңіз", x + 28, y + 11);
-  doc.font("B").fontSize(13).fillColor(C.green).text(`${money(r.item.saving)} · ${r.item.discountPct}%`, x + 16, y + 9, { width: w - 44, align: "right" });
-  y += 46;
+  if (buy) {
+    section("Сатып алынды");
+    row("Пакет", r.item.title);
+    row("Көлемі", `${r.item.units} ${r.item.unitName}`);
+    row("1 бірлік бағасы", money(r.item.pricePerUnit));
+    row("Бөлек алғанда", `${money(r.item.regularPricePerUnit ?? 0)} / ${r.item.unitName}`);
+    row("Бөлек алғандағы сомасы", money(r.item.regularTotal ?? 0));
+    // Үнем — жасыл жолақ
+    y += 4; doc.roundedRect(x + 16, y, w - 32, 34, 8).fill(C.greenBg);
+    doc.font("S").fontSize(10).fillColor(C.green).text("Сіздің үнеміңіз", x + 28, y + 11);
+    doc.font("B").fontSize(13).fillColor(C.green).text(`${money(r.item.saving ?? 0)} · ${r.item.discountPct ?? 0}%`, x + 16, y + 9, { width: w - 44, align: "right" });
+    y += 46;
+  } else {
+    section("Қолданылды");
+    row("Пакет", r.item.title);
+    row("Көлемі", `${r.item.units} ${r.item.unitName}`);
+    if (r.left != null) row("Пакетте қалды", `${r.left} ${r.item.unitName}`);
+    if (r.via) row("Тәсілі", r.via);
+    if (r.extra?.amount) row("Қосымша", `${money(r.extra.amount)} · кассада бөлек`);
+    row("Уақыты", r.dateLocal);
+    row("Чек №", r.no, true);
+  }
 
   section("Мекеме");
   row("Атауы", r.seller.name);
   if (r.seller.address) row("Мекенжайы", r.seller.address);
   if (r.seller.bin) row("БСН", r.seller.bin, true);
 
-  section("Төлем");
-  row("Тәсілі", r.payment.label);
-  row("Уақыты", r.dateLocal);
-  row("Чек №", r.no, true);
-  row("Транзакция", r.payment.ref.slice(0, 22), true);
+  if (r.payment && r.pack) {
+    section("Төлем");
+    row("Тәсілі", r.payment.label);
+    row("Уақыты", r.dateLocal);
+    row("Чек №", r.no, true);
+    row("Транзакция", r.payment.ref.slice(0, 22), true);
 
-  section("Пакет мерзімі");
-  row("Басталды", r.pack.validFrom);
-  row("Аяқталады", r.pack.validUntil);
-  row("Мерзімі", `${r.pack.validDays} күн`);
+    section("Пакет мерзімі");
+    row("Басталды", r.pack.validFrom);
+    row("Аяқталады", r.pack.validUntil);
+    row("Мерзімі", `${r.pack.validDays} күн`);
+  }
 
   // «Билет» кесігі: екі жақта жарты шеңбер + үзік сызық
   y += 8; doc.circle(x, y, 9).fill(C.page); doc.circle(x + w, y, 9).fill(C.page);
@@ -102,11 +118,11 @@ export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
   doc.font("M").fontSize(9).fillColor(C.blueDark).text(r.no, qx + 98, qy + 68);
   y += 98;
 
-  if (r.payment.mode === "test") {
+  if (r.payment?.mode === "test") {
     doc.roundedRect(x + 16, y, w - 32, 26, 8).fill(C.amberBg);
     doc.font("S").fontSize(9).fillColor(C.amber).text("Сынақ төлемі — ақша алынған жоқ", x + 16, y + 9, { width: w - 32, align: "center" }); y += 36;
   }
-  doc.font("R").fontSize(8).fillColor(C.sub).text(`${r.pack.howToUse}. Jazl+ — агент: пакет мекемеден Jazl+ сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.`, x + 16, y, { width: w - 32, lineGap: 1.5, align: "center" });
+  doc.font("R").fontSize(8).fillColor(C.sub).text(`${r.pack ? r.pack.howToUse + ". " : ""}Jazl+ — агент: пакет мекемеден Jazl+ сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.`, x + 16, y, { width: w - 32, lineGap: 1.5, align: "center" });
 
   doc.end();
   return done;

@@ -1,0 +1,1 @@
+ALTER TABLE "app"."qr_sessions" ADD COLUMN "code_exp" timestamp with time zone DEFAULT now() NOT NULL;

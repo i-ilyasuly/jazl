@@ -96,8 +96,8 @@ export function CodeEntry() {
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => { const t = setTimeout(() => input.current?.focus(), 350); return () => clearTimeout(t); }, []);
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); go(-1, "back"); } }), [go]);
-  const main = useMemo(() => ({ text: "Растау", disabled: code.length < 6, onClick: () => {
-    if (code.length < 6) return;
+  const main = useMemo(() => ({ text: "Растау", disabled: code.length < 4, onClick: () => {
+    if (code.length < 4) return;
     haptic.medium();
     // Кассир QR-ының астындағы 6 таңбалы код → сервер сол сеанстың QR-ын қайтарады → әдеттегі төлем парағы
     api<{ qr: string }>("/v1/qr/code", { method: "POST", body: JSON.stringify({ code }) })
@@ -106,18 +106,18 @@ export function CodeEntry() {
   } }), [code, go]);
   return (
     <SubPage title="Код енгізу" top={92}>
-      <p className={`t-text ${s.lead} rise`}>Сканер істемесе, кассирдің экранындағы 6 таңбалы кодты енгіз.</p>
+      <p className={`t-text ${s.lead} rise`}>Сканер істемесе, кассирдің экранындағы 4 таңбалы кодты енгіз.</p>
       <label key={shake} className={`${s.boxes} ${shake ? s.shake : ""} rise`} style={{ ["--i" as string]: 1 }}>
-        {Array.from({ length: 6 }, (_, i) => (
+        {Array.from({ length: 4 }, (_, i) => (
           <span key={i} className={`t-title2 ${s.box} ${i === code.length && !error ? s.active : ""} ${error ? s.bad : ""}`}>{code[i] ?? ""}</span>
         ))}
-        <input ref={input} className={s.input} value={code} inputMode="numeric" autoComplete="one-time-code" maxLength={6} aria-label="Код"
-          onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 6); if (v.length > code.length) haptic.tap(); setError(false); setCode(v); }} />
+        <input ref={input} className={s.input} value={code} inputMode="numeric" autoComplete="one-time-code" maxLength={4} aria-label="Код"
+          onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 4); if (v.length > code.length) haptic.tap(); setError(false); setCode(v); }} />
       </label>
       {error
         ? <p className={`t-sub2 ${s.err}`} role="alert">Код қате немесе мерзімі өтті. Кассирден жаңа код сұра.</p>
         : <>
-            <p className={`t-sub2 ${s.hint} rise`} style={{ ["--i" as string]: 2 }}>Код QR-дың астында жазылған және 2 минут жарамды.</p>
+            <p className={`t-sub2 ${s.hint} rise`} style={{ ["--i" as string]: 2 }}>Код QR-дың астында жазылған және 30 секунд сайын жаңарады.</p>
             <p className={`t-sub2 ${b.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 3 }}>Қолмен енгізу де төлемді дәл сол пакеттен алып, кассаға жібереді.<i>”</i></p>
           </>}
       <Bar left={left} main={main} />
