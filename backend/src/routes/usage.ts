@@ -180,7 +180,7 @@ export function usageRoutes(cfg: Config, db: Db) {
       .innerJoin(users, eq(orders.userId, users.id)).innerJoin(branches, eq(orders.branchId, branches.id))
       .where(and(inArray(branches.venueId, vs), inArray(orders.status, ["sent", "accepted", "ready"]), gt(orders.createdAt, new Date(Date.now() - 7 * 86400_000)))).orderBy(orders.scheduledAt, orders.createdAt);
     // Кассирге кодты көрсетпейміз — клиент айтады, кассир тексереді
-    return c.json({ ok: true, orders: rows.map((x) => ({ id: x.o.id, no: x.o.no, type: x.o.type, status: x.o.status, scheduledAt: x.o.scheduledAt, courier: x.o.courier, title: x.off.title, customer: x.u.firstName, branch: x.b.address, createdAt: x.o.createdAt })) });
+    return c.json({ ok: true, orders: rows.map((x) => ({ id: x.o.id, no: x.o.no, type: x.o.type, status: x.o.status, scheduledAt: x.o.scheduledAt, courier: x.o.courier, title: x.off.title, customer: x.u.firstName, username: x.u.username, branch: x.b.address, branchId: x.b.id, createdAt: x.o.createdAt })) });
   });
 
   const Status = z.object({ status: z.enum(["accepted", "ready", "missed"]) }).strict();
@@ -230,7 +230,7 @@ export function usageRoutes(cfg: Config, db: Db) {
     const rows = await db.select({ rd: redemptions, off: offers, u: users, b: branches }).from(redemptions).innerJoin(branches, eq(redemptions.branchId, branches.id))
       .innerJoin(packs, eq(redemptions.packId, packs.id)).innerJoin(offers, eq(packs.offerId, offers.id)).innerJoin(users, eq(packs.userId, users.id))
       .where(and(inArray(branches.venueId, vs), gt(redemptions.createdAt, new Date(Date.now() - 30 * 60_000)))).orderBy(desc(redemptions.createdAt));
-    return c.json({ ok: true, redemptions: rows.map((x) => ({ id: x.rd.id, units: x.rd.units, title: x.off.title, customer: x.u.firstName, at: x.rd.createdAt, cancelled: Boolean(x.rd.cancelledAt),
+    return c.json({ ok: true, redemptions: rows.map((x) => ({ id: x.rd.id, units: x.rd.units, title: x.off.title, customer: x.u.firstName, username: x.u.username, branchId: x.b.id, at: x.rd.createdAt, cancelled: Boolean(x.rd.cancelledAt),
       canCancel: !x.rd.cancelledAt && Date.now() - x.rd.createdAt.getTime() < CANCEL_MS })) });
   });
   r.post("/venue/redemptions/:id/cancel", async (c) => {

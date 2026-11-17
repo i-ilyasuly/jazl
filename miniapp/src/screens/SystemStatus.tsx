@@ -6,6 +6,8 @@ import { api, API_URL } from "../api";
 import { catalogState, loadCatalog } from "../catalog";
 import { inTelegram, haptic } from "../telegram";
 import { Group, Note, Row, SubPage } from "../ui/SubPage";
+import { desk, loadStaff, roleName, useStaff } from "../desk";
+import { useGo } from "../nav";
 
 type Me = { user: { firstName: string; lang: string; city: string } };
 const ok = (t: string) => <b className="t-text" style={{ color: "#1b6b2e", ["--dark-fg" as string]: "var(--tone-ok)" }}>{t}</b>;
@@ -42,6 +44,7 @@ export function SystemStatus() {
         <Row title="Сіз" right={me === null ? wait : me.ok ? ok(`${me.name} · тіркелді`) : bad(me.why)} />
       </Group>
       <Group i={3}><Row title="Қайта тексеру" onClick={() => { haptic.tap(); check(); }} /></Group>
+      {cat.branches.length > 0 && <TestDesk list={cat.branches} />}
       {cat.branches.length > 0 && <TestQrs list={cat.branches} />}
       <Note i={4}>Бұл бет бэкендтің мини аппен байланысын көрсетеді. «Сервер» деп тұрса — ұсыныстардың бағасы мен атауы дерекқордан келді.</Note>
     </SubPage>
@@ -103,6 +106,27 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
         {mode === "jazl" && <span className="t-cap1 w-600" style={{ color: left <= 5 ? "#e53935" : "var(--link)" }}>QR {left} секундтан кейін жаңарады</span>}
         <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Компьютерден ашып, телефондағы Jazl+ → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — серверде шегеріледі; басқа мекемеден болса — ескерту шығады.</span>
       </div>
+    </Group>
+  );
+}
+
+/** C2 сынағы: өзіңді мекеменің иесі қылып, кассир экрандарын телефоннан көру (тек сынақ режимі, нақты режимде сервер 404 қайтарады). */
+function TestDesk({ list }: { list: { venue: string; slug: string }[] }) {
+  const go = useGo();
+  const staff = useStaff();
+  const [busy, setBusy] = useState("");
+  const venues = list.filter((b, i) => list.findIndex((x) => x.slug === b.slug) === i);
+  const toggle = async (slug: string, leave: boolean) => {
+    setBusy(slug);
+    try { await desk.devJoin(slug, leave); haptic.success(); await loadStaff(); if (!leave) go("/desk"); } catch { haptic.error(); } finally { setBusy(""); }
+  };
+  return (
+    <Group header="Мекеме бөлімі · сынақ (C2)" i={4}>
+      {venues.map((v) => {
+        const mine = staff?.find((x) => x.venue.slug === v.slug);
+        return <Row key={v.slug} inset={16} title={v.venue} sub={mine ? `Сіз: ${roleName[mine.role]} · басып шығыңыз` : "Басып иесі болыңыз → Касса ашылады"}
+          onClick={() => { if (!busy) void toggle(v.slug, Boolean(mine)); }} right={busy === v.slug ? wait : mine ? ok("қызметкер") : undefined} />;
+      })}
     </Group>
   );
 }
