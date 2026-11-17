@@ -144,7 +144,7 @@ export async function syncServerPacks() {
 /** B3: серверге жіберу көмекшісі — пакет серверде болса ғана; кілт қайталанған сұрауда екінші рет шегерілмеуі үшін. */
 const newKey = () => (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + Date.now());
 const srvError = (e: unknown) => ((e as { body?: { error?: string } }).body?.error ?? "network");
-/** Кассадағы QR арқылы бір бірлік (серверде). Қате болса — себебі (other_venue, no_units, not_jazl_qr, …). */
+/** Кассадағы QR арқылы бір бірлік (серверде). Қате болса — себебі (other_venue, no_units, not_medeo_qr, …). */
 export async function redeemOnServer(packId: string, qr: string, units = 1): Promise<{ ok: true; receiptId?: string; left?: number } | { ok: false; error: string; expectedUnits?: number; venue?: string } | null> {
   const p = getPack(packId); if (!p?.serverId || !qr) return null;
   try { const j = await api<{ receipt?: { id: string }; left?: number }>("/v1/redeem", { method: "POST", body: JSON.stringify({ packId: p.serverId, qr, units, idempotencyKey: newKey() }) }, 12000); return { ok: true, receiptId: j.receipt?.id, left: j.left }; }
@@ -266,32 +266,32 @@ export const useNoticePrefs = () => useSyncExternalStore(subscribe, () => prefs)
 export const useUnread = () => useSyncExternalStore(subscribe, () => unread);
 export function readNotice(id: string) {
   notices = notices.map((n) => (n.id === id ? { ...n, read: true } : n)); count(); emit();
-  kv.set("jazl_read", notices.filter((n) => n.read).map((n) => n.id).join(","));
+  kv.set("medeo_read", notices.filter((n) => n.read).map((n) => n.id).join(","));
 }
 export function setNoticePref(k: keyof NoticePrefs, v: boolean) {
-  prefs = { ...prefs, [k]: v }; emit(); kv.set("jazl_notice_prefs", JSON.stringify(prefs));
+  prefs = { ...prefs, [k]: v }; emit(); kv.set("medeo_notice_prefs", JSON.stringify(prefs));
   // Серверге де: бот хабарламалары (мысалы, мерзім ескертуі) осы баптауға қарайды
   void api("/v1/me", { method: "PATCH", body: JSON.stringify({ notify: { [k]: v } }) }).catch(() => null);
 }
-void kv.get("jazl_notice_prefs").then((v) => { if (v) { try { prefs = { ...prefs, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
-void kv.get("jazl_read").then((v) => { if (v) { const ids = v.split(","); notices = notices.map((n) => ({ ...n, read: ids.includes(n.id) })); count(); emit(); } });
+void kv.get("medeo_notice_prefs").then((v) => { if (v) { try { prefs = { ...prefs, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
+void kv.get("medeo_read").then((v) => { if (v) { const ids = v.split(","); notices = notices.map((n) => ({ ...n, read: ids.includes(n.id) })); count(); emit(); } });
 
 // ── Баптаулар: қауіпсіздік, тіл, қала ───────────────────────────────────────
 export interface Settings { lock: boolean; bio: boolean; autolock: string; onCard: boolean; onMethods: boolean; onOpen: boolean; lang: "tg" | "kk" | "ru"; astanaNotify: boolean; geo: "unknown" | "granted" | "denied" }
 let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true, onMethods: true, onOpen: true, lang: "tg", astanaNotify: false, geo: "unknown" };
 export const useSettings = () => useSyncExternalStore(subscribe, () => settings);
 export const getSettings = () => settings;
-export function setSettings(patch: Partial<Settings>) { settings = { ...settings, ...patch }; emit(); kv.set("jazl_settings", JSON.stringify(settings)); }
-void kv.get("jazl_settings").then((v) => { if (v) { try { settings = { ...settings, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
+export function setSettings(patch: Partial<Settings>) { settings = { ...settings, ...patch }; emit(); kv.set("medeo_settings", JSON.stringify(settings)); }
+void kv.get("medeo_settings").then((v) => { if (v) { try { settings = { ...settings, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
 
 // ── Таңдаулы ────────────────────────────────────────────────────────────────
 let favs: string[] = ["doner", "burger", "cappuccino"];
 let restock: string[] = [];
 export const useFavs = () => useSyncExternalStore(subscribe, () => favs);
 export const useRestock = () => useSyncExternalStore(subscribe, () => restock);
-export function toggleFav(id: string) { favs = favs.includes(id) ? favs.filter((x) => x !== id) : [id, ...favs]; emit(); kv.set("jazl_favs", favs.join(",")); }
+export function toggleFav(id: string) { favs = favs.includes(id) ? favs.filter((x) => x !== id) : [id, ...favs]; emit(); kv.set("medeo_favs", favs.join(",")); }
 export function toggleRestock(id: string) { restock = restock.includes(id) ? restock.filter((x) => x !== id) : [...restock, id]; emit(); }
-void kv.get("jazl_favs").then((v) => { if (v !== null) { favs = v ? v.split(",") : []; emit(); } });
+void kv.get("medeo_favs").then((v) => { if (v !== null) { favs = v ? v.split(",") : []; emit(); } });
 
 // ── Төлем тәсілдері ─────────────────────────────────────────────────────────
 export interface PayMethod { id: string; emoji: string; title: string; sub: string; card: boolean; /** серверде сақталған карта */ cardId?: string; /** бір реттік карта (сақталмаған): провайдер криптограммасы */ cryptogram?: string }
@@ -307,8 +307,8 @@ export function addMethod(m: PayMethod, makeDefault = true) { methods = [...meth
 // Kaspi Pay шоты жіберілетін нөмір (пайдаланушы «сақта» десе ғана сақталады)
 let kaspiPhone = "";
 export const useKaspiPhone = () => useSyncExternalStore(subscribe, () => kaspiPhone);
-export function setKaspiPhone(v: string) { kaspiPhone = v; emit(); kv.set("jazl_kaspi_phone", v); }
-void kv.get("jazl_kaspi_phone").then((v) => { if (v) { kaspiPhone = v; emit(); } });
+export function setKaspiPhone(v: string) { kaspiPhone = v; emit(); kv.set("medeo_kaspi_phone", v); }
+void kv.get("medeo_kaspi_phone").then((v) => { if (v) { kaspiPhone = v; emit(); } });
 export function removeMethod(id: string) {
   const m = methods.find((x) => x.id === id);
   methods = methods.filter((x) => x.id !== id); if (defaultMethod === id) defaultMethod = "kaspi"; emit();
@@ -330,11 +330,11 @@ export function adoptPurchase(offerId: string, p: { id: string; receipt: { id: s
 
 // ── PIN ─────────────────────────────────────────────────────────────────────
 // Ескерту: нағыз жүйеде PIN серверде тексеріледі. Бэкенд қосылғанша құрылғыда тек хэші сақталады (кодтың өзі емес).
-const pinHash = (v: string) => { let h = 2166136261; for (const c of "jazl+pin:" + v) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+const pinHash = (v: string) => { let h = 2166136261; for (const c of "medeo+pin:" + v) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 let pin: string | null = null;
 export const hasPin = () => pin !== null;
 export const checkPin = (v: string) => pin === pinHash(v);
-export function savePin(v: string) { pin = pinHash(v); kv.set("jazl_pin_h", pin); }
+export function savePin(v: string) { pin = pinHash(v); kv.set("medeo_pin_h", pin); }
 
 // ── Экран құлпы (Figma 17 «PIN / 3 Қолданба құлыпталған») ──────────────────
 // Қолданба ашылғанда (баптауда «Қолданбаны ашқанда» қосулы болса) және фонда «Автоқұлып» уақытынан
@@ -348,7 +348,7 @@ export const pinFresh = () => Date.now() < pinOkUntil;
 export function unlockApp() { locked = false; emit(); }
 // Патша (2026-11-17): ашқандағы құлып алынды — растау тек бірлік жұмсағанда (scanFlow.confirmSpend). Демо: #…lock=1
 const lockOn = () => false;
-void Promise.all([kv.get("jazl_pin_h"), kv.get("jazl_settings")]).then(([h, st]) => {
+void Promise.all([kv.get("medeo_pin_h"), kv.get("medeo_settings")]).then(([h, st]) => {
   if (h) pin = h;
   if (st) { try { settings = { ...settings, ...JSON.parse(st) }; } catch { /* бұзылған мән */ } }
   if (window.location.hash.includes("lock=1")) { if (!pin) pin = pinHash("1111"); locked = true; }
@@ -421,7 +421,7 @@ export async function acceptServerGift(code: string): Promise<string | null> {
 }
 /** Сыйлық сілтемесі: бот орнатылса — t.me/<бот>/<app>?startapp=gift_<id>, әйтпесе Mini App мекенжайы. */
 export const giftLink = (id: string) => appLink("gift", gifts.find((g) => g.id === id)?.code ?? id);
-/** Ботқа апаратын сілтеме: t.me/oylarbot?startapp=<түр>_<id>; бот жоқ болса — сайт мекенжайы. */
+/** Ботқа апаратын сілтеме: t.me/Mmedeo_bot?startapp=<түр>_<id>; бот жоқ болса — сайт мекенжайы. */
 export const appLink = (kind: "gift" | "venue" | "offer", id: string) =>
   BOT_APP_LINK ? `${BOT_APP_LINK}?startapp=${kind}_${id}` : `${SITE_URL}/#/${kind === "gift" ? "gift/open" : kind}/${id}`;
 /** Бот хабарламаны дайындайды (savePreparedInlineMessage) → WebApp.shareMessage үшін id. Бэкенд жоқ болса — null. */
@@ -444,26 +444,26 @@ export function setGiftStatus(id: string, status: GiftStatus, label: string) { g
 // ── Соңғы іздеулер ──────────────────────────────────────────────────────────
 let recent: string[] = ["донер", "латте", "шаш қию"];
 export const useRecent = () => useSyncExternalStore(subscribe, () => recent);
-const saveRecent = () => kv.set("jazl_recent", JSON.stringify(recent));
+const saveRecent = () => kv.set("medeo_recent", JSON.stringify(recent));
 export function addRecent(q: string) { const v = q.trim().toLowerCase(); if (!v) return; recent = [v, ...recent.filter((x) => x !== v)].slice(0, 5); emit(); saveRecent(); }
 export function removeRecent(q: string) { recent = recent.filter((x) => x !== q); emit(); saveRecent(); }
 export function clearRecent() { recent = []; emit(); saveRecent(); }
-void kv.get("jazl_recent").then((v) => { if (v) { try { recent = JSON.parse(v); emit(); } catch { /* бұзылған мән */ } } });
+void kv.get("medeo_recent").then((v) => { if (v) { try { recent = JSON.parse(v); emit(); } catch { /* бұзылған мән */ } } });
 
 // ── Алғашқы кіру ────────────────────────────────────────────────────────────
 // null — әлі оқылып жатыр (бастапқы экран көрсетіледі), false — таныстыру керек, true — өткен.
 let onboarded: boolean | null = null;
 export const useOnboarded = () => useSyncExternalStore(subscribe, () => onboarded);
-/** «Деректерді жою» (Figma 18): құрылғыдағы барлық Jazl+ деректерін тазартып, онбордингке қайтарады.
+/** «Деректерді жою» (Figma 18): құрылғыдағы барлық Medeo деректерін тазартып, онбордингке қайтарады.
  *  Бэкенд қосылғанда: DELETE /me (аккаунт пен пакеттер серверде жойылады). */
 export function resetAll() {
-  for (const k of ["jazl_onboarded", "jazl_settings", "jazl_pin_h", "jazl_favs", "jazl_kaspi_phone", "jazl_notice_prefs", "jazl_read", "jazl_bot_ok", "jazl_nav_hints", "jazl_packs_hint"]) kv.set(k, "");
-  try { for (const k of Object.keys(localStorage)) if (k.startsWith("jazl_")) localStorage.removeItem(k); } catch { /* жеке режим */ }
+  for (const k of ["medeo_onboarded", "medeo_settings", "medeo_pin_h", "medeo_favs", "medeo_kaspi_phone", "medeo_notice_prefs", "medeo_read", "medeo_bot_ok", "medeo_nav_hints", "medeo_packs_hint"]) kv.set(k, "");
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith("medeo_")) localStorage.removeItem(k); } catch { /* жеке режим */ }
   window.location.replace(window.location.pathname + "#/welcome");
   setTimeout(() => window.location.reload(), 50);
 }
-export function finishOnboarding() { onboarded = true; emit(); kv.set("jazl_onboarded", "1"); }
-void Promise.all([kv.get("jazl_onboarded"), new Promise((r) => setTimeout(r, 500))]).then(([v]) => { onboarded = v === "1"; emit(); });
+export function finishOnboarding() { onboarded = true; emit(); kv.set("medeo_onboarded", "1"); }
+void Promise.all([kv.get("medeo_onboarded"), new Promise((r) => setTimeout(r, 500))]).then(([v]) => { onboarded = v === "1"; emit(); });
 
 // ── «Жуырда» санаттарына жазылу ─────────────────────────────────────────────
 let venueSubs: string[] = [];
@@ -471,8 +471,8 @@ export const useVenueSubs = () => useSyncExternalStore(subscribe, () => venueSub
 export function toggleVenueSub(id: string) { venueSubs = venueSubs.includes(id) ? venueSubs.filter((x) => x !== id) : [...venueSubs, id]; emit(); }
 let soonSubs: number[] = [];
 export const useSoon = () => useSyncExternalStore(subscribe, () => soonSubs);
-export function toggleSoon(pct: number) { soonSubs = soonSubs.includes(pct) ? soonSubs.filter((x) => x !== pct) : [...soonSubs, pct]; emit(); kv.set("jazl_soon", soonSubs.join(",")); }
-void kv.get("jazl_soon").then((v) => { if (v) { soonSubs = v.split(",").map(Number); emit(); } });
+export function toggleSoon(pct: number) { soonSubs = soonSubs.includes(pct) ? soonSubs.filter((x) => x !== pct) : [...soonSubs, pct]; emit(); kv.set("medeo_soon", soonSubs.join(",")); }
+void kv.get("medeo_soon").then((v) => { if (v) { soonSubs = v.split(",").map(Number); emit(); } });
 
 // ── Алдын ала тапсырыс ──────────────────────────────────────────────────────
 // Пакет бұрын төленген, сондықтан тапсырыс кезінде ешқандай шот/карта төлемі жоқ:

@@ -1,4 +1,4 @@
-/* Jazl+ Басқару: мекеме бөлімінің стиліне (V.module.css) қосымша бөлшектер */
+/* Medeo Басқару: мекеме бөлімінің стиліне (V.module.css) қосымша бөлшектер */
 .sub { margin: -12px 0 0; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
 .statBlue { background: #229af0 !important; }
 .statBlue span, .statBlue b { color: #fff !important; }

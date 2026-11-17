@@ -52,7 +52,7 @@ import { MapScreen } from "./screens/MapScreen";
 import { VenuePage } from "./screens/VenuePage";
 import { Stub } from "./screens/Stub";
 import { VNavHost } from "./venue/ui";
-// Jazl+ Басқару — бөлек жүктелетін бөлік; нативті сборкада (VITE_NO_ADMIN=1) мүлде жоқ
+// Medeo Басқару — бөлек жүктелетін бөлік; нативті сборкада (VITE_NO_ADMIN=1) мүлде жоқ
 const NO_ADMIN = import.meta.env.VITE_NO_ADMIN === "1";
 const AdminApp = NO_ADMIN ? null : lazy(() => import("./admin/App"));
 const ANavHost = NO_ADMIN ? null : lazy(() => import("./admin/ui").then((m) => ({ default: m.ANavHost })));
@@ -80,7 +80,7 @@ import { syncServerPacks } from "./store";
 const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
 
 initTelegram();
-// Бот сілтемелері t.me/oylarbot?startapp=<түр>_<id> түрінде келеді — бірден тиісті бетті ашамыз.
+// Бот сілтемелері t.me/Mmedeo_bot?startapp=<түр>_<id> түрінде келеді — бірден тиісті бетті ашамыз.
 {
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
   // Бот хабарламаларының батырмалары (backend/src/notify.ts): vo_ — тапсырыс, vc_ — шағым, pk_ — клиент пакеті, v_<бет> — мекеме беті
@@ -119,11 +119,11 @@ function FirstVisit({ children }: { children: ReactNode }) {
 function Shell() {
   const path = useLocation().pathname;
   const [, setCatalogTick] = useState(0);
-  useEffect(() => { const on = () => setCatalogTick((n) => n + 1); window.addEventListener("jazl:catalog", on); return () => window.removeEventListener("jazl:catalog", on); }, []);
+  useEffect(() => { const on = () => setCatalogTick((n) => n + 1); window.addEventListener("medeo:catalog", on); return () => window.removeEventListener("medeo:catalog", on); }, []);
   const tab = tabOf[path] ?? (path.startsWith("/category/") ? "home" : undefined);
   const onboarded = useOnboarded();
   const locked = useLocked();
-  // Патша (2026-11-17): «Jazl+» жүктелу экраны алынды — баптаулар оқылғанша (CloudStorage, ~50–200 мс) бос фон ғана
+  // Патша (2026-11-17): «Medeo» жүктелу экраны алынды — баптаулар оқылғанша (CloudStorage, ~50–200 мс) бос фон ғана
   if (onboarded === null) return <div className="app" />;
   if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/v/") && path !== "/v" && !path.startsWith("/a")) return <Navigate to="/welcome" replace />;
   return (
@@ -232,9 +232,9 @@ const router = createHashRouter([
       { path: "/profile/about", element: <About /> },
       { path: "/profile/delete", element: <DeleteData /> },
       { path: "/profile/report/done", element: <ReportDone /> },
-      // Мекеме бөлімі — Figma «Jazl+ Мекеме»
+      // Мекеме бөлімі — Figma «Medeo Мекеме»
       { path: "/v", element: <VGate /> },
-      // Jazl+ Басқару (Figma 14060:7998)
+      // Medeo Басқару (Figma 14060:7998)
       { path: "/a/*", element: AdminApp ? <Suspense fallback={<div className="app" />}><AdminApp /></Suspense> : <Navigate to="/profile" replace /> },
       { path: "/v/welcome", element: <VWelcome /> },
       { path: "/v/apply", element: <VApplyIntro /> },
@@ -282,7 +282,7 @@ const router = createHashRouter([
 
 warmImages();
 // B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
-void loadCatalog().then(() => window.dispatchEvent(new Event("jazl:catalog")));
+void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
 void loadStaff();
 void loadCards(); // сақталған карталар (сервер болса) // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»

@@ -21,7 +21,7 @@ const money = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") 
 
 export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
   const W = 340, H = 906, P = 24;
-  const doc = new PDFDocument({ size: [W, H], margin: 0, info: { Title: `Jazl+ чек ${r.no}`, Author: "Jazl+", Subject: r.item.title } });
+  const doc = new PDFDocument({ size: [W, H], margin: 0, info: { Title: `Medeo чек ${r.no}`, Author: "Medeo", Subject: r.item.title } });
   doc.registerFont("R", font("MedeoSans-Regular")); doc.registerFont("S", font("MedeoSans-SemiBold"));
   doc.registerFont("B", font("MedeoSans-Bold")); doc.registerFont("M", font("MedeoMono-Medium"));
   const chunks: Buffer[] = []; doc.on("data", (c: Buffer) => chunks.push(c));
@@ -31,7 +31,7 @@ export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
   doc.rect(0, 0, W, H).fill(C.page);
   const g = doc.linearGradient(0, 0, W, 132); g.stop(0, C.blue).stop(1, C.blueDark);
   doc.rect(0, 0, W, 132).fill(g);
-  doc.font("B").fontSize(20).fillColor("#FFFFFF").text("Jazl+", P, 22);
+  doc.font("B").fontSize(20).fillColor("#FFFFFF").text("Medeo.", P, 22);
   doc.font("S").fontSize(9).fillColor("#FFFFFF").opacity(0.85).text("ЭЛЕКТРОНДЫҚ ЧЕК", P, 30, { width: W - 2 * P, align: "right", characterSpacing: 1 }).opacity(1);
   doc.font("B").fontSize(16).fillColor("#FFFFFF").text(r.seller.name, P, 62, { width: W - 2 * P });
   if (r.seller.address) doc.font("R").fontSize(10).fillColor("#FFFFFF").opacity(0.85).text(r.seller.address, P, 84).opacity(1);
@@ -114,7 +114,7 @@ export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
   const n = qr.modules.size, cell = 84 / n, qx = x + 16, qy = y;
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (qr.modules.get(i, j)) doc.rect(qx + j * cell, qy + i * cell, cell + 0.15, cell + 0.15).fill(C.ink);
   doc.font("S").fontSize(10).fillColor(C.ink).text("Чекті тексеру", qx + 98, qy + 10);
-  doc.font("R").fontSize(9).fillColor(C.sub).text("QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Jazl+ ботында ашылады.", qx + 98, qy + 26, { width: w - 130, lineGap: 1 });
+  doc.font("R").fontSize(9).fillColor(C.sub).text("QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Medeo ботында ашылады.", qx + 98, qy + 26, { width: w - 130, lineGap: 1 });
   doc.font("M").fontSize(9).fillColor(C.blueDark).text(r.no, qx + 98, qy + 68);
   y += 98;
 
@@ -122,7 +122,7 @@ export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
     doc.roundedRect(x + 16, y, w - 32, 26, 8).fill(C.amberBg);
     doc.font("S").fontSize(9).fillColor(C.amber).text("Сынақ төлемі — ақша алынған жоқ", x + 16, y + 9, { width: w - 32, align: "center" }); y += 36;
   }
-  doc.font("R").fontSize(8).fillColor(C.sub).text(`${r.pack ? r.pack.howToUse + ". " : ""}Jazl+ — агент: пакет мекемеден Jazl+ сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.`, x + 16, y, { width: w - 32, lineGap: 1.5, align: "center" });
+  doc.font("R").fontSize(8).fillColor(C.sub).text(`${r.pack ? r.pack.howToUse + ". " : ""}Medeo — агент: пакет мекемеден Medeo сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.`, x + 16, y, { width: w - 32, lineGap: 1.5, align: "center" });
 
   doc.end();
   return done;

@@ -7,8 +7,10 @@ const Env = z.object({
   DATABASE_URL: z.string().min(1),
   /** Telegram бот токені — тек initData қолтаңбасын тексеруге */
   BOT_TOKEN: z.string().min(1),
-  /** Мини апп басқа ботта ашылса (мысалы @oylarbot) — сол боттың токені. initData екеуінің кез келгенімен тексеріледі. */
+  /** Мини апп басқа ботта ашылса (мысалы @Mmedeo_bot) — сол боттың токені. initData екеуінің кез келгенімен тексеріледі. */
   MINIAPP_BOT_TOKEN: z.string().optional(),
+  /** Ескі бот (@oylarbot, Medeo. атауына ауысқанға дейін): оның ішінен ашылған мини апп пен ескі сілтемелер біраз уақыт жұмыс істей береді */
+  LEGACY_MINIAPP_BOT_TOKEN: z.string().optional(),
   /** Мини апп мекенжайлары (CORS), үтірмен: https://a.vercel.app,https://b.vercel.app */
   ALLOWED_ORIGINS: z.string().default(""),
   /** initData қанша уақыт жарамды (секунд). Telegram ұсынысы: қысқа ұстау. */
@@ -17,20 +19,20 @@ const Env = z.object({
   PAYMENTS_MODE: z.enum(["test"]).default("test"),
   /** Карта төлемінің провайдері (src/payments): test — сынақ (ақша жүрмейді). Кейін: halyk | freedom | tiptop (шарт пен кілттер келгенде). */
   PAYMENTS_PROVIDER: z.enum(["test"]).default("test"),
-  /** Jazl комиссиясы, % (ішкі есеп: мекемеге төленетін соманы есептеу) */
-  JAZL_FEE_PCT: z.coerce.number().default(10),
+  /** Medeo комиссиясы, % (ішкі есеп: мекемеге төленетін соманы есептеу) */
+  MEDEO_FEE_PCT: z.coerce.number().default(10),
   /** Мини апп ашылатын бот (чектегі тексеру QR-ы: t.me/<бот>?startapp=rc_<нөмір>) */
   /** API-дің ашық мекенжайы (жүктеу сілтемелері үшін); жоқ болса — сұраудың host-ы */
   PUBLIC_URL: z.string().url().optional(),
-  MINIAPP_BOT_USERNAME: z.string().default("oylarbot"),
+  MINIAPP_BOT_USERNAME: z.string().default("Mmedeo_bot"),
   DB_SSL: z.enum(["require", "disable"]).default("require"),
   /** Суреттер бакеті (Google Cloud Storage, жария оқу). Жоқ болса — MEDIA_DIR (жергілікті) не сурет жүктеу өшірулі */
   MEDIA_BUCKET: z.string().optional(),
   MEDIA_DIR: z.string().optional(),
   /** 1 — техникалық жұмыстар: API 503 «maintenance» қайтарады */
-  /** Жоспарлы жұмыс кілті (Cloud Scheduler → POST /cron/tick, X-Cron-Key). Жоқ болса /cron өшірулі. Secret Manager: jazl-cron-key */
+  /** Жоспарлы жұмыс кілті (Cloud Scheduler → POST /cron/tick, X-Cron-Key). Жоқ болса /cron өшірулі. Secret Manager: medeo-cron-key */
   CRON_KEY: z.string().min(16).optional(),
-  /** Jazl+ Басқару: рұқсат етілген Telegram ID-лер, үтірмен (мысалы 123456789,987654321). Бос болса — Басқару ешкімге ашылмайды. */
+  /** Medeo Басқару: рұқсат етілген Telegram ID-лер, үтірмен (мысалы 123456789,987654321). Бос болса — Басқару ешкімге ашылмайды. */
   ADMIN_IDS: z.string().default(""),
   /** Басқарудың веб-мекенжайы (бот хабарламасындағы батырмалар осында апарады) */
   ADMIN_WEB_URL: z.string().url().default("https://miniapp-fkro.vercel.app"),
@@ -38,4 +40,5 @@ const Env = z.object({
 });
 
 export type Config = z.infer<typeof Env>;
-export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => Env.parse(env);
+// Medeo. атауына ауысу: ескі JAZL_FEE_PCT айнымалысы да оқылады (Cloud Run-да бұрын қойылған болса)
+export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => Env.parse({ ...env, MEDEO_FEE_PCT: env.MEDEO_FEE_PCT ?? env.JAZL_FEE_PCT });

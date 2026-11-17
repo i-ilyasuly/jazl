@@ -1,5 +1,6 @@
 // Figma, «01 · Кіру және таныстыру»: «Жүктелу / Бастапқы экран» 13886:14677, «Бірінші ашу / Onboarding» 13886:14713,
 // «Тіл таңдау» 13940:7998, «Қала таңдау» 13940:8029, «Шарттармен келісу» 13940:8073
+import { Brand } from "../ui/Brand";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useGo } from "../nav";
 import { finishOnboarding, setSettings, useSettings } from "../store";
@@ -17,7 +18,7 @@ export function Splash() {
     <div className={s.page}>
       <TelegramChrome mode="close" />
       <span className={s.logo} />
-      <h1 className={s.brand}>Jazl+</h1>
+      <h1 className={s.brand}><Brand /></h1>
       <p className={`t-sub2 ${s.tagline}`}>Күнделікті шығыс, үнем болып</p>
       <img src={spin} width={32} height={32} className={s.spin} alt="" />
     </div>
@@ -26,7 +27,7 @@ export function Splash() {
 
 // Эмодзи ұяшықтарының торы: 4 қатар, қадамы 74, қатарлар кезекпен ығысқан. Қатарлар баяу қарама-қарсы жылжиды.
 const colors = [["#fbe4de", "#f3ead8", "#e3ecf7", "#e9e9ec", "#f6eedb", "#e4f0e4", "#ece7f6"], ["#e9e9ec", "#f6eedb", "#e4f0e4", "#ece7f6", "#fbe4de", "#f3ead8", "#e3ecf7"], ["#ece7f6", "#fbe4de", "#f3ead8", "#e3ecf7", "#e9e9ec", "#f6eedb", "#e4f0e4"], ["#e3ecf7", "#e9e9ec", "#f6eedb", "#e4f0e4", "#ece7f6", "#fbe4de", "#f3ead8"]];
-const perks = [["#f3ead8", "Пакетті алдын ала ал", "4–12 бірлік жеңілдікпен, бір төлеммен"], ["#e9e9ec", "Кассирде сканерле", "Кассирге «Jazl бойынша» дегенің жеткілікті"], ["#e4f0e4", "Қалғанын бақыла", "Мерзімі мен бірліктер әрдайым көз алдыңда"]];
+const perks = [["#f3ead8", "Пакетті алдын ала ал", "4–12 бірлік жеңілдікпен, бір төлеммен"], ["#e9e9ec", "Кассирде сканерле", "Кассирге «Medeo бойынша» дегенің жеткілікті"], ["#e4f0e4", "Қалғанын бақыла", "Мерзімі мен бірліктер әрдайым көз алдыңда"]];
 
 export function Welcome() {
   const go = useGo();

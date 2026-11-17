@@ -35,7 +35,8 @@ const giftCode = () => randomUUID().replace(/-/g, "").slice(0, 10);
 type Sizes = { units: number; price: number; oldPrice?: number }[] | null;
 class PurchaseError extends Error { constructor(public code: string) { super(code); } }
 const almaty = (d: Date) => d.toLocaleString("ru-RU", { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-const receiptNo = (n: number) => "JZ-" + n;
+/** Medeo. атауынан кейін «MD-», бұрынғы «JZ-» чектері де оқылады (нөмір бірдей) */
+const receiptNo = (n: number) => "MD-" + n;
 
 export function packStatusNow(p: { status: string; unitsLeft: number; validUntil: Date }) {
   if (p.status !== "active") return p.status;
@@ -103,7 +104,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     }
     let res: Awaited<ReturnType<typeof provider.charge>>;
     try {
-      res = await provider.charge({ paymentId: created.id, amount: size.price, description: `Jazl+ · ${o.title}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
+      res = await provider.charge({ paymentId: created.id, amount: size.price, description: `Medeo · ${o.title}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
         card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
     } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
     if (res.status === "failed") {
@@ -131,7 +132,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
   });
 
   r.get("/receipts/no/:no", async (c) => {
-    const no = Number(c.req.param("no").replace(/^JZ-/i, ""));
+    const no = Number(c.req.param("no").replace(/^(JZ|MD)-/i, ""));
     if (!Number.isInteger(no)) return c.json({ ok: false, error: "not_found" }, 404);
     const [rc] = await db.select().from(receipts).where(and(eq(receipts.no, no), eq(receipts.userId, c.get("user").id))).limit(1);
     if (!rc) return c.json({ ok: false, error: "not_found" }, 404);
@@ -147,7 +148,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     if (!rc || (rc.userId !== c.get("user").id && !staff)) return c.json({ ok: false, error: "not_found" }, 404);
     const e = Math.floor(Date.now() / 1000) + 3600;
     const base = cfg.PUBLIC_URL ?? `https://${c.req.header("host")}`;
-    return c.json({ ok: true, url: `${base}/files/receipts/${rc.id}.pdf?e=${e}&s=${signLink(cfg, rc.id, e)}`, fileName: `Jazl-chek-${receiptNo(rc.no)}.pdf` });
+    return c.json({ ok: true, url: `${base}/files/receipts/${rc.id}.pdf?e=${e}&s=${signLink(cfg, rc.id, e)}`, fileName: `Medeo-chek-${receiptNo(rc.no)}.pdf` });
   });
 
   r.get("/receipts/:id", async (c) => {
@@ -184,7 +185,7 @@ export function receiptFileRoutes(cfg: Config, db: Db) {
     if (!rc) return c.text("Чек табылмады", 404);
     const pub = publicReceipt(rc, cfg) as unknown as PublicReceipt;
     const pdf = await receiptPdf(pub);
-    return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Jazl-chek-${pub.no}.pdf"`, "Cache-Control": "private, max-age=600" } });
+    return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Medeo-chek-${pub.no}.pdf"`, "Cache-Control": "private, max-age=600" } });
   });
   return r;
 }
@@ -239,7 +240,7 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
     const validUntil = new Date(Date.now() + o.validDays * 86400_000);
     const regularTotal = o.regularUnitPrice * units;
     const saving = Math.max(0, regularTotal - size.price);
-    const feePct = v.feePct ?? cfg.JAZL_FEE_PCT;
+    const feePct = v.feePct ?? cfg.MEDEO_FEE_PCT;
     const fee = Math.round((size.price * feePct) / 100);
     const paidAt = new Date();
     await tx.update(payments).set({ status: "paid", paidAt }).where(eq(payments.id, pay.id));
@@ -274,11 +275,11 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
         title: body.gift ? "Сыйлық сатып алынды" : body.fromPackId ? "Пакет қайта алынды" : "Пакет сатып алынды", status: "Төленді",
         dateLocal: almaty(paidAt), timezone: "Asia/Almaty",
         seller: { name: v.name, kind: v.kind, address: branch?.address ?? null, city: v.city, bin: null as string | null },
-        agent: { name: "Jazl+", note: "Пакетті Jazl+ сервисі арқылы сатып алдыңыз" },
+        agent: { name: "Medeo", note: "Пакетті Medeo сервисі арқылы сатып алдыңыз" },
         item: { title: o.title, units, carried, unitName: o.unitName, pricePerUnit: Math.round(size.price / units), regularPricePerUnit: o.regularUnitPrice, regularTotal, saving, discountPct: regularTotal ? Math.round((saving / regularTotal) * 100) : 0 },
         total: size.price, currency: "KZT",
         payment: { method: body.method, label: methodLabel, ref: pay.externalId, mode: cfg.PAYMENTS_MODE },
-        pack: { id: pack.id, validFrom: almaty(now), validUntil: almaty(validUntil), validDays: o.validDays, howToUse: "Мекемеде «Jazl бойынша» деп айтып, кассадағы QR-ды сканерле немесе алдын ала тапсырыс бер" },
+        pack: { id: pack.id, validFrom: almaty(now), validUntil: almaty(validUntil), validDays: o.validDays, howToUse: "Мекемеде «Medeo бойынша» деп айтып, кассадағы QR-ды сканерле немесе алдын ала тапсырыс бер" },
         support: { bot: "@" + cfg.MINIAPP_BOT_USERNAME },
       };
       const internal = {
@@ -294,7 +295,7 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
         rating: null,
         client: m.client,
         offer: { id: o.id, slug: o.slug, venueId: v.id, branchId: branch?.id ?? null, catalogPrice: o.price, sizesOffered: o.sizes ?? null, chosenUnits: units, priceSource: "server" },
-        money: { total: size.price, regularTotal, saving, jazlFeePct: feePct, jazlFee: fee, venuePayout: size.price - fee, currency: "KZT" },
+        money: { total: size.price, regularTotal, saving, medeoFeePct: feePct, medeoFee: fee, venuePayout: size.price - fee, currency: "KZT" },
         payment: { id: pay.id, provider: pay.provider, externalId: pay.externalId, idempotencyKey: body.idempotencyKey, createdAt: pay.createdAt, paidAt, card: m.card ?? null },
       };
       const [rc] = await tx.insert(receipts).values({ kind: "purchase", userId: user.id, packId: pack.id, paymentId: pay.id, venueId: v.id, branchId: branch?.id, total: size.price, public: pub, internal }).returning();

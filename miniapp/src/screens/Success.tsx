@@ -70,7 +70,7 @@ export function Success() {
       title="Пакет сатып алынды" paid={`Төлем қабылданды · ${fmt(offer.price)}`}
       cardTitle={offer.title} cardSub={`${offer.venue} · ${offer.distance}`} kind={offer.kind}
       total={offer.units} used={0} counter={`${offer.units} / ${offer.units} · 30 күн`}
-      next="Келесі қадам: мекемеде «Jazl бойынша» деп айт"
+      next="Келесі қадам: мекемеде «Medeo бойынша» деп айт"
       main={{ text: "Пакеттерге өту", onClick: toPacks }} secondary={{ text: "Жабу", onClick: close }} onClose={close}
     />
   );
@@ -91,7 +91,7 @@ export function Paid() {
       title="Қолданылды" paid={`${units} ${o.unitWord} пакетіңнен жұмсалды • ${o.venue}`}
       cardTitle={o.title} cardSub={o.address || o.venue} kind={o.kind}
       total={pack.total} used={pack.total - pack.left} counter={`${pack.left} / ${pack.total} қалды`}
-      next={o.kind === "hair" ? "Шеберге айт: «Jazl бойынша»" : "Кассирге айт: «Jazl бойынша» — тапсырысыңды ал"}
+      next={o.kind === "hair" ? "Шеберге айт: «Medeo бойынша»" : "Кассирге айт: «Medeo бойынша» — тапсырысыңды ал"}
       main={{ text: "Дайын", onClick: toPacks }} secondary={{ text: "Чекті көру", onClick: receipt }} onClose={toPacks}
     />
   );

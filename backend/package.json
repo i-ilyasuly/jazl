@@ -1,9 +1,9 @@
 {
-  "name": "jazl-api",
+  "name": "medeo-api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Jazl+ API: мини апп пен мекеме бөлімінің бэкенді (Cloud Run). Түбірдегі бот кодынан бөлек.",
+  "description": "Medeo API: мини апп пен мекеме бөлімінің бэкенді (Cloud Run). Түбірдегі бот кодынан бөлек.",
   "engines": {
     "node": ">=22"
   },

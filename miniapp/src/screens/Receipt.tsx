@@ -35,7 +35,7 @@ function useReceiptDownload(txn: string): { start: () => void; node: ReactNode }
 export function Receipt() {
   const go = useGo();
   const p = purchaseOf(useParams().id);
-  const dl = useReceiptDownload(p?.txn ?? "JZ-8F3K29");
+  const dl = useReceiptDownload(p?.txn ?? "MD-8F3K29");
   const download = useMemo(() => ({ text: "Чекті жүктеу", onClick: dl.start }), [dl.start]);
   useBottomButtons(download, undefined, Boolean(p));
   if (!p) return <SubPage title="Чек"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Чек табылмады</p></SubPage>;
@@ -65,13 +65,13 @@ export function UseReceipt() {
   const go = useGo();
   usePacks();
   const pack = getPack(useParams().id);
-  const dl = useReceiptDownload("JZ-8F3K29");
+  const dl = useReceiptDownload("MD-8F3K29");
   const download = useMemo(() => ({ text: "Чекті жүктеу", onClick: dl.start }), [dl.start]);
   useBottomButtons(download, undefined, Boolean(pack));
   if (!pack) return <SubPage title="Төлем чегі"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Чек табылмады</p></SubPage>;
   const o = offerOf(pack);
   const last = pack.history.find((h) => h.title.includes("пайдаланылды"));
-  const rows = [["Пакет", o.title], ["Мекеме", o.venue], ["Күні", last ? last.sub.split(" • ")[0] : "—"], ["Төлем тәсілі", "Jazl пакеті • Бірыңғай QR"], ["Банк референсі", "JZ-8F3K29"]];
+  const rows = [["Пакет", o.title], ["Мекеме", o.venue], ["Күні", last ? last.sub.split(" • ")[0] : "—"], ["Төлем тәсілі", "Medeo пакеті • Бірыңғай QR"], ["Банк референсі", "MD-8F3K29"]];
   return (
     <SubPage title="Төлем чегі" top={92}>
       <div className={s.hero}>
@@ -97,7 +97,7 @@ export function OrderReceipt() {
   const go = useGo();
   useOrders();
   const o = getOrder(useParams().id);
-  const dl = useReceiptDownload(o ? "JZ-ORD" + o.no : "JZ-ORD");
+  const dl = useReceiptDownload(o ? "MD-ORD" + o.no : "MD-ORD");
   const download = useMemo(() => ({ text: "Чекті жүктеу", onClick: dl.start }), [dl.start]);
   useBottomButtons(download, undefined, Boolean(o));
   if (!o) return <SubPage title="Тапсырыс чегі"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Чек табылмады</p></SubPage>;

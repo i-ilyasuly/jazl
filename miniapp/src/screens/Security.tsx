@@ -17,7 +17,7 @@ export function Security() {
 
   async function toggleBio(v: boolean) {
     if (!v) return setSettings({ bio: false });
-    const r = await biometricAuth("Jazl+ төлемдерін биометриямен растау");
+    const r = await biometricAuth("Medeo төлемдерін биометриямен растау");
     if (r === "ok" || r === "browser") { haptic.success(); setSettings({ bio: true }); }
     else if (r === "none") nativeAlert("Бұл құрылғыда биометрия бапталмаған.");
   }

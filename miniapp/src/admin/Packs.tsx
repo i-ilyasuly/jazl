@@ -33,7 +33,7 @@ export function APacks() {
       ))}</div>}
       <h2 className={v.sectionTitle}>{qq ? "Іздеу нәтижесі" : "Соңғы пакеттер"}</h2>
       {!d ? <Sk h={200} /> : d.packs.length === 0 ? (
-        <div className={v.result}><VSticker name="search" size={100} /><h2 className={v.stateTitle}>Ештеңе табылмады</h2><p className={v.stateText}>Чек нөмірін (JZ-…), клиент атын не тапсырыс кодын тексеріңіз.</p></div>
+        <div className={v.result}><VSticker name="search" size={100} /><h2 className={v.stateTitle}>Ештеңе табылмады</h2><p className={v.stateText}>Чек нөмірін (MD-…), клиент атын не тапсырыс кодын тексеріңіз.</p></div>
       ) : desk ? (
         // Figma «Пакеттер / Desktop»: кесте (Пакет · Ұсыныс · Клиент · Қалдық · Мерзімі)
         <table className={s.table}>

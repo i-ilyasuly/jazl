@@ -1,4 +1,4 @@
-// Jazl+ Басқару: ортақ бөлшектер — төменгі мәзір (5 таб), PIN пернетақтасы, қауіпті әрекетті растау парағы, радио жолы, мәтін өрісі.
+// Medeo Басқару: ортақ бөлшектер — төменгі мәзір (5 таб), PIN пернетақтасы, қауіпті әрекетті растау парағы, радио жолы, мәтін өрісі.
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useGo } from "../nav";
 import { haptic } from "../telegram";
@@ -55,11 +55,11 @@ export function ANav({ active, dot }: { active: ATab; dot?: boolean }) {
   );
 }
 let complaintDot = false;
-export const setComplaintDot = (v: boolean) => { complaintDot = v; window.dispatchEvent(new Event("jazl:adot")); };
+export const setComplaintDot = (v: boolean) => { complaintDot = v; window.dispatchEvent(new Event("medeo:adot")); };
 export function ANavHost({ path }: { path: string }) {
   const [, tick] = useState(0);
   const desk = useDesk();
-  useEffect(() => { const f = () => tick((n) => n + 1); window.addEventListener("jazl:adot", f); return () => window.removeEventListener("jazl:adot", f); }, []);
+  useEffect(() => { const f = () => tick((n) => n + 1); window.addEventListener("medeo:adot", f); return () => window.removeEventListener("medeo:adot", f); }, []);
   // Кең экранда — сол жақ мәзір (Figma 22); html[data-desk] бет стильдерін ауыстырады
   const on = desk && !path.startsWith("/a/pin");
   useEffect(() => { if (on) document.documentElement.dataset.desk = "1"; else delete document.documentElement.dataset.desk; return () => { delete document.documentElement.dataset.desk; }; }, [on]);

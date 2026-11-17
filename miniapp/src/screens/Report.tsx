@@ -46,7 +46,7 @@ export function ReportDone() {
   const go = useGo();
   const kind = (useLocation().state as { kind?: string } | null)?.kind ?? kinds[0];
   const done = useCallback(() => go(-1, "back"), [go]);
-  const rows: [string, string, boolean?][] = [["Өтінім №", "JZ-2041"], ["Мәселе", kind], ["Мәртебе", "Қаралуда", true]];
+  const rows: [string, string, boolean?][] = [["Өтінім №", "MD-2041"], ["Мәселе", kind], ["Мәртебе", "Қаралуда", true]];
   return (
     <SubPage title="Мәселе туралы жазу" top={372}>
       <DoneHero top={190} title="Өтінім қабылданды" text="Сізбен 24 сағат ішінде хабарласамыз" />

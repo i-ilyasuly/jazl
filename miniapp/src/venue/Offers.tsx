@@ -68,14 +68,14 @@ export function VOfferWizard() {
   const [terms, setTerms] = useState(false);
   const save = useCallback(async (publish: boolean, accepted = false) => {
     if (!me || busy) return;
-    if (publish && status === "draft" && !accepted && !(await kv.get("jazl_offer_terms"))) { setTerms(true); return; }
+    if (publish && status === "draft" && !accepted && !(await kv.get("medeo_offer_terms"))) { setTerms(true); return; }
     setBusy(true); haptic.medium();
     const body = { ...d, category: d.category || undefined, publish };
     try {
       const st = id ? (await api<{ status: string }>(`/v1/venue/${me.venue.id}/offers/${id}`, { method: "PUT", body: JSON.stringify(body) })).status
         : (await api<{ offer: { status: string } }>(`/v1/venue/${me.venue.id}/offers`, { method: "POST", body: JSON.stringify(body) })).offer.status;
       haptic.success();
-      // «Ұсыныс тексеруде» — тек Jazl+ тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
+      // «Ұсыныс тексеруде» — тек Medeo тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
     } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
@@ -89,7 +89,7 @@ export function VOfferWizard() {
   const back = useCallback(() => { if (step === 1) go(-1, "back"); else setStep((x) => x - 1); }, [step, go]);
 
   if (!me) return <VPage back><Sk h={200} /></VPage>;
-  if (terms) return <OfferTerms onBack={() => setTerms(false)} onAccept={() => { kv.set("jazl_offer_terms", "1"); setTerms(false); void save(true, true); }} />;
+  if (terms) return <OfferTerms onBack={() => setTerms(false)} onAccept={() => { kv.set("medeo_offer_terms", "1"); setTerms(false); void save(true, true); }} />;
   if (editAbout) return <AboutEditor value={d.about} onDone={(v) => { up({ about: v }); setEditAbout(false); }} />;
   const label = ["Негізгі", "Көлем және баға", "Мерзім және ережелер", "Алдын ала қарау"][step - 1];
   const branches = me.branches;
@@ -146,7 +146,7 @@ export function VOfferWizard() {
             style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, paddingTop: 4, color: "var(--text-strong)" }} />
         </label>
         <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Клиент «үнем» осы бағамен салыстырады</p>
-        {low && !locked ? <Note tone="warn">Жеңілдік 10%-дан аз ({low.units} бірлік). Jazl+ ұсыныстарында жеңілдік кемінде 10% болуы керек.</Note>
+        {low && !locked ? <Note tone="warn">Жеңілдік 10%-дан аз ({low.units} бірлік). Medeo ұсыныстарында жеңілдік кемінде 10% болуы керек.</Note>
           : <Note tone="warn">{locked ? "Жарияланған ұсыныстың бағасы «Бағаны өзгерту» арқылы ғана өзгереді (тек иесі)." : "Бірлік бағасы кассирдің пакет тізімінде көрінеді, ол QR-ды бірлікпен шығарады."}</Note>}
       </>}
 
@@ -283,7 +283,7 @@ export function VOfferReview() {
       <div className={s.state} style={{ top: "calc(351px + var(--top-shift))" }}>
         <VSticker name="think" size={120} />
         <h2 className={s.stateTitle}>Ұсыныс тексеруде</h2>
-        <p className={s.stateText}>Jazl+ командасы 24 сағат ішінде қарайды. Бекітілген соң ұсыныс клиенттерге көрінеді, нәтижесін Telegram арқылы хабарлаймыз.</p>
+        <p className={s.stateText}>Medeo командасы 24 сағат ішінде қарайды. Бекітілген соң ұсыныс клиенттерге көрінеді, нәтижесін Telegram арқылы хабарлаймыз.</p>
       </div>
       <Buttons main={{ text: "Ұсыныстарға өту", onClick: () => go("/v/offers", "fade", { replace: true }) }} />
     </VPage>
@@ -321,7 +321,7 @@ export function VOfferPage() {
   return (
     <VPage title={o.title} back tab="offers">
       {o.reviewNote?.text && <>
-        <p className="t-sub2 infoBox infoWarn" style={{ margin: 0 }}>Jazl+ түзету сұрады: «{o.reviewNote.text}». Түзеткен соң ұсыныс қайта тексеріледі.</p>
+        <p className="t-sub2 infoBox infoWarn" style={{ margin: 0 }}>Medeo түзету сұрады: «{o.reviewNote.text}». Түзеткен соң ұсыныс қайта тексеріледі.</p>
         <button className={s.btn} style={{ flex: "none" }} onClick={() => go(`/v/offers/${o.id}/edit`)}>Түзету</button>
       </>}
       <div className={s.head}>

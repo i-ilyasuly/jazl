@@ -116,23 +116,23 @@ export function VSettings() {
     await api(`/v1/venue/${me.venue.id}/prefs`, { method: "PUT", body: JSON.stringify(n) }).catch(() => haptic.error());
   };
   const setL = async (l: "kk" | "ru") => { haptic.select(); setLang(l); setSettings({ lang: l }); await api("/v1/me", { method: "PATCH", body: JSON.stringify({ lang: l }) }).catch(() => null); };
-  // Хабар Jazl+ ботына келеді (backend/src/notify.ts). Шағымдар әрқашан келеді (24 сағат ішінде жауап міндетті), сондықтан ауыстырғышы жоқ.
+  // Хабар Medeo ботына келеді (backend/src/notify.ts). Шағымдар әрқашан келеді (24 сағат ішінде жауап міндетті), сондықтан ауыстырғышы жоқ.
   const owner = me?.role === "owner";
   const rows: [keyof Prefs, string][] = ([["newOrder", "Жаңа тапсырыс"], ["newReview", "Жаңа пікір"], ["daily", "Күндік қорытынды (22:00)"], ["paymentSent", "Төлем жіберілді"], ["orderFailed", "Тапсырыс жетпеді"], ["offerEnding", "Ұсыныс мерзімі аяқталуда"]] as [keyof Prefs, string][])
     .filter(([k]) => owner || k === "newOrder" || (me?.role === "manager" && k === "newReview"));
   const [bot, setBot] = useState(botCanWrite());
-  const allowBot = async () => { haptic.medium(); const ok = await askWriteAccess(); if (ok) { haptic.success(); setBot(true); } else openChat(BOT_APP_LINK.split("/").pop() ?? "oylarbot"); };
+  const allowBot = async () => { haptic.medium(); const ok = await askWriteAccess(); if (ok) { haptic.success(); setBot(true); } else openChat(BOT_APP_LINK.split("/").pop() ?? "Mmedeo_bot"); };
   return (
     <VPage title="Баптаулар" back>
       <h2 className={s.blueHead}>Хабарландырулар</h2>
-      {bot === false && <div className="infoBox infoWarn" style={{ display: "flex", alignItems: "center", gap: 12 }}><span className="t-sub2" style={{ flex: 1 }}>Хабарлама алу үшін Jazl+ ботына рұқсат беріңіз</span><button className={s.link} onClick={() => void allowBot()}>Рұқсат беру</button></div>}
+      {bot === false && <div className="infoBox infoWarn" style={{ display: "flex", alignItems: "center", gap: 12 }}><span className="t-sub2" style={{ flex: 1 }}>Хабарлама алу үшін Medeo ботына рұқсат беріңіз</span><button className={s.link} onClick={() => void allowBot()}>Рұқсат беру</button></div>}
       <div className={s.card}>{p ? rows.map(([k, t]) => <div key={k} className={s.row} style={{ ["--inset" as string]: "16px", minHeight: 52 }}><span className={s.rowText}><span className={s.rowTitle}>{t}</span></span><Switch on={p[k]} onChange={(v) => void set(k, v)} /></div>) : <div className={s.row}><Sk h={30} /></div>}</div>
       <h2 className={s.blueHead}>Тіл</h2>
       <div className={s.seg}><button className={`${s.segBtn} ${lang === "kk" ? s.segOn : ""}`} onClick={() => void setL("kk")}>Қазақша</button><button className={`${s.segBtn} ${lang === "ru" ? s.segOn : ""}`} onClick={() => void setL("ru")}>Русский</button></div>
       <h2 className={s.blueHead}>Қауіпсіздік</h2>
       <div className={s.card}><div className={s.row}><Tile e="v:pin" size={36} /><span className={s.rowText}><span className={s.rowTitle}>PIN-код</span><span className={s.rowSub}>Кассир режимін ашу үшін</span></span>{p && <Switch on={p.pin} onChange={(v) => void set("pin", v)} />}</div></div>
       <div className={s.card}><button className={s.row} style={{ ["--inset" as string]: "16px" }} onClick={() => go("/", "fade")}><span className={s.rowText}><span className={s.rowTitle}>Жүйеден шығу</span><span className={s.rowSub}>Клиент режиміне оралу</span></span></button></div>
-      <Note>Хабарландырулар Jazl+ ботына келеді. Жаңа шағым туралы хабар әрқашан жіберіледі — оған 24 сағат ішінде жауап беру керек.</Note>
+      <Note>Хабарландырулар Medeo ботына келеді. Жаңа шағым туралы хабар әрқашан жіберіледі — оған 24 сағат ішінде жауап беру керек.</Note>
     </VPage>
   );
 }
@@ -162,13 +162,13 @@ export function VGuide() {
   const app = BOT_APP_LINK;
   useEffect(() => { void QRCode.toString(app, { type: "svg", margin: 0, color: { dark: "#111a26", light: "#0000" } }).then(setQr); }, [app]);
   const pdf = me ? `${API_URL}/files/guide/${me.venue.id}.pdf` : "";
-  const download = useCallback(async () => { if (!pdf) return; const r = await downloadFile(pdf, "Jazl-kassa.pdf"); if (r === null) saveFile(pdf, "Jazl-kassa.pdf"); }, [pdf]);
-  const steps = ["Клиент «Jazl бойынша» дейді", "Пакетті таңда, QR шығар", "Клиент сканерлейді, төлем өтті", "Қосымша тауарды бөлек төлет (қолма-қол / басқа банк)"];
+  const download = useCallback(async () => { if (!pdf) return; const r = await downloadFile(pdf, "Medeo-kassa.pdf"); if (r === null) saveFile(pdf, "Medeo-kassa.pdf"); }, [pdf]);
+  const steps = ["Клиент «Medeo бойынша» дейді", "Пакетті таңда, QR шығар", "Клиент сканерлейді, төлем өтті", "Қосымша тауарды бөлек төлет (қолма-қол / басқа банк)"];
   return (
     <VPage title="Кассаға нұсқау" back>
       <VSticker name="reader" size={78} at={[298, 125]} />
       <div className={s.card} style={{ padding: 18 }}>
-        <h1 className={s.h1} style={{ fontSize: 24, lineHeight: "30px", maxWidth: 220 }}>Jazl+ бойынша төлем</h1>
+        <h1 className={s.h1} style={{ fontSize: 24, lineHeight: "30px", maxWidth: 220 }}>Medeo бойынша төлем</h1>
         <p className={s.muted} style={{ marginTop: 2 }}>Кассир үшін 3 қадам</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
           {steps.map((t, i) => <span key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", fontSize: 17, lineHeight: "22px" }}><i style={{ flex: "none", width: 26, height: 26, borderRadius: 13, background: "#229af0", color: "#fff", display: "grid", placeItems: "center", fontStyle: "normal", fontWeight: 700, fontSize: 14 }}>{i < 3 ? i + 1 : "+"}</i>{t}</span>)}

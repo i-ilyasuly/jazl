@@ -63,7 +63,7 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
         const [rc] = await tx.insert(receipts).values({ kind: "extend", userId: user.id, packId: p.id, paymentId: pay?.id, venueId: p.venueId, total: opt.price,
           public: { title: "Мерзімі ұзартылды", status: opt.price ? "Төленді" : "Тегін", dateLocal: almaty(now), item: { title: p.title, days: opt.days }, newUntil: almaty(until) },
           internal: { version: 1, days: opt.days, price: opt.price, free: opt.price === 0, oldUntil: p.valid_until, newUntil: until, paymentId: pay?.id ?? null, status: { current: "done", history: [{ status: "done", at: now }] } } }).returning();
-        return { validUntil: until, receipt: { id: rc.id, no: "JZ-" + rc.no } };
+        return { validUntil: until, receipt: { id: rc.id, no: "MD-" + rc.no } };
       });
       return c.json({ ok: true, ...out });
     } catch (e) { return fail(c, e); }
@@ -87,7 +87,7 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
         const [rc] = await tx.insert(receipts).values({ kind: "refund", userId: user.id, packId: p.id, venueId: p.venueId, total: -p.price_paid,
           public: { title: "Ақша қайтарылды", status: "Қайтарылды", dateLocal: almaty(now), item: { title: p.title, units: p.units_total }, note: "Ақша төлем тәсіліңе 1–3 жұмыс күнінде түседі" },
           internal: { version: 1, amount: p.price_paid, reason: "unused_within_" + REFUND_DAYS + "d", status: { current: "refunded", history: [{ status: "refunded", at: now }] } } }).returning();
-        return { refunded: p.price_paid, receipt: { id: rc.id, no: "JZ-" + rc.no } };
+        return { refunded: p.price_paid, receipt: { id: rc.id, no: "MD-" + rc.no } };
       });
       return c.json({ ok: true, ...out });
     } catch (e) { return fail(c, e); }

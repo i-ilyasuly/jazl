@@ -16,7 +16,7 @@ export async function uploadImage(venueId: string, file: File, kind: "offer" | "
   const body = await shrink(file);
   const wa = (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp;
   let init = wa?.initData ?? "";
-  if (!init && import.meta.env.DEV) { try { init = localStorage.getItem("jazl_dev_init") ?? ""; } catch { /* жоқ */ } }
+  if (!init && import.meta.env.DEV) { try { init = localStorage.getItem("medeo_dev_init") ?? ""; } catch { /* жоқ */ } }
   const res = await fetch(`${API_URL}/v1/venue/${venueId}/media?kind=${kind}`, { method: "POST", body, headers: { Authorization: "tma " + init, "Content-Type": body.type || "image/jpeg" } });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(j?.error ?? "http_" + res.status), { body: j });

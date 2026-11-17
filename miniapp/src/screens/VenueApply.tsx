@@ -47,12 +47,12 @@ export function VenueApply() {
   const err = (k: string) => (bad && missing === k ? s.err : "");
   return (
     <SubPage title="Мекеме болып қосыл" top={100}>
-      <h2 className={`${s.h} rise`}>Мекемеңді Jazl+-ке қос</h2>
+      <h2 className={`${s.h} rise`}>Мекемеңді Medeo-ға қос</h2>
       <p className={`${s.lead} rise`} style={{ ["--i" as string]: 1 }}>
         <span>Мекемеңе</span><b className={s.blue}>жаңа тұрақты клиенттер</b><span>әкел.</span><span>Төлем</span><b className={s.green}>алдын ала</b><span>түседі,</span><span>ал</span><span className={s.nogap}><b className={s.blue}>комиссия төмен</b>.</span>
       </p>
       <ul className={`${s.points} rise`} style={{ ["--i" as string]: 2 }}>
-        <li>Клиент Jazl+ сканерімен төлейді, кассир тек жазылымды таңдап QR шығарады.</li>
+        <li>Клиент Medeo сканерімен төлейді, кассир тек жазылымды таңдап QR шығарады.</li>
         <li>Бірліктер мен мерзімді жүйе өзі есептейді</li>
         <li>Клиенттердің бағасы мен пікірін көресің</li>
       </ul>

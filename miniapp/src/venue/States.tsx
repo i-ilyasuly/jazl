@@ -22,8 +22,8 @@ export function useSys(): [Sys, () => void] {
   useEffect(() => {
     const off = () => setSys("offline"); const on = () => setSys((x) => (x === "offline" ? null : x));
     const ev = (e: Event) => setSys((e as CustomEvent).detail as Sys);
-    window.addEventListener("offline", off); window.addEventListener("online", on); window.addEventListener("jazl:sys", ev);
-    return () => { window.removeEventListener("offline", off); window.removeEventListener("online", on); window.removeEventListener("jazl:sys", ev); };
+    window.addEventListener("offline", off); window.addEventListener("online", on); window.addEventListener("medeo:sys", ev);
+    return () => { window.removeEventListener("offline", off); window.removeEventListener("online", on); window.removeEventListener("medeo:sys", ev); };
   }, []);
   return [sys, () => setSys(navigator.onLine ? null : "offline")];
 }
@@ -57,7 +57,7 @@ export function NewVenueHome({ d }: { d: Dashboard & { offers: number; cashiers:
   const go = useGo();
   const me = useCurrent();
   const [poster, setPoster] = useState(false);
-  useEffect(() => { if (me) void kv.get("jazl_v_poster_" + me.venue.id).then((v) => setPoster(Boolean(v))); }, [me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (me) void kv.get("medeo_v_poster_" + me.venue.id).then((v) => setPoster(Boolean(v))); }, [me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const steps: [boolean, string, string, string, string][] = [
     [d.offers > 0, "v:offer", "Бірінші ұсынысты жариялау", "Пакет бағасы мен санын көрсет", "/v/offers/new"],
     [d.cashiers > 0, "v:invite", "Кассирді шақыру", "Telegram арқылы сілтеме жібер", "/v/team/invite"],
@@ -73,7 +73,7 @@ export function NewVenueHome({ d }: { d: Dashboard & { offers: number; cashiers:
       </div>
       <div className={s.card}>
         {steps.map(([ok, e, t, sub, to]) => (
-          <button key={t} className={s.row} onClick={() => { if (to === "/v/guide" && me) kv.set("jazl_v_poster_" + me.venue.id, "1"); go(to); }}>
+          <button key={t} className={s.row} onClick={() => { if (to === "/v/guide" && me) kv.set("medeo_v_poster_" + me.venue.id, "1"); go(to); }}>
             {ok ? <span style={{ width: 36, height: 36, borderRadius: 9, background: "#31d158", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }}>✓</span> : <Tile e={e} size={36} />}
             <span className={s.rowText}><span className={s.rowTitle} style={ok ? { color: "var(--text-secondary)", textDecoration: "line-through" } : undefined}>{t}</span><span className={s.rowSub}>{sub}</span></span><i className={s.arrow} />
           </button>
@@ -102,9 +102,9 @@ export function Suspended({ note }: { note: string | null }) {
 /** Жетістіктер: 100-ші қолдану (кубок), рекорд күн (диско) — бір рет қана көрсетіледі */
 export async function achievementFor(venueId: string, d: Dashboard & { total: number; record: number }): Promise<string | null> {
   const milestones = [1000, 500, 100];
-  for (const m of milestones) if (d.total >= m && !(await kv.get(`jazl_v_ach_${venueId}_${m}`))) { kv.set(`jazl_v_ach_${venueId}_${m}`, "1"); return `/v/achieve/${m}`; }
+  for (const m of milestones) if (d.total >= m && !(await kv.get(`medeo_v_ach_${venueId}_${m}`))) { kv.set(`medeo_v_ach_${venueId}_${m}`, "1"); return `/v/achieve/${m}`; }
   const day = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
-  if (d.record > 0 && d.today > d.record && !(await kv.get(`jazl_v_rec_${venueId}_${day}`))) { kv.set(`jazl_v_rec_${venueId}_${day}`, "1"); return `/v/achieve/record?n=${d.today}&diff=${d.today - d.yesterday}`; }
+  if (d.record > 0 && d.today > d.record && !(await kv.get(`medeo_v_rec_${venueId}_${day}`))) { kv.set(`medeo_v_rec_${venueId}_${day}`, "1"); return `/v/achieve/record?n=${d.today}&diff=${d.today - d.yesterday}`; }
   return null;
 }
 export function VAchievement() {
@@ -115,7 +115,7 @@ export function VAchievement() {
   const rec = kind === "record";
   const name = me?.venue.name ?? "Мекеме";
   const title = rec ? "Бүгін рекорд!" : `${kind}-ші қолдану!`;
-  const text = rec ? `${q.get("n")} қолдану: ең жақсы күн. Кешегіден ${q.get("diff")} артық.` : `${name} Jazl+ арқылы ${kind} пакет бірлігін қолданды. Керемет жұмыс!`;
+  const text = rec ? `${q.get("n")} қолдану: ең жақсы күн. Кешегіден ${q.get("diff")} артық.` : `${name} Medeo арқылы ${kind} пакет бірлігін қолданды. Керемет жұмыс!`;
   const back = () => go("/v/home", "fade", { replace: true });
   return (
     <VPage>
@@ -125,7 +125,7 @@ export function VAchievement() {
         <p className={s.stateText}>{text}</p>
       </div>
       {rec ? <Buttons main={{ text: "Жабу", onClick: back }} />
-        : <Buttons main={{ text: "Рақмет", onClick: back }} second={{ text: "Бөлісу", onClick: () => void shareToChat({ url: BOT_APP_LINK, text: `${name}: Jazl+ арқылы ${kind}-ші қолдану! 🎉` }) }} />}
+        : <Buttons main={{ text: "Рақмет", onClick: back }} second={{ text: "Бөлісу", onClick: () => void shareToChat({ url: BOT_APP_LINK, text: `${name}: Medeo арқылы ${kind}-ші қолдану! 🎉` }) }} />}
     </VPage>
   );
 }

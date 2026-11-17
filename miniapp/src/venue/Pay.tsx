@@ -145,7 +145,7 @@ export function VQr() {
       {st?.status === "waiting" && <div className={s.code}><span>Код</span><b>{st.code}</b></div>}
       <p className={`t-cap1 ${s.muted} ${s.center}`} style={{ marginTop: -6 }}>Сканер істемесе, клиент осы кодты енгізеді</p>
       <span className={s.wait}><span className={s.dots}><i /><i /><i /></span>Клиент төлемін күтеміз</span>
-      <Note>Клиент Jazl+ қолданбасындағы сканермен осы QR-ды оқысын.</Note>
+      <Note>Клиент Medeo қолданбасындағы сканермен осы QR-ды оқысын.</Note>
       <Buttons main={{ text: "Пакетті өзгерту", onClick: () => void change() }} second={{ text: "Бас тарту", onClick: () => void cancel() }} />
     </VPage>
   );

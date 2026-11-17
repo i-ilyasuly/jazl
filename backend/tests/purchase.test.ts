@@ -13,7 +13,7 @@ const TOKEN = "123456:TEST-token-not-real";
 const d = URL ? describe : describe.skip;
 
 d("B2 сатып алу", () => {
-  const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test", JAZL_FEE_PCT: "10" });
+  const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test", MEDEO_FEE_PCT: "10" });
   let dbh: ReturnType<typeof createDb>;
   let app: ReturnType<typeof createApp>;
   const h = (id = 501) => ({ Authorization: "tma " + signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id, first_name: "Сатып алушы" }) }, TOKEN), "Content-Type": "application/json", "X-Tg-Platform": "android", "User-Agent": "vitest" });
@@ -32,11 +32,11 @@ d("B2 сатып алу", () => {
     expect(res.status).toBe(200);
     const j = await res.json();
     expect(j.pack).toMatchObject({ offerSlug: "doner", unitsTotal: 4, unitsLeft: 4, pricePaid: 6000, status: "active" });
-    expect(j.receipt.no).toMatch(/^JZ-1000\d\d$/);
+    expect(j.receipt.no).toMatch(/^MD-1000\d\d$/);
     expect(j.receipt).toMatchObject({ total: 6000, status: "Төленді", seller: { name: "Dämdi Doner", address: "Нұркен Әбдіров, 24" }, item: { units: 4, pricePerUnit: 1500, regularPricePerUnit: 2000, saving: 2000, discountPct: 25 }, payment: { label: "Kaspi Pay", mode: "test" } });
     expect(j.receipt.internal).toBeUndefined(); // ішкі бөлік клиентке берілмейді
     const r = await dbh.pool.query("select internal from app.receipts where id = $1", [j.receipt.id]);
-    expect(r.rows[0].internal.money).toMatchObject({ jazlFee: 600, venuePayout: 5400 });
+    expect(r.rows[0].internal.money).toMatchObject({ medeoFee: 600, venuePayout: 5400 });
     expect(r.rows[0].internal.client).toMatchObject({ platform: "android", userAgent: "vitest" });
     expect(r.rows[0].internal.customer).toMatchObject({ fullName: "Сатып алушы", username: null, phone: null });
     expect(r.rows[0].internal).toMatchObject({ item: { title: "Тауық донері · 4 дана", units: 4 }, fulfillment: { type: null }, status: { current: "paid" }, rating: null });
@@ -62,9 +62,9 @@ d("B2 сатып алу", () => {
     const list = await (await app.request("/v1/packs", { headers: h() })).json();
     const { id, no } = list.packs[0].receipt;
     const byNo = await (await app.request("/v1/receipts/no/" + no, { headers: h() })).json();
-    expect(byNo.receipt.verifyUrl).toBe(`https://t.me/oylarbot?startapp=rc_${no.slice(3)}`);
+    expect(byNo.receipt.verifyUrl).toBe(`https://t.me/Mmedeo_bot?startapp=rc_${no.slice(3)}`);
     const link = await (await app.request(`/v1/receipts/${id}/link`, { method: "POST", headers: { ...h(), Host: "api.example" } })).json();
-    expect(link.fileName).toBe(`Jazl-chek-${no}.pdf`);
+    expect(link.fileName).toBe(`Medeo-chek-${no}.pdf`);
     const path = link.url.replace("https://api.example", "");
     const pdf = await app.request(path);
     expect(pdf.status).toBe(200);
@@ -76,7 +76,7 @@ d("B2 сатып алу", () => {
   it("пакеттер тізімі және бөтен чекті көру мүмкін емес", async () => {
     const list = await (await app.request("/v1/packs", { headers: h() })).json();
     expect(list.packs.length).toBe(3);
-    expect(list.packs[0].receipt.no).toMatch(/^JZ-/);
+    expect(list.packs[0].receipt.no).toMatch(/^MD-/);
     const rid = list.packs[0].receipt.id;
     expect((await app.request("/v1/receipts/" + rid, { headers: h() })).status).toBe(200);
     expect((await app.request("/v1/receipts/" + rid, { headers: h(999) })).status).toBe(404);

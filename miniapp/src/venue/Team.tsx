@@ -85,7 +85,7 @@ export function VInvite() {
   }, [me, busy]);
   useEffect(() => { if (inv === null && me) void fresh(); }, [inv]); // eslint-disable-line react-hooks/exhaustive-deps — код жоқ болса бірден жасаймыз
   const hours = inv ? Math.max(1, Math.round((new Date(inv.expiresAt).getTime() - Date.now()) / 3600_000)) : 24;
-  const text = inv ? `${me?.venue.name}: Jazl+ кассасына қосылу коды ${inv.code}. Сілтеме арқылы да кіруге болады:` : "";
+  const text = inv ? `${me?.venue.name}: Medeo кассасына қосылу коды ${inv.code}. Сілтеме арқылы да кіруге болады:` : "";
   async function remove(x: StaffRow) {
     if (!me) return;
     const r = await nativePick("Кассирді өшіру?", `${x.name} жүйеден бірден шығады.`, [{ id: "no", text: "Жоқ" }, { id: "yes", text: "Өшіру" }], "yes");

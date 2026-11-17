@@ -52,11 +52,11 @@ export function SystemStatus() {
 }
 
 /** B3.1 сынағы (Патша, 2026-11-17): кассаның QR-ы. Нақты кассада мұны мекеме бөліміндегі кассир экраны көрсетеді.
- *  Jazl QR — кассир дана санын енгізеді, QR әр 30 секунд сайын жаңарады (суретке түсіріп алып, кейін қолдану мүмкін емес).
+ *  Medeo QR — кассир дана санын енгізеді, QR әр 30 секунд сайын жаңарады (суретке түсіріп алып, кейін қолдану мүмкін емес).
  *  Банк терминалы — кассир соманы енгізеді, клиент сомаға сай дананы «+» арқылы таңдайды. Компьютерден ашып, телефонмен сканерлеңіз. */
 function TestQrs({ list }: { list: { venue: string; branchId: string; address: string }[] }) {
   const [pick, setPick] = useState(list[0]);
-  const [mode, setMode] = useState<"jazl" | "bank">("jazl");
+  const [mode, setMode] = useState<"medeo" | "bank">("medeo");
   const [units, setUnits] = useState(1);
   const [amount, setAmount] = useState(3000);
   const [payload, setPayload] = useState("");
@@ -66,7 +66,7 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
     let dead = false; let timer = 0; let tick = 0;
     const load = async () => {
       try {
-        const r = await fetch(API_URL + "/dev/qr", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "jazl" ? { branchId: pick.branchId, units } : { branchId: pick.branchId, amount }) });
+        const r = await fetch(API_URL + "/dev/qr", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "medeo" ? { branchId: pick.branchId, units } : { branchId: pick.branchId, amount }) });
         const j = await r.json() as { payload: string; exp: number | null };
         if (dead) return;
         setPayload(j.payload);
@@ -86,11 +86,11 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
         {list.map((b) => <button key={b.branchId} onClick={() => setPick(b)} className="t-cap1" style={chip(b.branchId === pick.branchId)}>{b.venue}</button>)}
       </div>
       <div style={{ display: "flex", gap: 8, padding: "4px 16px" }}>
-        <button className="t-sub2" style={chip(mode === "jazl")} onClick={() => setMode("jazl")}>Jazl QR · дана</button>
+        <button className="t-sub2" style={chip(mode === "medeo")} onClick={() => setMode("medeo")}>Medeo QR · дана</button>
         <button className="t-sub2" style={chip(mode === "bank")} onClick={() => setMode("bank")}>Банк терминалы · сома</button>
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "8px 16px" }}>
-        {mode === "jazl" ? <>
+        {mode === "medeo" ? <>
           <button style={step} onClick={() => setUnits(Math.max(1, units - 1))}>−</button>
           <b className="t-title3">{units} дана</b>
           <button style={step} onClick={() => setUnits(Math.min(10, units + 1))}>+</button>
@@ -103,8 +103,8 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "8px 16px 16px" }}>
         <span style={{ width: 200, height: 200 }} dangerouslySetInnerHTML={{ __html: svg }} />
         <span className="t-sub2" style={{ textAlign: "center" }}>{pick.venue} · {pick.address}</span>
-        {mode === "jazl" && <span className="t-cap1 w-600" style={{ color: left <= 5 ? "#e53935" : "var(--link)" }}>QR {left} секундтан кейін жаңарады</span>}
-        <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Компьютерден ашып, телефондағы Jazl+ → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — серверде шегеріледі; басқа мекемеден болса — ескерту шығады.</span>
+        {mode === "medeo" && <span className="t-cap1 w-600" style={{ color: left <= 5 ? "#e53935" : "var(--link)" }}>QR {left} секундтан кейін жаңарады</span>}
+        <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Компьютерден ашып, телефондағы Medeo → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — серверде шегеріледі; басқа мекемеден болса — ескерту шығады.</span>
       </div>
     </Group>
   );

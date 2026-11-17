@@ -20,7 +20,7 @@ export function VGate() {
     const act = staff.filter((x) => x.status === "active");
     if (!staff.length) go("/v/welcome", "fade", { replace: true });
     else if (!act.length) go("/v/pending", "fade", { replace: true });
-    else if (act.length > 1 && !sessionStorage.getItem("jazl_v_picked")) go("/v/pick", "fade", { replace: true });
+    else if (act.length > 1 && !sessionStorage.getItem("medeo_v_picked")) go("/v/pick", "fade", { replace: true });
     else go(act[0] && act[0].role === "cashier" ? "/v/cashier" : "/v/home", "fade", { replace: true });
   }, [staff, go]);
   return <VPage><div className={s.state}><Sticker name="wait" size={100} /></div></VPage>;
@@ -34,7 +34,7 @@ export function VWelcome() {
     <VPage>
       <div className={s.result} style={{ marginTop: 24 }}>
         <VSticker name="egg" size={150} />
-        <h1 className={s.resultTitle} style={{ fontSize: 26 }}>Jazl+ Мекеме</h1>
+        <h1 className={s.resultTitle} style={{ fontSize: 26 }}>Medeo Мекеме</h1>
         <p className={s.stateText}>Пакеттер, кассир режимі және есептер бір жерде</p>
       </div>
       <div className={s.card} style={{ marginTop: 20 }}>
@@ -51,7 +51,7 @@ export function VPickVenue() {
   const staff = useStaff();
   const act = (staff ?? []).filter((x) => x.status === "active");
   const [i, setI] = useState(0);
-  const next = useCallback(() => { setPick(i); sessionStorage.setItem("jazl_v_picked", "1"); haptic.medium(); go(act[i]?.role === "cashier" ? "/v/cashier" : "/v/home", "forward", { replace: true }); }, [i, act, go]);
+  const next = useCallback(() => { setPick(i); sessionStorage.setItem("medeo_v_picked", "1"); haptic.medium(); go(act[i]?.role === "cashier" ? "/v/cashier" : "/v/home", "forward", { replace: true }); }, [i, act, go]);
   const tiles = ["v:venue", "v:venueOrange", "v:venuePurple"];
   return (
     <VPage title="Мекемені таңда" back>

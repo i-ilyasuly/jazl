@@ -61,7 +61,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
   r.post("/qr/resolve", async (c) => {
     const raw = String((await c.req.json().catch(() => ({})))?.qr ?? "");
     const q = parseQr(raw, cfg.BOT_TOKEN);
-    if (!q) return c.json({ ok: false, error: "not_jazl_qr" }, 400);
+    if (!q) return c.json({ ok: false, error: "not_medeo_qr" }, 400);
     if (q.kind === "static" && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
     let branchId: string; let units: number | null = null; let offer: { slug: string; title: string } | null = null; let valid = true; let expired = false;
     if (q.kind === "session") {
@@ -94,7 +94,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const user = c.get("user");
     const q = parseQr(b.data.qr, cfg.BOT_TOKEN);
-    if (!q) return c.json({ ok: false, error: "not_jazl_qr" }, 400);
+    if (!q) return c.json({ ok: false, error: "not_medeo_qr" }, 400);
     if ((q.kind === "dynamic" || q.kind === "session") && !q.valid) return c.json({ ok: false, error: "bad_qr" }, 400);
     if ((q.kind === "dynamic" || q.kind === "session") && q.expired) return c.json({ ok: false, error: "qr_expired" }, 409);
     const ss = q.kind === "session" ? await sessionOf(q.sessionId) : undefined;
@@ -105,7 +105,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (ss && units !== ss.s.units) return c.json({ ok: false, error: "units_mismatch", expectedUnits: ss.s.units }, 409);
     const branchId = ss ? ss.s.branchId : (q as { branchId: string }).branchId;
     const prev = await db.select().from(redemptions).where(and(eq(redemptions.packId, b.data.packId), eq(redemptions.idempotencyKey, b.data.idempotencyKey))).limit(1);
-    if (prev[0]) { const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.packId, b.data.packId), eq(receipts.kind, "use"), sql`${receipts.internal}->>'redemptionId' = ${prev[0].id}`)).limit(1); return c.json({ ok: true, repeated: true, receipt: rc ? { id: rc.id, no: "JZ-" + rc.no } : null }); }
+    if (prev[0]) { const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.packId, b.data.packId), eq(receipts.kind, "use"), sql`${receipts.internal}->>'redemptionId' = ${prev[0].id}`)).limit(1); return c.json({ ok: true, repeated: true, receipt: rc ? { id: rc.id, no: "MD-" + rc.no } : null }); }
     const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, branchId)).limit(1);
     if (!br || !br.b.active) return c.json({ ok: false, error: "branch_not_found" }, 404);
     const bs = branchStatus(br.b);
@@ -135,10 +135,10 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
         const now = new Date();
         const [rc] = await tx.insert(receipts).values({ kind: "use", userId: user.id, packId: p.id, venueId: br.v.id, branchId, total: p.unitPrice * units,
           public: { title: units > 1 ? `${units} бірлік пайдаланылды` : "Бірлік пайдаланылды", status: "Расталды", dateLocal: almaty(now), seller: { name: br.v.name, address: br.b.address, bin: null },
-            item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : "Кассадағы Jazl QR", extra: ss && ss.s.extra ? { amount: ss.s.extra, note: "кассада бөлек төленеді" } : null },
+            item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : "Кассадағы Medeo QR", extra: ss && ss.s.extra ? { amount: ss.s.extra, note: "кассада бөлек төленеді" } : null },
           internal: { version: 1, redemptionId: rd.id, ...meta(c, user), item: { title: p.title, units, unitName: p.unitName, packSlug: p.slug },
             fulfillment: { type: "scan", slot: null, code: null, branchId, qr: q.kind, qrAmount: q.kind === "amount" ? q.amount : null, sessionId: ss?.s.id ?? null, cashierId: ss?.s.createdBy ?? null, extra: ss?.s.extra ?? 0 }, status: { current: "done", history: [{ status: "done", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
-        return { left: p.left, units, receipt: { id: rc.id, no: "JZ-" + rc.no }, rid: rd.id };
+        return { left: p.left, units, receipt: { id: rc.id, no: "MD-" + rc.no }, rid: rd.id };
       });
       const { rid, ...res } = out;
       await notify?.used(rid, res.receipt.no);
@@ -176,7 +176,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
           internal: { version: 1, orderId: o.id, ...meta(c, user), item: { title: p.title, units: 1, unitName: p.unitName, packSlug: p.slug },
             fulfillment: { type: d.type === "plan" ? "plan" : "order", slot: at ?? "now", code, courier: o.courier, branchId: br.id },
             status: { current: "sent", history: [{ status: "sent", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
-        return { order: orderDto(o), left: p.left, receipt: { id: rc.id, no: "JZ-" + rc.no } };
+        return { order: orderDto(o), left: p.left, receipt: { id: rc.id, no: "MD-" + rc.no } };
       });
       await notify?.order(out.order.id);
       return c.json({ ok: true, repeated: false, ...out });

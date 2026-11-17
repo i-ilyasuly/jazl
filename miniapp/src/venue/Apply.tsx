@@ -1,6 +1,6 @@
 // Figma «02 · Тіркелу» (13996:*) және «03 · Өтінім күйі» (13997:*): Дайындал ал → 8 қадам → Шарттар → Өтінім қаралуда → Мекеме тіркелді.
 // Біздің жолмен келіспейтін жері: заңды тұлғаның деректері мемлекеттік дерекқордан әзірге алынбайды — БСН бақылау санымен тексеріліп,
-// атауы мен басшысын өтінім беруші өзі жазады (Jazl+ командасы құжатпен салыстырады). Мекеме түрі (Figma 14) — 1-қадамда.
+// атауы мен басшысын өтінім беруші өзі жазады (Medeo командасы құжатпен салыстырады). Мекеме түрі (Figma 14) — 1-қадамда.
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
@@ -168,8 +168,8 @@ export function VApplyStep() {
           <Field label="Басшысы" value={d.director ?? ""} max={80} onChange={(v) => up({ director: v })} placeholder="Бекенов Нұрлан" />
           <Field label="Тіркелген күні (міндетті емес)" value={d.regDate ?? ""} max={20} onChange={(v) => up({ regDate: v })} placeholder="12.06.2018" />
         </div>
-        <Check on={Boolean(d.authorized)} onChange={(v) => up({ authorized: v })}>Мен осы мекемені Jazl+ қолданбасында ұсынуға құқылымын</Check>
-        <Note>Атауы мен басшысын БСН анықтамасындағыдай жазыңыз. Jazl+ командасы құжатпен салыстырып тексереді.</Note>
+        <Check on={Boolean(d.authorized)} onChange={(v) => up({ authorized: v })}>Мен осы мекемені Medeo қолданбасында ұсынуға құқылымын</Check>
+        <Note>Атауы мен басшысын БСН анықтамасындағыдай жазыңыз. Medeo командасы құжатпен салыстырып тексереді.</Note>
       </>}
       {n === 3 && <>
         <Field label="Байланыс тұлғасы" value={d.contactName ?? d.director ?? ""} max={80} onChange={(v) => up({ contactName: v })} />
@@ -292,7 +292,7 @@ export function VApplyStatus() {
       <div className={s.result} style={{ marginTop: 40 }}>
         <VSticker name="party" size={120} />
         <h1 className={s.resultTitle}>Мекеме тіркелді</h1>
-        <p className={s.stateText}>{a.data.name} енді Jazl+ қолданбасында. Келесі қадамдар:</p>
+        <p className={s.stateText}>{a.data.name} енді Medeo қолданбасында. Келесі қадамдар:</p>
       </div>
       <div className={s.card}>
         <button className={s.row} onClick={async () => { await loadStaff(); go("/v/offers/new"); }}><Tile e="v:file" size={36} /><span className={s.rowText}><span className={s.rowTitle}>Ұсыныс құру</span><span className={s.rowSub}>Пакет көлемі, бағасы, мерзімі</span></span><i className={s.arrow} /></button>
@@ -307,7 +307,7 @@ export function VApplyStatus() {
       <div className={s.state} style={{ top: "calc(300px + var(--top-shift))" }}>
         <VSticker name={a.status === "rejected" ? "sad" : "think"} size={120} />
         <h2 className={s.stateTitle}>{a.status === "rejected" ? "Өтінім қабылданбады" : "Қосымша ақпарат қажет"}</h2>
-        <p className={s.stateText}>{a.note ?? (a.status === "rejected" ? "Себебін қолдау қызметінен біле аласыз." : "Jazl+ командасы кейбір деректерді нақтылауды сұрады.")}</p>
+        <p className={s.stateText}>{a.note ?? (a.status === "rejected" ? "Себебін қолдау қызметінен біле аласыз." : "Medeo командасы кейбір деректерді нақтылауды сұрады.")}</p>
       </div>
       <Buttons main={a.status === "need_info" ? { text: "Өтінімді түзету", onClick: () => go(`/v/apply/${Math.max(1, firstMissing(a))}`) } : { text: "Қолдауға жазу", onClick: () => openChat(SUPPORT_BOT) }} second={{ text: "Жабу", onClick: () => go("/profile", "fade") }} />
     </VPage>
@@ -352,7 +352,7 @@ function pickFile(): Promise<File | null> {
 async function uploadDoc(kind: string, f: File): Promise<Doc> {
   const wa = window.Telegram?.WebApp;
   let init = wa?.initData ?? "";
-  if (!init && import.meta.env.DEV) { try { init = localStorage.getItem("jazl_dev_init") ?? ""; } catch { /* жоқ */ } }
+  if (!init && import.meta.env.DEV) { try { init = localStorage.getItem("medeo_dev_init") ?? ""; } catch { /* жоқ */ } }
   const res = await fetch(`${API_URL}/v1/venue/application/docs?kind=${kind}`, { method: "POST", body: f, headers: { Authorization: "tma " + init, "Content-Type": f.type || "application/pdf", "X-File-Name": encodeURIComponent(f.name) } });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(j?.error ?? "http"), { body: j });

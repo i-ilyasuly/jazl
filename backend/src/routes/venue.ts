@@ -1,4 +1,4 @@
-// C · Мекеме бөлімі — Figma «Jazl+ Мекеме» беттерінің деректері (2026-11-17, Патшаның талабы: дизайн бойынша).
+// C · Мекеме бөлімі — Figma «Medeo Мекеме» беттерінің деректері (2026-11-17, Патшаның талабы: дизайн бойынша).
 // Беттер: 01 Кіру (шақыру коды → иесінің растауы), 04 Басты, 05 Кассир (пакетті таңда → QR → Төлем өтті), 06 Ұсыныстар,
 // 07 Команда (шақыру, рөлдер, кассир профилі), 08 Қолдану тарихы және тапсырыстар, 09 Есеп, 16 Қайтару.
 // Рөлдер (Figma «Рөлдер мен рұқсаттар»): кассир — тек кассир режимі; басқарушы — + қолдану тарихы, ұсыныстарды өңдеу;
@@ -32,8 +32,8 @@ interface UseRow { id: string; kind: "scan" | "order"; at: Date; units: number; 
 
 export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
-  // мекеме шотына түсетін бөлік: мекеменің өз комиссиясы (Jazl+ Басқару «Комиссия»), жоқ болса — әдепкі
-  const share = (amount: number, venueId: string) => Math.round((amount * (100 - feeFor(db, venueId, cfg.JAZL_FEE_PCT))) / 100);
+  // мекеме шотына түсетін бөлік: мекеменің өз комиссиясы (Medeo Басқару «Комиссия»), жоқ болса — әдепкі
+  const share = (amount: number, venueId: string) => Math.round((amount * (100 - feeFor(db, venueId, cfg.MEDEO_FEE_PCT))) / 100);
   const roleIn = async (userId: string, venueId: string) =>
     (await db.select({ role: venueStaff.role, branchId: venueStaff.branchId, status: venueStaff.status }).from(venueStaff).where(and(eq(venueStaff.userId, userId), eq(venueStaff.venueId, venueId))).limit(1))[0];
   /** Белсенді қызметкер және рөлі жеткілікті ме; болмаса 403 */
@@ -259,7 +259,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const base = [...t.toLowerCase()].map((ch) => map[ch] ?? ch).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "offer";
     return `${base}-${randomInt(1000, 10000)}`;
   };
-  // Jazl+ Басқару «Бизнес-ережелер → Модерация» қосулы болса — жаңа ұсыныс тексеруге түседі (Figma «Модерация кезегі»), әйтпесе бірден жарияланады
+  // Medeo Басқару «Бизнес-ережелер → Модерация» қосулы болса — жаңа ұсыныс тексеруге түседі (Figma «Модерация кезегі»), әйтпесе бірден жарияланады
   const statusAfterPublish = async () => ((await getSettings(db)).moderation ? "review" as const : "active" as const);
 
   r.post("/venue/:venueId/offers", async (c) => {
@@ -504,7 +504,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     else { const m = new Map<string, number>(); for (const [k, v] of byDay) m.set(k.slice(0, 7), (m.get(k.slice(0, 7)) ?? 0) + v.amount);
       bars = Array.from({ length: 6 }, (_, i) => { const d = new Date(); d.setMonth(d.getMonth() - (5 - i)); const k = d.toISOString().slice(0, 7); return { label: k, amount: m.get(k) ?? 0 }; }); }
     const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 14).map(([date, v]) => ({ date, ...v, status: "paid" as const }));
-    return c.json({ ok: true, report: { today: byDay.get(dayKey(new Date()))?.amount ?? 0, total: bars.reduce((s, b) => s + b.amount, 0), bars, days, feePct: cfg.JAZL_FEE_PCT, testMode: cfg.PAYMENTS_MODE === "test" } });
+    return c.json({ ok: true, report: { today: byDay.get(dayKey(new Date()))?.amount ?? 0, total: bars.reduce((s, b) => s + b.amount, 0), bars, days, feePct: cfg.MEDEO_FEE_PCT, testMode: cfg.PAYMENTS_MODE === "test" } });
   });
 
   // ── 05 · Кассир: QR сеансы ───────────────────────────────────
@@ -549,7 +549,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
         from app.redemptions r join app.packs p on p.id = r.pack_id join app.offers o on o.id = p.offer_id join app.users u on u.id = p.user_id where r.id = ${x.s.redemptionId}`);
       const d = res.rows[0] as { id: string; units: number; created_at: Date; cancelled_at: Date | null; title: string; unit_price: number; units_left: number; units_total: number; first_name: string; last_name: string | null; receipt_no: number | null; receipt_id: string | null };
       return c.json({ ok: true, status: "paid", paid: { redemptionId: d.id, customer: short(d.first_name, d.last_name), title: d.title.split(" · ")[0], units: d.units, left: d.units_left, total: d.units_total,
-        amount: d.unit_price * d.units, venueAmount: share(d.unit_price * d.units, x.b.venueId), extra: x.s.extra, at: d.created_at, ref: d.receipt_no ? "JZ-" + d.receipt_no : null, receiptId: d.receipt_id, cancelled: Boolean(d.cancelled_at) } });
+        amount: d.unit_price * d.units, venueAmount: share(d.unit_price * d.units, x.b.venueId), extra: x.s.extra, at: d.created_at, ref: d.receipt_no ? "MD-" + d.receipt_no : null, receiptId: d.receipt_id, cancelled: Boolean(d.cancelled_at) } });
     }
     if (x.s.cancelledAt) return c.json({ ok: true, status: "cancelled" });
     if (x.s.expiresAt.getTime() < Date.now()) return c.json({ ok: true, status: "expired" });

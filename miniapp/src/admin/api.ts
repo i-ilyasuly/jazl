@@ -1,11 +1,11 @@
-// Jazl+ Басқару (Figma «Jazl+ Басқару» 14060:7998): серверге сұраулар. Кіру — Telegram initData + PIN → X-Admin-Token (12 сағ).
+// Medeo Басқару (Figma «Medeo Басқару» 14060:7998): серверге сұраулар. Кіру — Telegram initData + PIN → X-Admin-Token (12 сағ).
 // Токен тек осы сеанста (sessionStorage) сақталады: мини апп жабылса, қайта PIN сұралады.
 import { useEffect, useState } from "react";
 import { api, API_URL } from "../api";
 
-const KEY = "jazl_adm";
-const WEB_KEY = "jazl_adm_web";
-const hasInit = () => { const w = window as unknown as { Telegram?: { WebApp?: { initData?: string } } }; if (w.Telegram?.WebApp?.initData) return true; try { return import.meta.env.DEV && Boolean(localStorage.getItem("jazl_dev_init")); } catch { return false; } };
+const KEY = "medeo_adm";
+const WEB_KEY = "medeo_adm_web";
+const hasInit = () => { const w = window as unknown as { Telegram?: { WebApp?: { initData?: string } } }; if (w.Telegram?.WebApp?.initData) return true; try { return import.meta.env.DEV && Boolean(localStorage.getItem("medeo_dev_init")); } catch { return false; } };
 /** Веб-режим: Telegram-нан тыс браузер (Басқару тек веб арқылы — Патша, 2026-11-17). Кіру — Telegram Login Widget + PIN. */
 export const isWeb = () => !hasInit();
 let webToken = (() => { try { return localStorage.getItem(WEB_KEY) ?? ""; } catch { return ""; } })();
@@ -49,7 +49,7 @@ export async function webLogin(pin?: string, setup?: boolean): Promise<{ ok: tru
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(j?.error ?? "http_" + res.status), { status: res.status, body: j });
   if (j.token) setWebToken(j.token);
-  if (j.name) { try { localStorage.setItem("jazl_adm_name", j.name); } catch { /* жеке терезе */ } }
+  if (j.name) { try { localStorage.setItem("medeo_adm_name", j.name); } catch { /* жеке терезе */ } }
   return j;
 }
 export const pinLogin = (pin: string, setup = false) => api<{ token: string }>("/v1/admin/pin", { method: "POST", body: JSON.stringify({ pin, setup }) });
@@ -70,7 +70,7 @@ export const when = (d: string, time = true) => {
 export const ago = (d: string) => { const h = Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 3600_000)); return h < 24 ? `${h} сағ` : `${Math.round(h / 24)} күн`; };
 export const kindTile = { food: "🍔", coffee: "☕", hair: "✂" } as Record<string, string>;
 
-/** Профильде «Jazl+ Басқару» жолы тек рұқсат тізіміндегі аккаунтқа көрінеді (бір рет тексеріледі) */
+/** Профильде «Medeo Басқару» жолы тек рұқсат тізіміндегі аккаунтқа көрінеді (бір рет тексеріледі) */
 let adminFlag: boolean | null = null;
 export function useIsAdmin() {
   const [v, setV] = useState(adminFlag ?? false);
