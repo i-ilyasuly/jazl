@@ -26,6 +26,9 @@ import system from "../assets/icons/p_system.svg";
 import { Tile } from "../ui/Tile";
 import { roleName, useStaff } from "../venue/api";
 import { useIsAdmin } from "../admin/api";
+import { useBonus } from "../pay/bonus";
+import { hasServer } from "../pay/checkout";
+import { fmt } from "../mocks/offers";
 import s from "./Profile.module.css";
 
 interface RowDef { icon: string; tile?: string; title: string; sub?: string; value?: string; badge?: number; to: string }
@@ -69,7 +72,10 @@ export function Profile() {
     ...(isAdmin ? [{ icon: "", tile: "a:security", title: "Medeo Басқару", sub: "Платформа иесінің беті", to: "/a" }] : []),
     ...(staff && staff.length ? [{ icon: "", tile: "🏪", title: "Мекеме бөлімі", sub: `${staff[0].venue.name} · ${staff[0].status === "pending" ? "растау күтуде" : roleName[staff[0].role]}${staff.length > 1 ? ` · +${staff.length - 1}` : ""}`, to: "/v" }] : []),
   ];
-  const all: typeof groups = top.length ? [{ rows: top }, ...groups] : groups;
+  // Medeo бонусы (күйген бірліктен қайтқан ақша): «Төлем тәсілдері» жолының астында
+  const bonus = useBonus();
+  const withBonus = groups.map((g, i) => (i !== 1 || !hasServer() ? g : { ...g, rows: [...g.rows.slice(0, 2), { icon: "", tile: "💰", title: "Medeo бонусы", sub: "Пайдаланылмаған бірліктен қайтқан ақша", value: bonus ? fmt(bonus.balance) : undefined, to: "/profile/bonus" }, ...g.rows.slice(2)] }));
+  const all: typeof groups = top.length ? [{ rows: top }, ...withBonus] : withBonus;
   const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (st.lang === "ru" ? "Русский" : "Қазақша") : r.sub);
   const [how, setHow] = useState(false);
   const [ask, setAsk] = useState(false);

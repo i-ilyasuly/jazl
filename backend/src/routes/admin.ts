@@ -191,11 +191,20 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       (select count(*) from app.complaints where venue_id = ${id})::int as complaints,
       (select count(*) from app.venue_notes where venue_id = ${id})::int as notes,
       (select count(*) from app.packs p join app.offers o on o.id = p.offer_id where o.venue_id = ${id} and p.status = 'active' and p.units_left > 0 and p.valid_until > now())::int as active_packs`);
+    // Айла белгілері (Патша, 2026-11-17): күйген бірлік үлесі (90 күн, платформа орташасымен) және «мекеме қабылдамады» шағымдары (30 күн, түрлі клиент)
+    const [g] = await rows<{ burned: number; sold: number; burned_all: number; sold_all: number; refused: number }>(sql`select
+      coalesce((select sum(b.units) from app.bonuses b join app.packs p on p.id = b.pack_id join app.offers o on o.id = p.offer_id where o.venue_id = ${id} and b.created_at > now() - interval '90 days'), 0)::int as burned,
+      coalesce((select sum(p.units_total) from app.packs p join app.offers o on o.id = p.offer_id where o.venue_id = ${id} and p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at > now() - interval '120 days'), 0)::int as sold,
+      coalesce((select sum(b.units) from app.bonuses b where b.pack_id is not null and b.created_at > now() - interval '90 days'), 0)::int as burned_all,
+      coalesce((select sum(p.units_total) from app.packs p where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at > now() - interval '120 days'), 0)::int as sold_all,
+      (select count(distinct user_id) from app.complaints where venue_id = ${id} and reason = 'refused' and created_at > now() - interval '30 days')::int as refused`);
+    const pct = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : 0);
     const fee = v.fee_pct ?? cfg.MEDEO_FEE_PCT;
     const complaintShare = s.uses30 ? Math.round((s.complaints30 / s.uses30) * 1000) / 10 : 0;
     return c.json({ ok: true, venue: { id: v.id, name: v.name, kind: v.kind, kindName: kindName[v.kind as string], city: v.city, status: v.status, statusNote: v.status_note, createdAt: v.created_at, rating: v.rating, reviews: v.reviews,
       feePct: fee, feeCustom: v.fee_pct !== null, sales30: s.sales30, salesGrowth: growth(s.sales30, s.prev30), fee30: Math.round((s.sales30 * fee) / 100), complaintShare,
       branches: s.branches, offers: s.offers, team: s.team, complaints: s.complaints, notes: s.notes, activePacks: s.active_packs,
+      burnShare: pct(g.burned, g.sold), burnAvg: pct(g.burned_all, g.sold_all), refused30: g.refused,
       eligible8: Number(v.rating ?? 0) >= 4.7 && Number(v.reviews) >= 20 && complaintShare < 2 } });
   });
   // Комиссия (10 — негізгі, 8 — жоғары рейтинг): PIN-мен
@@ -560,7 +569,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
 
   // ── 15 · Баптаулар, журнал ─────────────────────────────────────
   r.get("/admin/settings", async (c) => c.json({ ok: true, settings: await getSettings(db, true), defaults: SETTING_DEFAULTS, feePct: cfg.MEDEO_FEE_PCT, paymentsMode: cfg.PAYMENTS_MODE }));
-  const SetBody = z.object({ key: z.enum(["maintenance", "maintenanceText", "moderation", "graceDays", "complaintHours"]), value: z.union([z.boolean(), z.number().int().min(1).max(30), z.string().trim().min(5).max(200)]), pin: z.string().optional() });
+  const SetBody = z.object({ key: z.enum(["maintenance", "maintenanceText", "moderation", "graceDays", "complaintHours", "maxDiscount", "refusedPauseAt"]), value: z.union([z.boolean(), z.number().int().min(1).max(90), z.string().trim().min(5).max(200)]), pin: z.string().optional() });
   r.post("/admin/settings", async (c) => {
     const b = SetBody.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
@@ -568,11 +577,13 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (typeof b.data.value !== expect) return c.json({ ok: false, error: "bad_value" }, 400);
     if (b.data.key === "graceDays" && Number(b.data.value) > 14) return c.json({ ok: false, error: "bad_value" }, 400);
     if (b.data.key === "complaintHours" && ![12, 24, 48, 72].includes(Number(b.data.value))) return c.json({ ok: false, error: "bad_value" }, 400);
+    if (b.data.key === "maxDiscount" && ![20, 30, 40, 50].includes(Number(b.data.value))) return c.json({ ok: false, error: "bad_value" }, 400);
+    if (b.data.key === "refusedPauseAt" && ![3, 5, 7, 10].includes(Number(b.data.value))) return c.json({ ok: false, error: "bad_value" }, 400);
     // Техникалық жұмыстар мен ережелер — қауіпті: PIN
     const bad = await danger(c, b.data.pin); if (bad) return bad;
     const before = (await getSettings(db, true))[b.data.key];
     await setSetting(db, b.data.key, b.data.value as Settings[typeof b.data.key]);
-    const names: Record<string, string> = { maintenance: "Техникалық жұмыстар", maintenanceText: "Техникалық жұмыстар мәтіні", moderation: "Модерация", graceDays: "Күту кезеңі", complaintHours: "Шағымға жауап мерзімі" };
+    const names: Record<string, string> = { maintenance: "Техникалық жұмыстар", maintenanceText: "Техникалық жұмыстар мәтіні", moderation: "Модерация", graceDays: "Күту кезеңі", complaintHours: "Шағымға жауап мерзімі", maxDiscount: "Жеңілдік шегі", refusedPauseAt: "«Қабылдамады» шегі" };
     const fmt = (v: unknown) => (typeof v === "boolean" ? (v ? "қосулы" : "өшірулі") : String(v));
     await log(c, b.data.key === "maintenance" ? (b.data.value ? "Техникалық жұмыстар қосылды" : "Техникалық жұмыстар өшірілді") : `${names[b.data.key]} өзгерді`, `Бизнес-ережелер · ${fmt(before)} → ${fmt(b.data.value)}`);
     return c.json({ ok: true });

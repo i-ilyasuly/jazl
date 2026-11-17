@@ -2,6 +2,7 @@
 // Хабар мини апп ашылатын боттан (@Mmedeo_bot: MINIAPP_BOT_TOKEN, жоқ болса BOT_TOKEN) жіберіледі. Батырма — t.me/<бот>?startapp=<кілт>:
 // Telegram мини аппты бірден тиісті бетте ашады (main.tsx start_param).
 // Хабар жіберілмесе (бот бұғатталған, желі) — тек журналға жазылады: негізгі әрекет (тапсырыс, шағым) ешқашан құламайды.
+import { creditBreakage } from "./bonus.js";
 import { sql } from "drizzle-orm";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
@@ -202,6 +203,12 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
       const [o] = await rows<{ title: string; venue: string; price: number }>(sql`select o.title, v.name as venue, o.price from app.offers o join app.venues v on v.id = o.venue_id where o.id = ${offerId}`);
       if (o) await toAdmins("moderation", `🏷 Модерацияға ұсыныс түсті\n${o.title} · ${o.venue} · ${money(o.price)}`, { text: "Тексеру", path: `/offers/${offerId}` });
     }),
+    /** Басқаруға: мекеме «қабылдамады» шағымдарынан автоматты тоқтатылды (шұғыл) */
+    adminAutoPause: (venueId: string, users: number) => safe("adminAutoPause", async () => {
+      const [v] = await rows<{ name: string }>(sql`select name from app.venues where id = ${venueId}`);
+      if (v) await toAdmins("complaint", `⛔ ${v.name} автоматты тоқтатылды: 30 күнде ${users} клиент «мекеме қабылдамады» деп шағымданды. Тексеріп, қайта қосыңыз не жабыңыз.`, { text: "Мекемені ашу", path: `/venues/${venueId}` });
+    }),
+
     /** Басқаруға: бағаның күрт түсуі (30%-дан артық, шұғыл) */
     adminPriceDrop: (offerId: string, from: number, to: number) => safe("adminPriceDrop", async () => {
       const [o] = await rows<{ title: string; venue: string }>(sql`select o.title, v.name as venue from app.offers o join app.venues v on v.id = o.venue_id where o.id = ${offerId}`);
@@ -210,7 +217,14 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
 
     /** Жоспарлы жұмыс (Cloud Scheduler, 15 минут сайын): өтінім нәтижелері, 22:00 күндік қорытынды, 10:00 мерзім ескертуі */
     tick: async (now = new Date()) => {
-      const out = { applications: 0, daily: 0, expiry: 0 };
+      const out = { applications: 0, daily: 0, expiry: 0, bonus: 0 };
+      // 🎁 Күйген бірлік → клиентке Medeo бонусы (мекемеге үлес жоқ — Патша, 2026-11-17)
+      for (const b of await creditBreakage(db, now).catch((e) => { console.error("creditBreakage", e); return []; })) {
+        if (b.amount <= 0 || !(await once(`bonus:${b.packId}`))) continue;
+        const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${b.userId}`);
+        if (u) await send({ chatId: Number(u.tg), text: `🎁 «${head(b.title)}» пакетінің ${b.units} бірлігі пайдаланылмай қалды. Ақшаң күйген жоқ: ${money(b.amount)} Medeo бонусы болып қайтты. Бонус 12 ай жарамды, кез келген мекемеде келесі сатып алуға жұмсалады.`, button: { text: "Бонусты көру", start: "p_bonus" } }).catch(() => null);
+        out.bonus++;
+      }
       // Өтінім күйі қолмен (дерекқорда) өзгерсе де хабар кетеді
       for (const a of await rows<{ id: string }>(sql`select a.id from app.venue_applications a where a.status in ('approved','need_info','rejected')
           and coalesce(a.decided_at, a.submitted_at, a.created_at) > now() - interval '14 days'

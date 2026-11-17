@@ -1,4 +1,5 @@
 import { StrictMode, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
+import { Bonus } from "./screens/Bonus";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
 import { loadCards, useLocked, useOnboarded } from "./store";
@@ -84,9 +85,9 @@ initTelegram();
 {
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
   // Бот хабарламаларының батырмалары (backend/src/notify.ts): vo_ — тапсырыс, vc_ — шағым, pk_ — клиент пакеті, v_<бет> — мекеме беті
-  const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v|a|pay)_([\w-]+)$/);
+  const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v|a|pay|p)_([\w-]+)$/);
   const vPage: Record<string, string> = { home: "/v", report: "/v/report", team: "/v/team", reviews: "/v/reviews", apply: "/v/apply/status", complaints: "/v/complaints" };
-  const to = m && (m[1] === "a" ? "/a" : m[1] === "pay" ? `/pay/3ds/${m[2]}?wait=1` : m[1] === "v" ? vPage[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
+  const to = m && (m[1] === "a" ? "/a" : m[1] === "pay" ? `/pay/3ds/${m[2]}?wait=1` : m[1] === "v" ? vPage[m[2]] : m[1] === "p" ? ({ bonus: "/profile/bonus" } as Record<string, string>)[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
   if (m && to) window.location.hash = "#" + to;
 }
 
@@ -208,6 +209,7 @@ const router = createHashRouter([
       { path: "/profile/city", element: <City /> },
       { path: "/profile/favorites", element: <Favorites /> },
       { path: "/profile/payment", element: <Payment /> },
+      { path: "/profile/bonus", element: <Bonus /> },
       { path: "/profile/gifts", element: <Gifts /> },
       { path: "/profile/pin/:mode", element: <Pin /> },
       { path: "/profile/terms", element: <Terms /> },

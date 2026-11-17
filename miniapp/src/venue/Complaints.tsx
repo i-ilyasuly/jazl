@@ -68,28 +68,30 @@ export function VComplaint() {
   );
 }
 
-interface Expired { id: string; title: string; customer: string; units: number; expiredAt: string; state: "waiting" | "credited" | "carried"; daysLeft: number; amount: number; venueAmount: number }
+// Патша (2026-11-17): күту кезеңі біткен соң қалдық клиентке Medeo бонусы болып қайтады — мекемеге үлес жоқ.
+// Мекеме тек көрсеткен қызметі үшін алады: клиенттің келмеуінен ешкім пайда таппайды.
+interface Expired { id: string; title: string; customer: string; units: number; expiredAt: string; state: "waiting" | "bonus" | "carried"; daysLeft: number; amount: number }
 export function VExpired() {
   const me = useCurrent();
-  const [d, setD] = useState<{ summary: { waitingPacks: number; waitingUnits: number; creditedMonth: number; creditedUnits: number }; items: Expired[] } | null>(null);
+  const [d, setD] = useState<{ summary: { waitingPacks: number; waitingUnits: number; bonusMonth: number; bonusUnits: number }; items: Expired[] } | null>(null);
   useEffect(() => { if (me) api<NonNullable<typeof d>>(`/v1/venue/${me.venue.id}/expired`).then(setD).catch(() => null); }, [me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const icon = { waiting: ["#ff9500", "◷"], credited: ["#31d158", "✓"], carried: ["#8e8e93", "↻"] } as const;
+  const icon = { waiting: ["#ff9500", "◷"], bonus: ["#8e8e93", "↩"], carried: ["#31d158", "↻"] } as const;
   return (
     <VPage title="Мерзімі өткен пакеттер" back>
-      <Note>Пакеттің мерзімі өткен соң 3 күн күтеміз. Клиент осы уақытта қайта алса, қалған бірліктер жаңа пакетке көшеді. Алмаса, қалдық сомасы комиссия ұсталып, сізге өтеді.</Note>
+      <Note>Пакеттің мерзімі өткен соң 3 күн күтеміз. Клиент осы уақытта қайта алса, қалған бірліктер жаңа пакетке көшеді. Алмаса, қалдық сомасы клиентке Medeo бонусы болып қайтады. Мекемеге ақша тек көрсеткен қызмет үшін түседі.</Note>
       <div className={s.stats}>
         <div className={s.stat}><span className={s.statLabel}>Күту кезеңінде</span><span className={s.statNum}>{d ? `${d.summary.waitingPacks} пакет` : "–"}</span>{d && <span className={`${s.tag} ${s.tagYellow}`} style={{ alignSelf: "flex-start" }}>{d.summary.waitingUnits} бірлік</span>}</div>
-        <div className={s.stat}><span className={s.statLabel}>Осы айда түсті</span><span className={s.statNum}>{d ? money(d.summary.creditedMonth) : "–"}</span>{d && <span className={`${s.tag} ${s.tagGray}`} style={{ alignSelf: "flex-start" }}>{d.summary.creditedUnits} бірлік</span>}</div>
+        <div className={s.stat}><span className={s.statLabel}>Клиентке қайтты</span><span className={s.statNum}>{d ? money(d.summary.bonusMonth) : "–"}</span>{d && <span className={`${s.tag} ${s.tagGray}`} style={{ alignSelf: "flex-start" }}>{d.summary.bonusUnits} бірлік</span>}</div>
       </div>
       {d === null ? <Sk h={150} /> : d.items.length === 0 ? <div className={s.card}><div className={s.row}><span className={s.rowSub}>Мерзімі өткен пакет жоқ</span></div></div>
         : <div className={s.card}>{d.items.map((x) => (
           <div key={x.id} className={s.row}>
             <span style={{ width: 36, height: 36, borderRadius: 9, background: icon[x.state][0], color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }}>{icon[x.state][1]}</span>
             <span className={s.rowText}><span className={s.rowTitle}>{x.title} · {x.units} бірлік</span>
-              <span className={s.rowSub} style={{ whiteSpace: "normal" }}>{x.state === "waiting" ? `${x.customer} • ${isToday(x.expiredAt) ? "бүгін" : dayMonth(x.expiredAt)} бітті • ${x.daysLeft} күн қалды` : x.state === "credited" ? `${dayMonth(x.expiredAt)} • күту кезеңі бітті` : `${dayMonth(x.expiredAt)} • клиент қайта алды, бірліктер көшті`}</span></span>
+              <span className={s.rowSub} style={{ whiteSpace: "normal" }}>{x.state === "waiting" ? `${x.customer} • ${isToday(x.expiredAt) ? "бүгін" : dayMonth(x.expiredAt)} бітті • ${x.daysLeft} күн қалды` : x.state === "bonus" ? `${x.customer} • ${dayMonth(x.expiredAt)} • клиентке бонус болып қайтты` : `${dayMonth(x.expiredAt)} • клиент қайта алды, бірліктер көшті`}</span></span>
             <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-              {x.state === "carried" ? <b className={s.lead} style={{ fontSize: 15 }}>көшті</b> : <b className={x.state === "credited" ? s.plus : s.lead} style={{ fontSize: 15 }}>{x.state === "credited" ? "+" : ""}{money(x.venueAmount)}</b>}
-              {x.state !== "carried" && <span className={`t-cap1 ${s.muted}`}>{x.state === "waiting" ? "күтуде" : "түсті"}</span>}
+              {x.state === "carried" ? <b className={s.lead} style={{ fontSize: 15 }}>көшті</b> : <b className={s.lead} style={{ fontSize: 15 }}>{money(x.amount)}</b>}
+              {x.state !== "carried" && <span className={`t-cap1 ${s.muted}`}>{x.state === "waiting" ? "күтуде" : "клиентке"}</span>}
             </span>
           </div>
         ))}</div>}

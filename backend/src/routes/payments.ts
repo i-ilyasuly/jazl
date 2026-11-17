@@ -1,4 +1,5 @@
 // Карта төлемі (src/payments): сақталған карталар, төлем күйі, 3-D Secure (сынақта — мини апптағы банк растауының үлгісі), провайдер вебхугы.
+import { releaseBonus } from "../bonus.js";
 import { Hono } from "hono";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
@@ -56,7 +57,7 @@ export function paymentRoutes(cfg: Config, db: Db) {
     if (!pay) return c.json({ ok: false, error: "not_found" }, 404);
     if (pay.status === "pending") {
       if (b.data.approve) { const out = await finalizePayment(db, cfg, pay); if ("error" in out) return c.json({ ok: false, error: out.error }, 409); }
-      else await db.update(payments).set({ status: "failed", failure: "3ds_failed" }).where(eq(payments.id, pay.id));
+      else { await db.update(payments).set({ status: "failed", failure: "3ds_failed" }).where(eq(payments.id, pay.id)); await releaseBonus(db, pay.id); }
     }
     const [fresh] = await db.select().from(payments).where(eq(payments.id, pay.id));
     return c.json(...(await paymentReply(db, c.get("user").id, fresh)));
@@ -82,7 +83,7 @@ export function paymentWebhookRoutes(cfg: Config, db: Db) {
       if (ev.card && pay.userId) await saveCard(db, p.name, pay.userId, ev.card);
       const out = await finalizePayment(db, cfg, pay);
       if ("error" in out) { console.error("webhook finalize", pay.id, out.error); return c.json({ ok: false, error: out.error }, 409); }
-    } else if (pay.status !== "paid") await db.update(payments).set({ status: "failed", failure: ev.reason ?? "declined" }).where(eq(payments.id, pay.id));
+    } else if (pay.status !== "paid") { await db.update(payments).set({ status: "failed", failure: ev.reason ?? "declined" }).where(eq(payments.id, pay.id)); await releaseBonus(db, pay.id); }
     return c.json({ ok: true });
   });
   return r;

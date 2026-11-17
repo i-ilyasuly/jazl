@@ -29,7 +29,7 @@ export function attentionRows(a: Attention) {
       { e: "a:apps", t: "Мекеме өтінімдері", sub: a.oldest ? `Ең ескісі ${ago(a.oldest)} бұрын түсті` : "Жаңа өтінім жоқ", n: a.apps, to: "/a/apps" },
       { e: "a:offers", t: "Модерациядағы ұсыныстар", sub: `${a.offers_new} жаңа, ${a.offers_changed} өзгертілген`, n: a.offers_new + a.offers_changed, to: "/a/offers" },
     ],
-    soon: [{ e: "a:grace", t: "Күту кезеңі бітетін пакеттер", sub: `Ертең ${a.grace} пакеттің ақшасы мекемеге өтеді`, n: 0, to: "/a/packs?tab=grace" }],
+    soon: [{ e: "a:grace", t: "Күту кезеңі бітетін пакеттер", sub: `Ертең ${a.grace} пакеттің қалдығы клиентке бонус болып қайтады`, n: 0, to: "/a/packs?tab=grace" }],
   };
 }
 function Row({ r }: { r: { e: string; t: string; sub: string; n: number; tone?: "red" | "orange"; to: string } }) {

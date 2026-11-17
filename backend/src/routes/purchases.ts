@@ -1,6 +1,7 @@
 // B2 · Сатып алу, пакеттер, чектер.
 // Ереже: баға тек серверде есептеледі (клиент жіберген бағаға сенбейміз); бір сатып алу кілті — бір төлем (идемпотенттік);
 // бәрі бір транзакцияда: төлем → пакет → тарих → чек. Қазір төлем сынақ режимінде (ақша жүрмейді).
+import { bonusOf, holdBonus, releaseBonus } from "../bonus.js";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { receiptPdf, type PublicReceipt } from "../receipt/pdf.js";
 import { Hono } from "hono";
@@ -26,6 +27,8 @@ const Buy = z.object({
   gift: z.object({ message: z.string().max(120).optional(), anonymous: z.boolean().default(false), toUsername: z.string().regex(/^@?[A-Za-z0-9_]{4,32}$/).optional() }).optional(),
   /** Карта: сақталған (id) не жаңа картаның провайдер криптограммасы (карта нөмірі ЕШҚАШАН жіберілмейді); save — картаны сақтау */
   card: z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional() }).strict().optional(),
+  /** Medeo бонусын жұмсау (күйген бірліктен қайтқан ақша): бағадан шегеріледі, қалғаны картадан/Kaspi-ден */
+  useBonus: z.boolean().optional(),
 }).strict();
 
 export const CARRY_DAYS = 3;
@@ -86,15 +89,19 @@ export function purchaseRoutes(cfg: Config, db: Db) {
       client: { platform: c.req.header("x-tg-platform") ?? null, tgVersion: c.req.header("x-tg-version") ?? null, appVersion: c.req.header("x-app-version") ?? null, userAgent: c.req.header("user-agent") ?? null,
         ipHash: ip ? createHash("sha256").update(ip).digest("hex").slice(0, 16) : null, authDate: c.get("auth").authDate, startParam: c.get("auth").startParam ?? null } };
 
-    const viaProvider = Boolean(card);
     const created = await db.transaction(async (tx) => {
-      const [pay] = await tx.insert(payments).values({ userId: user.id, provider: viaProvider ? provider.name : cfg.PAYMENTS_MODE, method: body.method, amount: size.price, status: "created",
-        idempotencyKey: body.idempotencyKey, externalId: viaProvider ? null : "test_" + randomUUID(), meta, cardId: card?.id ?? null }).returning();
+      // Бонус бірден ұсталады (екі рет жұмсалмауы үшін); төлем өтпесе releaseBonus қайтарады
+      const bonus = body.useBonus ? await holdBonus(tx, user.id, size.price) : { used: 0, from: [] };
+      const cash = size.price - bonus.used;
+      const viaProvider = Boolean(card) && cash > 0;
+      const [pay] = await tx.insert(payments).values({ userId: user.id, provider: viaProvider ? provider.name : cash === 0 && bonus.used ? "bonus" : cfg.PAYMENTS_MODE, method: cash === 0 && bonus.used ? "bonus" : body.method, amount: cash, status: "created",
+        idempotencyKey: body.idempotencyKey, externalId: viaProvider ? null : (cash === 0 ? "bonus_" : "test_") + randomUUID(), meta: { ...meta, ...(bonus.used ? { bonus } : {}), ...(cash === 0 && bonus.used ? { methodLabel: "Medeo бонусы" } : {}) }, cardId: viaProvider ? card?.id ?? null : null }).returning();
       const [pack] = await tx.insert(packs).values({ userId: user.id, offerId: o.id, unitsTotal: units, unitsLeft: units, pricePaid: size.price,
         validUntil: new Date(Date.now() + o.validDays * 86400_000), status: "pending_payment", source: "purchase" }).returning();
       await tx.update(payments).set({ packId: pack.id }).where(eq(payments.id, pay.id));
-      return { ...pay, packId: pack.id };
+      return { ...pay, packId: pack.id, viaProvider };
     });
+    const viaProvider = created.viaProvider;
 
     // Сынақ режимі (Kaspi, сынақ, картасыз ескі клиент): провайдер бірден «төленді» дейді
     if (!viaProvider) {
@@ -104,11 +111,12 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     }
     let res: Awaited<ReturnType<typeof provider.charge>>;
     try {
-      res = await provider.charge({ paymentId: created.id, amount: size.price, description: `Medeo · ${o.title}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
+      res = await provider.charge({ paymentId: created.id, amount: created.amount, description: `Medeo · ${o.title}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
         card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
     } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
     if (res.status === "failed") {
       await db.update(payments).set({ status: "failed", failure: res.reason, externalId: res.externalId ?? null }).where(eq(payments.id, created.id));
+      await releaseBonus(db, created.id);
       return c.json({ ok: false, error: "payment_failed", reason: res.reason, paymentId: created.id }, 402);
     }
     await db.update(payments).set({ externalId: res.externalId, status: res.status === "paid" ? "created" : "pending" }).where(eq(payments.id, created.id));
@@ -121,6 +129,9 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     if ("error" in out) return c.json({ ok: false, error: out.error }, 409);
     return c.json({ ok: true, repeated: false, status: "paid", paymentId: created.id, carried: out.carried, gift: out.gift, ...(await packAndReceipt(db, user.id, out.packId)) });
   });
+
+  // Medeo бонусы: қалдық, ең жақын мерзім, тарих (күйген бірліктен қайтқан ақша)
+  r.get("/bonus", async (c) => c.json({ ok: true, ...(await bonusOf(db, c.get("user").id)) }));
 
   r.get("/packs", async (c) => {
     const user = c.get("user");
@@ -282,7 +293,7 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
         agent: { name: "Medeo", note: "Пакетті Medeo сервисі арқылы сатып алдыңыз" },
         item: { title: o.title, units, carried, unitName: o.unitName, pricePerUnit: Math.round(size.price / units), regularPricePerUnit: o.regularUnitPrice, regularTotal, saving, discountPct: regularTotal ? Math.round((saving / regularTotal) * 100) : 0 },
         total: size.price, currency: "KZT",
-        payment: { method: body.method, label: methodLabel, ref: pay.externalId, mode: cfg.PAYMENTS_MODE },
+        payment: { method: pay.method, label: methodLabel, ref: pay.externalId, mode: cfg.PAYMENTS_MODE, bonus: (m as { bonus?: { used: number } }).bonus?.used ?? 0, charged: pay.amount },
         pack: { id: pack.id, validFrom: almaty(now), validUntil: almaty(validUntil), validDays: o.validDays, howToUse: "Мекемеде «Medeo бойынша» деп айтып, кассадағы QR-ды сканерле немесе алдын ала тапсырыс бер" },
         support: { bot: "@" + cfg.MINIAPP_BOT_USERNAME },
       };

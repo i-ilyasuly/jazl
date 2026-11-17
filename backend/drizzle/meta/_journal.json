@@ -141,6 +141,13 @@
       "when": 1794943786890,
       "tag": "0019_card_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794957786930,
+      "tag": "0020_bonus",
+      "breakpoints": true
     }
   ]
 }

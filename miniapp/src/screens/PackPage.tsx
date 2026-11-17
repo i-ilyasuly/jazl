@@ -117,7 +117,8 @@ export function PackPage() {
         )}
 
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 3 }}>
-          <button className={s.cell} onClick={() => haptic.tap()}><span className={`${s.rowTitle} ${s.linkText}`}>Мәселе туралы жазу</span></button>
+          {usable && <button className={s.cell} onClick={() => { haptic.tap(); go(`/complaint/${pack.id}?why=refused`); }}><span className={`${s.rowTitle} ${s.linkText}`}>Мекеме қабылдамады ма?</span></button>}
+          <button className={s.cell} onClick={() => { haptic.tap(); go("/complaint/" + pack.id); }}><span className={`${s.rowTitle} ${s.linkText}`}>Мәселе туралы жазу</span></button>
           {/* B4: бірде-бір бірлік жұмсалмаса — 14 күн ішінде ақшаны толық қайтаруға болады (сервер тексереді) */}
           {pack.serverId && pack.left === pack.total && !pack.expired && <button className={s.cell} onClick={() => { haptic.tap(); setAskRefund(true); }}><span className={`${s.rowTitle} ${s.linkText}`}>Ақшаны қайтару</span></button>}
         </section>

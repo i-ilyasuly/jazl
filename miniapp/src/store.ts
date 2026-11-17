@@ -1,5 +1,6 @@
 // Қосымшаның жергілікті күйі (бэкендсіз): сатып алынған пакеттер және қолдану тарихы.
 // Бэкенд қосылғанда осы файлдың ішкі жағы API шақыруларына ауысады, экрандар өзгермейді.
+import { loadBonus, takeBonusNext } from "./pay/bonus";
 import { kv } from "./telegram";
 import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
 import { venues } from "./mocks/venues";
@@ -117,7 +118,9 @@ async function buyOnServer(localId: string, offerSlug: string, methodLabel: stri
   try {
     const key = (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + Date.now());
     const method = /kaspi/i.test(methodLabel) ? "kaspi" : "card";
-    const j = await api<{ pack: SrvPack }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug, method, methodLabel, idempotencyKey: key }) }, 12000);
+    const useBonus = takeBonusNext();
+    const j = await api<{ pack: SrvPack }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug, method, methodLabel, idempotencyKey: key, ...(useBonus ? { useBonus } : {}) }) }, 12000);
+    if (useBonus) void loadBonus(true);
     packs = packs.map((p) => (p.id === localId ? { ...p, serverId: j.pack.id, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : p));
     emit();
   } catch { /* сервер жауап бермесе — пакет жергілікті күйде қалады */ }
