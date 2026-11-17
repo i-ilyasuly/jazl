@@ -115,7 +115,7 @@ export function VMenu() {
     { e: "v:team", t: "Команда", on: () => go("/v/team"), hide: me.role === "cashier" },
     { e: "v:orders", t: "Алдын ала тапсырыстар", on: () => go("/v/orders") },
     { e: "v:integration", t: "Интеграция", on: soon, hide: !owner },
-    { e: "v:reviews", t: "Пікірлер", sub: `${me.venue.reviews} пікір`, on: soon },
+    { e: "v:reviews", t: "Пікірлер", sub: `${me.venue.reviews} пікір`, on: () => go("/v/reviews"), hide: me.role === "cashier" },
   ], [
     { e: "v:guide", t: "Кассаға нұсқау", on: () => nativeAlert("1) «Кассир» → клиенттің пакетін таңда.\n2) «QR шығар» — клиент Jazl+ сканерімен оқиды.\n3) Қосымша тауарды клиент кассада бөлек төлейді.") },
     { e: "v:settings", t: "Баптаулар", on: soon },

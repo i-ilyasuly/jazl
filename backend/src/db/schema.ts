@@ -254,6 +254,9 @@ export const ratings = app.table("ratings", {
   packId: uuid("pack_id").references(() => packs.id),
   stars: smallint("stars").notNull(),
   text: text("text"),
+  /** Мекеменің жауабы (Figma «Пікірге жауап») — барлық клиентке көрінеді */
+  reply: text("reply"),
+  repliedAt: timestamp("replied_at", { withTimezone: true }),
   createdAt: created(),
 }, (t) => [index("ratings_venue").on(t.venueId)]);
 

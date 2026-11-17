@@ -182,4 +182,16 @@ d("C мекеме бөлімі", () => {
     const add = await json(post(`/v1/venue/${venueId}/branches`, { address: "Бұхар-Жырау, 52" }, 701));
     expect((await post(`/v1/venue/${venueId}/branches/${add.id}/remove`, {}, 701)).status).toBe(200);
   });
+  it("пікірлер: орташа баға, бөлінуі, жауапсыздар; жауап беру (иесі/басқарушы)", async () => {
+    const p = await buy(730);
+    expect((await post("/v1/ratings", { packId: p, stars: 4, tags: [], text: "Дәмі жақсы" }, 730)).status).toBe(200);
+    const r = await json(get(`/v1/venue/${venueId}/reviews`, 701));
+    expect(r.summary.count).toBeGreaterThanOrEqual(1); expect(r.summary.dist).toHaveLength(5);
+    const it = r.items.find((x: { text: string }) => x.text === "Дәмі жақсы");
+    expect(it).toMatchObject({ stars: 4, reply: null, offer: "Тауық донері" });
+    expect((await post(`/v1/venue/${venueId}/reviews/${it.id}/reply`, { text: "Рақмет!" }, 702)).status).toBe(403);
+    expect((await post(`/v1/venue/${venueId}/reviews/${it.id}/reply`, { text: "Рақмет!" }, 701)).status).toBe(200);
+    const nr = await json(get(`/v1/venue/${venueId}/reviews?filter=noreply`, 701));
+    expect(nr.items.find((x: { id: string }) => x.id === it.id)).toBeUndefined();
+  });
 });
