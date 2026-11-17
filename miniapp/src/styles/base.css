@@ -81,3 +81,6 @@ button.topSearch:active { transform: scale(0.98); }
 .infoBox :is(b, strong)[class], .hl { border-radius: 4px !important; padding: 0 3px !important; margin: 0 -1px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 /* Фондағы мәтіннің (ескерту, сипаттама) боялған сөздері қалың болмайды — айналасындағы мәтінмен бірдей салмақ (Патша, 2026-11-16) */
 .infoBox b, .infoBox strong, .infoBox [class*=hl], .infoBox [class*=green], .infoBox [class*=blue] { font-weight: inherit !important; }
+
+/* Jazl+ Басқару десктопта: бет толық енге жайылады (сол жақта мәзір) */
+:root[data-desk] .app { max-width: none; }

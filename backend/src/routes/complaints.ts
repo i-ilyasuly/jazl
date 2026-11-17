@@ -6,6 +6,7 @@ import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
+import { getSettings } from "../settings.js";
 import { complaints, offers, packEvents, packs, redemptions, venueStaff } from "../db/schema.js";
 
 const CARRY_DAYS = 3;
@@ -32,6 +33,7 @@ export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const [rd] = await db.select({ id: redemptions.id }).from(redemptions).where(and(eq(redemptions.packId, p.p.id), sql`${redemptions.cancelledAt} is null`, sql`${redemptions.createdAt} > now() - interval '7 days'`)).orderBy(desc(redemptions.createdAt)).limit(1);
     const [x] = await db.insert(complaints).values({ userId: user.id, venueId: p.o.venueId, packId: p.p.id, redemptionId: rd?.id ?? null, reason: b.data.reason ?? null, text: b.data.text }).returning();
     await notify?.complaint(x.id);
+    await notify?.adminComplaint(x.id, (await getSettings(db)).complaintHours);
     return c.json({ ok: true, complaint: { id: x.id, status: x.status } });
   });
 

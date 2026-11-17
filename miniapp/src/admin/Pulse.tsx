@@ -7,6 +7,7 @@ import { useCached } from "../venue/api";
 import { Person, Sk, VPage, VSticker } from "../venue/ui";
 import { A, ago, hm, money } from "./api";
 import { Badge, Growth, setComplaintDot } from "./ui";
+import { useDesk } from "./Desk";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
@@ -53,6 +54,48 @@ export function APulse() {
   const rows = att ? [att.waiting[0], att.waiting[1], att.urgent[0], att.urgent[1]] : []; // Figma: өтінім, модерация, шағым, сәтсіз төлем
   const max = Math.max(1, ...(p?.week.map((w) => w.sales) ?? [1]));
   const kindLabel: Record<string, string> = { buy: "Сатып алды", use: "Қолданды", order: "Тапсырыс берді", plan: "Жазылды", gift: "Сыйлады", complaint: "Шағым жазды" };
+  const desk = useDesk();
+  const seg = <div className={v.seg} style={desk ? { maxWidth: 420 } : undefined}>{PERIODS.map(([k, t]) => <button key={k} className={`${v.segBtn} ${period === k ? v.segOn : ""}`} onClick={() => { haptic.select(); setPeriod(k); }}>{t}</button>)}</div>;
+  const chart = (
+    <div className={v.chart}>
+      <div className={v.chartHead}><b className={v.lead}>Апталық сатылым</b><span className={v.chartSum}>{p ? money(p.weekTotal) : "–"}</span></div>
+      <div className={v.bars}>{(p?.week ?? Array.from({ length: 7 }, (_, i) => ({ d: String(i), sales: 0 }))).map((w, i, arr) => (
+        <div key={w.d} className={`${v.barCol} ${i === arr.length - 1 && w.sales ? v.max : ""}`}><i style={{ height: `${Math.max(12, (w.sales / max) * 100)}%` }} /><span>{p ? DOW[new Date(w.d + "T12:00:00").getDay()] : ""}</span></div>
+      ))}</div>
+    </div>
+  );
+  if (desk) return (
+    // Figma «Пульс / Desktop» (14068:9931): 4 көрсеткіш, апталық сатылым, тірі лента кестесі; оң жақта «Назар керек»
+    <VPage nav>
+      <h1 className={v.h1}>Пульс</h1>
+      <p className={s.sub}>{sub}</p>
+      <div className={s.pulseGrid}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          {seg}
+          <div className={s.stats4}>
+            <div className={`${v.stat} ${s.statBlue}`}><span className={v.statLabel}>Сатылым</span><span className={v.statNum}>{p ? money(p.sales) : "–"}</span>{p && <Growth v={p.salesGrowth} white={period === "today"} />}</div>
+            <div className={v.stat}><span className={v.statLabel}>Комиссия</span><span className={v.statNum}>{p ? money(p.fee) : "–"}</span>{p && <Growth v={p.feeGrowth} />}</div>
+            <div className={v.stat}><span className={v.statLabel}>Сатылған пакет</span><span className={v.statNum}>{p ? p.packs : "–"}</span>{p && <span className={p.packsDelta >= 0 ? s.pillUp : s.pillDown}>{p.packsDelta >= 0 ? "▲" : "▼"} {Math.abs(p.packsDelta)}</span>}</div>
+            <div className={v.stat}><span className={v.statLabel}>Қолданылды</span><span className={v.statNum}>{p ? p.units : "–"}</span>{p && <Growth v={p.unitsGrowth} />}</div>
+          </div>
+          {chart}
+          <div className={v.sectionHead}><h2 className={v.sectionTitle}>Тірі лента</h2></div>
+          <table className={s.table}>
+            <thead><tr><th>Уақыт</th><th>Клиент</th><th>Әрекет</th><th>Мекеме</th><th className={s.num}>Сома</th></tr></thead>
+            <tbody>{(p?.feed ?? []).map((f, i) => (
+              <tr key={i} style={{ cursor: "default" }}><td>{hm(f.at)}</td><td>{f.who}</td><td>{kindLabel[f.kind] ?? f.kind} · {f.kind === "use" ? `${f.units} бірлік` : f.title}</td><td>{f.venue}</td>
+                <td className={s.num}>{f.kind === "buy" ? <span className={s.green}>+{money(f.amount)}</span> : f.kind === "complaint" ? <span className={`${v.tag} ${v.tagRed}`}>Шағым</span> : "—"}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <div className={v.deskPanel} style={{ position: "sticky", top: 88 }}>
+          <h2 className={v.sectionTitle}>Назар керек</h2>
+          <div className={v.card}>{att ? [att.urgent[0], att.urgent[1], att.waiting[0], att.waiting[1]].map((r) => <Row key={r.t} r={r} />) : <div className={v.row}><Sk h={40} /></div>}</div>
+          {att && a && a.grace > 0 && <p className="t-sub2 infoBox" style={{ margin: 0 }}>{att.soon[0].sub}</p>}
+        </div>
+      </div>
+    </VPage>
+  );
   return (
     <VPage nav>
       <h1 className={v.h1}>Пульс</h1>

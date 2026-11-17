@@ -9,20 +9,23 @@ import { Note, Person, Sheet, Sk, VPage, Buttons } from "../venue/ui";
 import { A, hm, money, post, when, dayMonth } from "./api";
 import { Badge, Field, Growth, PinSheet, RadioRow } from "./ui";
 import type { Attention } from "./Pulse";
+import { ExportSheet } from "./Money";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
 const PERIODS = [["today", "Бүгін"], ["7", "7 күн"], ["30", "30 күн"], ["all", "Барлығы"]] as const;
-const soon = () => nativeAlert("Бұл бөлім келесі кезеңде қосылады (нақты төлемдер Kaspi келісімінен кейін).");
+const soon = () => nativeAlert("Салыстыру нақты төлем провайдері (Kaspi) қосылғанда іске қосылады: сынақ режимінде салыстыратын дерек жоқ.");
 
 export function AMoney() {
+  const go = useGo();
+  const [exp, setExp] = useState(false);
   const [period, setPeriod] = useState<(typeof PERIODS)[number][0]>("30");
   const [d] = useCached<{ money: { sales: number; salesGrowth: number | null; fee: number; feeGrowth: number | null; venue: number; uses: number; balance: number; payments: number; refunds: number; expired: number; testMode: boolean } }>(`a:money:${period}`, () => A(`/money?period=${period}`));
   const m = d?.money;
   const label = { today: "Бүгін", "7": "Соңғы 7 күн", "30": "Соңғы 30 күн", all: "Барлық уақыт" }[period];
   const rows = [
-    { e: "a:pay", t: "Төлемдер", r: m ? String(m.payments) : "–" }, { e: "a:settle", t: "Мекемелермен есеп", r: "" }, { e: "a:recon", t: "Салыстыру", r: "" },
-    { e: "a:refunds", t: "Қайтарулар", r: m ? String(m.refunds) : "–" }, { e: "a:expired", t: "Мерзімі өткен қалдық", r: m ? money(m.expired) : "–" }, { e: "a:export", t: "Экспорт", r: "" },
+    { e: "a:pay", t: "Төлемдер", r: m ? String(m.payments) : "–", on: () => go("/a/money/payments") }, { e: "a:settle", t: "Мекемелермен есеп", r: "", on: () => go("/a/money/settlements") }, { e: "a:recon", t: "Салыстыру", r: "", on: soon },
+    { e: "a:refunds", t: "Қайтарулар", r: m ? String(m.refunds) : "–", on: () => go("/a/money/refunds") }, { e: "a:expired", t: "Мерзімі өткен қалдық", r: m ? money(m.expired) : "–", on: () => go("/a/packs?tab=grace") }, { e: "a:export", t: "Экспорт", r: "", on: () => setExp(true) },
   ];
   return (
     <VPage nav>
@@ -39,8 +42,9 @@ export function AMoney() {
       </div>
       {m?.testMode && <Note tone="warn">Сынақ режимі: ақша нақты жүрмейді. Сандар сынақ сатылымдарынан есептелген.</Note>}
       <div className={v.card}>{rows.map((r) => (
-        <button key={r.t} className={v.row} style={{ minHeight: 56 }} onClick={soon}><Tile e={r.e} size={36} /><span className={v.rowText}><span className={v.rowTitle}>{r.t}</span></span>{r.r && <b className={v.lead} style={{ fontSize: 16 }}>{r.r}</b>}<i className={v.arrow} /></button>
+        <button key={r.t} className={v.row} style={{ minHeight: 56 }} onClick={() => { haptic.tap(); r.on(); }}><Tile e={r.e} size={36} /><span className={v.rowText}><span className={v.rowTitle}>{r.t}</span></span>{r.r && <b className={v.lead} style={{ fontSize: 16 }}>{r.r}</b>}<i className={v.arrow} /></button>
       ))}</div>
+      {exp && <ExportSheet onClose={() => setExp(false)} />}
     </VPage>
   );
 }
@@ -54,7 +58,7 @@ export function AMore() {
   const n = a ? a.attention.offers_new + a.attention.offers_changed : 0;
   const rows: [string, string, string, number?][][] = [
     [["a:moderation", "Ұсыныстар модерациясы", "/a/offers", n], ["a:packs", "Пакеттер және қолданулар", "/a/packs"], ["a:apps", "Мекеме өтінімдері", "/a/apps", a?.attention.apps ?? 0]],
-    [["a:rules", "Бизнес-ережелер", "/a/rules"], ["a:log", "Өзгерістер журналы", "/a/log"]],
+    [["a:bell", "Хабарламалар", "/a/notifications"], ["a:rules", "Бизнес-ережелер", "/a/rules"], ["a:log", "Өзгерістер журналы", "/a/log"]],
   ];
   const m = st?.settings.maintenance ?? false;
   return (

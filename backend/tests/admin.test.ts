@@ -5,7 +5,7 @@ import { createApp } from "../src/app.js";
 import { createDb } from "../src/db/client.js";
 import { runMigrations } from "../src/db/migrate.js";
 import { seedCatalog } from "../src/db/seed.js";
-import { signInitData } from "../src/auth/telegram.js";
+import { signInitData, signLoginWidget } from "../src/auth/telegram.js";
 import { loadConfig } from "../src/config.js";
 import type { Msg } from "../src/notify.js";
 
@@ -174,5 +174,61 @@ d("Jazl+ Басқару", () => {
     expect((await post("/v1/admin/settings", { key: "graceDays", value: 40, pin: "5821" })).status).toBe(400);
     const log = (await json(get("/v1/admin/log"))).log.map((x: { action: string }) => x.action);
     expect(log).toEqual(expect.arrayContaining(["Комиссия өзгерді", "Өтінім бекітілді", "Ұсыныс бекітілді", "Мекеме тоқтатылды", "Шағым шешілді", "Мерзім ұзартылды", "Қолдану қайтарылды", "Техникалық жұмыстар қосылды", "Техникалық жұмыстар өшірілді"]));
+  });
+
+  it("веб-кіру (Telegram Login Widget): қолтаңба, рұқсат тізімі, PIN → веб-токенмен Басқару API", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const w = (id: number, at = now) => signLoginWidget({ id, first_name: "Адам" + id, auth_date: at }, TOKEN);
+    const login = (body: object) => app.request("/admin-web/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    expect((await login({ auth: { ...w(ADMIN), hash: "00".repeat(32) } })).status).toBe(401);
+    expect((await json(login({ auth: w(ADMIN, now - 2 * 86400) }))).reason).toBe("expired");
+    expect(await json(login({ auth: w(OTHER) }))).toMatchObject({ error: "forbidden", telegramId: OTHER });
+    expect(await json(login({ auth: w(ADMIN) }))).toMatchObject({ ok: true, hasPin: true });
+    expect((await json(login({ auth: w(ADMIN), pin: "0000" }))).error).toBe("bad_pin");
+    const ok = await json(login({ auth: w(ADMIN), pin: "5821" }));
+    expect(ok.token).toMatch(/^[0-9a-f-]{36}\.\d+\.[0-9a-f]{32}$/);
+    const [, e, sg] = ok.token.split(".");
+    const web = { Authorization: "adm " + ok.token, "X-Admin-Token": `${e}.${sg}` };
+    expect((await app.request("/v1/admin/pulse", { headers: web })).status).toBe(200);
+    expect((await app.request("/v1/me", { headers: web })).status).toBe(401); // веб-токен тек Басқаруға
+    expect((await app.request("/v1/admin/pulse", { headers: { ...web, Authorization: "adm " + ok.token.slice(0, -1) + (ok.token.endsWith("0") ? "1" : "0") } })).status).toBe(401);
+    await dbh.pool.query("update app.admins set failed = 0, locked_until = null");
+  });
+
+  it("Басқаруға бот хабарламалары (Figma 18): шағым — веб-сілтемемен; баптау өшсе келмейді; тыныш уақытта тек шұғыл", async () => {
+    const before = sent.length;
+    const pk = (await json(post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT))).pack.id;
+    await post("/v1/redeem", { packId: pk, qr: "JZB1:" + branchId, idempotencyKey: key() }, CLIENT);
+    await post("/v1/complaints", { packId: pk, reason: "Қос қолдану", text: "Тағы да екі рет" }, CLIENT);
+    const m = sent.slice(before).find((x) => x.chatId === ADMIN && x.text.startsWith("💬 Жаңа шағым"));
+    expect(m?.button?.url).toMatch(/#\/a\/complaints\/[0-9a-f-]{36}$/);
+    const prefs = (await json(get("/v1/admin/prefs"))).prefs;
+    expect(prefs).toMatchObject({ complaint: true, weekly: false, quiet: true });
+    await app.request("/v1/admin/prefs", { method: "PUT", headers: A(), body: JSON.stringify({ ...prefs, moderation: false }) });
+    const b2 = sent.length;
+    const body = { title: "Лаваш", category: "Басқа", about: "Тауық еті, соус, көкөніс — бәрі жаңа, күн сайын дайындалады, түскі асқа", photos: ["https://example.com/a.jpg"], validDays: 30, regularUnitPrice: 2000, sizes: [{ units: 4, price: 6400 }], rules: { carry: true, extend: true, preorder: true, branches: null }, publish: true };
+    await post(`/v1/venue/${venueId}/offers`, body, OWNER);
+    expect(sent.slice(b2).some((x) => x.chatId === ADMIN)).toBe(false);
+    await app.request("/v1/admin/prefs", { method: "PUT", headers: A(), body: JSON.stringify({ ...prefs, quiet: false }) }); // тыныш уақытқа тәуелді болмау үшін
+    const b3 = sent.length;
+    await post(`/v1/venue/${venueId}/offers`, body, OWNER);
+    expect(sent.slice(b3).find((x) => x.chatId === ADMIN)?.text).toContain("Модерацияға ұсыныс түсті");
+  });
+
+  it("ақша: төлемдер, есеп айырысу (8% комиссиямен), қайтарулар, CSV экспорт", async () => {
+    const pays = await json(get("/v1/admin/payments?tab=paid"));
+    expect(pays.payments.length).toBeGreaterThan(0);
+    expect(pays.payments[0]).toMatchObject({ status: "paid", method: "test" });
+    const st = await json(get("/v1/admin/settlements"));
+    const dd = st.venues.find((x: { id: string }) => x.id === venueId);
+    expect(dd.uses).toBeGreaterThan(0); expect(dd.fee).toBe(8); // жоғарыда 8%-ға өзгертілген
+    expect(Math.abs(dd.amount - dd.gross * 0.92)).toBeLessThan(dd.uses);
+    const rf = await json(get("/v1/admin/refunds"));
+    expect(rf.refunds.map((x: { why: string }) => x.why)).toEqual(expect.arrayContaining(["шағым", "Басқару қайтарды"]));
+    const csv = await get("/v1/admin/export?period=all&parts=payments,settlements,refunds");
+    expect(csv.headers.get("content-type")).toContain("text/csv");
+    const t = await csv.text();
+    expect(t.replace(/^\uFEFF/, "").startsWith("Төлемдер")).toBe(true); // BOM — Excel кириллицаны дұрыс ашуы үшін
+    expect(t).toContain("Dämdi Doner");
   });
 });

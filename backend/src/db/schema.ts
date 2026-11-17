@@ -351,6 +351,8 @@ export const admins = app.table("admins", {
   pinHash: text("pin_hash"),
   failed: smallint("failed").notNull().default(0),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  /** Figma «18 · Хабарлама баптаулары»: шұғыл / күнделікті / тыныш уақыт */
+  prefs: jsonb("prefs"),
   createdAt: created(),
 });
 

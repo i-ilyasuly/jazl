@@ -10,6 +10,7 @@ import { useCached } from "../venue/api";
 import { Buttons, Note, Person, Sheet, Sk, VPage, VSticker } from "../venue/ui";
 import { A, ago, dayMonth, money, post, when } from "./api";
 import { Empty, Field, Growth, PinSheet, RadioRow } from "./ui";
+import { useDesk } from "./Desk";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
@@ -19,7 +20,9 @@ const statusTag: Record<string, [string, string]> = { active: ["Белсенді
 
 export function AVenues() {
   const go = useGo();
-  const [q, setQ] = useState("");
+  const desk = useDesk();
+  const sel = useParams().id;
+  const [q, setQ] = useState(() => new URLSearchParams(window.location.hash.split("?")[1] ?? "").get("q") ?? "");
   const [qq, setQq] = useState("");
   useEffect(() => { const t = setTimeout(() => setQq(q.trim()), 300); return () => clearTimeout(t); }, [q]);
   const [f, setF] = useState<"all" | "active" | "app" | "paused">("all");
@@ -35,7 +38,24 @@ export function AVenues() {
       <div className={s.chipsWrap}>{([["all", "Барлығы"], ["active", "Белсенді"], ["app", "Өтінім"], ["paused", "Тоқтатылған"]] as const).map(([k, t]) => (
         <button key={k} className={`${v.chip} ${f === k ? v.chipOn : ""}`} onClick={() => { haptic.select(); setF(k); }}>{t} {d ? n[k] : ""}</button>
       ))}</div>
-      {!d ? <Sk h={260} /> : shown.length + (f === "all" || f === "app" ? apps.length : 0) === 0 ? (
+      {d && desk && shown.length + (f === "all" || f === "app" ? apps.length : 0) > 0 ? (
+        // Figma «Мекемелер / Desktop»: кесте (Мекеме · Санат · Күйі · Рейтинг · Сатылым, 30 күн)
+        <table className={s.table}>
+          <thead><tr><th>Мекеме</th><th>Санат</th><th>Күйі</th><th>Рейтинг</th><th className={s.num}>Сатылым, 30 күн</th></tr></thead>
+          <tbody>
+            {shown.map((x) => { const [t, k] = statusTag[x.status] ?? statusTag.active; return (
+              <tr key={x.id} className={sel === x.id ? s.sel : ""} onClick={() => go(`/a/venues/${x.id}`)}>
+                <td><b>{x.name}</b><small>{x.branches} филиал</small></td><td>{x.kindName}</td><td><span className={`${v.tag} ${v[k]}`}>{t}</span></td>
+                <td>{x.rating ? `★ ${x.rating.toFixed(1).replace(".", ",")}` : "—"}</td><td className={s.num}>{money(x.sales30)}</td>
+              </tr>); })}
+            {(f === "all" || f === "app") && apps.map((a) => (
+              <tr key={a.id} onClick={() => go(`/a/apps/${a.id}`)}>
+                <td><b>{a.name ?? "Атаусыз"}</b><small>{a.submitted_at ? when(a.submitted_at, false) + " түсті" : ""}</small></td><td>{a.kindName}</td><td><span className={v.tag}>Өтінім</span></td><td>—</td><td className={s.num}>—</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : !d ? <Sk h={260} /> : shown.length + (f === "all" || f === "app" ? apps.length : 0) === 0 ? (
         <div className={v.result}><VSticker name="search" size={100} /><h2 className={v.stateTitle}>Ештеңе табылмады</h2><p className={v.stateText}>Атауын не БСН-ді тексеріп, қайта іздеңіз.</p></div>
       ) : (
         <div className={v.card}>

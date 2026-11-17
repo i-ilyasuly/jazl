@@ -4,6 +4,7 @@ import { useGo } from "../nav";
 import { haptic } from "../telegram";
 import { Sheet } from "../venue/ui";
 import { errOf, setToken } from "./api";
+import { DeskShell, useDesk } from "./Desk";
 import pulseIcon from "../assets/icons/navPulse.svg";
 import storeIcon from "../assets/icons/navStore.svg";
 import walletIcon from "../assets/icons/navWallet.svg";
@@ -57,7 +58,12 @@ let complaintDot = false;
 export const setComplaintDot = (v: boolean) => { complaintDot = v; window.dispatchEvent(new Event("jazl:adot")); };
 export function ANavHost({ path }: { path: string }) {
   const [, tick] = useState(0);
+  const desk = useDesk();
   useEffect(() => { const f = () => tick((n) => n + 1); window.addEventListener("jazl:adot", f); return () => window.removeEventListener("jazl:adot", f); }, []);
+  // Кең экранда — сол жақ мәзір (Figma 22); html[data-desk] бет стильдерін ауыстырады
+  const on = desk && !path.startsWith("/a/pin");
+  useEffect(() => { if (on) document.documentElement.dataset.desk = "1"; else delete document.documentElement.dataset.desk; return () => { delete document.documentElement.dataset.desk; }; }, [on]);
+  if (desk) return <DeskShell path={path} />;
   const t = aTabOf(path);
   return t ? <ANav active={t} dot={complaintDot} /> : null;
 }

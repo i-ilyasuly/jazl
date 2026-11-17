@@ -135,6 +135,7 @@ export function applyRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const m = missing(a.data as AppData, docs);
     if (m.length) return c.json({ ok: false, error: "incomplete", missing: m }, 409);
     const [x] = await db.update(venueApplications).set({ status: "review", submittedAt: new Date(), note: null }).where(eq(venueApplications.id, a.id)).returning();
+    await notify?.adminApplication(a.id);
     return c.json({ ok: true, application: await view(x) });
   });
 
