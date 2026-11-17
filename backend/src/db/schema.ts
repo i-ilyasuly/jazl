@@ -2,7 +2,7 @@
 // бір дерекқорда қатар тұра алады. Ақша — теңгемен бүтін сан (тиынсыз). Уақыт — timestamptz (UTC).
 // Логикасы мен ID ережесі: Drive «14 Бэкенд логикасы».
 import { sql } from "drizzle-orm";
-import { bigint, boolean, doublePrecision, index, integer, jsonb, pgSchema, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, customType, doublePrecision, index, integer, jsonb, pgSchema, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const app = pgSchema("app");
 
@@ -283,3 +283,32 @@ export const qrSessions = app.table("qr_sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: created(),
 }, (t) => [index("qr_sessions_code").on(t.code, t.expiresAt)]);
+
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
+
+/** Мекемені тіркеу өтінімі (Figma «02 · Тіркелу», «03 · Өтінім күйі»). Әр қадам data-ға сақталады (кейін жалғастыруға болады).
+ *  status: draft → review → (need_info | rejected | approved). Мақұлданса — venues, branches, venue_staff(owner) жасалады. */
+export const venueApplications = app.table("venue_applications", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("draft"),
+  data: jsonb("data").notNull().default(sql`'{}'::jsonb`),
+  /** Jazl+ командасының ескертуі (қосымша ақпарат не бас тарту себебі) */
+  note: text("note"),
+  venueId: uuid("venue_id").references(() => venues.id),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  createdAt: created(),
+}, (t) => [index("venue_applications_user").on(t.userId)]);
+
+/** Тіркеу құжаттары (БСН анықтамасы, жеке куәлік, жарғы, халал) — жеке дерек: ашық бакетке емес, дерекқорда жабық сақталады. */
+export const venueDocs = app.table("venue_docs", {
+  id: id(),
+  applicationId: uuid("application_id").notNull().references(() => venueApplications.id),
+  kind: text("kind").notNull(),
+  fileName: text("file_name").notNull(),
+  mime: text("mime").notNull(),
+  size: integer("size").notNull(),
+  bytes: bytea("bytes").notNull(),
+  createdAt: created(),
+}, (t) => [index("venue_docs_app").on(t.applicationId)]);

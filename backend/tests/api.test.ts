@@ -88,4 +88,9 @@ d("API", () => {
     const r = await dbh.pool.query("select first_name from public.users");
     expect(r.rows).toEqual([{ first_name: "bot" }]);
   });
+  it("CORS: браузер PUT сұрауын жібере алады (ұсыныс, филиал, профиль, өтінім)", async () => {
+    const r = await createApp(cfg, dbh.db).request("/v1/venue/application", { method: "OPTIONS", headers: { Origin: "https://miniapp.example", "Access-Control-Request-Method": "PUT", "Access-Control-Request-Headers": "authorization,content-type" } });
+    expect(r.headers.get("access-control-allow-methods")).toContain("PUT");
+    expect(r.headers.get("access-control-allow-headers")).toContain("X-File-Name");
+  });
 });
