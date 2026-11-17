@@ -2,11 +2,11 @@
 // «Мерзімі өтті» 13886:34508, «Бұрын қабылданған» 13886:34546, «Болдырылмады» 13886:34584, «Өз сыйлығың» 13886:34622.
 // Демо: ?state=anon | expired | taken | cancelled | own. Telegram-да сілтеме startapp=gift_<id> арқылы келеді (main.tsx).
 import { Emo } from "../ui/Emo";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { findOffer } from "../mocks/offers";
 import { useGo } from "../nav";
-import { acceptGift, getPack, offerOf, useGifts, usePacks } from "../store";
+import { acceptGift, acceptServerGift, getPack, loadServerGift, offerOf, useGifts, usePacks } from "../store";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { Sticker, type StickerName } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
@@ -27,6 +27,9 @@ export function GiftOpen() {
   const { id } = useParams();
   const go = useGo();
   const gifts = useGifts();
+  // B4: сілтемедегі код серверде болса — сыйлықты серверден аламыз
+  const [srvTried, setSrvTried] = useState(false);
+  useEffect(() => { if (id && !gifts.some((x) => x.id === id)) void loadServerGift(id).finally(() => setSrvTried(true)); else setSrvTried(true); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const g = gifts.find((x) => x.id === id) ?? gifts.find((x) => x.status === "open") ?? gifts[0];
   const d = demo();
   const anon = d === "anon" || Boolean(g.anon);
@@ -35,11 +38,11 @@ export function GiftOpen() {
   const o = findOffer(g.offerId);
   const close = useCallback(() => go("/", "fade", { replace: true }), [go]);
   useBackButton(close);
-  const take = useCallback(() => {
-    const pid = acceptGift(g.id);
+  const take = useCallback(async () => {
+    const pid = g.code ? await acceptServerGift(g.code) : acceptGift(g.id);
     if (!pid) { haptic.error(); return; }
     haptic.success(); go("/gift/done/" + pid, "fade", { replace: true, state: { from: anon ? "Аноним" : g.name } });
-  }, [g.id, g.name, anon, go]);
+  }, [g.id, g.code, g.name, anon, go]);
   const main = useMemo(() => {
     if (!bad) return { text: "Сыйлықты алу", shine: true, onClick: take };
     if (bad === "own") return { text: BAD.own.btn, onClick: () => { haptic.medium(); shareGift(g.id, g.pack); } };
