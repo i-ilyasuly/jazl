@@ -95,7 +95,7 @@ export function Note({ children, tone }: { children: ReactNode; tone?: "warn" | 
 // Стикерлер — Figma-дағы «Стикер орны (duck TGS)» бойынша: түрі, орны (x, y — 412×917 кадрдағы), өлшемі дәл сол. Барлығы анимациялы (Lottie).
 export type VStickerName = StickerName;
 export function VSticker({ name, size, at }: { name: VStickerName; size: number; at?: [number, number] }) {
-  const pos = at ? { position: "absolute" as const, left: `calc(50% - 206px + ${at[0]}px)`, top: `calc(${at[1]}px + var(--top-shift))`, zIndex: 2, pointerEvents: "none" as const } : undefined;
+  const pos = at ? { position: "absolute" as const, left: `calc(50% - 206px + ${at[0]}px)`, top: `calc(${at[1]}px + var(--top-shift))`, zIndex: 2 } : undefined;
   return (
     <span className={s.vstk} style={{ width: size, height: size, ...pos }} aria-hidden>
       <Sticker name={name} size={size} />
