@@ -28,7 +28,7 @@ export function VGate() {
 
 export function VWelcome() {
   const go = useGo();
-  const reg = useCallback(() => go("/profile/venue"), [go]);
+  const reg = useCallback(() => go("/v/apply"), [go]);
   const join = useCallback(() => go("/v/join"), [go]);
   return (
     <VPage>

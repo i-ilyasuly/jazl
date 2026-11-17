@@ -13,6 +13,7 @@ import { purchaseRoutes, receiptFileRoutes } from "./routes/purchases.js";
 import { devQrRoutes, usageRoutes } from "./routes/usage.js";
 import { b4Routes } from "./routes/b4.js";
 import { venueRoutes } from "./routes/venue.js";
+import { applyRoutes } from "./routes/apply.js";
 import { localMediaRoutes } from "./media.js";
 
 type User = typeof users.$inferSelect;
@@ -21,7 +22,7 @@ export type Env = { Variables: { user: User; auth: { authDate: number; startPara
 export function createApp(cfg: Config, db: Db) {
   const app = new Hono<Env>();
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
-  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version"], allowMethods: ["GET", "POST", "PATCH", "DELETE"], maxAge: 600 }));
+  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version", "X-File-Name"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 }));
 
   app.get("/health", async (c) => {
     await db.execute(sql`select 1`);
@@ -79,6 +80,7 @@ export function createApp(cfg: Config, db: Db) {
   });
 
   app.route("/v1", purchaseRoutes(cfg, db));
+  app.route("/v1", applyRoutes(cfg, db));
   app.route("/v1", venueRoutes(cfg, db));
   app.route("/v1", usageRoutes(cfg, db));
   app.route("/v1", b4Routes(cfg, db));

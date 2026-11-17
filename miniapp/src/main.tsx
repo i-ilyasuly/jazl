@@ -60,6 +60,7 @@ import { VOfferPage, VOfferReview, VOfferWizard } from "./venue/Offers";
 import { VBranchEdit, VBranches } from "./venue/Branches";
 import { VReviews } from "./venue/Reviews";
 import { VGuide, VProfile, VSettings, VSupport } from "./venue/Settings";
+import { VApplyIntro, VApplyStatus, VApplyStep, VApplyTerms } from "./venue/Apply";
 import { loadStaff } from "./venue/api";
 import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
@@ -210,7 +211,7 @@ const router = createHashRouter([
       { path: "/welcome/carry", element: <CarryRules /> }, // тіркелмеген адамға да ашылады (бұрын /welcome-ге қайта лақтыратын)
       { path: "/profile/doc/:id", element: <Doc /> },
       { path: "/kyc", element: <Kyc /> },
-      { path: "/profile/venue", element: <VenueApply /> },
+      { path: "/profile/venue", element: <Navigate to="/v/apply" replace /> }, // ескі қысқа өтінім → Figma «02 · Тіркелу»
       { path: "/profile/venue/done", element: <VenueDone /> },
       { path: "/profile/report", element: <Report /> },
       { path: "/profile/faq", element: <Faq /> },
@@ -221,6 +222,10 @@ const router = createHashRouter([
       // Мекеме бөлімі — Figma «Jazl+ Мекеме»
       { path: "/v", element: <VGate /> },
       { path: "/v/welcome", element: <VWelcome /> },
+      { path: "/v/apply", element: <VApplyIntro /> },
+      { path: "/v/apply/terms", element: <VApplyTerms /> },
+      { path: "/v/apply/status", element: <VApplyStatus /> },
+      { path: "/v/apply/:step", element: <VApplyStep /> },
       { path: "/v/join", element: <VJoin /> },
       { path: "/v/join/:code", element: <VJoin /> },
       { path: "/v/pending", element: <VPending /> },

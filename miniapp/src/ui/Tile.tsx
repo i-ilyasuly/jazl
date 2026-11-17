@@ -22,7 +22,7 @@ const map: Record<string, [string, C]> = {
   "v:cashier": ["qr-code", "blue"], "v:offer": ["tag", "orange"], "v:invite": ["user", "green"], "v:report": ["wallet", "lavender"], "v:key": ["key", "green"],
   "v:venue": ["store", "blue"], "v:venueOrange": ["store", "orange"], "v:venuePurple": ["store", "lavender"], "v:branch": ["map-pin", "green"], "v:team": ["user", "lavender"], "v:integration": ["refresh", "orange"],
   "v:reviews": ["star", "yellow"], "v:guide": ["file", "blue"], "v:settings": ["settings", "gray"], "v:support": ["message", "green"], "v:orders": ["list", "cyan"], "v:client": ["repeat", "blue"],
-  "v:clock": ["clock", "blue"], "v:pin": ["lock", "blue"], "v:complaint": ["alert", "orange"], "v:carry": ["refresh", "green"], "v:extend": ["plus", "orange"], "v:preorder": ["shopping-cart", "lavender"],
+  "v:clock": ["clock", "blue"], "v:pin": ["lock", "blue"], "v:file": ["file", "blue"], "v:bank": ["landmark", "green"], "v:photo": ["image", "orange"], "v:docs": ["file", "lavender"], "v:complaint": ["alert", "orange"], "v:carry": ["refresh", "green"], "v:extend": ["plus", "orange"], "v:preorder": ["shopping-cart", "lavender"],
   "🍔": ["utensils", "orange"], "🌯": ["utensils", "orange"], "🥙": ["utensils", "orange"], "🍕": ["utensils", "orange"], "🍵": ["coffee", "orange"], "💈": ["scissors", "purple"],
 };
 const norm = (e: string) => e.replace(/️/g, "").trim();
