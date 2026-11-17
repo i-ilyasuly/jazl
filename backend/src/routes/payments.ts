@@ -9,6 +9,11 @@ import { paymentCards, payments } from "../db/schema.js";
 import { paymentProvider } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
 import { finalizePurchase, paymentReply, saveCard } from "./purchases.js";
+import { finalizeExtend } from "./b4.js";
+
+/** Төлем түріне қарай аяқтау: сатып алу (пакет, сыйлық, қайта алу) не мерзімді ұзарту */
+const finalizePayment = async (db: Db, cfg: Config, pay: typeof payments.$inferSelect) =>
+  (pay.meta as { kind?: string } | null)?.kind === "extend" ? finalizeExtend(db, cfg, pay.id) : finalizePurchase(db, cfg, pay.id);
 
 const cardDto = (x: typeof paymentCards.$inferSelect) => ({ id: x.id, brand: x.brand, last4: x.last4, exp: `${String(x.expMonth).padStart(2, "0")}/${String(x.expYear % 100).padStart(2, "0")}`, holder: x.holder });
 
@@ -50,7 +55,7 @@ export function paymentRoutes(cfg: Config, db: Db) {
     const [pay] = await db.select().from(payments).where(and(eq(payments.id, c.req.param("id")), eq(payments.userId, c.get("user").id))).limit(1);
     if (!pay) return c.json({ ok: false, error: "not_found" }, 404);
     if (pay.status === "pending") {
-      if (b.data.approve) { const out = await finalizePurchase(db, cfg, pay.id); if ("error" in out) return c.json({ ok: false, error: out.error }, 409); }
+      if (b.data.approve) { const out = await finalizePayment(db, cfg, pay); if ("error" in out) return c.json({ ok: false, error: out.error }, 409); }
       else await db.update(payments).set({ status: "failed", failure: "3ds_failed" }).where(eq(payments.id, pay.id));
     }
     const [fresh] = await db.select().from(payments).where(eq(payments.id, pay.id));
@@ -75,7 +80,7 @@ export function paymentWebhookRoutes(cfg: Config, db: Db) {
     if (!pay) return c.json({ ok: true, ignored: true }); // бізде жоқ төлем — 200, провайдер қайта жібермесін
     if (ev.status === "paid") {
       if (ev.card && pay.userId) await saveCard(db, p.name, pay.userId, ev.card);
-      const out = await finalizePurchase(db, cfg, pay.id);
+      const out = await finalizePayment(db, cfg, pay);
       if ("error" in out) { console.error("webhook finalize", pay.id, out.error); return c.json({ ok: false, error: out.error }, 409); }
     } else if (pay.status !== "paid") await db.update(payments).set({ status: "failed", failure: ev.reason ?? "declined" }).where(eq(payments.id, pay.id));
     return c.json({ ok: true });

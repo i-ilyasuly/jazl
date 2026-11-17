@@ -207,7 +207,11 @@ async function packAndReceipt(db: Db, userId: string, packId: string) {
 
 /** Төлемнің күйі бойынша жауап (қайталанған сұрау мен GET /payments/:id үшін ортақ) */
 export async function paymentReply(db: Db, userId: string, pay: typeof payments.$inferSelect, repeated = false): Promise<[object, 200 | 202 | 402]> {
-  if (pay.status === "paid" && pay.packId) return [{ ok: true, repeated, status: "paid", paymentId: pay.id, ...(await packAndReceipt(db, userId, pay.packId)) }, 200];
+  if (pay.status === "paid" && pay.packId) {
+    const [g] = await db.select({ code: gifts.code }).from(gifts).where(eq(gifts.packId, pay.packId)).limit(1);
+    const kind = (pay.meta as { kind?: string } | null)?.kind ?? "purchase";
+    return [{ ok: true, repeated, status: "paid", paymentId: pay.id, kind, gift: g ? { code: g.code } : null, ...(await packAndReceipt(db, userId, pay.packId)) }, 200];
+  }
   if (pay.status === "failed") return [{ ok: false, repeated, error: "payment_failed", reason: pay.failure, paymentId: pay.id }, 402];
   return [{ ok: true, repeated, status: "action_required", paymentId: pay.id, amount: pay.amount, confirmUrl: (pay.meta as { confirmUrl?: string } | null)?.confirmUrl ?? null }, 202];
 }

@@ -103,4 +103,34 @@ d("Карта төлемі", () => {
     const added = await (await post("/v1/cards", { cryptogram: makeTestCryptogram("4444", "12/29", "Mastercard") })).json();
     expect(added.card).toMatchObject({ brand: "Mastercard", last4: "4444", exp: "12/29" });
   });
+
+  it("ұзарту картамен: жаңа карта — банк растауы → мерзім жылжиды, «extend» чегі; сақталған карта — бірден; бас тарту — мерзім өзгермейді", async () => {
+    const pack = (await (await buy({ cryptogram: makeTestCryptogram("4242"), save: true })).json()).pack;
+    const until0 = new Date(pack.validUntil).getTime();
+    const ext = (card: object, days = 14) => post(`/v1/packs/${pack.id}/extend`, { days, card, idempotencyKey: key() });
+    const r = await ext({ cryptogram: makeTestCryptogram("1111") });
+    expect(r.status).toBe(202);
+    const j = await r.json();
+    const ok = await (await post(`/v1/payments/${j.paymentId}/test-3ds`, { approve: true })).json();
+    expect(ok).toMatchObject({ status: "paid", kind: "extend" });
+    expect(new Date(ok.pack.validUntil).getTime() - until0).toBeGreaterThanOrEqual(14 * 86400_000 - 5000);
+    expect((await dbh.pool.query("select count(*)::int as n from app.receipts where payment_id = $1 and kind = 'extend'", [j.paymentId])).rows[0].n).toBe(1);
+    const card = (await (await get("/v1/cards")).json()).cards.find((x: { last4: string }) => x.last4 === "4242");
+    const saved = await (await ext({ id: card.id }, 30)).json();
+    expect(saved.status).toBe("paid");
+    const before = (await dbh.pool.query("select valid_until from app.packs where id = $1", [pack.id])).rows[0].valid_until.getTime();
+    expect((await ext({ cryptogram: makeTestCryptogram("0002") })).status).toBe(402);
+    expect((await dbh.pool.query("select valid_until from app.packs where id = $1", [pack.id])).rows[0].valid_until.getTime()).toBe(before);
+  });
+
+  it("сыйлық пен қайта алу картамен: 3-D Secure-ден кейін сыйлық коды мен көшкен бірлік беріледі", async () => {
+    const g = await (await post("/v1/purchases", { offerSlug: "doner", method: "card", card: { cryptogram: makeTestCryptogram("1111") }, gift: { message: "Құтты болсын" }, idempotencyKey: key() })).json();
+    expect(g.status).toBe("action_required");
+    const gd = await (await post(`/v1/payments/${g.paymentId}/test-3ds`, { approve: true })).json();
+    expect(gd.gift.code).toMatch(/^[0-9a-f]{10}$/);
+    expect(gd.pack.status).toBe("gifted");
+    const old = (await (await buy({ cryptogram: makeTestCryptogram("4242") })).json()).pack;
+    const rb = await (await post("/v1/purchases", { offerSlug: "doner", method: "card", card: { cryptogram: makeTestCryptogram("4242") }, fromPackId: old.id, idempotencyKey: key() })).json();
+    expect(rb.status).toBe("paid"); expect(rb.carried).toBe(old.unitsLeft);
+  });
 });
