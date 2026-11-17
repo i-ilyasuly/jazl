@@ -71,6 +71,13 @@
       "when": 1794907851437,
       "tag": "0009_qr_code_rotation",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794909384859,
+      "tag": "0010_offer_editor",
+      "breakpoints": true
     }
   ]
 }

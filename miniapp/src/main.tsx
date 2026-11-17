@@ -56,6 +56,7 @@ import { VPaid, VPay, VQr } from "./venue/Pay";
 import { VHistory, VOrder, VOrders, VRefunded } from "./venue/History";
 import { VMenu, VOffers, VReport } from "./venue/Manage";
 import { VInvite, VStaff, VTeam } from "./venue/Team";
+import { VOfferPage, VOfferReview, VOfferWizard } from "./venue/Offers";
 import { loadStaff } from "./venue/api";
 import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
@@ -231,6 +232,10 @@ const router = createHashRouter([
       { path: "/v/orders", element: <VOrders /> },
       { path: "/v/orders/:id", element: <VOrder /> },
       { path: "/v/offers", element: <VOffers /> },
+      { path: "/v/offers/new", element: <VOfferWizard /> },
+      { path: "/v/offers/review", element: <VOfferReview /> },
+      { path: "/v/offers/:id", element: <VOfferPage /> },
+      { path: "/v/offers/:id/edit", element: <VOfferWizard /> },
       { path: "/v/report", element: <VReport /> },
       { path: "/v/menu", element: <VMenu /> },
       { path: "/v/team", element: <VTeam /> },

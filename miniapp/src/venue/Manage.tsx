@@ -12,12 +12,13 @@ import s from "./V.module.css";
 const soon = () => nativeAlert("Бұл бөлім келесі кезеңде қосылады.");
 
 export function VOffers() {
+  const go = useGo();
   const me = useCurrent();
   const [list, setList] = useState<VOffer[] | null>(null);
   const [tab, setTab] = useState<"active" | "draft" | "archive">("active");
   const load = useCallback(() => { if (me) V.offers(me.venue.id).then(setList).catch(() => setList([])); }, [me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(load, [load]);
-  const of = (t: typeof tab) => (list ?? []).filter((o) => (t === "active" ? o.status === "active" || o.status === "paused" : t === "draft" ? o.status === "draft" : o.status === "ended"));
+  const of = (t: typeof tab) => (list ?? []).filter((o) => (t === "active" ? o.status === "active" || o.status === "paused" : t === "draft" ? o.status === "draft" || o.status === "review" : o.status === "ended"));
   async function toggle(o: VOffer, on: boolean) {
     if (!me) return;
     if (!on) {
@@ -40,11 +41,11 @@ export function VOffers() {
         : shown.map((o) => {
           const on = o.status === "active";
           return (
-            <div key={o.id} className={s.oc}>
+            <div key={o.id} className={s.oc} role="button" onClick={(e) => { if (!(e.target as HTMLElement).closest("[role=switch]")) go(`/v/offers/${o.id}`); }}>
               <div className={`${s.ocTop} ${on ? "" : s.dim}`}>
                 <span className={s.ocPic}><OfferPic kind={o.kind} size={30} /></span>
                 <span className={s.rowText}>
-                  <span className={s.rowTitle}><b style={{ fontWeight: 600 }}>{o.title}</b>{o.status === "paused" && <span className={`${s.tag} ${s.tagYellow}`}>Тоқтатылған</span>}</span>
+                  <span className={s.rowTitle}><b style={{ fontWeight: 600 }}>{o.title}</b>{o.status === "paused" && <span className={`${s.tag} ${s.tagYellow}`}>Тоқтатылған</span>}{o.status === "review" && <span className={s.tag}>Тексеруде</span>}</span>
                   <span className={s.ocTags}>{[...new Set(o.sizes)].map((n, i, a) => <span key={n}>{n}{i === a.length - 1 ? " бірлік" : ""}</span>)}</span>
                 </span>
                 {(o.status === "active" || o.status === "paused") && me?.role !== "cashier" && <Switch on={on} onChange={(v) => void toggle(o, v)} />}
@@ -53,7 +54,7 @@ export function VOffers() {
             </div>
           );
         })}
-      <button className={s.fab} onClick={soon}><span style={{ fontSize: 24, lineHeight: 1 }}>+</span>Құру</button>
+      {me?.role !== "cashier" && <button className={s.fab} onClick={() => go("/v/offers/new")}><span style={{ fontSize: 24, lineHeight: 1 }}>+</span>Құру</button>}
     </VPage>
   );
 }

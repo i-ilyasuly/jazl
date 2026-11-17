@@ -227,6 +227,109 @@ export function venueRoutes(cfg: Config, db: Db) {
     return res.length ? c.json({ ok: true }) : c.json({ ok: false, error: "not_found" }, 404);
   });
 
+  // ── 06 · Ұсыныс құру, ұсыныс беті, бағаны өзгерту (Figma 14007/14008/14018) ──
+  const Size = z.object({ units: z.number().int().min(1).max(100), price: z.number().int().min(100).max(10_000_000) });
+  const OfferBody = z.object({
+    title: z.string().trim().min(2).max(60), category: z.string().trim().max(30).optional(), about: z.string().max(500).default(""),
+    sizes: z.array(Size).min(1).max(5), regularUnitPrice: z.number().int().min(50).max(1_000_000), validDays: z.number().int().min(7).max(365),
+    rules: z.object({ carry: z.boolean(), extend: z.boolean(), preorder: z.boolean(), branches: z.array(z.string().uuid()).nullable() }),
+    publish: z.boolean().default(false),
+  }).strict();
+  /** Жеңілдік кемінде 10% (Figma «Ұсыныс: жеңілдік 10%-дан аз»): әр көлем бағасы бөлек алғандағы сомадан ≤ 90% */
+  const lowDiscount = (sizes: { units: number; price: number }[], regular: number) => sizes.find((x) => x.price > Math.floor(x.units * regular * 0.9));
+  const slugOf = (t: string) => {
+    const map: Record<string, string> = { а: "a", ә: "a", б: "b", в: "v", г: "g", ғ: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i", й: "i", к: "k", қ: "q", л: "l", м: "m", н: "n", ң: "n", о: "o", ө: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ұ: "u", ү: "u", ф: "f", х: "h", һ: "h", ц: "c", ч: "ch", ш: "sh", щ: "sh", ъ: "", ы: "y", і: "i", ь: "", э: "e", ю: "yu", я: "ya" };
+    const base = [...t.toLowerCase()].map((ch) => map[ch] ?? ch).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "offer";
+    return `${base}-${randomInt(1000, 10000)}`;
+  };
+  const statusAfterPublish = () => (cfg.PAYMENTS_MODE === "test" ? "active" : "review"); // сынақта бірден жарияланады, нақты режимде Jazl+ тексереді (24 сағ)
+
+  r.post("/venue/:venueId/offers", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const b = OfferBody.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const d = b.data; const sizes = [...d.sizes].sort((a, z) => a.units - z.units);
+    if (d.publish && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
+    const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
+    const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
+      regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about }, category: d.category ?? null, rules: d.rules,
+      status: d.publish ? statusAfterPublish() : "draft" }).returning();
+    return c.json({ ok: true, offer: { id: o.id, status: o.status } });
+  });
+
+  r.put("/venue/:venueId/offers/:offerId", async (c) => {
+    const venueId = c.req.param("venueId");
+    const me = await guard(c, venueId, ["owner", "manager"]); if (!me) return deny(c);
+    const b = OfferBody.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [cur] = await db.select().from(offers).where(and(eq(offers.id, c.req.param("offerId")), eq(offers.venueId, venueId))).limit(1);
+    if (!cur) return c.json({ ok: false, error: "not_found" }, 404);
+    const d = b.data; const sizes = [...d.sizes].sort((a, z) => a.units - z.units);
+    const draft = cur.status === "draft";
+    // Жарияланған ұсыныстың бағасын тек иесі «Бағаны өзгерту» арқылы өзгертеді (Figma «Рөлдер»)
+    const keepSizes = !draft;
+    if (d.publish && draft && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
+    await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about },
+      category: d.category ?? null, rules: d.rules, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
+      ...(keepSizes ? {} : { units: sizes[0].units, price: sizes[0].price, sizes: sizes.length > 1 ? sizes : null }),
+      ...(d.publish && draft ? { status: statusAfterPublish() } : {}) }).where(eq(offers.id, cur.id));
+    return c.json({ ok: true, status: d.publish && draft ? statusAfterPublish() : cur.status });
+  });
+
+  r.get("/venue/:venueId/offers/:offerId", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const [o] = await db.select().from(offers).where(and(eq(offers.id, c.req.param("offerId")), eq(offers.venueId, venueId))).limit(1);
+    if (!o) return c.json({ ok: false, error: "not_found" }, 404);
+    const st = (await db.execute(sql`select count(*)::int as sold, count(*) filter (where status = 'active' and valid_until > now())::int as active,
+        coalesce(sum(units_total - units_left), 0)::int as used, coalesce(sum(price_paid), 0)::int as gross
+      from app.packs where offer_id = ${o.id} and status not in ('pending_payment','refunded')`)).rows[0] as { sold: number; active: number; used: number; gross: number };
+    const daily = (await db.execute(sql`select to_char(created_at at time zone 'Asia/Almaty', 'YYYY-MM-DD') as d, count(*)::int as n from app.packs
+      where offer_id = ${o.id} and status not in ('pending_payment','refunded') and created_at >= ${DAY} - interval '13 days' group by 1`)).rows as { d: string; n: number }[];
+    const key = (k: number) => new Date(Date.now() - k * 86400_000).toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
+    const series = Array.from({ length: 7 }, (_, i) => ({ date: key(6 - i), n: daily.find((x) => x.d === key(6 - i))?.n ?? 0 }));
+    const prev = Array.from({ length: 7 }, (_, i) => daily.find((x) => x.d === key(13 - i))?.n ?? 0).reduce((a, x) => a + x, 0);
+    const now7 = series.reduce((a, x) => a + x.n, 0);
+    const bySize = (await db.execute(sql`select units_total::int as units, count(*)::int as n from app.packs where offer_id = ${o.id} and status not in ('pending_payment','refunded') group by 1`)).rows as { units: number; n: number }[];
+    const sizes = (o.sizes as { units: number; price: number }[] | null) ?? [{ units: o.units, price: o.price }];
+    const all = sizes.some((x) => x.units === o.units) ? sizes : [{ units: o.units, price: o.price }, ...sizes];
+    return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], kind: o.kind, status: o.status, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "",
+      regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules ?? { carry: true, extend: true, preorder: true, branches: null },
+      sizes: all.sort((a, z) => a.units - z.units).map((x) => ({ ...x, sold: bySize.find((y) => y.units === x.units)?.n ?? 0 })),
+      stats: { ...st, revenue: share(st.gross), series, growth: prev ? Math.round(((now7 - prev) / prev) * 100) : null } } });
+  });
+
+  // Бағаны өзгерту (тек иесі): жаңа баға тек жаңа пакеттерге; 50%-дан көп түсірілсе — растау керек (Figma «Баға қатты түсірілді»)
+  r.post("/venue/:venueId/offers/:offerId/price", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner"]))) return deny(c);
+    const b = z.object({ units: z.number().int().min(1), price: z.number().int().min(100).max(10_000_000), confirmDrop: z.boolean().optional() }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [o] = await db.select().from(offers).where(and(eq(offers.id, c.req.param("offerId")), eq(offers.venueId, venueId))).limit(1);
+    if (!o) return c.json({ ok: false, error: "not_found" }, 404);
+    const sizes = ((o.sizes as { units: number; price: number }[] | null) ?? [{ units: o.units, price: o.price }]).map((x) => ({ ...x }));
+    const cur = sizes.find((x) => x.units === b.data.units) ?? (b.data.units === o.units ? { units: o.units, price: o.price } : null);
+    if (!cur) return c.json({ ok: false, error: "not_found" }, 404);
+    if (b.data.price < cur.price * 0.5 && !b.data.confirmDrop) return c.json({ ok: false, error: "big_drop", old: cur.price }, 409);
+    if (lowDiscount([{ units: b.data.units, price: b.data.price }], o.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
+    const next = sizes.map((x) => (x.units === b.data.units ? { ...x, price: b.data.price } : x));
+    await db.update(offers).set({ sizes: o.sizes ? next : null, ...(b.data.units === o.units ? { price: b.data.price } : {}) }).where(eq(offers.id, o.id));
+    return c.json({ ok: true });
+  });
+
+  // Жобаны өшіру (тек жоба) не мұрағатқа жіберу
+  r.post("/venue/:venueId/offers/:offerId/remove", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    const [o] = await db.select().from(offers).where(and(eq(offers.id, c.req.param("offerId")), eq(offers.venueId, venueId))).limit(1);
+    if (!o) return c.json({ ok: false, error: "not_found" }, 404);
+    const sold = (await db.execute(sql`select count(*)::int as n from app.packs where offer_id = ${o.id}`)).rows[0] as { n: number };
+    if (o.status === "draft" && !sold.n) await db.delete(offers).where(eq(offers.id, o.id));
+    else await db.update(offers).set({ status: "ended" }).where(eq(offers.id, o.id));
+    return c.json({ ok: true });
+  });
+
   // ── 09 · Есеп (тек иесі) ─────────────────────────────────────
   r.get("/venue/:venueId/report", async (c) => {
     const venueId = c.req.param("venueId");

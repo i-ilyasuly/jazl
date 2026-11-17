@@ -11,7 +11,7 @@ const created = () => timestamp("created_at", { withTimezone: true }).notNull().
 
 export const kind = app.enum("kind", ["food", "coffee", "hair"]);
 export const venueStatus = app.enum("venue_status", ["draft", "review", "active", "paused", "closed"]);
-export const offerStatus = app.enum("offer_status", ["draft", "active", "paused", "ended"]);
+export const offerStatus = app.enum("offer_status", ["draft", "review", "active", "paused", "ended"]);
 export const packStatus = app.enum("pack_status", ["pending_payment", "active", "used", "expired", "refunded", "gifted"]);
 export const orderType = app.enum("order_type", ["now", "plan"]);
 export const orderStatus = app.enum("order_status", ["sent", "accepted", "ready", "done", "missed", "cancelled", "failed"]);
@@ -106,6 +106,10 @@ export const offers = app.table("offers", {
   /** Сипаттама блоктары: includes, about, take, use (мини апптағы OfferDetails) */
   details: jsonb("details"),
   photos: text("photos").array().notNull().default(sql`'{}'::text[]`),
+  /** Мекеме ішіндегі санат (Figma «Ұсыныс құру: негізгі»: Донер, Бургер, Шаурма, Кофе, Басқа) */
+  category: text("category"),
+  /** Ережелер (Figma «Мерзім және ережелер»): { carry, extend, preorder, branches: string[] | null (null — барлығы) } */
+  rules: jsonb("rules"),
   promoted: boolean("promoted").notNull().default(false),
   status: offerStatus("status").notNull().default("draft"),
   createdAt: created(),
