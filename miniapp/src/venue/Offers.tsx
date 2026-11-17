@@ -1,6 +1,6 @@
 // Figma «06 · Ұсыныстар»: Ұсыныс құру 1–4 қадам (14007:8123, 8230, 8290, 8379), Сипаттама (14018:8116), Ұсыныс тексеруде (14071:15167),
 // Ұсыныс беті (14008:7998), Бағаны өзгерту (14008:8135), Ұсынысты тоқтату (14008:8304), Баға қатты түсірілді (14018:8391).
-// Біздің жолмен келіспейтін жерлері: фото жүктеу — сақтау орны (Cloud Storage) қосылғанша кейінге; «Алдын ала тапсырыс» ескертуі POS емес,
+// Фото — Google Cloud Storage (venue/media.ts). Біздің жолмен келіспейтін жерлері: «Алдын ала тапсырыс» ескертуі POS емес,
 // біздің тапсырыс бөлімі туралы; сипаттамадағы «дәйексөз» — дәйексөз белгісіз ақпарат блогы (04/38).
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
@@ -11,10 +11,11 @@ import { Tile } from "../ui/Tile";
 import { api } from "../api";
 import { err, money, useCurrent, V } from "./api";
 import { Buttons, Note, OfferPic, Sheet, Sk, VPage, VSticker } from "./ui";
+import { pickImage, uploadImage } from "./media";
 import s from "./V.module.css";
 
 type Size = { units: number; price: number };
-interface Draft { title: string; category: string; about: string; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; branches: string[] | null } }
+interface Draft { title: string; category: string; about: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; branches: string[] | null } }
 interface OfferFull extends Draft { id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 const cats = { food: ["Донер", "Бургер", "Шаурма", "Кофе", "Басқа"], coffee: ["Кофе", "Шай", "Десерт", "Басқа"], hair: ["Шаш қию", "Сақал", "Балалар", "Басқа"] };
@@ -50,9 +51,17 @@ export function VOfferWizard() {
   const [sizeEdit, setSizeEdit] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("draft");
-  const [d, setD] = useState<Draft>({ title: "", category: "", about: "", sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
-  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); setD({ title: o.title, category: o.category ?? "", about: o.about, sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
+  const [d, setD] = useState<Draft>({ title: "", category: "", about: "", photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); setD({ title: o.title, category: o.category ?? "", about: o.about, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
+  async function addPhoto() {
+    if (!me || photoState === "loading") return;
+    const f = await pickImage(); if (!f) return;
+    setPhotoState("loading");
+    try { const url = await uploadImage(me.venue.id, f, "offer"); up({ photos: [url] }); setPhotoState(""); haptic.success(); }
+    catch (e) { setPhotoState("error"); haptic.error(); if (err(e) === "storage_disabled") nativeAlert("Сурет сақтау орны әлі қосылмаған (Cloud Storage)."); else if (err(e) === "too_large") nativeAlert("Сурет 5 МБ-тан үлкен."); }
+  }
   const low = d.sizes.find((x) => saving(x, d.regularUnitPrice) < 10);
   const locked = Boolean(id) && status !== "draft"; // жарияланған ұсыныстың бағасы — тек «Бағаны өзгерту» арқылы
 
@@ -98,10 +107,21 @@ export function VOfferWizard() {
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span className={`t-cap1 ${s.muted}`}>Сипаттама</span><button className={s.link} onClick={() => setEditAbout(true)}>Өңдеу</button></div>
           {d.about ? <Rich text={d.about} /> : <button className={s.muted} style={{ textAlign: "left" }} onClick={() => setEditAbout(true)}>Пакетке не кіреді, қалай беріледі — қысқаша жазыңыз</button>}
         </div>
-        <button className={s.card} style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, border: "1.5px dashed #b0c4d8", background: "none" }} onClick={() => nativeAlert("Фото жүктеу келесі кезеңде қосылады: суреттерді сақтайтын орын (Cloud Storage) әзірге қосылмаған.")}>
-          <VSticker name="painter" size={56} />
-          <span className={s.rowText}><span className={s.rowTitle}>Негізгі фото</span><span className={s.rowSub}>4:3, JPG/PNG, 5 МБ дейін</span></span>
-        </button>
+        {d.photos[0] ? (
+          <div className={s.card} style={{ padding: 8 }}>
+            <img src={d.photos[0]} alt="" style={{ display: "block", width: "100%", aspectRatio: "4 / 3", objectFit: "cover", borderRadius: 14 }} />
+            <div style={{ display: "flex", gap: 16, padding: "10px 8px 4px" }}>
+              <button className={s.textBtn} onClick={() => void addPhoto()}>{photoState === "loading" ? "Жүктелуде…" : "Ауыстыру"}</button>
+              <button className={`${s.textBtn} ${s.redText}`} onClick={() => up({ photos: [] })}>Өшіру</button>
+            </div>
+          </div>
+        ) : (
+          <button className={s.card} style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, border: `1.5px dashed ${photoState === "error" ? "#e53935" : "#b0c4d8"}`, background: "none" }} onClick={() => void addPhoto()}>
+            <VSticker name="painter" size={56} />
+            <span className={s.rowText}><span className={s.rowTitle}>{photoState === "loading" ? "Жүктелуде…" : "Негізгі фото"}</span>
+              <span className={s.rowSub} style={photoState === "error" ? { color: "#e53935" } : undefined}>{photoState === "error" ? "Жүктелмеді. Қайта басып көріңіз" : "4:3, JPG/PNG, 5 МБ дейін"}</span></span>
+          </button>
+        )}
         <Note>Жақсы фото сатылымды арттырады: табиғи жарық, тақта үстінде, мәтінсіз.</Note>
       </>}
 
@@ -163,7 +183,7 @@ export function VOfferWizard() {
           <b className={s.lead} style={{ fontSize: 19 }}>{d.title || "Атауы"} · {d.sizes[0].units} дана</b>
           <p className={`t-cap1 ${s.muted}`} style={{ marginTop: 2 }}>{me.venue.name}</p>
           <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-            <span style={{ width: 170, height: 110, borderRadius: 14, background: "var(--thumb-bg)", display: "grid", placeItems: "center" }}><OfferPic kind={me.venue.kind} size={40} /></span>
+            <span style={{ width: 170, height: 110, borderRadius: 14, background: "var(--thumb-bg)", display: "grid", placeItems: "center", overflow: "hidden" }}>{d.photos[0] ? <img src={d.photos[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <OfferPic kind={me.venue.kind} size={40} />}</span>
             <span style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, justifyContent: "center" }}>
               <b style={{ fontSize: 24, fontWeight: 700 }}>{money(d.sizes[0].price)}</b>
               <span className={`${s.tag} ${s.tagYellow}`}>{money(Math.round(d.sizes[0].price / d.sizes[0].units))} / дана</span>
@@ -173,10 +193,10 @@ export function VOfferWizard() {
         </div>
         <h2 className={s.blueHead}>Тексеру тізімі</h2>
         <div className={s.card}>
-          <Check ok={d.title.length > 1 && Boolean(d.about)} t="Атауы, сипаттама" sub={d.about ? undefined : "Сипаттама жазылмаған"} />
+          <Check ok={d.title.length > 1 && Boolean(d.about) && Boolean(d.photos[0])} t="Атауы, сипаттама, фото" sub={!d.about ? "Сипаттама жазылмаған" : !d.photos[0] ? "Фото қосылмаған" : undefined} />
           <Check ok={!low} t="Көлем мен бағалар" sub={low ? "Жеңілдік 10%-дан аз" : undefined} />
           <Check ok t="Мерзім және ережелер" />
-          <Check warn t="Фото" sub="Келесі кезеңде қосылады" tag="Кейін" />
+          {d.rules.preorder && <Check warn t="Алдын ала тапсырыс" sub="Тапсырыстар «Мәзір → Алдын ала тапсырыстар» бөлімінде" tag="Ескерту" />}
         </div>
       </>}
 
@@ -298,7 +318,7 @@ export function VOfferPage() {
   return (
     <VPage title={o.title} back tab="offers">
       <div className={s.head}>
-        <span className={s.ocPic} style={{ width: 64, height: 64, borderRadius: 16 }}><OfferPic kind={o.kind} size={38} /></span>
+        <span className={s.ocPic} style={{ width: 64, height: 64, borderRadius: 16, overflow: "hidden" }}>{o.photos?.[0] ? <img src={o.photos[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <OfferPic kind={o.kind} size={38} />}</span>
         <span className={s.headText}>
           <span className={s.headName} style={{ fontSize: 22 }}>{o.title}</span>
           <span style={{ display: "flex", gap: 6, marginTop: 6 }}><span className={`${s.tag} ${s[tc]}`}>{tt}</span><span className={`${s.tag} ${s.tagGray}`}>{o.sizes.length} көлем</span></span>

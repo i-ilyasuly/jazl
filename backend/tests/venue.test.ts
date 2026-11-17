@@ -14,7 +14,7 @@ const TOKEN = "123456:TEST-token-not-real";
 const d = URL ? describe : describe.skip;
 
 d("C мекеме бөлімі", () => {
-  const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test" });
+  const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test", MEDIA_DIR: "/tmp/jazl-media-test" });
   let dbh: ReturnType<typeof createDb>; let app: ReturnType<typeof createApp>;
   let venueId = ""; let branchId = ""; let donerId = ""; let otherOfferId = "";
   const h = (id: number) => ({ Authorization: "tma " + signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id, first_name: "Адам" + id, last_name: "Тест", username: "u" + id }) }, TOKEN), "Content-Type": "application/json" });
@@ -142,5 +142,19 @@ d("C мекеме бөлімі", () => {
     const d2 = await json(post(`/v1/venue/${venueId}/offers`, body, 701));
     await post(`/v1/venue/${venueId}/offers/${d2.offer.id}/remove`, {}, 701);
     expect((await get(`/v1/venue/${venueId}/offers/${d2.offer.id}`, 701)).status).toBe(404);
+  });
+  it("сурет жүктеу: WebP-ке сығылады, /media арқылы беріледі; кассир жүктей алмайды; сурет емес — 400", async () => {
+    const sharp = (await import("sharp")).default;
+    const png = await sharp({ create: { width: 2000, height: 1500, channels: 3, background: "#ff9900" } }).png().toBuffer();
+    const up = (id: number, body: Uint8Array, type = "image/png") => app.request(`/v1/venue/${venueId}/media?kind=offer`, { method: "POST", headers: { ...h(id), "Content-Type": type }, body });
+    expect((await up(702, png)).status).toBe(403);
+    const r = await (await up(701, png)).json();
+    expect(r.url).toMatch(/\/media\/venues\/.+\/offer-.+\.webp$/);
+    const img = await app.request(r.url.replace(/^https?:\/\/[^/]+/, ""));
+    expect(img.headers.get("content-type")).toBe("image/webp");
+    const meta = await sharp(Buffer.from(await img.arrayBuffer())).metadata();
+    expect([meta.width, meta.height]).toEqual([1600, 1200]);
+    expect((await up(701, new TextEncoder().encode("not an image"))).status).toBe(400);
+    expect((await up(701, png, "text/plain")).status).toBe(415);
   });
 });

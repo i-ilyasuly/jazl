@@ -22,6 +22,9 @@ const Env = z.object({
   PUBLIC_URL: z.string().url().optional(),
   MINIAPP_BOT_USERNAME: z.string().default("oylarbot"),
   DB_SSL: z.enum(["require", "disable"]).default("require"),
+  /** Суреттер бакеті (Google Cloud Storage, жария оқу). Жоқ болса — MEDIA_DIR (жергілікті) не сурет жүктеу өшірулі */
+  MEDIA_BUCKET: z.string().optional(),
+  MEDIA_DIR: z.string().optional(),
 });
 
 export type Config = z.infer<typeof Env>;
