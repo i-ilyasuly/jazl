@@ -15,6 +15,8 @@ import { b4Routes } from "./routes/b4.js";
 import { venueRoutes } from "./routes/venue.js";
 import { applyRoutes } from "./routes/apply.js";
 import { complaintRoutes } from "./routes/complaints.js";
+import { adminFileRoutes, adminRoutes } from "./routes/admin.js";
+import { getSettings, refreshFees } from "./settings.js";
 import { localMediaRoutes } from "./media.js";
 import { makeNotifier, noopSender, telegramSender, type Sender } from "./notify.js";
 
@@ -26,7 +28,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   // Бот хабарламалары: тестте — ештеңе жібермейді (не тест өз жинағышын береді)
   const notify = makeNotifier(db, opts.send ?? (cfg.NODE_ENV === "test" ? noopSender : telegramSender(cfg)));
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
-  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version", "X-File-Name"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 }));
+  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version", "X-File-Name", "X-Admin-Token"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 }));
 
   app.get("/health", async (c) => {
     await db.execute(sql`select 1`);
@@ -35,6 +37,8 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
 
   // Ашық маршруттар (кірусіз): чек PDF (қолтаңбалы сілтеме), каталог
   app.route("/files", receiptFileRoutes(cfg, db));
+  app.route("/files", adminFileRoutes(cfg, db));
+  void refreshFees(db).catch(() => null); // мекеме комиссиялары (Jazl+ Басқару «Комиссия»)
   app.route("/media", localMediaRoutes(cfg)); // тек MEDIA_DIR болғанда (жергілікті)
   // «Кассаға нұсқау» PDF (ашық: ішінде тек мекеме атауы мен мини апп сілтемесі бар)
   app.get("/files/guide/:file", async (c) => {
@@ -56,7 +60,11 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   // Аутентификация: Authorization: tma <initData>. Пайдаланушы бірінші рет кірсе — жазылады, әйтпесе деректері жаңарады.
   // Техникалық жұмыстар (Figma 13 «Техникалық жұмыстар»): MAINTENANCE=1 болса, API 503 қайтарады — мини апп арнайы бетті көрсетеді
   app.use("/v1/*", async (c, next) => {
-    if (cfg.MAINTENANCE && c.req.method !== "OPTIONS") return c.json({ ok: false, error: "maintenance" }, 503);
+    // Jazl+ Басқару «Техникалық жұмыстар» (дерекқор баптауы) не MAINTENANCE=1. Басқарудың өзі жұмыс істей береді — әйтпесе өшіре алмайды.
+    if (c.req.method !== "OPTIONS" && !c.req.path.startsWith("/v1/admin")) {
+      const s = await getSettings(db).catch(() => null);
+      if (cfg.MAINTENANCE || s?.maintenance) return c.json({ ok: false, error: "maintenance", text: s?.maintenanceText ?? null }, 503);
+    }
     await next();
   });
   app.use("/v1/*", async (c, next) => {
@@ -97,6 +105,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   });
 
   app.route("/v1", purchaseRoutes(cfg, db));
+  app.route("/v1", adminRoutes(cfg, db, notify));
   app.route("/v1", applyRoutes(cfg, db, notify));
   app.route("/v1", complaintRoutes(cfg, db, notify));
   app.route("/v1", venueRoutes(cfg, db, notify));

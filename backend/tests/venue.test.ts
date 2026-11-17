@@ -130,6 +130,9 @@ d("C мекеме бөлімі", () => {
     expect(d.offer.status).toBe("draft");
     expect((await post(`/v1/venue/${venueId}/offers`, { ...body, publish: true, sizes: [{ units: 4, price: 7900 }] }, 701)).status).toBe(409); // 1,25% ғана жеңілдік
     expect((await app.request(`/v1/venue/${venueId}/offers/${d.offer.id}`, { method: "PUT", headers: h(701), body: JSON.stringify({ ...body, publish: true, sizes: [{ units: 4, price: 6000 }, { units: 8, price: 11200 }] }) })).status).toBe(200);
+    // Жарияланған жаңа ұсыныс Jazl+ тексеруіне түседі (Басқару «Модерация» қосулы — әдепкі)
+    expect((await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer.status).toBe("review");
+    await dbh.pool.query("update app.offers set status = 'active' where id = $1", [d.offer.id]); // Басқару бекітті
     const o = (await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer;
     expect(o).toMatchObject({ status: "active", category: "Бургер", about: "Тауық еті, *соус*" });
     expect(o.sizes.map((x: { units: number }) => x.units)).toEqual([4, 8]);

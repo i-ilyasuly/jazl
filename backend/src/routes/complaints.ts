@@ -57,24 +57,7 @@ export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const b = Resolve.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     if (b.data.action === "reject" && b.data.reply.length < 3) return c.json({ ok: false, error: "reply_required" }, 400);
-    const out = await db.transaction(async (tx) => {
-      const x = (await tx.execute(sql`select * from app.complaints where id = ${c.req.param("id")} and venue_id = ${venueId} for update`)).rows[0] as { id: string; status: string; pack_id: string; redemption_id: string | null } | undefined;
-      if (!x) return { status: 404 as const, error: "not_found" };
-      if (x.status !== "new") return { status: 409 as const, error: "already_" + x.status };
-      let returned = 0;
-      if (b.data.action === "refund") {
-        const rd = x.redemption_id ? (await tx.execute(sql`select id, units, cancelled_at from app.redemptions where id = ${x.redemption_id} for update`)).rows[0] as { id: string; units: number; cancelled_at: Date | null } | undefined : undefined;
-        returned = rd && !rd.cancelled_at ? rd.units : 1;
-        if (rd && !rd.cancelled_at) {
-          await tx.update(redemptions).set({ cancelledAt: new Date(), cancelledBy: staff.id }).where(eq(redemptions.id, rd.id));
-          await tx.execute(sql`update app.receipts set internal = jsonb_set(jsonb_set(internal, '{status,current}', '"cancelled"'), '{status,history}', (internal->'status'->'history') || jsonb_build_object('status','cancelled','at', now(), 'by', ${staff.id}::text, 'via', 'complaint')) where internal->>'redemptionId' = ${rd.id}`);
-        }
-        await tx.execute(sql`update app.packs set units_left = least(units_total, units_left + ${returned}), status = case when status = 'used' then 'active' else status end where id = ${x.pack_id}`);
-        await tx.insert(packEvents).values({ packId: x.pack_id, type: "complaint_refund", unitsDelta: returned, meta: { complaintId: x.id, by: staff.id } });
-      }
-      await tx.update(complaints).set({ status: b.data.action === "refund" ? "refunded" : "rejected", reply: b.data.reply || null, decidedBy: staff.id, decidedAt: new Date() }).where(eq(complaints.id, x.id));
-      return { status: 200 as const, returned };
-    });
+    const out = await decideComplaint(db, c.req.param("id"), b.data.action, b.data.reply, staff.id, venueId);
     if (out.status !== 200) return c.json({ ok: false, error: out.error }, out.status);
     await notify?.complaintDone(c.req.param("id"), out.returned);
     return c.json({ ok: true, returned: out.returned });
@@ -102,4 +85,27 @@ export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, summary: { waitingPacks: waiting.length, waitingUnits: waiting.reduce((a, x) => a + x.units, 0), creditedMonth: credited.reduce((a, x) => a + x.venueAmount, 0), creditedUnits: credited.reduce((a, x) => a + x.units, 0) }, items });
   });
   return r;
+}
+
+/** Шағым шешімі: refund — байланысты қолдану жойылып, бірлік пакетке оралады; reject — шағым жабылады.
+ *  Мекеме (venueId беріледі) не Jazl+ Басқару (override: мекеме қайтармаған шағымды клиент пайдасына қайта шешу). */
+export async function decideComplaint(db: Db, id: string, action: "refund" | "reject", reply: string, by: string, venueId?: string, override = false) {
+  return db.transaction(async (tx) => {
+    const x = (await tx.execute(sql`select * from app.complaints where id = ${id} ${venueId ? sql`and venue_id = ${venueId}` : sql``} for update`)).rows[0] as { id: string; status: string; pack_id: string; redemption_id: string | null } | undefined;
+    if (!x) return { status: 404 as const, error: "not_found" };
+    if (x.status !== "new" && !(override && x.status === "rejected")) return { status: 409 as const, error: "already_" + x.status };
+    let returned = 0;
+    if (action === "refund") {
+      const rd = x.redemption_id ? (await tx.execute(sql`select id, units, cancelled_at from app.redemptions where id = ${x.redemption_id} for update`)).rows[0] as { id: string; units: number; cancelled_at: Date | null } | undefined : undefined;
+      returned = rd && !rd.cancelled_at ? rd.units : 1;
+      if (rd && !rd.cancelled_at) {
+        await tx.update(redemptions).set({ cancelledAt: new Date(), cancelledBy: by }).where(eq(redemptions.id, rd.id));
+        await tx.execute(sql`update app.receipts set internal = jsonb_set(jsonb_set(internal, '{status,current}', '"cancelled"'), '{status,history}', (internal->'status'->'history') || jsonb_build_object('status','cancelled','at', now(), 'by', ${by}::text, 'via', 'complaint')) where internal->>'redemptionId' = ${rd.id}`);
+      }
+      await tx.execute(sql`update app.packs set units_left = least(units_total, units_left + ${returned}), status = case when status = 'used' then 'active' else status end where id = ${x.pack_id}`);
+      await tx.insert(packEvents).values({ packId: x.pack_id, type: "complaint_refund", unitsDelta: returned, meta: { complaintId: x.id, by: by } });
+    }
+    await tx.update(complaints).set({ status: action === "refund" ? "refunded" : "rejected", reply: reply || null, decidedBy: by, decidedAt: new Date() }).where(eq(complaints.id, x.id));
+    return { status: 200 as const, returned };
+  });
 }

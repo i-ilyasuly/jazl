@@ -12,6 +12,7 @@ import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
 import { venuePrefDefaults } from "../notify.js";
+import { feeFor, getSettings } from "../settings.js";
 import { branches, offers, packs, qrSessions, redemptions, staffInvites, users, venueStaff, venues } from "../db/schema.js";
 import { makeSessionQr } from "../qr.js";
 import { branchStatus } from "../hours.js";
@@ -31,7 +32,8 @@ interface UseRow { id: string; kind: "scan" | "order"; at: Date; units: number; 
 
 export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
-  const share = (amount: number) => Math.round((amount * (100 - cfg.JAZL_FEE_PCT)) / 100); // мекеме шотына түсетін бөлік
+  // мекеме шотына түсетін бөлік: мекеменің өз комиссиясы (Jazl+ Басқару «Комиссия»), жоқ болса — әдепкі
+  const share = (amount: number, venueId: string) => Math.round((amount * (100 - feeFor(db, venueId, cfg.JAZL_FEE_PCT))) / 100);
   const roleIn = async (userId: string, venueId: string) =>
     (await db.select({ role: venueStaff.role, branchId: venueStaff.branchId, status: venueStaff.status }).from(venueStaff).where(and(eq(venueStaff.userId, userId), eq(venueStaff.venueId, venueId))).limit(1))[0];
   /** Белсенді қызметкер және рөлі жеткілікті ме; болмаса 403 */
@@ -57,10 +59,10 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
       ) x order by at desc limit ${limit}`);
     return res.rows as unknown as UseRow[];
   }
-  const useDto = (x: UseRow) => {
+  const useDto = (x: UseRow, venueId: string) => {
     const amount = x.unit_price * x.units;
     return { id: x.id, kind: x.kind, at: x.at, units: x.units, title: x.title, slug: x.slug, customer: short(x.first_name, x.last_name), branch: x.address, branchId: x.branch_id,
-      orderNo: x.order_no, amount, venueAmount: share(amount), cancelled: Boolean(x.cancelled_at),
+      orderNo: x.order_no, amount, venueAmount: share(amount, venueId), cancelled: Boolean(x.cancelled_at),
       canCancel: x.kind === "scan" && !x.cancelled_at && Date.now() - new Date(x.at).getTime() < CANCEL_MS };
   };
 
@@ -134,7 +136,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const mine = (await uses(venueId, sql`${DAY} - interval '30 days'`)).filter((u) => u.cashier_id === uid && !u.cancelled_at);
     const dayKey = (d: Date) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
     const days = new Map<string, { count: number; amount: number }>();
-    for (const u of mine) { const k = dayKey(u.at); const d = days.get(k) ?? { count: 0, amount: 0 }; d.count++; d.amount += share(u.unit_price * u.units); days.set(k, d); }
+    for (const u of mine) { const k = dayKey(u.at); const d = days.get(k) ?? { count: 0, amount: 0 }; d.count++; d.amount += share(u.unit_price * u.units, venueId); days.set(k, d); }
     const today = days.get(dayKey(new Date())) ?? { count: 0, amount: 0 };
     return c.json({ ok: true, staff: { userId: x.u.id, name: short(x.u.firstName, x.u.lastName), username: x.u.username, photoUrl: x.u.photoUrl, role: x.s.role, status: x.s.status,
       branch: x.b?.address ?? null, branchId: x.s.branchId, since: x.s.createdAt, today, days: [...days.entries()].filter(([k]) => k !== dayKey(new Date())).slice(0, 7).map(([date, v]) => ({ date, ...v })) } });
@@ -176,7 +178,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const dayKey = (d: Date) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
     const keys = Array.from({ length: 7 }, (_, i) => dayKey(new Date(Date.now() - (6 - i) * 86400_000)));
     const series = keys.map((k) => all.filter((u) => dayKey(u.at) === k).length);
-    const sum = (k: string, rows = all) => rows.filter((u) => dayKey(u.at) === k).reduce((s, u) => s + share(u.unit_price * u.units), 0);
+    const sum = (k: string, rows = all) => rows.filter((u) => dayKey(u.at) === k).reduce((s, u) => s + share(u.unit_price * u.units, venueId), 0);
     const mine = me.role === "cashier" ? all.filter((u) => u.cashier_id === c.get("user").id) : all;
     const act = (await db.execute(sql`select count(*)::int as packs, coalesce(sum(p.units_left), 0)::int as units from app.packs p join app.offers o on o.id = p.offer_id
       where o.venue_id = ${venueId} and p.status = 'active' and p.valid_until > now()`)).rows[0] as { packs: number; units: number };
@@ -192,7 +194,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, dashboard: { ...totals,
       today: series[6], yesterday: series[5], series, revenueToday: sum(keys[6]), revenueYesterday: sum(keys[5]),
       cashierToday: mine.filter((u) => dayKey(u.at) === keys[6]).length, cashierRevenue: sum(keys[6], mine),
-      activePacks: act.packs, unitsLeft: act.units, recent: (me.role === "cashier" ? mine : all).slice(0, 5).map(useDto) } });
+      activePacks: act.packs, unitsLeft: act.units, recent: (me.role === "cashier" ? mine : all).slice(0, 5).map((x) => useDto(x, venueId)) } });
   });
 
   // ── 08 · Қолдану тарихы ──────────────────────────────────────
@@ -204,8 +206,8 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     let rows = await uses(venueId, sql`${DAY} - (${days - 1} * interval '1 day')`, branchId);
     if (me.role === "cashier") rows = rows.filter((u) => u.cashier_id === c.get("user").id); // кассир — тек өз төлемдері (Figma: тарих — басқарушы мен иесіне)
     const ok = rows.filter((u) => !u.cancelled_at);
-    return c.json({ ok: true, summary: { count: ok.length, amount: ok.reduce((s, u) => s + share(u.unit_price * u.units), 0), refunds: rows.filter((u) => u.kind === "scan" && u.cancelled_at).length },
-      items: rows.map(useDto) });
+    return c.json({ ok: true, summary: { count: ok.length, amount: ok.reduce((s, u) => s + share(u.unit_price * u.units, venueId), 0), refunds: rows.filter((u) => u.kind === "scan" && u.cancelled_at).length },
+      items: rows.map((x) => useDto(x, venueId)) });
   });
 
   // ── 08 · Тапсырыстар ─────────────────────────────────────────
@@ -217,7 +219,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const o = res.rows[0] as { id: string; no: number; type: string; status: string; scheduled_at: Date | null; created_at: Date; done_at: Date | null; code: string; courier: boolean; title: string; slug: string; unit_price: number; first_name: string; last_name: string | null; address: string; venue_id: string } | undefined;
     if (!o || o.venue_id !== venueId) return c.json({ ok: false, error: "not_found" }, 404);
     return c.json({ ok: true, order: { id: o.id, no: o.no, type: o.type, status: o.status, scheduledAt: o.scheduled_at, createdAt: o.created_at, doneAt: o.done_at, code: o.code, courier: o.courier,
-      title: o.title, slug: o.slug, customer: short(o.first_name, o.last_name), branch: o.address, amount: o.unit_price, venueAmount: share(o.unit_price) } });
+      title: o.title, slug: o.slug, customer: short(o.first_name, o.last_name), branch: o.address, amount: o.unit_price, venueAmount: share(o.unit_price, venueId) } });
   });
 
   // ── 06 · Ұсыныстар ───────────────────────────────────────────
@@ -257,7 +259,8 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const base = [...t.toLowerCase()].map((ch) => map[ch] ?? ch).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "offer";
     return `${base}-${randomInt(1000, 10000)}`;
   };
-  const statusAfterPublish = () => (cfg.PAYMENTS_MODE === "test" ? "active" : "review"); // сынақта бірден жарияланады, нақты режимде Jazl+ тексереді (24 сағ)
+  // Jazl+ Басқару «Бизнес-ережелер → Модерация» қосулы болса — жаңа ұсыныс тексеруге түседі (Figma «Модерация кезегі»), әйтпесе бірден жарияланады
+  const statusAfterPublish = async () => ((await getSettings(db)).moderation ? "review" as const : "active" as const);
 
   r.post("/venue/:venueId/offers", async (c) => {
     const venueId = c.req.param("venueId");
@@ -269,7 +272,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
     const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
       regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about }, photos: d.photos, category: d.category ?? null, rules: d.rules,
-      status: d.publish ? statusAfterPublish() : "draft" }).returning();
+      status: d.publish ? await statusAfterPublish() : "draft" }).returning();
     return c.json({ ok: true, offer: { id: o.id, status: o.status } });
   });
 
@@ -285,11 +288,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     // Жарияланған ұсыныстың бағасын тек иесі «Бағаны өзгерту» арқылы өзгертеді (Figma «Рөлдер»)
     const keepSizes = !draft;
     if (d.publish && draft && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
+    const next = d.publish && draft ? await statusAfterPublish() : cur.status;
     await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about },
       category: d.category ?? null, rules: d.rules, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
       ...(keepSizes ? {} : { units: sizes[0].units, price: sizes[0].price, sizes: sizes.length > 1 ? sizes : null }),
-      ...(d.publish && draft ? { status: statusAfterPublish(), reviewNote: null } : {}) }).where(eq(offers.id, cur.id)); // түзетіп қайта жіберсе — ескерту өшеді
-    return c.json({ ok: true, status: d.publish && draft ? statusAfterPublish() : cur.status });
+      ...(d.publish && draft ? { status: next, reviewNote: null } : {}) }).where(eq(offers.id, cur.id)); // түзетіп қайта жіберсе — ескерту өшеді
+    return c.json({ ok: true, status: next });
   });
 
   r.get("/venue/:venueId/offers/:offerId", async (c) => {
@@ -312,7 +316,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], kind: o.kind, status: o.status, reviewNote: o.reviewNote, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "",
       regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, photos: o.photos, rules: o.rules ?? { carry: true, extend: true, preorder: true, branches: null },
       sizes: all.sort((a, z) => a.units - z.units).map((x) => ({ ...x, sold: bySize.find((y) => y.units === x.units)?.n ?? 0 })),
-      stats: { ...st, revenue: share(st.gross), series, growth: prev ? Math.round(((now7 - prev) / prev) * 100) : null } } });
+      stats: { ...st, revenue: share(st.gross, venueId), series, growth: prev ? Math.round(((now7 - prev) / prev) * 100) : null } } });
   });
 
   // Бағаны өзгерту (тек иесі): жаңа баға тек жаңа пакеттерге; 50%-дан көп түсірілсе — растау керек (Figma «Баға қатты түсірілді»)
@@ -489,7 +493,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const rows = (await uses(venueId, period === "all" ? sql`${DAY} - interval '365 days'` : sql`${DAY} - interval '29 days'`, null, 20000)).filter((u) => !u.cancelled_at);
     const dayKey = (d: Date) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
     const byDay = new Map<string, { count: number; amount: number }>();
-    for (const u of rows) { const k = dayKey(u.at); const d = byDay.get(k) ?? { count: 0, amount: 0 }; d.count++; d.amount += share(u.unit_price * u.units); byDay.set(k, d); }
+    for (const u of rows) { const k = dayKey(u.at); const d = byDay.get(k) ?? { count: 0, amount: 0 }; d.count++; d.amount += share(u.unit_price * u.units, venueId); byDay.set(k, d); }
     const now = Date.now();
     let bars: { label: string; amount: number }[];
     if (period === "week") bars = Array.from({ length: 7 }, (_, i) => { const d = new Date(now - (6 - i) * 86400_000); return { label: d.toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" }), amount: byDay.get(dayKey(d))?.amount ?? 0 }; });
@@ -542,7 +546,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
         from app.redemptions r join app.packs p on p.id = r.pack_id join app.offers o on o.id = p.offer_id join app.users u on u.id = p.user_id where r.id = ${x.s.redemptionId}`);
       const d = res.rows[0] as { id: string; units: number; created_at: Date; cancelled_at: Date | null; title: string; unit_price: number; units_left: number; units_total: number; first_name: string; last_name: string | null; receipt_no: number | null; receipt_id: string | null };
       return c.json({ ok: true, status: "paid", paid: { redemptionId: d.id, customer: short(d.first_name, d.last_name), title: d.title.split(" · ")[0], units: d.units, left: d.units_left, total: d.units_total,
-        amount: d.unit_price * d.units, venueAmount: share(d.unit_price * d.units), extra: x.s.extra, at: d.created_at, ref: d.receipt_no ? "JZ-" + d.receipt_no : null, receiptId: d.receipt_id, cancelled: Boolean(d.cancelled_at) } });
+        amount: d.unit_price * d.units, venueAmount: share(d.unit_price * d.units, x.b.venueId), extra: x.s.extra, at: d.created_at, ref: d.receipt_no ? "JZ-" + d.receipt_no : null, receiptId: d.receipt_id, cancelled: Boolean(d.cancelled_at) } });
     }
     if (x.s.cancelledAt) return c.json({ ok: true, status: "cancelled" });
     if (x.s.expiresAt.getTime() < Date.now()) return c.json({ ok: true, status: "expired" });
