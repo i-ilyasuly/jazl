@@ -77,9 +77,11 @@ initTelegram();
 // Бот сілтемелері t.me/oylarbot?startapp=<түр>_<id> түрінде келеді — бірден тиісті бетті ашамыз.
 {
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-  const m = sp?.match(/^(gift|venue|offer|rc|staff)_([\w-]+)$/);
-  const to = m && { gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/" }[m[1] as "gift" | "venue" | "offer" | "rc" | "staff"];
-  if (m && to) window.location.hash = "#" + to + m[2];
+  // Бот хабарламаларының батырмалары (backend/src/notify.ts): vo_ — тапсырыс, vc_ — шағым, pk_ — клиент пакеті, v_<бет> — мекеме беті
+  const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v)_([\w-]+)$/);
+  const vPage: Record<string, string> = { home: "/v", report: "/v/report", team: "/v/team", reviews: "/v/reviews", apply: "/v/apply/status", complaints: "/v/complaints" };
+  const to = m && (m[1] === "v" ? vPage[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
+  if (m && to) window.location.hash = "#" + to;
 }
 
 // Кіру анимациялары тек бет қолданба ашылғаннан бері АЛҒАШ көрсетілгенде ойнайды (Патша, 2026-11-16: «құр шығын»).

@@ -10,6 +10,8 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
+import type { Notifier } from "../notify.js";
+import { venuePrefDefaults } from "../notify.js";
 import { branches, offers, packs, qrSessions, redemptions, staffInvites, users, venueStaff, venues } from "../db/schema.js";
 import { makeSessionQr } from "../qr.js";
 import { branchStatus } from "../hours.js";
@@ -27,7 +29,7 @@ const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f
 interface UseRow { id: string; kind: "scan" | "order"; at: Date; units: number; unit_price: number; cancelled_at: Date | null; title: string; slug: string; first_name: string; last_name: string | null;
   branch_id: string; address: string; order_no: number | null; cashier_id: string | null; left: number; total: number }
 
-export function venueRoutes(cfg: Config, db: Db) {
+export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
   const share = (amount: number) => Math.round((amount * (100 - cfg.JAZL_FEE_PCT)) / 100); // мекеме шотына түсетін бөлік
   const roleIn = async (userId: string, venueId: string) =>
@@ -82,7 +84,7 @@ export function venueRoutes(cfg: Config, db: Db) {
     if (!inv) return c.json({ ok: false, error: "bad_code" }, 404);
     const user = c.get("user");
     const cur = await roleIn(user.id, inv.i.venueId);
-    if (!cur) await db.insert(venueStaff).values({ venueId: inv.i.venueId, userId: user.id, role: inv.i.role, branchId: inv.i.branchId, status: "pending" });
+    if (!cur) { await db.insert(venueStaff).values({ venueId: inv.i.venueId, userId: user.id, role: inv.i.role, branchId: inv.i.branchId, status: "pending" }); await notify?.staffRequest(inv.i.venueId, user.id); }
     return c.json({ ok: true, venue: inv.v.name, role: cur?.role ?? inv.i.role, status: cur?.status ?? "pending" });
   });
 
@@ -146,7 +148,8 @@ export function venueRoutes(cfg: Config, db: Db) {
   };
   r.post("/venue/:venueId/staff/:userId/approve", async (c) => {
     const o = await owner(c); if (!o) return deny(c);
-    await db.update(venueStaff).set({ status: "active" }).where(and(eq(venueStaff.venueId, o.venueId), eq(venueStaff.userId, o.uid)));
+    const done = await db.update(venueStaff).set({ status: "active" }).where(and(eq(venueStaff.venueId, o.venueId), eq(venueStaff.userId, o.uid), eq(venueStaff.status, "pending"))).returning();
+    if (done.length) await notify?.staffApproved(o.venueId, o.uid);
     return c.json({ ok: true });
   });
   r.post("/venue/:venueId/staff/:userId/remove", async (c) => {
@@ -461,8 +464,8 @@ export function venueRoutes(cfg: Config, db: Db) {
     await db.update(venues).set(b.data).where(eq(venues.id, venueId));
     return c.json({ ok: true });
   });
-  const Prefs = z.object({ newReview: z.boolean(), paymentSent: z.boolean(), orderFailed: z.boolean(), offerEnding: z.boolean(), pin: z.boolean() }).strict();
-  const defPrefs = { newReview: true, paymentSent: true, orderFailed: true, offerEnding: false, pin: false };
+  const Prefs = z.object({ newOrder: z.boolean().optional(), daily: z.boolean().optional(), newReview: z.boolean(), paymentSent: z.boolean(), orderFailed: z.boolean(), offerEnding: z.boolean(), pin: z.boolean() }).strict();
+  const defPrefs = venuePrefDefaults;
   r.get("/venue/:venueId/prefs", async (c) => {
     const venueId = c.req.param("venueId");
     const me = await guard(c, venueId); if (!me) return deny(c);

@@ -64,3 +64,17 @@ gcloud run jobs deploy jazl-seed --source backend --region europe-west3 --comman
 gcloud run jobs execute jazl-seed --region europe-west3 --wait
 ```
 Қайта іске қосуға болады — slug бойынша жаңартады, екі еселемейді.
+
+## Бот хабарламалары (src/notify.ts)
+Хабар мини апп ботынан (`MINIAPP_BOT_TOKEN`, жоқ болса `BOT_TOKEN`) жіберіледі; батырма — `t.me/<бот>?startapp=<кілт>` (vo_ тапсырыс, vc_ шағым, pk_ пакет, v_<бет>).
+- Бірден: жаңа тапсырыс/жазылу (филиал кассирлері + иесі, «Жаңа тапсырыс» баптауы), тапсырыс дайын (клиентке), QR қолданылды (клиентке),
+  жаңа шағым (иесі + басқарушы, әрқашан), шағым шешімі (клиентке), кассир қосылуды сұрады / қабылданды, жаңа пікір («Жаңа пікір»).
+- Жоспарлы (`POST /cron/tick`, `X-Cron-Key: $CRON_KEY`, 15 минут сайын): өтінім нәтижесі (күй дерекқорда қолмен өзгерсе де), 22:00 күндік қорытынды (иесіне),
+  10:00–21:00 мерзім ескертуі (пакет 3 күннен кейін бітеді). Қайталанбауы — `app.notify_log` кілті.
+```bash
+openssl rand -hex 24 | tr -d '\n' | gcloud secrets create jazl-cron-key --data-file=-
+gcloud run deploy jazl-api --source backend --region europe-west3 --update-secrets CRON_KEY=jazl-cron-key:latest
+gcloud scheduler jobs create http jazl-tick --location europe-west3 --schedule "*/15 * * * *" --time-zone Asia/Almaty --http-method POST \
+  --uri "$(gcloud run services describe jazl-api --region europe-west3 --format='value(status.url)')/cron/tick" \
+  --headers "X-Cron-Key=$(gcloud secrets versions access latest --secret jazl-cron-key)"
+```
