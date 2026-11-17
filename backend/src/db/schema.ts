@@ -70,10 +70,12 @@ export const venueStaff = app.table("venue_staff", {
   userId: uuid("user_id").notNull().references(() => users.id),
   role: staffRole("role").notNull(),
   branchId: uuid("branch_id").references(() => branches.id),
+  /** pending — шақыру кодымен кірді, иесі әлі растамады (Figma «Кассир: растау күтілуде»); active — жұмыс істейді */
+  status: text("status").notNull().default("active"),
   createdAt: created(),
 }, (t) => [primaryKey({ columns: [t.venueId, t.userId] })]);
 
-/** Қызметкерді шақыру: иесі/менеджер сілтеме жасайды (t.me/<bot>?startapp=staff_<code>), 48 сағат, бір рет қолданылады. */
+/** Кассир шақыру коды (Figma «Кассир шақыру»): 6 таңбалы, 24 сағат, бірнеше кассир қолдана алады; әр кірген — иесінің растауын күтеді. */
 export const staffInvites = app.table("staff_invites", {
   code: text("code").primaryKey(),
   venueId: uuid("venue_id").notNull().references(() => venues.id),
@@ -245,3 +247,20 @@ export const ratings = app.table("ratings", {
   text: text("text"),
   createdAt: created(),
 }, (t) => [index("ratings_venue").on(t.venueId)]);
+
+/** Кассир шығарған төлем QR-ы (Figma «Кассир: QR шығару»): пакет (ұсыныс) + дана + кассада бөлек төленетін қосымша.
+ *  QR суреті әр 30 с жаңарады (JZQ3.<id>.<exp>.<sig>), ал сеанс 2 минут жарамды; 6 таңбалы код — сканер істемесе қолмен енгізу үшін.
+ *  Бір сеанс — бір рет қана төленеді (redemption_id). */
+export const qrSessions = app.table("qr_sessions", {
+  id: id(),
+  code: text("code").notNull(),
+  branchId: uuid("branch_id").notNull().references(() => branches.id),
+  offerId: uuid("offer_id").references(() => offers.id),
+  units: smallint("units").notNull(),
+  extra: integer("extra").notNull().default(0),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  redemptionId: uuid("redemption_id").references(() => redemptions.id),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: created(),
+}, (t) => [index("qr_sessions_code").on(t.code, t.expiresAt)]);

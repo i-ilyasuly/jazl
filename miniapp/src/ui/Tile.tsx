@@ -7,7 +7,7 @@ import s from "./Tile.module.css";
 const glyphs = import.meta.glob("../assets/glyphs/*.svg", { eager: true, import: "default" }) as Record<string, string>;
 const G = (n: string) => glyphs[`../assets/glyphs/${n}.svg`];
 
-export const tileColor = { red: "#FF3A30", orange: "#FE9500", blue: "#008AFF", indigo: "#4378FF", purple: "#B00FB4", green: "#31D158", darkGreen: "#3A9F20", cyan: "#2AABEE", gray: "#8E8E93", yellow: "#FFB800" } as const;
+export const tileColor = { red: "#FF3A30", orange: "#FE9500", blue: "#008AFF", indigo: "#4378FF", purple: "#B00FB4", green: "#31D158", darkGreen: "#3A9F20", cyan: "#2AABEE", gray: "#8E8E93", yellow: "#FFB800", lavender: "#8E7CF3" } as const;
 type C = keyof typeof tileColor;
 
 /** Мағына → белгі мен түс. Emoji кілттері ескі деректермен үйлесу үшін. */
@@ -18,6 +18,10 @@ const map: Record<string, [string, C]> = {
   "↪": ["redo-2", "blue"], "↩": ["undo-2", "gray"], "🎁": ["gift", "orange"], "✈": ["send", "cyan"], "📞": ["phone", "green"],
   "🔔": ["bell", "red"], "🧭": ["navigation", "blue"], "🎉": ["party-popper", "purple"], "💰": ["coins", "yellow"],
   "#": ["hash", "indigo"], "👥": ["users", "green"], "🏪": ["store", "cyan"],
+  // Мекеме бөлімі (Figma «Jazl+ Мекеме»)
+  "v:cashier": ["qr-code", "blue"], "v:offer": ["tag", "orange"], "v:invite": ["user", "green"], "v:report": ["wallet", "lavender"], "v:key": ["key", "green"],
+  "v:venue": ["store", "blue"], "v:venueOrange": ["store", "orange"], "v:venuePurple": ["store", "lavender"], "v:branch": ["map-pin", "green"], "v:team": ["user", "lavender"], "v:integration": ["refresh", "orange"],
+  "v:reviews": ["star", "yellow"], "v:guide": ["file", "blue"], "v:settings": ["settings", "gray"], "v:support": ["message", "green"], "v:orders": ["list", "cyan"], "v:client": ["repeat", "blue"],
   "🍔": ["utensils", "orange"], "🌯": ["utensils", "orange"], "🥙": ["utensils", "orange"], "🍕": ["utensils", "orange"], "🍵": ["coffee", "orange"], "💈": ["scissors", "purple"],
 };
 const norm = (e: string) => e.replace(/️/g, "").trim();

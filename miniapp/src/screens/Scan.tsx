@@ -35,7 +35,9 @@ export function Scan() {
   const info = qrInfo && "venue" in qrInfo ? qrInfo : null;
   const qrVenue = info?.venue.name ?? (qrLocal.branchId ? catalogState.branches.find((b) => b.branchId === qrLocal.branchId)?.venue : undefined);
   const wanted = getPack(params.get("pack") ?? undefined);
-  const venuePacks = qrVenue ? packs.filter((p) => p.left > 0 && !p.expired && offerOf(p).venue === qrVenue) : [];
+  const venueAll = qrVenue ? packs.filter((p) => p.left > 0 && !p.expired && offerOf(p).venue === qrVenue) : [];
+  // Кассир QR-ы нақты пакетке (ұсынысқа) шығарылса (Figma «Клиенттің пакетін таңда») — тек сол ұсыныстың пакеті
+  const venuePacks = info?.offer ? venueAll.filter((p) => p.offerId === info.offer!.slug) : venueAll;
   const pack = qrVenue ? (wanted && offerOf(wanted).venue === qrVenue && wanted.left > 0 ? wanted : venuePacks[0]) : (wanted ?? packs.find((p) => p.left > 0 && !p.expired));
   const switched = Boolean(qrVenue && wanted && pack && wanted.id !== pack.id);
   const qrUnits = info?.units ?? qrLocal.units;
@@ -146,7 +148,7 @@ export function Scan() {
         if (r.ok) { srvLeft = r.left; finish(); return; }
         if (r.error === "units_mismatch") { finish("amount"); return; }
         if (r.error === "other_venue") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/othervenue?v=${encodeURIComponent(r.venue ?? "")}`, "up", { replace: true }); return; }
-        const map: Record<string, ScanKind> = { not_jazl_qr: "notqr", bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
+        const map: Record<string, ScanKind> = { other_offer: "nopack", qr_used: "expired", qr_cancelled: "expired", not_jazl_qr: "notqr", bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
         finish(map[r.error] ?? "fail");
       });
     },

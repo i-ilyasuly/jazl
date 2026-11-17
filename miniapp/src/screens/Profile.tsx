@@ -24,7 +24,7 @@ import venue from "../assets/icons/p_venue.svg";
 import font from "../assets/icons/p_font.svg";
 import system from "../assets/icons/p_system.svg";
 import { Tile } from "../ui/Tile";
-import { roleName, useStaff } from "../desk";
+import { roleName, useStaff } from "../venue/api";
 import s from "./Profile.module.css";
 
 interface RowDef { icon: string; tile?: string; title: string; sub?: string; value?: string; badge?: number; to: string }
@@ -50,7 +50,7 @@ const groups: { header?: string; rows: RowDef[] }[] = [
     { icon: ask, title: "Сұрақ қою", to: "/profile/ask" },
     { icon: how, title: "Қалай жұмыс істейді?", to: "/profile/how" },
     { icon: terms, title: "Шарттар және құпиялылық", to: "/profile/terms" },
-    { icon: venue, title: "Мекеме болып қосыл", sub: "Өз мекемеңді Jazl+-ке қос", to: "/profile/venue" },
+    { icon: venue, title: "Мекеме болып қосыл", sub: "Тіркеу немесе кассир ретінде кіру", to: "/v/welcome" },
   ] },
 ];
 
@@ -63,7 +63,7 @@ export function Profile() {
   const st = useSettings();
   const staff = useStaff();
   // C2: мекеме қызметкеріне ең үстінде «Касса» жолы (клиентке көрінбейді)
-  const all = staff && staff.length ? [{ rows: [{ icon: "", tile: "🏪", title: "Мекеме бөлімі", sub: `${staff[0].venue.name} · ${roleName[staff[0].role]}${staff.length > 1 ? ` · +${staff.length - 1}` : ""}`, to: "/desk" }] }, ...groups] : groups;
+  const all = staff && staff.length ? [{ rows: [{ icon: "", tile: "🏪", title: "Мекеме бөлімі", sub: `${staff[0].venue.name} · ${staff[0].status === "pending" ? "растау күтуде" : roleName[staff[0].role]}${staff.length > 1 ? ` · +${staff.length - 1}` : ""}`, to: "/v" }] }, ...groups] : groups;
   const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (st.lang === "ru" ? "Русский" : "Қазақша") : r.sub);
   const [how, setHow] = useState(false);
   const [ask, setAsk] = useState(false);

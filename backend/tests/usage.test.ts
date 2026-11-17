@@ -134,7 +134,7 @@ d("B3 қолдану", () => {
     await dbh.pool.query("insert into app.venue_staff (venue_id, user_id, role) select v.id, u.id, 'cashier' from app.venues v, app.users u where v.slug='damdi' and u.telegram_id=900");
     const list = await (await app.request("/v1/venue/orders", { headers: h(900) })).json();
     expect(list.orders.some((x: { id: string }) => x.id === o.order.id)).toBe(true);
-    expect(JSON.stringify(list)).not.toContain(o.order.code); // кассирге код көрсетілмейді
+    expect(JSON.stringify(list)).toContain(o.order.code); // Figma «Тапсырыстар»: мекеме кодты көреді (клиент айтқанын салыстырады)
     const wrong = o.order.code === "1111" ? "2222" : "1111";
     expect((await post("/v1/venue/orders/verify", { code: wrong }, 900)).status).toBe(404);
     const ok = await (await post("/v1/venue/orders/verify", { code: o.order.code }, 900)).json();

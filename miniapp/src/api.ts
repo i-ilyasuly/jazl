@@ -2,7 +2,8 @@
 // Сервер жауап бермесе, мини апп үлгі деректермен жұмысын жалғастырады (бэкенд толық қосылғанша).
 export const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "https://jazl-api-595435045772.europe-west3.run.app";
 
-const initData = () => (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData ?? "";
+const devInit = () => { try { return import.meta.env.DEV ? localStorage.getItem("jazl_dev_init") ?? "" : ""; } catch { return ""; } }; // тек жергілікті әзірлеуде: браузерден сынау
+const initData = () => (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData || devInit();
 
 export async function api<T>(path: string, init: RequestInit = {}, timeoutMs = 6000): Promise<T> {
   const ctl = new AbortController();

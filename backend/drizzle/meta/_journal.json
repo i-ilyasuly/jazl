@@ -57,6 +57,13 @@
       "when": 1794878610939,
       "tag": "0007_staff_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794879576096,
+      "tag": "0008_venue_figma",
+      "breakpoints": true
     }
   ]
 }
