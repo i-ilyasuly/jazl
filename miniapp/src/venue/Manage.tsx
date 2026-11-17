@@ -43,7 +43,7 @@ export function VOffers() {
           return (
             <div key={o.id} className={s.oc} role="button" onClick={(e) => { if (!(e.target as HTMLElement).closest("[role=switch]")) go(`/v/offers/${o.id}`); }}>
               <div className={`${s.ocTop} ${on ? "" : s.dim}`}>
-                <span className={s.ocPic}><OfferPic kind={o.kind} size={30} /></span>
+                <span className={s.ocPic} style={{ overflow: "hidden" }}>{o.photo ? <img src={o.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <OfferPic kind={o.kind} size={30} />}</span>
                 <span className={s.rowText}>
                   <span className={s.rowTitle}><b style={{ fontWeight: 600 }}>{o.title}</b>{o.status === "paused" && <span className={`${s.tag} ${s.tagYellow}`}>Тоқтатылған</span>}{o.status === "review" && <span className={s.tag}>Тексеруде</span>}</span>
                   <span className={s.ocTags}>{[...new Set(o.sizes)].map((n, i, a) => <span key={n}>{n}{i === a.length - 1 ? " бірлік" : ""}</span>)}</span>
