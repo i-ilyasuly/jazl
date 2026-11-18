@@ -101,7 +101,7 @@ d("Medeo Басқару", () => {
     expect(sent.at(-1)?.text).toContain("тексеруден өтіп, жарияланды");
   });
 
-  it("комиссия PIN-мен: қате PIN — қалған әрекет; 3 қате — 15 минут бұғат; дұрыс — мекеме есебінде 8%", async () => {
+  it("комиссия PIN-мен: қате PIN — қалған әрекет; 3 қате — 15 минут бұғат; дұрыс — өткен есеп өзгермейді (10%), жаңа қолдану 8%", async () => {
     let r = await json(post(`/v1/admin/venues/${venueId}/fee`, { feePct: 8, pin: "0000" }));
     expect(r).toMatchObject({ error: "bad_pin", left: 2 });
     r = await json(post(`/v1/admin/venues/${venueId}/fee`, { feePct: 8, pin: "5821" }));
@@ -109,7 +109,10 @@ d("Medeo Басқару", () => {
     const card = (await json(get(`/v1/admin/venues/${venueId}`))).venue;
     expect(card).toMatchObject({ feePct: 8, feeCustom: true });
     const hist = await json(get(`/v1/venue/${venueId}/history?days=1`, OWNER));
-    const u = hist.items[0]; expect(u.venueAmount).toBe(Math.round(u.amount * 0.92));
+    // Комиссия қолданылған сәтте жазылады: өткен қолдану бұрынғы 10%-бен қалады (кейін өзгерсе де өткен есеп өзгермейді)
+    const u = hist.items[0]; expect(u.venueAmount).toBe(Math.round(u.amount * 0.9));
+    await dbh.pool.query("update app.redemptions set fee_pct = 8 where id = $1", [u.id]); // жаңа қолдануда 8% жазылатынын usage.test тексереді
+    const u2 = (await json(get(`/v1/venue/${venueId}/history?days=1`, OWNER))).items[0]; expect(u2.venueAmount).toBe(Math.round(u2.amount * 0.92));
     for (let i = 0; i < 2; i++) await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "0000" });
     const locked = await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "0000" });
     expect(locked.status).toBe(423);

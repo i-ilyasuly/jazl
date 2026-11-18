@@ -155,6 +155,13 @@
       "when": 1794963878453,
       "tag": "0021_title_ru",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794991721376,
+      "tag": "0022_money",
+      "breakpoints": true
     }
   ]
 }

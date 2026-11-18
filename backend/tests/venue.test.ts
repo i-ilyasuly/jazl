@@ -192,6 +192,9 @@ d("C мекеме бөлімі", () => {
   });
   it("пікірлер: орташа баға, бөлінуі, жауапсыздар; жауап беру (иесі/басқарушы)", async () => {
     const p = await buy(730);
+    expect((await post("/v1/ratings", { packId: p, stars: 5, tags: [] }, 730)).status).toBe(409); // әлі қолданбаған — баға жоқ
+    // Баға тек қолданғаннан кейін (2026-11-18): бұрынғы күнгі бір қолдануды жазамыз (бүгінгі есептерге әсер етпеуі үшін)
+    await dbh.pool.query("insert into app.redemptions (pack_id, branch_id, units, amount, fee_pct, created_at) select p.id, b.id, 1, 0, 10, now() - interval '3 days' from app.packs p join app.offers o on o.id = p.offer_id join app.branches b on b.venue_id = o.venue_id where p.id = $1 limit 1", [p]);
     expect((await post("/v1/ratings", { packId: p, stars: 4, tags: [], text: "Дәмі жақсы" }, 730)).status).toBe(200);
     const r = await json(get(`/v1/venue/${venueId}/reviews`, 701));
     expect(r.summary.count).toBeGreaterThanOrEqual(1); expect(r.summary.dist).toHaveLength(5);

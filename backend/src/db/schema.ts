@@ -56,6 +56,11 @@ export const venues = app.table("venues", {
   statusNote: text("status_note"),
   /** Medeo комиссиясы, % (Figma «Комиссия»: 10 — негізгі, 8 — жоғары рейтинг). null — әдепкі (MEDEO_FEE_PCT) */
   feePct: smallint("fee_pct"),
+  /** Комиссия деңгейі (Патша, 2026-11-18): рейтинг пен пікір санына қарай жоспарлы тапсырма есептейді (10 → 9 → 8). fee_pct (Басқару қолмен қойса) басым */
+  autoFeePct: smallint("auto_fee_pct"),
+  /** Сенімділік (соңғы 90 күн): орындалған тапсырма үлесі, %; reliabilityN — неше жағдайдан есептелді (20-дан аз болса белгі көрсетілмейді) */
+  reliability: smallint("reliability"),
+  reliabilityN: integer("reliability_n").notNull().default(0),
   createdAt: created(),
 }, (t) => [uniqueIndex("venues_slug").on(t.slug)]);
 
@@ -149,6 +154,17 @@ export const packs = app.table("packs", {
   source: text("source").notNull().default("purchase"),
   /** Мекеменің бір реттік тегін ұзартуы пайдаланылды ма (B4) */
   freeExtendUsed: boolean("free_extend_used").notNull().default(false),
+  /** Пакеттің толық құны (₸) = төленген баға + қайта алғанда көшірілген бірліктердің құны. Әр бірліктің құны осыдан бөлінеді,
+   *  қалдық тиын соңғы бірлікке түседі (value.ts). Бос болса — дерекқор триггері price_paid-ті қояды. */
+  valueTotal: integer("value_total"),
+  /** Бос сағат жеңілдігімен алынған пакет: терезе сатып алған сәттегідей сақталады { days, from, to, pct } */
+  offPeak: jsonb("off_peak"),
+  /** Автожаңарту (клиент өзі қосады): пакет біткенде сақталған картадан сол көлем қайта алынады */
+  autoRenew: boolean("auto_renew").notNull().default(false),
+  autoRenewCard: uuid("auto_renew_card"),
+  autoRenewAt: timestamp("auto_renew_at", { withTimezone: true }),
+  /** Автожаңарту жасаған жаңа пакет (екінші рет жаңармауы үшін) */
+  renewedTo: uuid("renewed_to"),
   createdAt: created(),
 }, (t) => [index("packs_user").on(t.userId)]);
 
@@ -179,6 +195,9 @@ export const orders = app.table("orders", {
   /** Кассир растаған сәт және кім растағаны */
   doneAt: timestamp("done_at", { withTimezone: true }),
   doneBy: uuid("done_by").references(() => users.id),
+  /** Осы тапсырыс жұмсаған құн (₸) және сол сәттегі Medeo комиссиясы (%): мекемеге есеп осы сандармен (кейін рейтинг өзгерсе де өткен есеп өзгермейді) */
+  amount: integer("amount"),
+  feePct: smallint("fee_pct"),
   createdAt: created(),
 }, (t) => [uniqueIndex("orders_no").on(t.no), index("orders_branch_time").on(t.branchId, t.scheduledAt), uniqueIndex("orders_idem").on(t.userId, t.idempotencyKey)]);
 
@@ -195,6 +214,8 @@ export const redemptions = app.table("redemptions", {
   /** Кассир 10 минут ішінде бас тартса (қате мекеме/дана) — бірлік пакетке қайтады */
   cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
   cancelledBy: uuid("cancelled_by").references(() => users.id),
+  amount: integer("amount"),
+  feePct: smallint("fee_pct"),
   createdAt: created(),
 }, (t) => [index("redemptions_pack").on(t.packId), uniqueIndex("redemptions_idem").on(t.packId, t.idempotencyKey)]);
 
@@ -217,6 +238,10 @@ export const payments = app.table("payments", {
   cardId: uuid("card_id"),
   /** Сәтсіз төлемнің себебі (провайдерден): declined, insufficient_funds, 3ds_failed… */
   failure: text("failure"),
+  /** Клиентке қайтарылған ақша (₸, карта/Kaspi бөлігі) және қайтарудың күйі: pending | done | failed (провайдер қабылдамаса — Басқару «Пульсінде») */
+  refunded: integer("refunded").notNull().default(0),
+  refundStatus: text("refund_status"),
+  refundFailure: text("refund_failure"),
   createdAt: created(),
 }, (t) => [uniqueIndex("payments_external").on(t.provider, t.externalId), uniqueIndex("payments_idem").on(t.userId, t.idempotencyKey)]);
 
@@ -310,7 +335,7 @@ export const ratings = app.table("ratings", {
   reply: text("reply"),
   repliedAt: timestamp("replied_at", { withTimezone: true }),
   createdAt: created(),
-}, (t) => [index("ratings_venue").on(t.venueId)]);
+}, (t) => [index("ratings_venue").on(t.venueId), uniqueIndex("ratings_user_pack").on(t.userId, t.packId).where(sql`pack_id is not null`)]);
 
 /** Кассир шығарған төлем QR-ы (Figma «Кассир: QR шығару»): пакет (ұсыныс) + дана + кассада бөлек төленетін қосымша.
  *  Патша (2026-11-17): QR суреті де, 4 таңбалы код та әр 30 с бірге жаңарады (code_exp); сеанс кассир экраны ашық тұрғанда 10 минут.

@@ -253,9 +253,9 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
         // 📊 Бүгінгі қорытынды → иесі («Күндік қорытынды» баптауы); бүгін қолдану не тапсырыс болған мекемелерге ғана
         const from = new Date(`${day}T00:00:00+05:00`);
         const stats = await rows<{ venue_id: string; uses: number; orders: number; amount: number }>(sql`
-          with u as (select b.venue_id, sum(r.units)::int as uses, sum(r.units * (p.price_paid / p.units_total))::int as amount from app.redemptions r
+          with u as (select b.venue_id, sum(r.units)::int as uses, sum(r.amount)::int as amount from app.redemptions r
               join app.branches b on b.id = r.branch_id join app.packs p on p.id = r.pack_id where r.created_at >= ${from} and r.cancelled_at is null group by b.venue_id),
-            o as (select b.venue_id, count(*)::int as orders, sum(p.price_paid / p.units_total)::int as amount from app.orders o join app.branches b on b.id = o.branch_id
+            o as (select b.venue_id, count(*)::int as orders, sum(o.amount)::int as amount from app.orders o join app.branches b on b.id = o.branch_id
               join app.packs p on p.id = o.pack_id where o.created_at >= ${from} and o.status not in ('cancelled','failed') group by b.venue_id)
           select coalesce(u.venue_id, o.venue_id) as venue_id, coalesce(u.uses, 0) as uses, coalesce(o.orders, 0) as orders, coalesce(u.amount, 0) + coalesce(o.amount, 0) as amount
           from u full join o on o.venue_id = u.venue_id`);
@@ -270,7 +270,7 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
         const y = new Date(new Date(`${day}T00:00:00+05:00`).getTime() - 86400_000); const t = new Date(`${day}T00:00:00+05:00`);
         const sum = async (from: Date) => (await rows<{ sales: number; fee: number; packs: number; uses: number; complaints: number }>(sql`select
           coalesce((select sum(p.price_paid) from app.packs p where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at >= ${from} and p.created_at < ${t}), 0)::int as sales,
-          coalesce((select sum(round(p.price_paid * coalesce(v.fee_pct, ${sql.raw(String(Number(opts.feePct ?? 10)))}) / 100.0)) from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at >= ${from} and p.created_at < ${t}), 0)::int as fee,
+          coalesce((select sum(round(p.price_paid * coalesce(v.fee_pct, v.auto_fee_pct, ${sql.raw(String(Number(opts.feePct ?? 10)))}) / 100.0)) from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at >= ${from} and p.created_at < ${t}), 0)::int as fee,
           (select count(*) from app.packs where status <> 'pending_payment' and source <> 'carry' and created_at >= ${from} and created_at < ${t})::int as packs,
           coalesce((select sum(units) from app.redemptions where cancelled_at is null and created_at >= ${from} and created_at < ${t}), 0)::int as uses,
           (select count(*) from app.complaints where created_at >= ${from} and created_at < ${t})::int as complaints`))[0];

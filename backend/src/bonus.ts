@@ -1,11 +1,12 @@
 // Medeo бонусы (Патша, 2026-11-17). Ереже: мекеме тек көрсеткен қызметі үшін ақша алады.
 // Пакеттің мерзімі өтіп, күту кезеңі (graceDays, 3 күн) де біткенде көшірілмеген бірліктердің құны
-// (бірлік бағасы × қалған бірлік; бірлік бағасы есеп айырысудағыдай: price_paid / units_total) клиентке бонус болып қайтады.
+// (пакеттің толық құнынан қалған бөлігі, value.ts: көшірілген құн да ескеріледі, тиын жоғалмайды) клиентке бонус болып қайтады.
 // Бонус 12 ай (settings.bonusMonths) жарамды, кез келген мекемеде келесі сатып алуға жұмсалады.
 // Мысал: 12 кесе латте 10 800 ₸ (бірлігі 900 ₸), 3 кесе қалды → 2 700 ₸ бонус; келесі пакет 12 000 ₸ → картадан 9 300 ₸ алынады.
 import { sql } from "drizzle-orm";
 import type { Db } from "./db/client.js";
 import { getSettings } from "./settings.js";
+import { leftValueSql } from "./value.js";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Q = Db | Tx;
@@ -58,14 +59,14 @@ export async function releaseBonus(db: Db, paymentId: string) {
 export async function creditBreakage(db: Db, now = new Date()) {
   const s = await getSettings(db);
   return db.transaction(async (tx) => {
-    const due = await rows<{ id: string; user_id: string; units_left: number; unit: number; title: string; title_ru: string | null }>(tx, sql`
-      select p.id, p.user_id, p.units_left, (p.price_paid / p.units_total)::int as unit, o.title, o.title_ru from app.packs p join app.offers o on o.id = p.offer_id
-      where p.status = 'active' and p.units_left > 0 and p.price_paid > 0 and p.valid_until < ${now}::timestamptz - make_interval(days => ${s.graceDays})
+    const due = await rows<{ id: string; user_id: string; units_left: number; left_value: number; title: string; title_ru: string | null }>(tx, sql`
+      select p.id, p.user_id, p.units_left, ${leftValueSql()} as left_value, o.title, o.title_ru from app.packs p join app.offers o on o.id = p.offer_id
+      where p.status = 'active' and p.units_left > 0 and p.value_total > 0 and p.valid_until < ${now}::timestamptz - make_interval(days => ${s.graceDays})
         and not exists (select 1 from app.bonuses b where b.pack_id = p.id)
       order by p.valid_until limit 500 for update of p skip locked`);
     const out: { userId: string; packId: string; amount: number; units: number; title: string; titleRu: string | null }[] = [];
     for (const p of due) {
-      const amount = Number(p.unit) * Number(p.units_left);
+      const amount = Number(p.left_value);
       await tx.execute(sql`update app.packs set status = 'expired', units_left = 0 where id = ${p.id}`);
       await tx.execute(sql`insert into app.pack_events (pack_id, type, units_delta, meta) values (${p.id}, 'bonus', ${-p.units_left}, ${JSON.stringify({ amount })}::jsonb)`);
       if (amount > 0) await tx.execute(sql`insert into app.bonuses (user_id, kind, amount, "left", pack_id, units, expires_at)

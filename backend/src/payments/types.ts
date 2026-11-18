@@ -44,7 +44,7 @@ export interface PaymentProvider {
   tokenize(cryptogram: string, user: { id: string }): Promise<CardInfo>;
   /** Провайдердің вебхугын тексеру (қолтаңба!) және оқу. Жарамсыз болса — null */
   webhook(req: { headers: Record<string, string>; body: string }): Promise<WebhookEvent | null>;
-  /** Қайтару (толық не жартылай). Ақшалай қайтару әзірге өшірулі — интерфейсте болашаққа */
+  /** Қайтару (толық не жартылай): клиенттің картасына/Kaspi-іне ақшаны қайтару. Нақты провайдер міндетті түрде жүзеге асырады. */
   refund?(externalId: string, amount: number): Promise<{ ok: boolean; reason?: string }>;
 }
 

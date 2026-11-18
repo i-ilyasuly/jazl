@@ -27,13 +27,15 @@ const DAY = sql`(date_trunc('day', now() at time zone 'Asia/Almaty') at time zon
 const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f);
 
 /** Мекемедегі барлық қолдану: QR арқылы (redemptions) және алдын ала тапсырыс (orders, жасалған сәтте 1 бірлік). */
-interface UseRow { id: string; kind: "scan" | "order"; at: Date; units: number; unit_price: number; cancelled_at: Date | null; title: string; slug: string; first_name: string; last_name: string | null;
+interface UseRow { id: string; kind: "scan" | "order"; at: Date; units: number; unit_price: number; amount: number; fee_pct: number; cancelled_at: Date | null; title: string; slug: string; first_name: string; last_name: string | null;
   branch_id: string; address: string; order_no: number | null; cashier_id: string | null; left: number; total: number }
 
 export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
   // мекеме шотына түсетін бөлік: мекеменің өз комиссиясы (Medeo Басқару «Комиссия»), жоқ болса — әдепкі
   const share = (amount: number, venueId: string) => Math.round((amount * (100 - feeFor(db, venueId, cfg.MEDEO_FEE_PCT))) / 100);
+  /** Мекеменің үлесі: қолданылған сәттегі сома мен комиссиямен (кейін комиссия деңгейі өзгерсе де, өткен есеп өзгермейді) */
+  const payout = (x: { amount: number; fee_pct: number }) => Math.round((Number(x.amount) * (100 - Number(x.fee_pct))) / 100);
   const roleIn = async (userId: string, venueId: string) =>
     (await db.select({ role: venueStaff.role, branchId: venueStaff.branchId, status: venueStaff.status }).from(venueStaff).where(and(eq(venueStaff.userId, userId), eq(venueStaff.venueId, venueId))).limit(1))[0];
   /** Белсенді қызметкер және рөлі жеткілікті ме; болмаса 403 */
@@ -47,12 +49,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const br = branchId ? sql`and b.id = ${branchId}` : sql``;
     const res = await db.execute(sql`
       select * from (
-        select r.id, 'scan' as kind, r.created_at as at, r.units::int, (p.price_paid / p.units_total)::int as unit_price, r.cancelled_at, o.title, o.slug, u.first_name, u.last_name,
+        select r.id, 'scan' as kind, r.created_at as at, r.units::int, round(p.value_total::numeric / p.units_total)::int as unit_price, r.amount::int as amount, r.fee_pct::int as fee_pct, r.cancelled_at, o.title, o.slug, u.first_name, u.last_name,
                b.id as branch_id, b.address, null::bigint as order_no, r.cashier_id, p.units_left::int as left, p.units_total::int as total
           from app.redemptions r join app.branches b on b.id = r.branch_id join app.packs p on p.id = r.pack_id join app.offers o on o.id = p.offer_id join app.users u on u.id = p.user_id
          where b.venue_id = ${venueId} and r.created_at >= ${since} ${br}
         union all
-        select od.id, 'order', od.created_at, 1, (p.price_paid / p.units_total)::int, case when od.status in ('cancelled','failed') then od.created_at end, o.title, o.slug, u.first_name, u.last_name,
+        select od.id, 'order', od.created_at, 1, round(p.value_total::numeric / p.units_total)::int, od.amount::int, od.fee_pct::int, case when od.status in ('cancelled','failed') then od.created_at end, o.title, o.slug, u.first_name, u.last_name,
                b.id, b.address, od.no, od.done_by, p.units_left::int, p.units_total::int
           from app.orders od join app.branches b on b.id = od.branch_id join app.packs p on p.id = od.pack_id join app.offers o on o.id = p.offer_id join app.users u on u.id = od.user_id
          where b.venue_id = ${venueId} and od.created_at >= ${since} ${br}
@@ -60,9 +62,9 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return res.rows as unknown as UseRow[];
   }
   const useDto = (x: UseRow, venueId: string) => {
-    const amount = x.unit_price * x.units;
+    const amount = x.amount;
     return { id: x.id, kind: x.kind, at: x.at, units: x.units, title: x.title, slug: x.slug, customer: short(x.first_name, x.last_name), branch: x.address, branchId: x.branch_id,
-      orderNo: x.order_no, amount, venueAmount: share(amount, venueId), cancelled: Boolean(x.cancelled_at),
+      orderNo: x.order_no, amount, venueAmount: payout(x), cancelled: Boolean(x.cancelled_at),
       canCancel: x.kind === "scan" && !x.cancelled_at && Date.now() - new Date(x.at).getTime() < CANCEL_MS };
   };
 
@@ -136,7 +138,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const mine = (await uses(venueId, sql`${DAY} - interval '30 days'`)).filter((u) => u.cashier_id === uid && !u.cancelled_at);
     const dayKey = (d: Date) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
     const days = new Map<string, { count: number; amount: number }>();
-    for (const u of mine) { const k = dayKey(u.at); const d = days.get(k) ?? { count: 0, amount: 0 }; d.count++; d.amount += share(u.unit_price * u.units, venueId); days.set(k, d); }
+    for (const u of mine) { const k = dayKey(u.at); const d = days.get(k) ?? { count: 0, amount: 0 }; d.count++; d.amount += payout(u); days.set(k, d); }
     const today = days.get(dayKey(new Date())) ?? { count: 0, amount: 0 };
     return c.json({ ok: true, staff: { userId: x.u.id, name: short(x.u.firstName, x.u.lastName), username: x.u.username, photoUrl: x.u.photoUrl, role: x.s.role, status: x.s.status,
       branch: x.b?.address ?? null, branchId: x.s.branchId, since: x.s.createdAt, today, days: [...days.entries()].filter(([k]) => k !== dayKey(new Date())).slice(0, 7).map(([date, v]) => ({ date, ...v })) } });
@@ -178,7 +180,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const dayKey = (d: Date) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
     const keys = Array.from({ length: 7 }, (_, i) => dayKey(new Date(Date.now() - (6 - i) * 86400_000)));
     const series = keys.map((k) => all.filter((u) => dayKey(u.at) === k).length);
-    const sum = (k: string, rows = all) => rows.filter((u) => dayKey(u.at) === k).reduce((s, u) => s + share(u.unit_price * u.units, venueId), 0);
+    const sum = (k: string, rows = all) => rows.filter((u) => dayKey(u.at) === k).reduce((s, u) => s + payout(u), 0);
     const mine = me.role === "cashier" ? all.filter((u) => u.cashier_id === c.get("user").id) : all;
     const act = (await db.execute(sql`select count(*)::int as packs, coalesce(sum(p.units_left), 0)::int as units from app.packs p join app.offers o on o.id = p.offer_id
       where o.venue_id = ${venueId} and p.status = 'active' and p.valid_until > now()`)).rows[0] as { packs: number; units: number };
@@ -206,7 +208,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     let rows = await uses(venueId, sql`${DAY} - (${days - 1} * interval '1 day')`, branchId);
     if (me.role === "cashier") rows = rows.filter((u) => u.cashier_id === c.get("user").id); // кассир — тек өз төлемдері (Figma: тарих — басқарушы мен иесіне)
     const ok = rows.filter((u) => !u.cancelled_at);
-    return c.json({ ok: true, summary: { count: ok.length, amount: ok.reduce((s, u) => s + share(u.unit_price * u.units, venueId), 0), refunds: rows.filter((u) => u.kind === "scan" && u.cancelled_at).length },
+    return c.json({ ok: true, summary: { count: ok.length, amount: ok.reduce((s, u) => s + payout(u), 0), refunds: rows.filter((u) => u.kind === "scan" && u.cancelled_at).length },
       items: rows.map((x) => useDto(x, venueId)) });
   });
 
@@ -214,12 +216,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   r.get("/venue/:venueId/orders/:orderId", async (c) => {
     const venueId = c.req.param("venueId");
     if (!(await guard(c, venueId))) return deny(c);
-    const res = await db.execute(sql`select od.*, o.title, o.slug, (p.price_paid / p.units_total)::int as unit_price, u.first_name, u.last_name, b.address, b.venue_id
+    const res = await db.execute(sql`select od.*, o.title, o.slug, coalesce(od.amount, round(p.value_total::numeric / p.units_total))::int as unit_price, u.first_name, u.last_name, b.address, b.venue_id
       from app.orders od join app.packs p on p.id = od.pack_id join app.offers o on o.id = p.offer_id join app.users u on u.id = od.user_id join app.branches b on b.id = od.branch_id where od.id = ${c.req.param("orderId")}`);
-    const o = res.rows[0] as { id: string; no: number; type: string; status: string; scheduled_at: Date | null; created_at: Date; done_at: Date | null; code: string; courier: boolean; title: string; slug: string; unit_price: number; first_name: string; last_name: string | null; address: string; venue_id: string } | undefined;
+    const o = res.rows[0] as { id: string; no: number; type: string; status: string; scheduled_at: Date | null; created_at: Date; done_at: Date | null; code: string; courier: boolean; title: string; slug: string; unit_price: number; fee_pct: number | null; first_name: string; last_name: string | null; address: string; venue_id: string } | undefined;
     if (!o || o.venue_id !== venueId) return c.json({ ok: false, error: "not_found" }, 404);
     return c.json({ ok: true, order: { id: o.id, no: o.no, type: o.type, status: o.status, scheduledAt: o.scheduled_at, createdAt: o.created_at, doneAt: o.done_at, code: o.code, courier: o.courier,
-      title: o.title, slug: o.slug, customer: short(o.first_name, o.last_name), branch: o.address, amount: o.unit_price, venueAmount: share(o.unit_price, venueId) } });
+      title: o.title, slug: o.slug, customer: short(o.first_name, o.last_name), branch: o.address, amount: o.unit_price, venueAmount: o.fee_pct != null ? Math.round((o.unit_price * (100 - Number(o.fee_pct))) / 100) : share(o.unit_price, venueId) } });
   });
 
   // ── 06 · Ұсыныстар ───────────────────────────────────────────
@@ -511,7 +513,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const rows = (await uses(venueId, period === "all" ? sql`${DAY} - interval '365 days'` : sql`${DAY} - interval '29 days'`, null, 20000)).filter((u) => !u.cancelled_at);
     const dayKey = (d: Date) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
     const byDay = new Map<string, { count: number; amount: number }>();
-    for (const u of rows) { const k = dayKey(u.at); const d = byDay.get(k) ?? { count: 0, amount: 0 }; d.count++; d.amount += share(u.unit_price * u.units, venueId); byDay.set(k, d); }
+    for (const u of rows) { const k = dayKey(u.at); const d = byDay.get(k) ?? { count: 0, amount: 0 }; d.count++; d.amount += payout(u); byDay.set(k, d); }
     const now = Date.now();
     let bars: { label: string; amount: number }[];
     if (period === "week") bars = Array.from({ length: 7 }, (_, i) => { const d = new Date(now - (6 - i) * 86400_000); return { label: d.toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" }), amount: byDay.get(dayKey(d))?.amount ?? 0 }; });
@@ -559,12 +561,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const [x] = await db.select({ s: qrSessions, b: branches }).from(qrSessions).innerJoin(branches, eq(qrSessions.branchId, branches.id)).where(eq(qrSessions.id, c.req.param("id"))).limit(1);
     if (!x || !(await guard(c, x.b.venueId))) return c.json({ ok: false, error: "not_found" }, 404);
     if (x.s.redemptionId) {
-      const res = await db.execute(sql`select r.id, r.units, r.created_at, r.cancelled_at, o.title, (p.price_paid / p.units_total)::int as unit_price, p.units_left, p.units_total, u.first_name, u.last_name,
+      const res = await db.execute(sql`select r.id, r.units, r.created_at, r.cancelled_at, o.title, r.amount::int as amount, r.fee_pct::int as fee_pct, round(p.value_total::numeric / p.units_total)::int as unit_price, p.units_left, p.units_total, u.first_name, u.last_name,
           (select no from app.receipts rc where rc.internal->>'redemptionId' = r.id::text limit 1) as receipt_no, (select id from app.receipts rc where rc.internal->>'redemptionId' = r.id::text limit 1) as receipt_id
         from app.redemptions r join app.packs p on p.id = r.pack_id join app.offers o on o.id = p.offer_id join app.users u on u.id = p.user_id where r.id = ${x.s.redemptionId}`);
-      const d = res.rows[0] as { id: string; units: number; created_at: Date; cancelled_at: Date | null; title: string; unit_price: number; units_left: number; units_total: number; first_name: string; last_name: string | null; receipt_no: number | null; receipt_id: string | null };
+      const d = res.rows[0] as { id: string; units: number; created_at: Date; cancelled_at: Date | null; title: string; unit_price: number; amount: number; fee_pct: number; units_left: number; units_total: number; first_name: string; last_name: string | null; receipt_no: number | null; receipt_id: string | null };
       return c.json({ ok: true, status: "paid", paid: { redemptionId: d.id, customer: short(d.first_name, d.last_name), title: d.title.split(" · ")[0], units: d.units, left: d.units_left, total: d.units_total,
-        amount: d.unit_price * d.units, venueAmount: share(d.unit_price * d.units, x.b.venueId), extra: x.s.extra, at: d.created_at, ref: d.receipt_no ? "MD-" + d.receipt_no : null, receiptId: d.receipt_id, cancelled: Boolean(d.cancelled_at) } });
+        amount: d.amount, venueAmount: payout(d), extra: x.s.extra, at: d.created_at, ref: d.receipt_no ? "MD-" + d.receipt_no : null, receiptId: d.receipt_id, cancelled: Boolean(d.cancelled_at) } });
     }
     if (x.s.cancelledAt) return c.json({ ok: true, status: "cancelled" });
     if (x.s.expiresAt.getTime() < Date.now()) return c.json({ ok: true, status: "expired" });

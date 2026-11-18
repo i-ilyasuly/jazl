@@ -13,6 +13,8 @@ import type { Db } from "../db/client.js";
 import { branches, gifts, offers, packEvents, packs, paymentCards, payments, receipts, users, venues } from "../db/schema.js";
 import { paymentProvider, type CardInfo } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
+import { leftValue } from "../value.js";
+import { getSettings } from "../settings.js";
 
 const Buy = z.object({
   offerSlug: z.string().min(1).max(64),
@@ -139,7 +141,10 @@ export function purchaseRoutes(cfg: Config, db: Db) {
       .where(and(eq(packs.userId, user.id), inArray(packs.status, ["active", "used", "expired"]))).orderBy(desc(packs.createdAt));
     const ids = rows.map((x) => x.p.id);
     const rcs = ids.length ? await db.select({ id: receipts.id, no: receipts.no, packId: receipts.packId }).from(receipts).where(and(inArray(receipts.packId, ids), eq(receipts.kind, "purchase"))) : [];
-    return c.json({ ok: true, packs: rows.map(({ p, o }) => packDto(p, o.slug, rcs.find((x) => x.packId === p.id))) });
+    // Ұзарту шегінен қалған күн (мини апп ұзарту парағында тек осыған сыятын нұсқаларды ұсынады)
+    const ext = ids.length ? (await db.execute(sql`select pack_id, coalesce(sum((meta->>'days')::int), 0)::int as d from app.pack_events where type = 'extend' and meta->>'via' is null and pack_id in ${ids} group by pack_id`)).rows as { pack_id: string; d: number }[] : [];
+    const maxDays = (await getSettings(db)).extendMaxDays;
+    return c.json({ ok: true, packs: rows.map(({ p, o }) => ({ ...packDto(p, o.slug, rcs.find((x) => x.packId === p.id)), extendLeft: Math.max(0, maxDays - Number(ext.find((x) => x.pack_id === p.id)?.d ?? 0)) })) });
   });
 
   r.get("/receipts/no/:no", async (c) => {
@@ -265,15 +270,18 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
     let carried = 0;
     if (body.fromPackId) {
       const res = await tx.execute(sql`select * from app.packs where id = ${body.fromPackId} and user_id = ${user.id} for update`);
-      const old = res.rows[0] as { id: string; offer_id: string; units_left: number; valid_until: Date; status: string } | undefined;
+      const old = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; value_total: number; valid_until: Date; status: string } | undefined;
       if (old && old.offer_id === o.id) {
         const expiredFor = Date.now() - new Date(old.valid_until).getTime();
         carried = ["active", "expired"].includes(old.status) && expiredFor <= CARRY_DAYS * 86400_000 ? old.units_left : 0;
+        // Көшірілген бірліктер ескі пакетте төленген бағасымен келеді (Патша, 2026-11-18): мекеме оларды да толық бағасымен алады.
+        // Мысал: латте 900 ₸, 3 кесе қалды → жаңа пакет 10 800 + 2 700 = 13 500 ₸ / 15 кесе = 900 ₸ (бұрын 720 ₸ болып, мекеме 2 700 ₸ жоғалтатын).
+        const carriedValue = carried ? leftValue(old.value_total, old.units_total, carried) : 0;
         await tx.update(packs).set({ unitsLeft: 0, status: "used" }).where(eq(packs.id, old.id));
         if (carried) {
-          await tx.insert(packEvents).values({ packId: old.id, type: "carry_out", unitsDelta: -carried, meta: { toPackId: pack.id } });
-          await tx.update(packs).set({ unitsTotal: units + carried, unitsLeft: units + carried }).where(eq(packs.id, pack.id));
-          await tx.insert(packEvents).values({ packId: pack.id, type: "carry_in", unitsDelta: carried, meta: { fromPackId: old.id } });
+          await tx.insert(packEvents).values({ packId: old.id, type: "carry_out", unitsDelta: -carried, meta: { toPackId: pack.id, value: carriedValue } });
+          await tx.update(packs).set({ unitsTotal: units + carried, unitsLeft: units + carried, valueTotal: size.price + carriedValue }).where(eq(packs.id, pack.id));
+          await tx.insert(packEvents).values({ packId: pack.id, type: "carry_in", unitsDelta: carried, meta: { fromPackId: old.id, value: carriedValue } });
         }
       }
     }

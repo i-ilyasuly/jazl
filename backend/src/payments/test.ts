@@ -51,6 +51,7 @@ export function testProvider(secret: string): PaymentProvider & { sign(body: str
       if (req.headers["x-test-signature"] !== sign(req.body)) return null;
       try { const j = JSON.parse(req.body) as WebhookEvent; return j.externalId && (j.status === "paid" || j.status === "failed") ? j : null; } catch { return null; }
     },
-    async refund() { return { ok: false, reason: "money_refunds_disabled" }; },
+    // Сынақта ақша жүрмейді: қайтару бірден «өтті». Сәтсіз қайтаруды тексеру — externalId «test_fail» деп басталса
+    async refund(externalId, amount) { return externalId.startsWith("test_fail") || amount <= 0 ? { ok: false, reason: "declined" } : { ok: true }; },
   };
 }

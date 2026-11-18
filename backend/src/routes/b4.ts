@@ -1,7 +1,7 @@
 // B4 · Сыйлық, мерзімді ұзарту, қайтару, бағалау. (Қайта алу мен көшіру — POST /v1/purchases {fromPackId}.)
 // Ережелер (14-құжат): сыйлық 7 күн ішінде қабылданбаса — пакет жіберушіге қайтады; 30 күн мерзімі алушы қабылдаған сәттен басталады.
 // Ұзарту: 7 күн — мекеменің бір реттік тегін мүмкіндігі, 14 күн — 1 000 ₸, 30 күн — 2 000 ₸ (баға серверде).
-// Қайтару: пакеттен бір де бірлік жұмсалмаса және сатып алғанына 14 күн толмаса — толық қайтарылады.
+// Қайтару: src/refund.ts (карта бөлігі провайдер арқылы, бонус бөлігі бонусқа, сыйлықты тек беруші).
 import { randomUUID } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { and, avg, count, desc, eq, isNull, or, sql } from "drizzle-orm";
@@ -14,11 +14,18 @@ import { gifts, offers, packEvents, packs, paymentCards, payments, ratings, rece
 import { GIFT_DAYS, paymentReply, saveCard } from "./purchases.js";
 import { paymentProvider } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
+import { refundPack, RefundError } from "../refund.js";
+import { getSettings } from "../settings.js";
 
 export const EXTEND = [{ days: 7, price: 0 }, { days: 14, price: 1000 }, { days: 30, price: 2000 }] as const;
-const REFUND_DAYS = 14;
 class B4Error extends Error { constructor(public code: string, public status: 400 | 404 | 409 = 409) { super(code); } }
 const almaty = (d: Date) => d.toLocaleString("ru-RU", { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+/** Клиент бұл пакетті осы уақытқа дейін неше күнге ұзартты (Басқару мен шағым бойынша ұзарту есептелмейді) */
+export async function extendedDays(q: Db | Tx, packId: string): Promise<number> {
+  const [x] = (await q.execute(sql`select coalesce(sum((meta->>'days')::int), 0)::int as d from app.pack_events where pack_id = ${packId} and type = 'extend' and meta->>'via' is null`)).rows as { d: number }[];
+  return Number(x?.d ?? 0);
+}
 
 export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
@@ -32,14 +39,21 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
     const user = c.get("user");
     const [p] = await db.select({ p: packs, o: offers }).from(packs).innerJoin(offers, eq(packs.offerId, offers.id)).where(and(eq(packs.id, b.data.packId), eq(packs.userId, user.id))).limit(1);
     if (!p) return c.json({ ok: false, error: "not_found" }, 404);
+    // Баға тек нақты қызмет алғаннан кейін (Патша, 2026-11-18): кем дегенде бір қолдану не орындалған тапсырыс
+    const [{ used }] = (await db.execute(sql`select (exists (select 1 from app.redemptions where pack_id = ${p.p.id} and cancelled_at is null)
+      or exists (select 1 from app.orders where pack_id = ${p.p.id} and status = 'done')) as used`)).rows as { used: boolean }[];
+    if (!used) return c.json({ ok: false, error: "not_used_yet" }, 409);
     const text = [b.data.tags.join(", "), b.data.text].filter(Boolean).join(" — ") || null;
-    await db.insert(ratings).values({ userId: user.id, venueId: p.o.venueId, packId: p.p.id, stars: b.data.stars, text });
+    // Бір пакетке — бір баға: қайта бағаласа, бұрынғысы ауыстырылады (рейтингті бір адам шексіз «құлата» алмайды)
+    const [prev] = await db.select({ id: ratings.id }).from(ratings).where(and(eq(ratings.userId, user.id), eq(ratings.packId, p.p.id))).limit(1);
+    if (prev) await db.update(ratings).set({ stars: b.data.stars, text }).where(eq(ratings.id, prev.id));
+    else await db.insert(ratings).values({ userId: user.id, venueId: p.o.venueId, packId: p.p.id, stars: b.data.stars, text }).onConflictDoNothing();
     await db.execute(sql`update app.receipts set internal = jsonb_set(internal, '{rating}', ${JSON.stringify({ stars: b.data.stars, tags: b.data.tags, text: b.data.text ?? null, at: new Date() })}::jsonb)
       where id = (select id from app.receipts where pack_id = ${p.p.id} and kind in ('use','order') order by created_at desc limit 1)`);
     const [agg] = await db.select({ a: avg(ratings.stars), n: count() }).from(ratings).where(eq(ratings.venueId, p.o.venueId));
     await db.update(venues).set({ rating: Math.round(Number(agg.a) * 10) / 10, reviewsCount: Number(agg.n) }).where(eq(venues.id, p.o.venueId));
-    await notify?.review(p.o.venueId, b.data.stars, text);
-    return c.json({ ok: true, venueRating: Math.round(Number(agg.a) * 10) / 10 });
+    if (!prev) await notify?.review(p.o.venueId, b.data.stars, text);
+    return c.json({ ok: true, updated: Boolean(prev), venueRating: Math.round(Number(agg.a) * 10) / 10 });
   });
 
   // ── Мерзімді ұзарту ──
@@ -54,6 +68,10 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
     // Қайталанған сұрау (сол кілт) — бұрынғы төлемнің нәтижесі
     const [prev] = await db.select().from(payments).where(and(eq(payments.userId, user.id), eq(payments.idempotencyKey, b.data.idempotencyKey))).limit(1);
     if (prev) return c.json(...(await paymentReply(db, user.id, prev, true)));
+    // Ұзарту шегі: ақша алынбай тұрып тексеріледі (төлеп қойып, кейін қате алмасын)
+    const maxDays = (await getSettings(db)).extendMaxDays;
+    const usedDays = await extendedDays(db, packId);
+    if (usedDays + opt.days > maxDays) return c.json({ ok: false, error: "extend_limit", left: Math.max(0, maxDays - usedDays), max: maxDays }, 409);
     if (opt.price > 0 && b.data.card) {
       const [p] = await db.select({ p: packs, o: offers }).from(packs).innerJoin(offers, eq(packs.offerId, offers.id)).where(and(eq(packs.id, packId), eq(packs.userId, user.id))).limit(1);
       if (!p) return c.json({ ok: false, error: "not_found" }, 404);
@@ -97,6 +115,7 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
         if (p.status !== "active" && p.status !== "expired") throw new B4Error("pack_" + p.status);
         if (p.units_left < 1) throw new B4Error("no_units");
         if (opt.price === 0 && p.free_extend_used) throw new B4Error("free_used");
+        if ((await extendedDays(tx, p.id)) + opt.days > maxDays) throw new B4Error("extend_limit"); // бұғаттан кейін қайта тексеру (қатар екі сұрау)
         const [pay] = opt.price ? await tx.insert(payments).values({ userId: user.id, packId: p.id, provider: cfg.PAYMENTS_MODE, method: "test", amount: opt.price, status: "paid", paidAt: new Date(), externalId: "test_" + randomUUID(), idempotencyKey: b.data.idempotencyKey }).returning() : [undefined];
         return applyExtend(tx, p, opt.days, opt.price, pay?.id ?? null);
       });
@@ -104,28 +123,10 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
     } catch (e) { return fail(c, e); }
   });
 
-  // ── Қайтару (толық, қолданылмаған пакет) ──
+  // ── Қайтару (толық, қолданылмаған пакет): карта бөлігі — провайдер арқылы, бонус бөлігі — бонусқа (src/refund.ts) ──
   r.post("/packs/:id/refund", async (c) => {
-    const user = c.get("user");
-    try {
-      const out = await db.transaction(async (tx) => {
-        const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${c.req.param("id")} and p.user_id = ${user.id} for update of p`);
-        const p = res.rows[0] as { id: string; status: string; units_left: number; units_total: number; price_paid: number; created_at: Date; venueId: string; title: string } | undefined;
-        if (!p) throw new B4Error("not_found", 404);
-        if (p.status !== "active") throw new B4Error("pack_" + p.status);
-        if (p.units_left !== p.units_total) throw new B4Error("units_used");
-        if (Date.now() - new Date(p.created_at).getTime() > REFUND_DAYS * 86400_000) throw new B4Error("too_late");
-        await tx.update(packs).set({ status: "refunded", unitsLeft: 0 }).where(eq(packs.id, p.id));
-        await tx.execute(sql`update app.payments set status = 'refunded' where pack_id = ${p.id} and status = 'paid'`);
-        await tx.insert(packEvents).values({ packId: p.id, type: "refund", unitsDelta: -p.units_left, meta: { amount: p.price_paid } });
-        const now = new Date();
-        const [rc] = await tx.insert(receipts).values({ kind: "refund", userId: user.id, packId: p.id, venueId: p.venueId, total: -p.price_paid,
-          public: { title: "Ақша қайтарылды", status: "Қайтарылды", dateLocal: almaty(now), item: { title: p.title, units: p.units_total }, note: "Ақша төлем тәсіліңе 1–3 жұмыс күнінде түседі" },
-          internal: { version: 1, amount: p.price_paid, reason: "unused_within_" + REFUND_DAYS + "d", status: { current: "refunded", history: [{ status: "refunded", at: now }] } } }).returning();
-        return { refunded: p.price_paid, receipt: { id: rc.id, no: "MD-" + rc.no } };
-      });
-      return c.json({ ok: true, ...out });
-    } catch (e) { return fail(c, e); }
+    try { return c.json({ ok: true, ...(await refundPack(db, cfg, c.get("user").id, c.req.param("id"))) }); }
+    catch (e) { if (e instanceof RefundError) return c.json({ ok: false, error: e.code }, e.status); throw e; }
   });
 
   // ── Сыйлық ──
