@@ -68,8 +68,8 @@ export const TXT = {
   packsEmpty: { kk: "Әзірге белсенді пакетің жоқ. Ұсыныстарды көріп, алғашқы пакетіңді таңда 🙂", ru: "Пока нет активных пакетов. Посмотри предложения и выбери первый 🙂" } as T,
   packsHead: { kk: "<b>Белсенді пакеттерің</b>", ru: "<b>Твои активные пакеты</b>" } as T,
   packLine: (title: string, left: number, total: number, until: string): T => ({
-    kk: `• ${esc(title)} — <b>${left}/${total}</b>, ${until} дейін`,
-    ru: `• ${esc(title)} — <b>${left}/${total}</b>, до ${until}`,
+    kk: `• ${esc(title)} — <b>${left}/${total}</b>, мерзімі: ${until}`,
+    ru: `• ${esc(title)} — <b>${left}/${total}</b>, срок: ${until}`,
   }),
   packsMore: (n: number): T => ({ kk: `…және тағы ${n}`, ru: `…и ещё ${n}` }),
   support: { kk: "Сұрағың не мәселең болса — жаз, адам жауап береді.", ru: "Есть вопрос или проблема — напиши, ответит человек." } as T,

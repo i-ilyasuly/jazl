@@ -169,6 +169,13 @@
       "when": 1795020000000,
       "tag": "0023_pay_no",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795030000000,
+      "tag": "0024_pack_card",
+      "breakpoints": true
     }
   ]
 }

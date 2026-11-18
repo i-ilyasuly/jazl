@@ -1,6 +1,7 @@
 // B3 · Пакетті қолдану: кассадағы QR (scan), қазір тапсырыс (order), жоспар/жазылу (plan); бас тарту; кассир растауы.
 // Басты ереже: бірлік тек транзакция ішінде, пакет жолын бұғаттап (SELECT … FOR UPDATE) шегеріледі — екі сұрау қатар келсе де
 // бір бірлік екі рет жұмсалмайды. Әр қолдануға чек (receipts.kind = use | order) жазылады: алу тәсілі, слот, код — ішкі бөлікте.
+import { onPackChanged } from "../bot/packCard.js";
 import { createHash, randomInt } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
@@ -160,6 +161,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
       });
       const { rid, ...res } = out;
       await notify?.used(rid, res.receipt.no);
+      void onPackChanged(b.data.packId); // пакет картасындағы санақ жаңарады
       return c.json({ ok: true, repeated: false, ...res });
     } catch (e) { return fail(c, e); }
   });
@@ -204,6 +206,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
         return { order: orderDto(o), left: p.left, receipt: { id: rc.id, no: "MD-" + rc.no } };
       });
       await notify?.order(out.order.id);
+      void onPackChanged(d.packId);
       return c.json({ ok: true, repeated: false, ...out });
     } catch (e) { return fail(c, e); }
   });
