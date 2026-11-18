@@ -1,762 +1,773 @@
 {
- "venues": [
-  {
-   "slug": "damdi",
-   "name": "Dämdi Doner",
-   "kind": "food",
-   "city": "karaganda",
-   "rating": 4.8,
-   "reviewsCount": 23,
-   "acceptsPreorder": true,
-   "branches": [
+  "venues": [
     {
-     "address": "Нұркен Әбдіров, 24",
-     "lat": 49.808373,
-     "lng": 73.085427,
-     "hours": {
-      "daily": [
-       "09:00",
-       "22:00"
+      "slug": "damdi",
+      "name": "Dämdi Doner",
+      "kind": "food",
+      "city": "karaganda",
+      "rating": 4.8,
+      "reviewsCount": 23,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Нұркен Әбдіров, 24",
+          "lat": 49.808373,
+          "lng": 73.085427,
+          "hours": {
+            "daily": [
+              "09:00",
+              "22:00"
+            ]
+          },
+          "allowsCourier": true
+        }
       ]
-     },
-     "allowsCourier": true
-    }
-   ]
-  },
-  {
-   "slug": "brew",
-   "name": "Brew Point",
-   "kind": "coffee",
-   "city": "karaganda",
-   "rating": 4.7,
-   "reviewsCount": 15,
-   "acceptsPreorder": true,
-   "branches": [
-    {
-     "address": "Ерубаев 21",
-     "lat": 49.806667,
-     "lng": 73.094917,
-     "hours": {
-      "daily": [
-       "08:00",
-       "22:00"
-      ]
-     },
-     "allowsCourier": false
-    }
-   ]
-  },
-  {
-   "slug": "qala-barber",
-   "name": "Qala Barber",
-   "kind": "hair",
-   "city": "karaganda",
-   "rating": 4.9,
-   "reviewsCount": 18,
-   "acceptsPreorder": true,
-   "branches": [
-    {
-     "address": "Нұркен Әбдіров 24",
-     "lat": 49.80896,
-     "lng": 73.102757,
-     "hours": {
-      "daily": [
-       "10:00",
-       "21:00"
-      ]
-     },
-     "allowsCourier": false
-    }
-   ]
-  },
-  {
-   "slug": "coffee-lab",
-   "name": "Coffee Lab",
-   "kind": "coffee",
-   "city": "karaganda",
-   "rating": 4.6,
-   "reviewsCount": 14,
-   "acceptsPreorder": true,
-   "branches": [
-    {
-     "address": "Ерубаев 33",
-     "lat": 49.805067,
-     "lng": 73.105233,
-     "hours": {
-      "daily": [
-       "08:00",
-       "22:00"
-      ]
-     },
-     "allowsCourier": false
-    }
-   ]
-  },
-  {
-   "slug": "bahandi",
-   "name": "Bahandi",
-   "kind": "food",
-   "city": "karaganda",
-   "rating": 4.7,
-   "reviewsCount": 31,
-   "acceptsPreorder": false,
-   "branches": [
-    {
-     "address": "Бұқар жырау 59",
-     "lat": 49.802933,
-     "lng": 73.089553,
-     "hours": {
-      "daily": [
-       "10:00",
-       "23:00"
-      ]
-     },
-     "allowsCourier": true
-    }
-   ]
-  },
-  {
-   "slug": "kebab",
-   "name": "Kebab House",
-   "kind": "food",
-   "city": "karaganda",
-   "rating": 4.7,
-   "reviewsCount": 19,
-   "acceptsPreorder": true,
-   "branches": [
-    {
-     "address": "Гоголь 40",
-     "lat": 49.802133,
-     "lng": 73.100117,
-     "hours": {
-      "daily": [
-       "10:00",
-       "23:00"
-      ]
-     },
-     "allowsCourier": true
-    }
-   ]
-  },
-  {
-   "slug": "tan",
-   "name": "Taň Coffee",
-   "kind": "coffee",
-   "city": "karaganda",
-   "rating": 4.8,
-   "reviewsCount": 26,
-   "acceptsPreorder": true,
-   "branches": [
-    {
-     "address": "Бұқар жырау 47",
-     "lat": 49.805867,
-     "lng": 73.087903,
-     "hours": {
-      "daily": [
-       "08:00",
-       "22:00"
-      ]
-     },
-     "allowsCourier": false
-    }
-   ]
-  },
-  {
-   "slug": "qala-coffee",
-   "name": "Qala Coffee",
-   "kind": "coffee",
-   "city": "karaganda",
-   "rating": 4.6,
-   "reviewsCount": 12,
-   "acceptsPreorder": true,
-   "branches": [
-    {
-     "address": "Әлиханов 5",
-     "lat": 49.799733,
-     "lng": 73.09368,
-     "hours": {
-      "daily": [
-       "08:00",
-       "21:00"
-      ]
-     },
-     "allowsCourier": false
-    }
-   ]
-  },
-  {
-   "slug": "dodo",
-   "name": "Dodo Pizza",
-   "kind": "food",
-   "city": "karaganda",
-   "rating": 4.7,
-   "reviewsCount": 40,
-   "acceptsPreorder": true,
-   "branches": [
-    {
-     "address": "Ермеков 29",
-     "lat": 49.7992,
-     "lng": 73.104243,
-     "hours": {
-      "daily": [
-       "10:00",
-       "23:00"
-      ]
-     },
-     "allowsCourier": true
-    }
-   ]
-  },
-  {
-   "slug": "style",
-   "name": "Style Studio",
-   "kind": "hair",
-   "city": "karaganda",
-   "rating": 4.5,
-   "reviewsCount": 9,
-   "acceptsPreorder": true,
-   "branches": [
-    {
-     "address": "Абай 12",
-     "lat": 49.799733,
-     "lng": 73.083282,
-     "hours": {
-      "daily": [
-       "10:00",
-       "20:00"
-      ]
-     },
-     "allowsCourier": false
-    }
-   ]
-  }
- ],
- "offers": [
-  {
-   "slug": "doner",
-   "venueSlug": "damdi",
-   "title": "Тауық донері · 4 дана",
-   "kind": "food",
-   "unitName": "донер",
-   "units": 4,
-   "price": 6000,
-   "regularUnitPrice": 2000,
-   "validDays": 30,
-   "sizes": [
-    {
-     "units": 4,
-     "price": 6000,
-     "oldPrice": 8000
     },
     {
-     "units": 8,
-     "price": 11000,
-     "oldPrice": 16000
+      "slug": "brew",
+      "name": "Brew Point",
+      "kind": "coffee",
+      "city": "karaganda",
+      "rating": 4.7,
+      "reviewsCount": 15,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Ерубаев 21",
+          "lat": 49.806667,
+          "lng": 73.094917,
+          "hours": {
+            "daily": [
+              "08:00",
+              "22:00"
+            ]
+          },
+          "allowsCourier": false
+        }
+      ]
     },
     {
-     "units": 12,
-     "price": 15600,
-     "oldPrice": 24000
+      "slug": "qala-barber",
+      "name": "Qala Barber",
+      "kind": "hair",
+      "city": "karaganda",
+      "rating": 4.9,
+      "reviewsCount": 18,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Нұркен Әбдіров 24",
+          "lat": 49.80896,
+          "lng": 73.102757,
+          "hours": {
+            "daily": [
+              "10:00",
+              "21:00"
+            ]
+          },
+          "allowsCourier": false
+        }
+      ]
+    },
+    {
+      "slug": "coffee-lab",
+      "name": "Coffee Lab",
+      "kind": "coffee",
+      "city": "karaganda",
+      "rating": 4.6,
+      "reviewsCount": 14,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Ерубаев 33",
+          "lat": 49.805067,
+          "lng": 73.105233,
+          "hours": {
+            "daily": [
+              "08:00",
+              "22:00"
+            ]
+          },
+          "allowsCourier": false
+        }
+      ]
+    },
+    {
+      "slug": "bahandi",
+      "name": "Bahandi",
+      "kind": "food",
+      "city": "karaganda",
+      "rating": 4.7,
+      "reviewsCount": 31,
+      "acceptsPreorder": false,
+      "branches": [
+        {
+          "address": "Бұқар жырау 59",
+          "lat": 49.802933,
+          "lng": 73.089553,
+          "hours": {
+            "daily": [
+              "10:00",
+              "23:00"
+            ]
+          },
+          "allowsCourier": true
+        }
+      ]
+    },
+    {
+      "slug": "kebab",
+      "name": "Kebab House",
+      "kind": "food",
+      "city": "karaganda",
+      "rating": 4.7,
+      "reviewsCount": 19,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Гоголь 40",
+          "lat": 49.802133,
+          "lng": 73.100117,
+          "hours": {
+            "daily": [
+              "10:00",
+              "23:00"
+            ]
+          },
+          "allowsCourier": true
+        }
+      ]
+    },
+    {
+      "slug": "tan",
+      "name": "Taň Coffee",
+      "kind": "coffee",
+      "city": "karaganda",
+      "rating": 4.8,
+      "reviewsCount": 26,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Бұқар жырау 47",
+          "lat": 49.805867,
+          "lng": 73.087903,
+          "hours": {
+            "daily": [
+              "08:00",
+              "22:00"
+            ]
+          },
+          "allowsCourier": false
+        }
+      ]
+    },
+    {
+      "slug": "qala-coffee",
+      "name": "Qala Coffee",
+      "kind": "coffee",
+      "city": "karaganda",
+      "rating": 4.6,
+      "reviewsCount": 12,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Әлиханов 5",
+          "lat": 49.799733,
+          "lng": 73.09368,
+          "hours": {
+            "daily": [
+              "08:00",
+              "21:00"
+            ]
+          },
+          "allowsCourier": false
+        }
+      ]
+    },
+    {
+      "slug": "dodo",
+      "name": "Dodo Pizza",
+      "kind": "food",
+      "city": "karaganda",
+      "rating": 4.7,
+      "reviewsCount": 40,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Ермеков 29",
+          "lat": 49.7992,
+          "lng": 73.104243,
+          "hours": {
+            "daily": [
+              "10:00",
+              "23:00"
+            ]
+          },
+          "allowsCourier": true
+        }
+      ]
+    },
+    {
+      "slug": "style",
+      "name": "Style Studio",
+      "kind": "hair",
+      "city": "karaganda",
+      "rating": 4.5,
+      "reviewsCount": 9,
+      "acceptsPreorder": true,
+      "branches": [
+        {
+          "address": "Абай 12",
+          "lat": 49.799733,
+          "lng": 73.083282,
+          "hours": {
+            "daily": [
+              "10:00",
+              "20:00"
+            ]
+          },
+          "allowsCourier": false
+        }
+      ]
     }
-   ],
-   "details": {
-    "take": "мекемеде немесе алып кету",
-    "use": "Кассада QR сканерлеп",
-    "includes": [
-     "Лаваш, тауық еті, көкөніс, үй соусы",
-     {
-      "g": "Қаптама бағаға кіреді"
-     },
-     "Сусын мен қосымша ет кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Ыстық, жаңа дайындалған"
-     },
-     " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 48,
-    "promo": null,
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72"
-   ],
-   "promoted": false,
-   "status": "active"
-  },
-  {
-   "slug": "haircut",
-   "venueSlug": "qala-barber",
-   "title": "Шаш қию · 4 рет",
-   "kind": "hair",
-   "unitName": "рет",
-   "units": 4,
-   "price": 12000,
-   "regularUnitPrice": 4000,
-   "validDays": 60,
-   "sizes": null,
-   "details": {
-    "take": "алдын ала жазылу арқылы",
-    "use": "Жазылу немесе сканерлеу",
-    "includes": [
-     "Шаш қию және жуу",
-     {
-      "g": "Сәндеу бағаға кіреді"
-     },
-     "Сақал түзету кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Тәжірибелі шебер"
-     },
-     " қияды, жуу мен сәндеу кіреді.\n• Келу уақытын алдын ала күнтізбеден таңдайсың.\n• Бір келу ≈ 45 минут, кешігу < 10 минут болса — қабылданады.\n• Қию түрін шебермен орнында келісесің.\n• Сақал түзету ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бөлек төленеді.\nЖазылу: 10:00–20:00 | Жексенбі: 11:00–18:00"
-    ],
-    "duration": "≈ 45 минут",
-    "service": "мекемеде, жазылумен",
-    "buyers": 31,
-    "promo": null,
-    "deadline": "2 күн қалды"
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=72"
-   ],
-   "promoted": false,
-   "status": "active"
-  },
-  {
-   "slug": "latte",
-   "venueSlug": "coffee-lab",
-   "title": "Латте · 12 стакан",
-   "kind": "coffee",
-   "unitName": "стакан",
-   "units": 12,
-   "price": 10800,
-   "regularUnitPrice": 1100,
-   "validDays": 30,
-   "sizes": null,
-   "details": {
-    "take": "алып кету немесе орында",
-    "use": "Бариста QR-ын сканерлеп",
-    "includes": [
-     "Латте 350 мл",
-     {
-      "g": "Кез келген сүт тегін"
-     },
-     "Сироп пен десерт кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Жаңа қуырылған дән"
-     },
-     ", әр кесе тапсырыспен жасалады.\n• Күніне бір кесе аласың — кез келген көлем [S/M].\n• Сүт түрін өзің таңдайсың: сиыр, бадам не сұлы.\n• Дайындалуы ~3–5 минут, кезексіз алуға болады.\n• Сироп ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ оны бөлек қосуға болады.\nЖұмыс: 08:00–21:00 | Демалыссыз"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 27,
-    "promo": "hot",
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=72"
-   ],
-   "promoted": true,
-   "status": "active"
-  },
-  {
-   "slug": "doner-drink",
-   "venueSlug": "damdi",
-   "title": "Донер + сусын · 4 дана",
-   "kind": "food",
-   "unitName": "комбо",
-   "units": 4,
-   "price": 9200,
-   "regularUnitPrice": 3000,
-   "validDays": 30,
-   "sizes": null,
-   "details": {
-    "take": "мекемеде немесе алып кету",
-    "use": "Кассада QR сканерлеп",
-    "includes": [
-     "Тауық донері + сусын 0,5 л",
-     {
-      "g": "Сусынды таңдауға болады"
-     },
-     "Қосымша соус кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Ыстық, жаңа дайындалған"
-     },
-     " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 19,
-    "promo": null,
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72"
-   ],
-   "promoted": false,
-   "status": "active"
-  },
-  {
-   "slug": "lamb-doner",
-   "venueSlug": "kebab",
-   "title": "Қой етінен донер · 4 дана",
-   "kind": "food",
-   "unitName": "донер",
-   "units": 4,
-   "price": 7600,
-   "regularUnitPrice": 2500,
-   "validDays": 30,
-   "sizes": null,
-   "details": {
-    "take": "мекемеде немесе алып кету",
-    "use": "Кассада QR сканерлеп",
-    "includes": [
-     "Лаваш, қой еті, көкөніс, ақ соус",
-     {
-      "g": "Қаптама бағаға кіреді"
-     },
-     "Сусын кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Ыстық, жаңа дайындалған"
-     },
-     " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 31,
-    "promo": "top",
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72"
-   ],
-   "promoted": true,
-   "status": "active"
-  },
-  {
-   "slug": "cappuccino",
-   "venueSlug": "tan",
-   "title": "Капучино · 12 кесе",
-   "kind": "coffee",
-   "unitName": "кесе",
-   "units": 12,
-   "price": 12000,
-   "regularUnitPrice": 1300,
-   "validDays": 30,
-   "sizes": null,
-   "details": {
-    "take": "алып кету немесе орында",
-    "use": "Бариста QR-ын сканерлеп",
-    "includes": [
-     "Капучино 250 мл",
-     {
-      "g": "Кез келген сүт тегін"
-     },
-     "Сироп пен десерт кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Жаңа қуырылған дән"
-     },
-     ", әр кесе тапсырыспен жасалады.\n• Күніне бір кесе аласың — кез келген көлем [S/M].\n• Сүт түрін өзің таңдайсың: сиыр, бадам не сұлы.\n• Дайындалуы ~3–5 минут, кезексіз алуға болады.\n• Сироп ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ оны бөлек қосуға болады.\nЖұмыс: 08:00–21:00 | Демалыссыз"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 48,
-    "promo": "top",
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=72"
-   ],
-   "promoted": true,
-   "status": "active"
-  },
-  {
-   "slug": "americano",
-   "venueSlug": "qala-coffee",
-   "title": "Американо · 10 кесе",
-   "kind": "coffee",
-   "unitName": "кесе",
-   "units": 10,
-   "price": 10000,
-   "regularUnitPrice": 1300,
-   "validDays": 30,
-   "sizes": null,
-   "details": {
-    "take": "алып кету немесе орында",
-    "use": "Бариста QR-ын сканерлеп",
-    "includes": [
-     "Американо 300 мл",
-     {
-      "g": "Сүт қосу тегін"
-     },
-     "Сироп пен десерт кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Жаңа қуырылған дән"
-     },
-     ", әр кесе тапсырыспен жасалады.\n• Күніне бір кесе аласың — кез келген көлем [S/M].\n• Сүт түрін өзің таңдайсың: сиыр, бадам не сұлы.\n• Дайындалуы ~3–5 минут, кезексіз алуға болады.\n• Сироп ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ оны бөлек қосуға болады.\nЖұмыс: 08:00–21:00 | Демалыссыз"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 31,
-    "promo": "hot",
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=72"
-   ],
-   "promoted": true,
-   "status": "active"
-  },
-  {
-   "slug": "burger-combo",
-   "venueSlug": "bahandi",
-   "title": "Бургер комбо · 4 дана",
-   "kind": "food",
-   "unitName": "комбо",
-   "units": 4,
-   "price": 10800,
-   "regularUnitPrice": 3200,
-   "validDays": 30,
-   "sizes": null,
-   "details": {
-    "take": "мекемеде немесе алып кету",
-    "use": "Кассада QR сканерлеп",
-    "includes": [
-     "Бургер, орташа фри, сусын 0,4 л",
-     {
-      "g": "Соусты таңдауға болады"
-     },
-     "Қосымша ірімшік кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Ыстық, жаңа дайындалған"
-     },
-     " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 86,
-    "promo": null,
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72"
-   ],
-   "promoted": false,
-   "status": "active"
-  },
-  {
-   "slug": "pizza",
-   "venueSlug": "dodo",
-   "title": "Ірімшікті пицца · 4 дана",
-   "kind": "food",
-   "unitName": "пицца",
-   "units": 4,
-   "price": 16000,
-   "regularUnitPrice": 5000,
-   "validDays": 30,
-   "sizes": null,
-   "details": {
-    "take": "мекемеде немесе алып кету",
-    "use": "Кассада QR сканерлеп",
-    "includes": [
-     "Ірімшікті пицца, 30 см",
-     {
-      "g": "Қорап бағаға кіреді"
-     },
-     "Жеткізу кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Ыстық, жаңа дайындалған"
-     },
-     " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 54,
-    "promo": "hot",
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72"
-   ],
-   "promoted": true,
-   "status": "active"
-  },
-  {
-   "slug": "mens-cut",
-   "venueSlug": "qala-barber",
-   "title": "Ерлердің шашын қию · 4 рет",
-   "kind": "hair",
-   "unitName": "қию",
-   "units": 4,
-   "price": 10000,
-   "regularUnitPrice": 3500,
-   "validDays": 60,
-   "sizes": null,
-   "details": {
-    "take": "алдын ала жазылу арқылы",
-    "use": "Жазылу немесе сканерлеу",
-    "includes": [
-     "Шаш қию және жуу",
-     {
-      "g": "Сәндеу бағаға кіреді"
-     },
-     "Сақал түзету кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Тәжірибелі шебер"
-     },
-     " қияды, жуу мен сәндеу кіреді.\n• Келу уақытын алдын ала күнтізбеден таңдайсың.\n• Бір келу ≈ 45 минут, кешігу < 10 минут болса — қабылданады.\n• Қию түрін шебермен орнында келісесің.\n• Сақал түзету ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бөлек төленеді.\nЖазылу: 10:00–20:00 | Жексенбі: 11:00–18:00"
-    ],
-    "duration": "≈ 45 минут",
-    "service": "мекемеде, жазылумен",
-    "buyers": 27,
-    "promo": null,
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=72"
-   ],
-   "promoted": false,
-   "status": "active"
-  },
-  {
-   "slug": "burger",
-   "venueSlug": "bahandi",
-   "title": "Бургер комбо · 4 дана",
-   "kind": "food",
-   "unitName": "комбо",
-   "units": 4,
-   "price": 10800,
-   "regularUnitPrice": 3500,
-   "validDays": 30,
-   "sizes": null,
-   "details": {
-    "take": "мекемеде немесе алып кету",
-    "use": "Кассада QR сканерлеп",
-    "includes": [
-     "Бургер, орташа фри, сусын 0,4 л",
-     {
-      "g": "Соусты таңдауға болады"
-     },
-     "Қосымша ірімшік кірмейді"
-    ],
-    "about": [
-     {
-      "g": "Ыстық, жаңа дайындалған"
-     },
-     " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
-     {
-      "b": "қосылмайды"
-     },
-     ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
-    ],
-    "duration": null,
-    "service": null,
-    "buyers": 27,
-    "promo": null,
-    "deadline": null
-   },
-   "photos": [
-    "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
-    "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72"
-   ],
-   "promoted": false,
-   "status": "ended"
-  }
- ]
+  ],
+  "offers": [
+    {
+      "slug": "doner",
+      "venueSlug": "damdi",
+      "title": "Тауық донері · 4 дана",
+      "kind": "food",
+      "unitName": "донер",
+      "units": 4,
+      "price": 6000,
+      "regularUnitPrice": 2000,
+      "validDays": 30,
+      "sizes": [
+        {
+          "units": 4,
+          "price": 6000,
+          "oldPrice": 8000
+        },
+        {
+          "units": 8,
+          "price": 11000,
+          "oldPrice": 16000
+        },
+        {
+          "units": 12,
+          "price": 15600,
+          "oldPrice": 24000
+        }
+      ],
+      "details": {
+        "take": "мекемеде немесе алып кету",
+        "use": "Кассада QR сканерлеп",
+        "includes": [
+          "Лаваш, тауық еті, көкөніс, үй соусы",
+          {
+            "g": "Қаптама бағаға кіреді"
+          },
+          "Сусын мен қосымша ет кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Ыстық, жаңа дайындалған"
+          },
+          " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 48,
+        "promo": null,
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72"
+      ],
+      "promoted": false,
+      "status": "active",
+      "titleRu": "Куриный донер"
+    },
+    {
+      "slug": "haircut",
+      "venueSlug": "qala-barber",
+      "title": "Шаш қию · 4 рет",
+      "kind": "hair",
+      "unitName": "рет",
+      "units": 4,
+      "price": 12000,
+      "regularUnitPrice": 4000,
+      "validDays": 60,
+      "sizes": null,
+      "details": {
+        "take": "алдын ала жазылу арқылы",
+        "use": "Жазылу немесе сканерлеу",
+        "includes": [
+          "Шаш қию және жуу",
+          {
+            "g": "Сәндеу бағаға кіреді"
+          },
+          "Сақал түзету кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Тәжірибелі шебер"
+          },
+          " қияды, жуу мен сәндеу кіреді.\n• Келу уақытын алдын ала күнтізбеден таңдайсың.\n• Бір келу ≈ 45 минут, кешігу < 10 минут болса — қабылданады.\n• Қию түрін шебермен орнында келісесің.\n• Сақал түзету ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бөлек төленеді.\nЖазылу: 10:00–20:00 | Жексенбі: 11:00–18:00"
+        ],
+        "duration": "≈ 45 минут",
+        "service": "мекемеде, жазылумен",
+        "buyers": 31,
+        "promo": null,
+        "deadline": "2 күн қалды"
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=72"
+      ],
+      "promoted": false,
+      "status": "active",
+      "titleRu": "Стрижка"
+    },
+    {
+      "slug": "latte",
+      "venueSlug": "coffee-lab",
+      "title": "Латте · 12 стакан",
+      "kind": "coffee",
+      "unitName": "стакан",
+      "units": 12,
+      "price": 10800,
+      "regularUnitPrice": 1100,
+      "validDays": 30,
+      "sizes": null,
+      "details": {
+        "take": "алып кету немесе орында",
+        "use": "Бариста QR-ын сканерлеп",
+        "includes": [
+          "Латте 350 мл",
+          {
+            "g": "Кез келген сүт тегін"
+          },
+          "Сироп пен десерт кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Жаңа қуырылған дән"
+          },
+          ", әр кесе тапсырыспен жасалады.\n• Күніне бір кесе аласың — кез келген көлем [S/M].\n• Сүт түрін өзің таңдайсың: сиыр, бадам не сұлы.\n• Дайындалуы ~3–5 минут, кезексіз алуға болады.\n• Сироп ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ оны бөлек қосуға болады.\nЖұмыс: 08:00–21:00 | Демалыссыз"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 27,
+        "promo": "hot",
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=72"
+      ],
+      "promoted": true,
+      "status": "active",
+      "titleRu": "Латте"
+    },
+    {
+      "slug": "doner-drink",
+      "venueSlug": "damdi",
+      "title": "Донер + сусын · 4 дана",
+      "kind": "food",
+      "unitName": "комбо",
+      "units": 4,
+      "price": 9200,
+      "regularUnitPrice": 3000,
+      "validDays": 30,
+      "sizes": null,
+      "details": {
+        "take": "мекемеде немесе алып кету",
+        "use": "Кассада QR сканерлеп",
+        "includes": [
+          "Тауық донері + сусын 0,5 л",
+          {
+            "g": "Сусынды таңдауға болады"
+          },
+          "Қосымша соус кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Ыстық, жаңа дайындалған"
+          },
+          " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 19,
+        "promo": null,
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72"
+      ],
+      "promoted": false,
+      "status": "active",
+      "titleRu": "Донер + напиток"
+    },
+    {
+      "slug": "lamb-doner",
+      "venueSlug": "kebab",
+      "title": "Қой етінен донер · 4 дана",
+      "kind": "food",
+      "unitName": "донер",
+      "units": 4,
+      "price": 7600,
+      "regularUnitPrice": 2500,
+      "validDays": 30,
+      "sizes": null,
+      "details": {
+        "take": "мекемеде немесе алып кету",
+        "use": "Кассада QR сканерлеп",
+        "includes": [
+          "Лаваш, қой еті, көкөніс, ақ соус",
+          {
+            "g": "Қаптама бағаға кіреді"
+          },
+          "Сусын кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Ыстық, жаңа дайындалған"
+          },
+          " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 31,
+        "promo": "top",
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72"
+      ],
+      "promoted": true,
+      "status": "active",
+      "titleRu": "Донер из баранины"
+    },
+    {
+      "slug": "cappuccino",
+      "venueSlug": "tan",
+      "title": "Капучино · 12 кесе",
+      "kind": "coffee",
+      "unitName": "кесе",
+      "units": 12,
+      "price": 12000,
+      "regularUnitPrice": 1300,
+      "validDays": 30,
+      "sizes": null,
+      "details": {
+        "take": "алып кету немесе орында",
+        "use": "Бариста QR-ын сканерлеп",
+        "includes": [
+          "Капучино 250 мл",
+          {
+            "g": "Кез келген сүт тегін"
+          },
+          "Сироп пен десерт кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Жаңа қуырылған дән"
+          },
+          ", әр кесе тапсырыспен жасалады.\n• Күніне бір кесе аласың — кез келген көлем [S/M].\n• Сүт түрін өзің таңдайсың: сиыр, бадам не сұлы.\n• Дайындалуы ~3–5 минут, кезексіз алуға болады.\n• Сироп ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ оны бөлек қосуға болады.\nЖұмыс: 08:00–21:00 | Демалыссыз"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 48,
+        "promo": "top",
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=72"
+      ],
+      "promoted": true,
+      "status": "active",
+      "titleRu": "Капучино"
+    },
+    {
+      "slug": "americano",
+      "venueSlug": "qala-coffee",
+      "title": "Американо · 10 кесе",
+      "kind": "coffee",
+      "unitName": "кесе",
+      "units": 10,
+      "price": 10000,
+      "regularUnitPrice": 1300,
+      "validDays": 30,
+      "sizes": null,
+      "details": {
+        "take": "алып кету немесе орында",
+        "use": "Бариста QR-ын сканерлеп",
+        "includes": [
+          "Американо 300 мл",
+          {
+            "g": "Сүт қосу тегін"
+          },
+          "Сироп пен десерт кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Жаңа қуырылған дән"
+          },
+          ", әр кесе тапсырыспен жасалады.\n• Күніне бір кесе аласың — кез келген көлем [S/M].\n• Сүт түрін өзің таңдайсың: сиыр, бадам не сұлы.\n• Дайындалуы ~3–5 минут, кезексіз алуға болады.\n• Сироп ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ оны бөлек қосуға болады.\nЖұмыс: 08:00–21:00 | Демалыссыз"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 31,
+        "promo": "hot",
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=72"
+      ],
+      "promoted": true,
+      "status": "active",
+      "titleRu": "Американо"
+    },
+    {
+      "slug": "burger-combo",
+      "venueSlug": "bahandi",
+      "title": "Бургер комбо · 4 дана",
+      "kind": "food",
+      "unitName": "комбо",
+      "units": 4,
+      "price": 10800,
+      "regularUnitPrice": 3200,
+      "validDays": 30,
+      "sizes": null,
+      "details": {
+        "take": "мекемеде немесе алып кету",
+        "use": "Кассада QR сканерлеп",
+        "includes": [
+          "Бургер, орташа фри, сусын 0,4 л",
+          {
+            "g": "Соусты таңдауға болады"
+          },
+          "Қосымша ірімшік кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Ыстық, жаңа дайындалған"
+          },
+          " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 86,
+        "promo": null,
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72"
+      ],
+      "promoted": false,
+      "status": "active",
+      "titleRu": "Бургер комбо"
+    },
+    {
+      "slug": "pizza",
+      "venueSlug": "dodo",
+      "title": "Ірімшікті пицца · 4 дана",
+      "kind": "food",
+      "unitName": "пицца",
+      "units": 4,
+      "price": 16000,
+      "regularUnitPrice": 5000,
+      "validDays": 30,
+      "sizes": null,
+      "details": {
+        "take": "мекемеде немесе алып кету",
+        "use": "Кассада QR сканерлеп",
+        "includes": [
+          "Ірімшікті пицца, 30 см",
+          {
+            "g": "Қорап бағаға кіреді"
+          },
+          "Жеткізу кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Ыстық, жаңа дайындалған"
+          },
+          " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 54,
+        "promo": "hot",
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72"
+      ],
+      "promoted": true,
+      "status": "active",
+      "titleRu": "Пицца с сыром"
+    },
+    {
+      "slug": "mens-cut",
+      "venueSlug": "qala-barber",
+      "title": "Ерлердің шашын қию · 4 рет",
+      "kind": "hair",
+      "unitName": "қию",
+      "units": 4,
+      "price": 10000,
+      "regularUnitPrice": 3500,
+      "validDays": 60,
+      "sizes": null,
+      "details": {
+        "take": "алдын ала жазылу арқылы",
+        "use": "Жазылу немесе сканерлеу",
+        "includes": [
+          "Шаш қию және жуу",
+          {
+            "g": "Сәндеу бағаға кіреді"
+          },
+          "Сақал түзету кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Тәжірибелі шебер"
+          },
+          " қияды, жуу мен сәндеу кіреді.\n• Келу уақытын алдын ала күнтізбеден таңдайсың.\n• Бір келу ≈ 45 минут, кешігу < 10 минут болса — қабылданады.\n• Қию түрін шебермен орнында келісесің.\n• Сақал түзету ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бөлек төленеді.\nЖазылу: 10:00–20:00 | Жексенбі: 11:00–18:00"
+        ],
+        "duration": "≈ 45 минут",
+        "service": "мекемеде, жазылумен",
+        "buyers": 27,
+        "promo": null,
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=72"
+      ],
+      "promoted": false,
+      "status": "active",
+      "titleRu": "Мужская стрижка"
+    },
+    {
+      "slug": "burger",
+      "venueSlug": "bahandi",
+      "title": "Бургер комбо · 4 дана",
+      "kind": "food",
+      "unitName": "комбо",
+      "units": 4,
+      "price": 10800,
+      "regularUnitPrice": 3500,
+      "validDays": 30,
+      "sizes": null,
+      "details": {
+        "take": "мекемеде немесе алып кету",
+        "use": "Кассада QR сканерлеп",
+        "includes": [
+          "Бургер, орташа фри, сусын 0,4 л",
+          {
+            "g": "Соусты таңдауға болады"
+          },
+          "Қосымша ірімшік кірмейді"
+        ],
+        "about": [
+          {
+            "g": "Ыстық, жаңа дайындалған"
+          },
+          " тағам: әр бірлік тапсырыс түскенде ғана пісіріледі.\n• Әр бірлікті бөлек күндері аласың — күніне біреуден.\n• Мекемеде отырып жеуге не алып кетуге болады.\n• Дайындалу уақыты ~10–15 минут.\n• Сусын ",
+          {
+            "b": "қосылмайды"
+          },
+          ", бірақ пакет иесіне сусынға 20% жеңілдік бар.\nҚабылдау: 10:00–22:00 | Түскі ағын: 12:00–14:00"
+        ],
+        "duration": null,
+        "service": null,
+        "buyers": 27,
+        "promo": null,
+        "deadline": null
+      },
+      "photos": [
+        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1778168199427-4e839943d20f?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1719282431565-3b30bb7d2658?auto=format&fit=crop&w=800&q=72",
+        "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=72"
+      ],
+      "promoted": false,
+      "status": "ended",
+      "titleRu": "Бургер комбо"
+    }
+  ]
 }

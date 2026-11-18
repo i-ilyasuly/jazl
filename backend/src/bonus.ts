@@ -58,19 +58,19 @@ export async function releaseBonus(db: Db, paymentId: string) {
 export async function creditBreakage(db: Db, now = new Date()) {
   const s = await getSettings(db);
   return db.transaction(async (tx) => {
-    const due = await rows<{ id: string; user_id: string; units_left: number; unit: number; title: string }>(tx, sql`
-      select p.id, p.user_id, p.units_left, (p.price_paid / p.units_total)::int as unit, o.title from app.packs p join app.offers o on o.id = p.offer_id
+    const due = await rows<{ id: string; user_id: string; units_left: number; unit: number; title: string; title_ru: string | null }>(tx, sql`
+      select p.id, p.user_id, p.units_left, (p.price_paid / p.units_total)::int as unit, o.title, o.title_ru from app.packs p join app.offers o on o.id = p.offer_id
       where p.status = 'active' and p.units_left > 0 and p.price_paid > 0 and p.valid_until < ${now}::timestamptz - make_interval(days => ${s.graceDays})
         and not exists (select 1 from app.bonuses b where b.pack_id = p.id)
       order by p.valid_until limit 500 for update of p skip locked`);
-    const out: { userId: string; packId: string; amount: number; units: number; title: string }[] = [];
+    const out: { userId: string; packId: string; amount: number; units: number; title: string; titleRu: string | null }[] = [];
     for (const p of due) {
       const amount = Number(p.unit) * Number(p.units_left);
       await tx.execute(sql`update app.packs set status = 'expired', units_left = 0 where id = ${p.id}`);
       await tx.execute(sql`insert into app.pack_events (pack_id, type, units_delta, meta) values (${p.id}, 'bonus', ${-p.units_left}, ${JSON.stringify({ amount })}::jsonb)`);
       if (amount > 0) await tx.execute(sql`insert into app.bonuses (user_id, kind, amount, "left", pack_id, units, expires_at)
         values (${p.user_id}, 'breakage', ${amount}, ${amount}, ${p.id}, ${p.units_left}, ${now}::timestamptz + make_interval(months => ${s.bonusMonths})) on conflict (pack_id) do nothing`);
-      out.push({ userId: p.user_id, packId: p.id, amount, units: Number(p.units_left), title: p.title });
+      out.push({ userId: p.user_id, packId: p.id, amount, units: Number(p.units_left), title: p.title, titleRu: p.title_ru });
     }
     return out;
   });

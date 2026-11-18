@@ -109,7 +109,7 @@ d("Medeo бонусы", () => {
   });
 
   it("жеңілдік шегі 30%: одан арзан ұсыныс жарияланбайды (жоба ретінде сақталады)", async () => {
-    const body = { title: "Арзан донер", category: "Донер", about: "Сынақ", regularUnitPrice: 2000, validDays: 30, photos: [], rules: { carry: true, extend: true, preorder: true, branches: null } };
+    const body = { title: "Арзан донер", titleRu: "Дешёвый донер", category: "Донер", about: "Сынақ", regularUnitPrice: 2000, validDays: 30, photos: [], rules: { carry: true, extend: true, preorder: true, branches: null } };
     const r = await post(`/v1/venue/${venueId}/offers`, { ...body, sizes: [{ units: 10, price: 13000 }], publish: true }, 801); // 35%
     expect(r.status).toBe(409);
     expect(await r.json()).toMatchObject({ error: "big_discount", max: 30 });

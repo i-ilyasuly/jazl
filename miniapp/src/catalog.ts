@@ -1,13 +1,14 @@
 // B1 · Каталогты серверден алу. Мини апп ашылғанда бір рет /v1/catalog шақырылады да, келген деректер
 // үлгі тізімдерге (mocks/offers.ts) жазылады: баға, атау, бірлік, фото — енді серверден. Беттердің коды өзгермейді.
 // Сервер 1,5 секундта жауап бермесе — қосымша үлгі деректермен ашылады (күту жоқ).
-import { locTitle, locUnit } from "./i18n";
+import { getLang, locTitle, locUnit } from "./i18n";
+import { ruOf } from "./i18n/products";
 import { api } from "./api";
 import { categoryOffers, endedOffers, moreOffers, offers, type Offer, type OfferKind } from "./mocks/offers";
 import { venues } from "./mocks/venues";
 
 interface SrvVenue { slug: string; name: string; kind: OfferKind; rating: number | null; reviewsCount: number; branches: { id: string; address: string }[] }
-interface SrvOffer { slug: string; venueSlug: string; title: string; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null } | null }
+interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null } | null }
 
 export const catalogState: { source: "mock" | "server"; venues: number; offers: number; error?: string; ms?: number; branches: { venue: string; slug: string; branchId: string; address: string }[] } = { source: "mock", venues: 0, offers: 0, branches: [] };
 
@@ -19,7 +20,8 @@ export async function loadCatalog() {
     for (const v of j.venues) { const m = venues.find((x) => x.id === v.slug); if (m) { m.name = v.name; m.rating = v.rating ?? m.rating; m.reviews = v.reviewsCount; m.address = v.branches[0]?.address ?? m.address; } }
     const lists = [offers, moreOffers, categoryOffers, endedOffers];
     for (const o of j.offers) {
-      const patch: Partial<Offer> = { title: locTitle(o.title), unitWord: locUnit(o.unitName), units: o.units, price: o.price, oldPrice: o.regularUnitPrice * o.units, kind: o.kind, venue: vName.get(o.venueSlug) ?? "", photo: o.photos[0] };
+      const patch: Partial<Offer> = { // Орысша: мекеме жазған орысша атау (жоқ болса — өнім сөздігінен, i18n/products.ts) + сервердің «· 4 дана» бөлігі орысшаланады («Куриный донер · 4 шт.»)
+        title: locTitle(getLang() === "ru" && (o.titleRu ?? ruOf(o.title.split(" · ")[0])) ? (o.titleRu ?? ruOf(o.title.split(" · ")[0])) + (/ · \d+ \S+$/.exec(o.title)?.[0] ?? "") : o.title), unitWord: locUnit(o.unitName), units: o.units, price: o.price, oldPrice: o.regularUnitPrice * o.units, kind: o.kind, venue: vName.get(o.venueSlug) ?? "", photo: o.photos[0] };
       if (o.details?.buyers !== undefined) patch.buyers = o.details.buyers;
       const found = lists.flatMap((l) => l).find((x) => x.id === o.slug);
       if (found) Object.assign(found, patch);

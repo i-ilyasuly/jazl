@@ -1,6 +1,6 @@
 // Қосымшаның жергілікті күйі (бэкендсіз): сатып алынған пакеттер және қолдану тарихы.
 // Бэкенд қосылғанда осы файлдың ішкі жағы API шақыруларына ауысады, экрандар өзгермейді.
-import { applyLangPref, getLang, getPref } from "./i18n";
+import { applyLangPref, getLang, getPref, kk } from "./i18n";
 import { loadBonus, takeBonusNext } from "./pay/bonus";
 import { kv } from "./telegram";
 import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
@@ -380,10 +380,10 @@ export interface Gift { id: string; dir: "sent" | "got"; name: string; color: st
   notForMe?: boolean; toUsername?: string }
 let gifts: Gift[] = [
   { id: "g1", dir: "sent", name: "Айгерім Нұрланова", color: "#e25a7a", pack: "Тауық донері · 4 дана", emoji: "🍔", venue: "Dämdi Doner", status: "wait", label: "Күтілуде · 5 күн", sentAt: "8 қараша, 13:20", until: "15 қараша" },
-  { id: "g2", dir: "sent", name: "Ерлан Серіков", color: "#4378ff", pack: "Латте · 15 стақан", emoji: "☕", venue: "Brew Point", status: "ok", label: "Қабылданды", sentAt: "5 қараша, 09:40", until: "12 қараша", offerId: "latte", acceptedAt: "5 қараша, 13:42", msg: "Таңғы кофе менен ☕" },
+  { id: "g2", dir: "sent", name: "Ерлан Серіков", color: "#4378ff", pack: "Латте · 15 стақан", emoji: "☕", venue: "Brew Point", status: "ok", label: "Қабылданды", sentAt: "5 қараша, 09:40", until: "12 қараша", offerId: "latte", acceptedAt: "5 қараша, 13:42", msg: kk("Таңғы кофе менен ☕") },
   { id: "g3", dir: "sent", name: "Дана Әбілова", color: "#fe9500", pack: "Шаш қию · 4 рет", emoji: "✂️", venue: "Qala Barber", status: "expired", label: "Мерзімі өтті", sentAt: "1 қараша, 11:05", until: "8 қараша" },
-  { id: "g4", dir: "got", name: "Берік Нұрлан", color: "#31d158", pack: "Бургер комбо · 4 дана", emoji: "🍔", venue: "Bahandi", status: "open", label: "Ашу", sentAt: "12 қараша, 18:02", until: "19 қараша", offerId: "burger-combo", msg: "Туған күніңмен! Бургер менің атымнан 🎉" },
-  { id: "g5", dir: "got", name: "Мадина Ж.", color: "#b00fb4", pack: "Кофе · 10 стақан", emoji: "☕", venue: "Coffee Lab", status: "ok", label: "Қабылданды", sentAt: "2 қараша, 14:30", until: "9 қараша", acceptedAt: "2 қараша, 15:05", msg: "Жұмысың жеңіл болсын! ☕" },
+  { id: "g4", dir: "got", name: "Берік Нұрлан", color: "#31d158", pack: "Бургер комбо · 4 дана", emoji: "🍔", venue: "Bahandi", status: "open", label: "Ашу", sentAt: "12 қараша, 18:02", until: "19 қараша", offerId: "burger-combo", msg: kk("Туған күніңмен! Бургер менің атымнан 🎉") },
+  { id: "g5", dir: "got", name: "Мадина Ж.", color: "#b00fb4", pack: "Кофе · 10 стақан", emoji: "☕", venue: "Coffee Lab", status: "ok", label: "Қабылданды", sentAt: "2 қараша, 14:30", until: "9 қараша", acceptedAt: "2 қараша, 15:05", msg: kk("Жұмысың жеңіл болсын! ☕") },
 ];
 export const useGifts = () => useSyncExternalStore(subscribe, () => gifts);
 const nowLabel = () => { const d = new Date(); return `${d.getDate()} ${["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"][d.getMonth()]}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };

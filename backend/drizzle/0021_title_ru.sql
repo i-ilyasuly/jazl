@@ -1,0 +1,2 @@
+ALTER TABLE "app"."offers" ADD COLUMN "title_ru" text;--> statement-breakpoint
+UPDATE "app"."offers" SET "title_ru" = v.ru FROM (VALUES ('doner','Куриный донер'),('haircut','Стрижка'),('latte','Латте'),('doner-drink','Донер + напиток'),('lamb-doner','Донер из баранины'),('cappuccino','Капучино'),('americano','Американо'),('burger-combo','Бургер комбо'),('pizza','Пицца с сыром'),('mens-cut','Мужская стрижка'),('burger','Бургер комбо')) AS v(slug, ru) WHERE "offers"."slug" = v.slug AND "offers"."title_ru" IS NULL;

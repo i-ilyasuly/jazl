@@ -2,6 +2,8 @@
 // Ұсыныс беті (14008:7998), Бағаны өзгерту (14008:8135), Ұсынысты тоқтату (14008:8304), Баға қатты түсірілді (14018:8391).
 // Фото — Google Cloud Storage (venue/media.ts). Біздің жолмен келіспейтін жерлері: «Алдын ала тапсырыс» ескертуі POS емес,
 // біздің тапсырыс бөлімі туралы; сипаттамадағы «дәйексөз» — дәйексөз белгісіз ақпарат блогы (04/38).
+import { __t, getLang, kk } from "../i18n";
+import { kkOf, ruOf, suggest } from "../i18n/products";
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
@@ -15,10 +17,11 @@ import { pickImage, uploadImage } from "./media";
 import s from "./V.module.css";
 
 type Size = { units: number; price: number };
-interface Draft { title: string; category: string; about: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; branches: string[] | null } }
-interface OfferFull extends Draft { id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
+interface Draft { title: string; titleRu: string; category: string; about: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; branches: string[] | null } }
+interface OfferFull extends Omit<Draft, "titleRu"> { titleRu?: string | null; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
-const cats = { food: ["Донер", "Бургер", "Шаурма", "Кофе", "Басқа"], coffee: ["Кофе", "Шай", "Десерт", "Басқа"], hair: ["Шаш қию", "Сақал", "Балалар", "Басқа"] };
+// Санат серверге қазақша сақталады (тілге тәуелсіз мән), ал экранда таңдалған тілде көрінеді: __t(c)
+const cats = { food: [kk("Донер"), kk("Бургер"), kk("Шаурма"), kk("Кофе"), kk("Басқа")], coffee: [kk("Кофе"), kk("Шай"), kk("Десерт"), kk("Басқа")], hair: [kk("Шаш қию"), kk("Сақал"), kk("Балалар"), kk("Басқа")] };
 const DAYS = [7, 14, 30, 60, 90];
 const saving = (x: Size, reg: number) => Math.max(0, Math.round((1 - x.price / (x.units * reg)) * 100));
 
@@ -55,9 +58,13 @@ export function VOfferWizard() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("draft");
   const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
-  const [d, setD] = useState<Draft>({ title: "", category: "", about: "", photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
-  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); setD({ title: o.title, category: o.category ?? "", about: o.about, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [d, setD] = useState<Draft>({ title: "", titleRu: "", category: "", about: "", photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", category: o.category ?? "", about: o.about, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
+  // Бір тілде жазса, екіншісі сөздіктен өзі толады (бос не бұрын өзі толтырылған болса ғана — мекеме жазғанын баспаймыз)
+  const setTitle = (v: string) => setD((x) => { const auto = !x.titleRu || x.titleRu === ruOf(x.title); return { ...x, title: v, titleRu: auto ? ruOf(v) ?? (auto && x.titleRu ? "" : x.titleRu) : x.titleRu }; });
+  const setTitleRu = (v: string) => setD((x) => { const auto = !x.title || x.title === kkOf(x.titleRu); return { ...x, titleRu: v, title: auto ? kkOf(v) ?? x.title : x.title }; });
+  const sugg = me ? suggest(me.venue.kind, getLang() === "ru" ? d.titleRu : d.title).filter(([a]) => a !== d.title) : [];
   async function addPhoto() {
     if (!me || photoState === "loading") return;
     const f = await pickImage(); if (!f) return;
@@ -73,19 +80,22 @@ export function VOfferWizard() {
     if (!me || busy) return;
     if (publish && status === "draft" && !accepted && !(await kv.get("medeo_offer_terms"))) { setTerms(true); return; }
     setBusy(true); haptic.medium();
-    const body = { ...d, category: d.category || undefined, publish };
+    const body = { ...d, titleRu: d.titleRu.trim() || undefined, category: d.category || undefined, publish };
     try {
       const st = id ? (await api<{ status: string }>(`/v1/venue/${me.venue.id}/offers/${id}`, { method: "PUT", body: JSON.stringify(body) })).status
         : (await api<{ offer: { status: string } }>(`/v1/venue/${me.venue.id}/offers`, { method: "POST", body: JSON.stringify(body) })).offer.status;
       haptic.success();
       // «Ұсыныс тексеруде» — тек Medeo тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
-    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : "Сақталмады. Қайталап көріңіз."); }
+    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
   }, [me, busy, d, id, status, go]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const next = useCallback(() => {
-    if (step === 1 && d.title.trim().length < 2) { haptic.error(); return nativeAlert("Ұсыныс атауын жазыңыз."); }
+    // Қазақша атау жазылмаса — орысшасы қолданылады (орыс тілді мекеме үшін); орысша атау міндетті
+    if (step === 1 && d.title.trim().length < 2 && d.titleRu.trim().length >= 2) { up({ title: d.titleRu.trim() }); }
+    else if (step === 1 && d.title.trim().length < 2) { haptic.error(); return nativeAlert("Ұсыныс атауын жазыңыз."); }
+    if (step === 1 && d.titleRu.trim().length < 2) { haptic.error(); return nativeAlert("Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді."); }
     if (step === 2 && low && !locked) { haptic.error(); return nativeAlert(`Жеңілдік 10%-дан аз: ${low.units} бірлік. Бағаны азайтыңыз не қалыпты бағаны тексеріңіз.`); }
     haptic.tap(); setStep((x) => Math.min(4, x + 1));
   }, [step, d, low, locked]);
@@ -101,13 +111,22 @@ export function VOfferWizard() {
       <Steps n={step} label={label} />
       {step === 1 && <>
         <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
-          <span className="t-cap1" style={{ color: "var(--link)" }}>Атауы</span>
-          <input value={d.title} maxLength={60} onChange={(e) => up({ title: e.target.value })} placeholder="Мысалы: Тауық донері"
+          <span className="t-cap1" style={{ color: "var(--link)" }}>Атауы (қазақша)</span>
+          <input value={d.title} maxLength={60} onChange={(e) => setTitle(e.target.value)} placeholder="Мысалы: Тауық донері"
             style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />
         </label>
+        {/* Атау екі тілде (Патша, 2026-11-18): клиент таңдаған тілде көреді. Сөздіктегі атау болса — екіншісі өзі толады */}
+        <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
+          <span className="t-cap1" style={{ color: "var(--link)" }}>Атауы (орысша)</span>
+          <input value={d.titleRu} maxLength={60} onChange={(e) => setTitleRu(e.target.value)} placeholder="Например: Куриный донер" lang="ru"
+            style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />
+        </label>
+        {sugg.length > 0 && <div className={s.chips} style={{ flexWrap: "wrap" }}>
+          {sugg.map(([a, b]) => <button key={a} className={`${s.chip} ${d.title === a ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ title: a, titleRu: b }); }}>{getLang() === "ru" ? b : a}</button>)}
+        </div>}
         <h2 className={s.blueHead}>Санат</h2>
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
-          {cats[me.venue.kind].map((c) => <button key={c} className={`${s.chip} ${d.category === c ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ category: c }); }}>{c}</button>)}
+          {cats[me.venue.kind].map((c) => <button key={c} className={`${s.chip} ${d.category === c ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ category: c }); }}>{__t(c)}</button>)}
         </div>
         <div className={s.card} style={{ padding: "12px 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span className={`t-cap1 ${s.muted}`}>Сипаттама</span><button className={s.link} onClick={() => setEditAbout(true)}>Өңдеу</button></div>

@@ -9,6 +9,7 @@ import { useUnread } from "../store";
 import homeIcon from "../assets/icons/navHome.svg";
 import qrIcon from "../assets/icons/navQr.svg";
 import packsIcon from "../assets/icons/navPacks.svg";
+import { ensureLiquidGlass } from "./liquidGlass";
 import s from "./NavBar.module.css";
 
 const tabs = [
@@ -30,6 +31,8 @@ const tips = [
 export function NavBar({ active }: { active: TabKey }) {
   const go = useGo();
   const unread = useUnread() > 0;
+  // Liquid Glass: Chromium-да артындағы мазмұнды шетінде сындыратын шыны; WebKit-те — бұрынғы бұлдыр шыны
+  const [lg] = useState(() => ensureLiquidGlass());
   const user = tg?.initDataUnsafe?.user;
   const idx = tabs.findIndex((t) => t.key === active);
   const pill = useRef<HTMLDivElement>(null);
@@ -92,7 +95,7 @@ export function NavBar({ active }: { active: TabKey }) {
   const nextTip = () => { haptic.tap(); if (tip + 1 < tips.length) setTip(tip + 1); else { setTip(-1); kv.set("medeo_nav_hints", "1"); } };
   const shown = active === "home" && tip >= 0 ? tips[tip] : null;
   return (
-    <nav ref={navEl} className={s.nav} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; setLens(null); }}>
+    <nav ref={navEl} className={`${s.nav} ${s.glass} ${lg ? s.lg : ""}`} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; setLens(null); }}>
       <div ref={pill} className={`${s.activeBg} ${lens !== null ? s.lens : ""}`} style={{ translate: `${lens ?? (landing ?? idx) * 94}px 0` }} />
       {tabs.map((t, i) => {
         const on = Math.round(at) === i;

@@ -123,12 +123,14 @@ d("C мекеме бөлімі", () => {
     expect(prof.today.count).toBe(1);
   });
   it("ұсыныс құру: жоба → жариялау (жеңілдік ≥10%), ұсыныс беті, бағаны өзгерту (50%+ түсіру — растау), өшіру", async () => {
-    const body = { title: "Тауық бургер", category: "Бургер", about: "Тауық еті, *соус*", sizes: [{ units: 4, price: 7600 }], regularUnitPrice: 2000, validDays: 30,
+    const body = { title: "Тауық бургер", titleRu: "Куриный бургер", category: "Бургер", about: "Тауық еті, *соус*", sizes: [{ units: 4, price: 7600 }], regularUnitPrice: 2000, validDays: 30,
       rules: { carry: true, extend: true, preorder: false, branches: null }, publish: false };
     expect((await post(`/v1/venue/${venueId}/offers`, body, 702)).status).toBe(403); // кассир құра алмайды
     const d = await json(post(`/v1/venue/${venueId}/offers`, body, 701));
     expect(d.offer.status).toBe("draft");
     expect((await post(`/v1/venue/${venueId}/offers`, { ...body, publish: true, sizes: [{ units: 4, price: 7900 }] }, 701)).status).toBe(409); // 1,25% ғана жеңілдік
+    const noRu = await post(`/v1/venue/${venueId}/offers`, { ...body, titleRu: undefined, publish: true, sizes: [{ units: 4, price: 6000 }] }, 701); // орысша атаусыз жарияланбайды
+    expect(noRu.status).toBe(400); expect((await noRu.json()).error).toBe("title_ru_required");
     expect((await app.request(`/v1/venue/${venueId}/offers/${d.offer.id}`, { method: "PUT", headers: h(701), body: JSON.stringify({ ...body, publish: true, sizes: [{ units: 4, price: 6000 }, { units: 8, price: 11200 }] }) })).status).toBe(200);
     // Жарияланған жаңа ұсыныс Medeo тексеруіне түседі (Басқару «Модерация» қосулы — әдепкі)
     expect((await json(get(`/v1/venue/${venueId}/offers/${d.offer.id}`, 701))).offer.status).toBe("review");

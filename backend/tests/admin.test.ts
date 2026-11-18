@@ -84,7 +84,7 @@ d("Medeo Басқару", () => {
   });
 
   it("модерация: жаңа ұсыныс кезекке түседі → түзету сұрау → қайта жіберу → бекіту", async () => {
-    const body = { title: "Бургер", category: "Бургер", about: "Тауық еті, соус, көкөніс, нан — бәрі жаңа, күн сайын дайындалады", photos: [], validDays: 30, regularUnitPrice: 2000, sizes: [{ units: 4, price: 6400 }], rules: { carry: true, extend: true, preorder: true, branches: null }, publish: true };
+    const body = { title: "Бургер", titleRu: "Бургер", category: "Бургер", about: "Тауық еті, соус, көкөніс, нан — бәрі жаңа, күн сайын дайындалады", photos: [], validDays: 30, regularUnitPrice: 2000, sizes: [{ units: 4, price: 6400 }], rules: { carry: true, extend: true, preorder: true, branches: null }, publish: true };
     const o = await json(post(`/v1/venue/${venueId}/offers`, body, OWNER));
     expect(o.offer.status).toBe("review");
     const q = await json(get("/v1/admin/offers?tab=queue"));
@@ -206,7 +206,7 @@ d("Medeo Басқару", () => {
     expect(prefs).toMatchObject({ complaint: true, weekly: false, quiet: true });
     await app.request("/v1/admin/prefs", { method: "PUT", headers: A(), body: JSON.stringify({ ...prefs, moderation: false }) });
     const b2 = sent.length;
-    const body = { title: "Лаваш", category: "Басқа", about: "Тауық еті, соус, көкөніс — бәрі жаңа, күн сайын дайындалады, түскі асқа", photos: ["https://example.com/a.jpg"], validDays: 30, regularUnitPrice: 2000, sizes: [{ units: 4, price: 6400 }], rules: { carry: true, extend: true, preorder: true, branches: null }, publish: true };
+    const body = { title: "Лаваш", titleRu: "Лаваш", category: "Басқа", about: "Тауық еті, соус, көкөніс — бәрі жаңа, күн сайын дайындалады, түскі асқа", photos: ["https://example.com/a.jpg"], validDays: 30, regularUnitPrice: 2000, sizes: [{ units: 4, price: 6400 }], rules: { carry: true, extend: true, preorder: true, branches: null }, publish: true };
     await post(`/v1/venue/${venueId}/offers`, body, OWNER);
     expect(sent.slice(b2).some((x) => x.chatId === ADMIN)).toBe(false);
     await app.request("/v1/admin/prefs", { method: "PUT", headers: A(), body: JSON.stringify({ ...prefs, quiet: false }) }); // тыныш уақытқа тәуелді болмау үшін

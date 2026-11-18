@@ -226,12 +226,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   r.get("/venue/:venueId/offers", async (c) => {
     const venueId = c.req.param("venueId");
     if (!(await guard(c, venueId))) return deny(c); // кассир де көреді: «Клиенттің пакетін таңда»
-    const rows = await db.execute(sql`select o.id, o.slug, o.title, o.kind, o.unit_name, o.units, o.price, o.sizes, o.status, o.valid_days, o.photos,
+    const rows = await db.execute(sql`select o.id, o.slug, o.title, o.title_ru, o.kind, o.unit_name, o.units, o.price, o.sizes, o.status, o.valid_days, o.photos,
         (select count(*) from app.packs p where p.offer_id = o.id and p.status not in ('pending_payment','refunded'))::int as sold
       from app.offers o where o.venue_id = ${venueId} order by o.created_at`);
-    return c.json({ ok: true, offers: (rows.rows as { id: string; slug: string; title: string; kind: string; unit_name: string; units: number; price: number; sizes: { units: number; price: number }[] | null; status: string; valid_days: number; photos: string[]; sold: number }[])
+    return c.json({ ok: true, offers: (rows.rows as { id: string; slug: string; title: string; title_ru: string | null; kind: string; unit_name: string; units: number; price: number; sizes: { units: number; price: number }[] | null; status: string; valid_days: number; photos: string[]; sold: number }[])
       .map((o) => { const sizes = [{ units: o.units, price: o.price }, ...(o.sizes ?? [])].sort((a, b) => a.units - b.units);
-        return { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], kind: o.kind, unitName: o.unit_name, status: o.status, sold: o.sold, validDays: o.valid_days, photo: o.photos?.[0] ?? null,
+        return { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], titleRu: o.title_ru, kind: o.kind, unitName: o.unit_name, status: o.status, sold: o.sold, validDays: o.valid_days, photo: o.photos?.[0] ?? null,
           sizes: sizes.map((s) => s.units), fromPrice: Math.min(...sizes.map((s) => s.price)), unitPrice: Math.round(o.price / o.units) }; }) });
   });
   r.post("/venue/:venueId/offers/:offerId/status", async (c) => {
@@ -246,7 +246,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   // ── 06 · Ұсыныс құру, ұсыныс беті, бағаны өзгерту (Figma 14007/14008/14018) ──
   const Size = z.object({ units: z.number().int().min(1).max(100), price: z.number().int().min(100).max(10_000_000) });
   const OfferBody = z.object({
-    title: z.string().trim().min(2).max(60), category: z.string().trim().max(30).optional(), about: z.string().max(500).default(""),
+    title: z.string().trim().min(2).max(60), titleRu: z.string().trim().min(2).max(60).optional(), category: z.string().trim().max(30).optional(), about: z.string().max(500).default(""),
     sizes: z.array(Size).min(1).max(5), regularUnitPrice: z.number().int().min(50).max(1_000_000), validDays: z.number().int().min(7).max(365),
     rules: z.object({ carry: z.boolean(), extend: z.boolean(), preorder: z.boolean(), branches: z.array(z.string().uuid()).nullable() }),
     publish: z.boolean().default(false),
@@ -276,8 +276,9 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const d = b.data; const sizes = [...d.sizes].sort((a, z) => a.units - z.units);
     if (d.publish && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
     { const max = d.publish ? await bigDiscount(sizes, d.regularUnitPrice) : 0; if (max) return bigErr(c, max); }
+    if (d.publish && !d.titleRu) return c.json({ ok: false, error: "title_ru_required" }, 400); // клиент орысша да көреді
     const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
-    const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
+    const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, titleRu: d.titleRu ?? null, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
       regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about }, photos: d.photos, category: d.category ?? null, rules: d.rules,
       status: d.publish ? await statusAfterPublish() : "draft" }).returning();
     if (o.status === "review") await notify?.adminModeration(o.id);
@@ -297,8 +298,9 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const keepSizes = !draft;
     if (d.publish && draft && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
     { const max = d.publish && draft ? await bigDiscount(sizes, d.regularUnitPrice) : 0; if (max) return bigErr(c, max); }
+    if (d.publish && draft && !(d.titleRu ?? cur.titleRu)) return c.json({ ok: false, error: "title_ru_required" }, 400);
     const next = d.publish && draft ? await statusAfterPublish() : cur.status;
-    await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about },
+    await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, titleRu: d.titleRu ?? cur.titleRu, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about },
       category: d.category ?? null, rules: d.rules, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
       ...(keepSizes ? {} : { units: sizes[0].units, price: sizes[0].price, sizes: sizes.length > 1 ? sizes : null }),
       ...(d.publish && draft ? { status: next, reviewNote: null } : {}) }).where(eq(offers.id, cur.id)); // түзетіп қайта жіберсе — ескерту өшеді
@@ -323,7 +325,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const bySize = (await db.execute(sql`select units_total::int as units, count(*)::int as n from app.packs where offer_id = ${o.id} and status not in ('pending_payment','refunded') group by 1`)).rows as { units: number; n: number }[];
     const sizes = (o.sizes as { units: number; price: number }[] | null) ?? [{ units: o.units, price: o.price }];
     const all = sizes.some((x) => x.units === o.units) ? sizes : [{ units: o.units, price: o.price }, ...sizes];
-    return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], kind: o.kind, status: o.status, reviewNote: o.reviewNote, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "",
+    return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], titleRu: o.titleRu, kind: o.kind, status: o.status, reviewNote: o.reviewNote, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "",
       regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, photos: o.photos, rules: o.rules ?? { carry: true, extend: true, preorder: true, branches: null },
       sizes: all.sort((a, z) => a.units - z.units).map((x) => ({ ...x, sold: bySize.find((y) => y.units === x.units)?.n ?? 0 })),
       stats: { ...st, revenue: share(st.gross, venueId), series, growth: prev ? Math.round(((now7 - prev) / prev) * 100) : null } } });

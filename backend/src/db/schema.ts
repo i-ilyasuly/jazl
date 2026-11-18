@@ -110,6 +110,8 @@ export const offers = app.table("offers", {
   venueId: uuid("venue_id").notNull().references(() => venues.id),
   slug: text("slug").notNull(),
   title: text("title").notNull(),
+  /** Атаудың орысша нұсқасы (тек атауы, «· 4 дана»-сыз): мекеме ұсыныс жариялағанда екі тілде жазады (Патша, 2026-11-18) */
+  titleRu: text("title_ru"),
   kind: kind("kind").notNull(),
   unitName: text("unit_name").notNull(),
   units: smallint("units").notNull(),

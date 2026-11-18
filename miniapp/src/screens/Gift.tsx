@@ -1,5 +1,6 @@
 // Figma: «Сыйлық / Жіберілген (күтілуде)» 13886:37463, «Алынған (күтілуде)» 13886:37559,
 // «Мерзімі өтті» 13886:37625, «Сыйлықты болдырмау: диалог» 13886:37717, «Нәтиже» 13886:37831
+import { kk } from "../i18n";
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useGo } from "../nav";
@@ -14,7 +15,7 @@ import s from "./Gift.module.css";
 
 const months = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
 const nowKk = () => { const d = new Date(); return `${d.getDate()} ${months[d.getMonth()]}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
-const MESSAGE = "Туған күніңмен! Донер менің атымнан 🎉";
+const MESSAGE = kk("Туған күніңмен! Донер менің атымнан 🎉");
 
 export function Gift() {
   const go = useGo();
