@@ -440,6 +440,19 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     await log(c, "Мерзім ұзартылды", `${p.ref ?? id.slice(0, 8)} · +${b.data.days} күн`, { packId: id, reason: b.data.reason });
     return c.json({ ok: true });
   });
+  // Бонус беру (2026-11-18): өтемақы не сынақ — пакет иесіне Medeo бонусы (kind manual). Ақша әрекеті — PIN-мен, журналға жазылады
+  r.post("/admin/packs/:id/bonus", async (c) => {
+    const b = z.object({ amount: z.number().int().min(100).max(50_000), reason: z.string().trim().min(3).max(200), pin: z.string() }).safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const bad = await danger(c, b.data.pin); if (bad) return bad;
+    const id = c.req.param("id");
+    const [p] = await rows<{ user_id: string; ref: string | null }>(sql`select p.user_id, ${packRef} as ref from app.packs p where p.id = ${id}`);
+    if (!p) return c.json({ ok: false, error: "not_found" }, 404);
+    const months = (await getSettings(db)).bonusMonths;
+    const [x] = await rows<{ id: string }>(sql`insert into app.bonuses (user_id, kind, amount, "left", units, expires_at) values (${p.user_id}, 'manual', ${b.data.amount}, ${b.data.amount}, 0, now() + make_interval(months => ${months})) returning id`);
+    await log(c, "Бонус берілді", `${p.ref ?? id.slice(0, 8)} · ${b.data.amount} ₸`, { packId: id, bonusId: x.id, amount: b.data.amount, reason: b.data.reason });
+    return c.json({ ok: true, bonusId: x.id });
+  });
   // Қолдануды қайтару (Figma «Қолдануды қайтару»): соңғы (не көрсетілген) қолдану жойылып, бірлік пакетке оралады
   r.post("/admin/packs/:id/refund-use", async (c) => {
     const b = z.object({ redemptionId: z.string().uuid().optional(), reason: z.string().trim().min(3).max(200), pin: z.string() }).safeParse(await c.req.json().catch(() => null));

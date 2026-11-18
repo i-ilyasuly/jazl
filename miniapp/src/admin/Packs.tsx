@@ -62,7 +62,7 @@ const methodName: Record<string, string> = { kaspi: "Kaspi Pay", card: "Банк
 export function APack() {
   const { id = "" } = useParams();
   const [d, , reload] = useCached<{ pack: PFull }>(`a:pack:${id}`, () => A(`/packs/${id}`));
-  const [sheet, setSheet] = useState<"extend" | "refund" | null>(null);
+  const [sheet, setSheet] = useState<"extend" | "refund" | "bonus" | null>(null);
   const p = d?.pack;
   if (!p) return <VPage title="Пакет" back><Sk h={200} /><Sk h={160} /></VPage>;
   const kv = (k: string, val: React.ReactNode) => <div className={v.kv}><span>{k}</span><b>{val}</b></div>;
@@ -91,7 +91,9 @@ export function APack() {
       </div>
       <Buttons main={{ text: "Қолдануды қайтару", onClick: () => setSheet("refund") }} second={{ text: "Мерзімін ұзарту", onClick: () => setSheet("extend") }} />
       {sheet === "extend" && <ExtendSheet p={p} onClose={() => setSheet(null)} done={() => void reload()} />}
+      <button className={v.link} style={{ alignSelf: "center", padding: 8 }} onClick={() => { haptic.tap(); setSheet("bonus"); }}>Клиентке бонус беру</button>
       {sheet === "refund" && <RefundSheet p={p} onClose={() => setSheet(null)} done={() => void reload()} />}
+      {sheet === "bonus" && <BonusSheet p={p} onClose={() => setSheet(null)} />}
     </VPage>
   );
 }
@@ -106,6 +108,21 @@ function ExtendSheet({ p, onClose, done }: { p: PFull; onClose: () => void; done
       <div className={v.card}>{([3, 7, 14, 30] as const).map((n) => <RadioRow key={n} on={days === n} title={`+${n} күн`} onClick={() => setDays(n)} />)}</div>
       <Field label="Себебі (журналға жазылады)" value={reason} onChange={setReason} placeholder="Мекеме жөндеуде болды" />
       <Buttons main={{ text: "Ұзарту", onClick: () => setPin(true) }} second={{ text: "Бас тарту", onClick: onClose }} />
+    </Sheet>
+  );
+}
+/** Бонус беру (өтемақы не сынақ): клиенттің Medeo бонусына сома қосылады, кез келген сатып алуда жұмсалады */
+function BonusSheet({ p, onClose }: { p: PFull; onClose: () => void }) {
+  const [amount, setAmount] = useState(1000);
+  const [reason, setReason] = useState("");
+  const [pin, setPin] = useState(false);
+  if (pin) return <PinSheet text={`${p.customer}: ${money(amount)} Medeo бонусы.`} onClose={onClose} run={async (x) => { await post(`/packs/${p.id}/bonus`, { amount, reason: reason.trim(), pin: x }); haptic.success(); onClose(); }} />;
+  return (
+    <Sheet title="Бонус беру" onClose={onClose}>
+      <p className={s.pinText} style={{ textAlign: "left" }}>{`${p.customer} келесі сатып алуда бағадан шегереді. Мерзімі — Басқару баптауындағыдай.`}</p>
+      <div className={v.card}>{[500, 1000, 2000, 5000].map((n) => <RadioRow key={n} on={amount === n} title={money(n)} onClick={() => setAmount(n)} />)}</div>
+      <Field label="Себебі (журналға жазылады)" value={reason} onChange={setReason} placeholder="Мекеме тапсырысты кешіктірді" />
+      <Buttons main={{ text: "Беру", onClick: () => { if (reason.trim().length < 3) { haptic.error(); return; } setPin(true); } }} second={{ text: "Бас тарту", onClick: onClose }} />
     </Sheet>
   );
 }
