@@ -34,13 +34,21 @@ const tz = { timeZone: "Asia/Almaty" } as const;
 const hm = (d: Date) => d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", ...tz });
 const ymd = (d: Date) => d.toLocaleDateString("sv-SE", tz);
 const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
-/** «бүгін 14:30», «ертең 14:00», «21 қараша 10:00» */
-export function when(d: Date, now = new Date()) {
+const MON_RU = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+/** Хабарлама тілі (Патша, 2026-11-18: орыс тілі): алушының users.lang мәні бойынша. Мәтін — қазақша не {kk, ru}. */
+export type Lang = "kk" | "ru";
+export type Txt = string | { kk: string; ru: string };
+export const L = (kk: string, ru: string): Txt => ({ kk, ru });
+const pick = (t: Txt, l: Lang) => (typeof t === "string" ? t : t[l]);
+/** «бүгін 14:30», «ертең 14:00», «21 қараша 10:00» (орысша: «сегодня 14:30», «21 ноября 10:00») */
+export function when(d: Date, now = new Date(), l: Lang = "kk") {
   const day = ymd(d); const t = hm(d);
-  if (day === ymd(now)) return `бүгін ${t}`;
-  if (day === ymd(new Date(now.getTime() + 86400_000))) return `ертең ${t}`;
-  return `${Number(day.slice(8, 10))} ${MON[Number(day.slice(5, 7)) - 1]} ${t}`;
+  if (day === ymd(now)) return `${l === "ru" ? "сегодня" : "бүгін"} ${t}`;
+  if (day === ymd(new Date(now.getTime() + 86400_000))) return `${l === "ru" ? "завтра" : "ертең"} ${t}`;
+  return `${Number(day.slice(8, 10))} ${(l === "ru" ? MON_RU : MON)[Number(day.slice(5, 7)) - 1]} ${t}`;
 }
+/** Екі тілде бірден: уақыт мәтіні */
+const whenL = (d: Date) => ({ kk: when(d, new Date(), "kk"), ru: when(d, new Date(), "ru") });
 export const money = (n: number) => n.toLocaleString("ru-RU").replace(/[\s,]/g, " ") + " ₸";
 const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f);
 const head = (t: string) => t.split(" · ")[0];
@@ -61,14 +69,21 @@ export const adminPrefDefaults = { complaint: true, payFail: true, pos: true, pr
 export type AdminPref = keyof typeof adminPrefDefaults;
 const URGENT: AdminPref[] = ["complaint", "payFail", "pos", "priceDrop"];
 
-export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; adminUrl?: string; feePct?: number } = {}) {
+export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string; adminUrl?: string; feePct?: number } = {}) {
   const adminTg = (opts.adminIds ?? "").split(",").map((x) => x.trim()).filter(Boolean);
   const adminUrl = (path: string) => `${(opts.adminUrl ?? "").replace(/\/$/, "")}/#/a${path}`;
   const rows = async <T = Row>(q: ReturnType<typeof sql>) => (await db.execute(q)).rows as T[];
+  /** Алушының тілі (users.lang): мини апп тіл таңдағанда PATCH /v1/me арқылы жаңартады */
+  const langOf = async (chatId: number): Promise<Lang> => (await rows<{ lang: string }>(sql`select lang from app.users where telegram_id = ${chatId}`))[0]?.lang === "ru" ? "ru" : "kk";
+  type LMsg = { chatId: number; text: Txt; button?: { text: Txt; start?: string; url?: string } };
+  const send = async (m: LMsg) => {
+    const l = typeof m.text === "string" && (!m.button || typeof m.button.text === "string") ? "kk" : await langOf(m.chatId);
+    await rawSend({ chatId: m.chatId, text: pick(m.text, l), ...(m.button ? { button: { ...m.button, text: pick(m.button.text, l) } } : {}) });
+  };
   const safe = async (what: string, f: () => Promise<void>) => { try { await f(); } catch (e) { console.warn(`notify ${what}: ${(e as Error).message}`); } };
   /** Кілт бойынша бір рет: журналда бар болса — false */
   const once = async (key: string) => (await rows(sql`insert into app.notify_log (key) values (${key}) on conflict do nothing returning key`)).length > 0;
-  const sendAll = async (ids: number[], m: Omit<Msg, "chatId">) => { await Promise.all([...new Set(ids)].map((chatId) => send({ chatId, ...m }).catch((e) => console.warn(`notify send: ${(e as Error).message}`)))); };
+  const sendAll = async (ids: number[], m: Omit<LMsg, "chatId">) => { await Promise.all([...new Set(ids)].map((chatId) => send({ chatId, ...m }).catch((e) => console.warn(`notify send: ${(e as Error).message}`)))); };
 
   /** Мекеменің белсенді қызметкерлері: рөл, филиал (филиалға бекітілмеген — бәрін көреді), баптау бойынша сүзгі */
   const staff = async (venueId: string, roles: string[], opt: { branchId?: string; pref?: VenuePref } = {}) => {
@@ -95,18 +110,20 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
         from app.orders o join app.packs p on p.id = o.pack_id join app.offers f on f.id = p.offer_id join app.venues v on v.id = f.venue_id join app.users u on u.id = o.user_id where o.id = ${orderId}`);
       if (!o) return;
       const to = await staff(o.venue_id, ["owner", "manager", "cashier"], { branchId: o.branch_id, pref: "newOrder" });
-      const at = o.scheduled_at ? when(new Date(o.scheduled_at)) : "қазір (~15 мин)";
+      const at = o.scheduled_at ? whenL(new Date(o.scheduled_at)) : { kk: "қазір (~15 мин)", ru: "сейчас (~15 мин)" };
+      const who = short(o.first_name, o.last_name);
       const text = o.kind === "hair" && o.type === "plan"
-        ? `🗓 Жаңа жазылу: ${head(o.title)}, ${at} • ${short(o.first_name, o.last_name)}`
-        : `🛒 Жаңа тапсырыс № ${o.no}: ${head(o.title)} ×1, ${o.type === "plan" ? "алу " + at : "қазір алады (~15 мин)"}${o.courier ? ", курьер" : ""} • ${short(o.first_name, o.last_name)}`;
-      await sendAll(to, { text, button: { text: "Ашу", start: `vo_${orderId}` } });
+        ? L(`🗓 Жаңа жазылу: ${head(o.title)}, ${at.kk} • ${who}`, `🗓 Новая запись: ${head(o.title)}, ${at.ru} • ${who}`)
+        : L(`🛒 Жаңа тапсырыс № ${o.no}: ${head(o.title)} ×1, ${o.type === "plan" ? "алу " + at.kk : "қазір алады (~15 мин)"}${o.courier ? ", курьер" : ""} • ${who}`,
+          `🛒 Новый заказ № ${o.no}: ${head(o.title)} ×1, ${o.type === "plan" ? "получение " + at.ru : "заберёт сейчас (~15 мин)"}${o.courier ? ", курьер" : ""} • ${who}`);
+      await sendAll(to, { text, button: { text: L("Ашу", "Открыть"), start: `vo_${orderId}` } });
     }),
 
     /** Клиентке: тапсырыс дайын */
     orderReady: (orderId: string) => safe("orderReady", async () => {
       const [o] = await rows<{ tg: string; no: string; code: string; name: string; pack_id: string }>(sql`
         select u.telegram_id as tg, o.no, o.code, v.name, o.pack_id from app.orders o join app.users u on u.id = o.user_id join app.branches b on b.id = o.branch_id join app.venues v on v.id = b.venue_id where o.id = ${orderId}`);
-      if (o) await send({ chatId: Number(o.tg), text: `🍽 Тапсырыс № ${o.no} дайын — ${o.name}. Кассаға кодыңызды айтыңыз: ${o.code}.`, button: { text: "Пакетті ашу", start: `pk_${o.pack_id}` } });
+      if (o) await send({ chatId: Number(o.tg), text: L(`🍽 Тапсырыс № ${o.no} дайын — ${o.name}. Кассаға кодыңызды айтыңыз: ${o.code}.`, `🍽 Заказ № ${o.no} готов — ${o.name}. Назовите на кассе код: ${o.code}.`), button: { text: L("Пакетті ашу", "Открыть пакет"), start: `pk_${o.pack_id}` } });
     }),
 
     /** Клиентке: ✅ Қолданылды (Figma клиент хабарламасы) */
@@ -114,7 +131,8 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
       const [x] = await rows<{ tg: string; name: string; units: number; left: number; unit_name: string }>(sql`
         select u.telegram_id as tg, v.name, r.units, p.units_left as left, f.unit_name from app.redemptions r join app.packs p on p.id = r.pack_id
         join app.offers f on f.id = p.offer_id join app.venues v on v.id = f.venue_id join app.users u on u.id = p.user_id where r.id = ${redemptionId}`);
-      if (x) await send({ chatId: Number(x.tg), text: `✅ Қолданылды: ${x.name} · ${x.units} ${x.unit_name || "дана"}. Пакетте ${x.left} ${x.unit_name || "дана"} қалды. Чек ${receiptNo}.` });
+      if (x) await send({ chatId: Number(x.tg), text: L(`✅ Қолданылды: ${x.name} · ${x.units} ${x.unit_name || "дана"}. Пакетте ${x.left} ${x.unit_name || "дана"} қалды. Чек ${receiptNo}.`,
+        `✅ Использовано: ${x.name} · ${x.units} ед. В пакете осталось ${x.left} ед. Чек ${receiptNo}.`) });
     }),
 
     /** ⚠️ Жаңа шағым → иесі мен басқарушы (24 сағат ішінде жауап) */
@@ -122,8 +140,9 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
       const [x] = await rows<{ venue_id: string; reason: string | null; created_at: Date; used_at: Date | null }>(sql`
         select c.venue_id, c.reason, c.created_at, r.created_at as used_at from app.complaints c left join app.redemptions r on r.id = c.redemption_id where c.id = ${id}`);
       if (!x) return;
-      const reason = (x.reason ?? "шағым").toLowerCase();
-      await sendAll(await staff(x.venue_id, ["owner", "manager"]), { text: `⚠️ Жаңа шағым: ${reason}${x.used_at ? ` (${when(new Date(x.used_at))})` : ""}. 24 сағат ішінде жауап бер.`, button: { text: "Қарау", start: `vc_${id}` } });
+      const reason = x.reason === "refused" ? { kk: "мекеме қабылдамады", ru: "заведение не приняло" } : { kk: (x.reason ?? "шағым").toLowerCase(), ru: (x.reason ?? "жалоба").toLowerCase() };
+      const used = x.used_at ? whenL(new Date(x.used_at)) : null;
+      await sendAll(await staff(x.venue_id, ["owner", "manager"]), { text: L(`⚠️ Жаңа шағым: ${reason.kk}${used ? ` (${used.kk})` : ""}. 24 сағат ішінде жауап бер.`, `⚠️ Новая жалоба: ${reason.ru}${used ? ` (${used.ru})` : ""}. Ответьте в течение 24 часов.`), button: { text: L("Қарау", "Посмотреть"), start: `vc_${id}` } });
     }),
 
     /** Клиентке: шағымға жауап */
@@ -132,25 +151,25 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
         select u.telegram_id as tg, c.status, c.reply, v.name, c.pack_id from app.complaints c join app.users u on u.id = c.user_id join app.venues v on v.id = c.venue_id where c.id = ${id}`);
       if (!x) return;
       const text = x.status === "refunded"
-        ? `✅ ${x.name} шағымыңызды қанағаттандырды: ${returned} дана пакетіңізге қайтарылды.${x.reply ? ` Жауабы: «${x.reply}»` : ""}`
-        : `💬 ${x.name} шағымыңызға жауап берді: «${x.reply ?? ""}». Келіспесеңіз — Medeo қолдауына жазыңыз.`;
-      await send({ chatId: Number(x.tg), text, button: { text: "Пакетті ашу", start: `pk_${x.pack_id}` } });
+        ? L(`✅ ${x.name} шағымыңызды қанағаттандырды: ${returned} дана пакетіңізге қайтарылды.${x.reply ? ` Жауабы: «${x.reply}»` : ""}`, `✅ ${x.name} удовлетворило вашу жалобу: ${returned} ед. возвращено в пакет.${x.reply ? ` Ответ: «${x.reply}»` : ""}`)
+        : L(`💬 ${x.name} шағымыңызға жауап берді: «${x.reply ?? ""}». Келіспесеңіз — Medeo қолдауына жазыңыз.`, `💬 ${x.name} ответило на вашу жалобу: «${x.reply ?? ""}». Если не согласны — напишите в поддержку Medeo.`);
+      await send({ chatId: Number(x.tg), text, button: { text: L("Пакетті ашу", "Открыть пакет"), start: `pk_${x.pack_id}` } });
     }),
 
     /** 👤 Жаңа қызметкер шақыру кодымен кірді → иесі растайды */
     staffRequest: (venueId: string, userId: string) => safe("staffRequest", async () => {
       const [u] = await rows<{ first_name: string; last_name: string | null }>(sql`select first_name, last_name from app.users where id = ${userId}`);
-      if (u) await sendAll(await staff(venueId, ["owner"]), { text: `👤 ${short(u.first_name, u.last_name)} командаға қосылуды сұрайды. Растасаңыз, кассир режимі ашылады.`, button: { text: "Қарау", start: "v_team" } });
+      if (u) await sendAll(await staff(venueId, ["owner"]), { text: L(`👤 ${short(u.first_name, u.last_name)} командаға қосылуды сұрайды. Растасаңыз, кассир режимі ашылады.`, `👤 ${short(u.first_name, u.last_name)} просит добавить его в команду. После подтверждения откроется режим кассира.`), button: { text: L("Қарау", "Посмотреть"), start: "v_team" } });
     }),
     /** Қызметкерге: иесі растады */
     staffApproved: (venueId: string, userId: string) => safe("staffApproved", async () => {
       const [x] = await rows<{ tg: string; name: string }>(sql`select u.telegram_id as tg, v.name from app.users u, app.venues v where u.id = ${userId} and v.id = ${venueId}`);
-      if (x) await send({ chatId: Number(x.tg), text: `✅ Сізді «${x.name}» командасына қабылдады. Кассир режимі ашық.`, button: { text: "Ашу", start: "v_home" } });
+      if (x) await send({ chatId: Number(x.tg), text: L(`✅ Сізді «${x.name}» командасына қабылдады. Кассир режимі ашық.`, `✅ Вас приняли в команду «${x.name}». Режим кассира открыт.`), button: { text: L("Ашу", "Открыть"), start: "v_home" } });
     }),
 
     /** ⭐ Жаңа пікір → иесі мен басқарушы («Жаңа пікір» баптауы) */
     review: (venueId: string, stars: number, text: string | null) => safe("review", async () => {
-      await sendAll(await staff(venueId, ["owner", "manager"], { pref: "newReview" }), { text: `⭐ Жаңа пікір: ${"★".repeat(stars)}${"☆".repeat(5 - stars)}${text ? ` — «${text.slice(0, 200)}»` : ""}`, button: { text: "Жауап беру", start: "v_reviews" } });
+      await sendAll(await staff(venueId, ["owner", "manager"], { pref: "newReview" }), { text: L(`⭐ Жаңа пікір: ${"★".repeat(stars)}${"☆".repeat(5 - stars)}${text ? ` — «${text.slice(0, 200)}»` : ""}`, `⭐ Новый отзыв: ${"★".repeat(stars)}${"☆".repeat(5 - stars)}${text ? ` — «${text.slice(0, 200)}»` : ""}`), button: { text: L("Жауап беру", "Ответить"), start: "v_reviews" } });
     }),
 
     /** Өтінім нәтижесі (мақұлданды / түзету керек / қабылданбады) — күй өзгерген соң бір рет */
@@ -159,29 +178,32 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
         select a.status, a.note, u.telegram_id as tg, coalesce(v.name, a.data->>'name') as name from app.venue_applications a join app.users u on u.id = a.user_id left join app.venues v on v.id = a.venue_id where a.id = ${appId}`);
       if (!a || !["approved", "need_info", "rejected"].includes(a.status) || !(await once(`app:${appId}:${a.status}`))) return;
       const nm = a.name ? `«${a.name}» ` : "";
-      const m = a.status === "approved" ? { text: `🎉 Өтінім мақұлданды! ${nm}Medeo-ға қосылды. Енді бірінші ұсынысты жариялаңыз.`, button: { text: "Мекемеге өту", start: "v_home" } }
-        : a.status === "need_info" ? { text: `✏️ Өтінімге түзету керек${a.note ? `: ${a.note}` : "."}`, button: { text: "Түзету", start: "v_apply" } }
-        : { text: `Өтінім қабылданбады${a.note ? `: ${a.note}` : "."} Сұрағыңыз болса — қолдауға жазыңыз.`, button: { text: "Толығырақ", start: "v_apply" } };
+      const m = a.status === "approved" ? { text: L(`🎉 Өтінім мақұлданды! ${nm}Medeo-ға қосылды. Енді бірінші ұсынысты жариялаңыз.`, `🎉 Заявка одобрена! ${nm}подключено к Medeo. Теперь опубликуйте первое предложение.`), button: { text: L("Мекемеге өту", "Перейти к заведению"), start: "v_home" } }
+        : a.status === "need_info" ? { text: L(`✏️ Өтінімге түзету керек${a.note ? `: ${a.note}` : "."}`, `✏️ Заявку нужно исправить${a.note ? `: ${a.note}` : "."}`), button: { text: L("Түзету", "Исправить"), start: "v_apply" } }
+        : { text: L(`Өтінім қабылданбады${a.note ? `: ${a.note}` : "."} Сұрағыңыз болса — қолдауға жазыңыз.`, `Заявка отклонена${a.note ? `: ${a.note}` : "."} Если есть вопросы — напишите в поддержку.`), button: { text: L("Толығырақ", "Подробнее"), start: "v_apply" } };
       await send({ chatId: Number(a.tg), ...m });
     }),
 
     /** Medeo Басқару «Хабарлама жазу»: мекеме иесіне (иелеріне) не нақты пайдаланушыға */
-    toVenue: async (venueId: string, text: string) => { const to = await staff(venueId, ["owner"]); await sendAll(to, { text: `✉️ Medeo: ${text}`, button: { text: "Ашу", start: "v_home" } }); return to.length; },
+    toVenue: async (venueId: string, text: string) => { const to = await staff(venueId, ["owner"]); await sendAll(to, { text: `✉️ Medeo: ${text}`, button: { text: L("Ашу", "Открыть"), start: "v_home" } }); return to.length; },
     toUser: async (userId: string, text: string, start?: string) => {
       const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${userId}`);
-      if (u) await send({ chatId: Number(u.tg), text: `✉️ Medeo: ${text}`, ...(start ? { button: { text: "Ашу", start } } : {}) }).catch(() => null);
+      if (u) await send({ chatId: Number(u.tg), text: `✉️ Medeo: ${text}`, ...(start ? { button: { text: L("Ашу", "Открыть"), start } } : {}) }).catch(() => null);
     },
     /** Мекемеге: ұсыныс тексерілді (жарияланды / түзету керек / тоқтатылды) */
     offerReviewed: (offerId: string, result: "approved" | "fix" | "stopped", note?: string) => safe("offerReviewed", async () => {
       const [o] = await rows<{ venue_id: string; title: string }>(sql`select venue_id, title from app.offers where id = ${offerId}`);
       if (!o) return;
       const t = head(o.title);
-      const text = result === "approved" ? `✅ «${t}» ұсынысы тексеруден өтіп, жарияланды.` : result === "fix" ? `✏️ «${t}» ұсынысына түзету керек: ${note ?? ""}` : `⛔ «${t}» ұсынысын Medeo тоқтатты${note ? `: ${note}` : "."}`;
-      await sendAll(await staff(o.venue_id, ["owner", "manager"]), { text, button: { text: "Ашу", start: "v_home" } });
+      const text = result === "approved" ? L(`✅ «${t}» ұсынысы тексеруден өтіп, жарияланды.`, `✅ Предложение «${t}» прошло проверку и опубликовано.`)
+        : result === "fix" ? L(`✏️ «${t}» ұсынысына түзету керек: ${note ?? ""}`, `✏️ Предложение «${t}» нужно исправить: ${note ?? ""}`)
+        : L(`⛔ «${t}» ұсынысын Medeo тоқтатты${note ? `: ${note}` : "."}`, `⛔ Medeo приостановил предложение «${t}»${note ? `: ${note}` : "."}`);
+      await sendAll(await staff(o.venue_id, ["owner", "manager"]), { text, button: { text: L("Ашу", "Открыть"), start: "v_home" } });
     }),
     /** Мекемеге: Medeo тоқтатты / қайта қосты */
     venueStatus: (venueId: string, paused: boolean, note?: string) => safe("venueStatus", async () => {
-      await sendAll(await staff(venueId, ["owner", "manager"]), { text: paused ? `⛔ Мекеме уақытша тоқтатылды${note ? `: ${note}` : "."} Сатылған пакеттерге қызмет көрсету жалғасады.` : "✅ Мекеме қайта іске қосылды. Жаңа пакеттер сатылады.", button: { text: "Ашу", start: "v_home" } });
+      await sendAll(await staff(venueId, ["owner", "manager"]), { text: paused ? L(`⛔ Мекеме уақытша тоқтатылды${note ? `: ${note}` : "."} Сатылған пакеттерге қызмет көрсету жалғасады.`, `⛔ Заведение временно приостановлено${note ? `: ${note}` : "."} Обслуживание проданных пакетов продолжается.`)
+        : L("✅ Мекеме қайта іске қосылды. Жаңа пакеттер сатылады.", "✅ Заведение снова работает. Новые пакеты продаются."), button: { text: L("Ашу", "Открыть"), start: "v_home" } });
     }),
 
     /** Басқаруға: жаңа мекеме өтінімі (Figma 18) */
@@ -222,7 +244,8 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
       for (const b of await creditBreakage(db, now).catch((e) => { console.error("creditBreakage", e); return []; })) {
         if (b.amount <= 0 || !(await once(`bonus:${b.packId}`))) continue;
         const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${b.userId}`);
-        if (u) await send({ chatId: Number(u.tg), text: `🎁 «${head(b.title)}» пакетінің ${b.units} бірлігі пайдаланылмай қалды. Ақшаң күйген жоқ: ${money(b.amount)} Medeo бонусы болып қайтты. Бонус 12 ай жарамды, кез келген мекемеде келесі сатып алуға жұмсалады.`, button: { text: "Бонусты көру", start: "p_bonus" } }).catch(() => null);
+        if (u) await send({ chatId: Number(u.tg), text: L(`🎁 «${head(b.title)}» пакетінің ${b.units} бірлігі пайдаланылмай қалды. Ақшаң күйген жоқ: ${money(b.amount)} Medeo бонусы болып қайтты. Бонус 12 ай жарамды, кез келген мекемеде келесі сатып алуға жұмсалады.`,
+          `🎁 В пакете «${head(b.title)}» осталось неиспользованных единиц: ${b.units}. Деньги не сгорели: ${money(b.amount)} вернулись бонусом Medeo. Бонус действует 12 месяцев, его можно потратить на следующую покупку в любом заведении.`), button: { text: L("Бонусты көру", "Посмотреть бонус"), start: "p_bonus" } }).catch(() => null);
         out.bonus++;
       }
       // Өтінім күйі қолмен (дерекқорда) өзгерсе де хабар кетеді
@@ -243,7 +266,7 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
           from u full join o on o.venue_id = u.venue_id`);
         for (const s of stats) {
           if (!(await once(`daily:${s.venue_id}:${day}`))) continue;
-          await sendAll(await staff(s.venue_id, ["owner"], { pref: "daily" }), { text: `📊 Бүгінгі қорытынды: ${s.uses} қолдану • ${s.orders} тапсырыс • ${money(s.amount)}.`, button: { text: "Есеп", start: "v_report" } });
+          await sendAll(await staff(s.venue_id, ["owner"], { pref: "daily" }), { text: L(`📊 Бүгінгі қорытынды: ${s.uses} қолдану • ${s.orders} тапсырыс • ${money(s.amount)}.`, `📊 Итоги дня: использований ${s.uses} • заказов ${s.orders} • ${money(s.amount)}.`), button: { text: L("Есеп", "Отчёт"), start: "v_report" } });
           out.daily++;
         }
       }
@@ -272,7 +295,7 @@ export function makeNotifier(db: Db, send: Sender, opts: { adminIds?: string; ad
             and not exists (select 1 from app.notify_log l where l.key = 'exp:' || p.id) limit 500`);
         for (const p of soon) {
           if (!({ ...clientPrefDefaults, ...(p.notify ?? {}) }).expiry || !(await once(`exp:${p.id}`))) continue;
-          await send({ chatId: Number(p.tg), text: `⏰ «${head(p.title)}» пакетінің мерзімі 3 күннен кейін бітеді. ${p.left} ${p.unit_name || "дана"} қалды.`, button: { text: "Пакеттерім", start: `pk_${p.id}` } }).catch(() => null);
+          await send({ chatId: Number(p.tg), text: L(`⏰ «${head(p.title)}» пакетінің мерзімі 3 күннен кейін бітеді. ${p.left} ${p.unit_name || "дана"} қалды.`, `⏰ Срок пакета «${head(p.title)}» истекает через 3 дня. Осталось ${p.left} ед.`), button: { text: L("Пакеттерім", "Мои пакеты"), start: `pk_${p.id}` } }).catch(() => null);
           out.expiry++;
         }
       }

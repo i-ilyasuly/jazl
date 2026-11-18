@@ -184,14 +184,14 @@ function OfferView({ id }: { id?: string }) {
             </div>
             <div className={s.badges} style={ended ? { visibility: "hidden" } : undefined}>
               <span className={`${s.badge} ${s.orange}`}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
-              <span className={`${s.badge} ${s.green}`}>{fmt(saving(offer))} үнем</span>
+              <span className={`${s.badge} ${s.green}`}>{`${fmt(saving(offer))} үнем`}</span>
             </div>
           </div>
           {base.sizes && (
             <div className={`${s.sizeRow} ${s.sizesIn}`} role="radiogroup" aria-label="Пакет көлемі">
               {base.sizes.map((z, i) => (
                 <button key={z.units} role="radio" aria-checked={size === i} className={`${s.size} ${size === i ? s.sizeOn : ""}`} onClick={() => { if (size !== i) { haptic.select(); setSize(i); } }}>
-                  <b>{z.units} дана</b><small>{fmt(Math.round(z.price / z.units))} / дана</small>
+                  <b>{`${z.units} дана`}</b><small>{`${fmt(Math.round(z.price / z.units))} / дана`}</small>
                 </button>
               ))}
             </div>
@@ -202,11 +202,11 @@ function OfferView({ id }: { id?: string }) {
         <section className={`${s.block} ${s.blk}`}>
         <h2 className={s.blockTitle}>Шарттары</h2>
         <dl className={s.params}>
-          <div><dt>Бірлік</dt><dd>{offer.units} {offer.unitWord}, әрқайсысы бөлек</dd></div>
-          <div><dt>Мерзімі</dt><dd>{d.days ?? 30} күн, сатып алған сәттен</dd></div>
+          <div><dt>Бірлік</dt><dd>{`${offer.units} ${offer.unitWord}, әрқайсысы бөлек`}</dd></div>
+          <div><dt>Мерзімі</dt><dd>{`${d.days ?? 30} күн, сатып алған сәттен`}</dd></div>
           {d.duration && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
           {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
-          <div><dt>Қолдану</dt><dd>{d.use}</dd></div>
+          <div><dt>Қолдану тәсілі</dt><dd>{d.use}</dd></div>
         </dl>
         </section>
 
@@ -247,11 +247,11 @@ function OfferView({ id }: { id?: string }) {
         </section>
 
         <section className={`${s.block} ${s.blk}`}>
-          <h2 className={s.blockTitle}>Пікірлер · {offer.ratingCount}</h2>
+          <h2 className={s.blockTitle}>{`Пікірлер · ${offer.ratingCount}`}</h2>
           <div className={s.inner}>
             <div className={s.score}>
               <b>{String(offer.rating).replace(".", ",")}</b>
-              <span><span className={s.stars}>★★★★★</span><span className={s.venueAddr}>{offer.ratingCount} бағалау</span></span>
+              <span><span className={s.stars}>★★★★★</span><span className={s.venueAddr}>{`${offer.ratingCount} бағалау`}</span></span>
             </div>
             {d.reviews.map((r) => (
               <div key={r.name} className={s.review}>

@@ -52,7 +52,7 @@ export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
         </button>
       </> : <>
         <span className={s.unit}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
-        <span className={s.saving}>{fmt(saving(offer))} үнем</span>
+        <span className={s.saving}>{`${fmt(saving(offer))} үнем`}</span>
       </>}
     </Link>
   );

@@ -148,4 +148,20 @@ d("Бот хабарламалары", () => {
     await makeNotifier(dbh.db, async (m) => { sent.push(m); }).tick(new Date(`${today}T12:00:00+05:00`));
     expect(to(CLIENT).length).toBe(before);
   });
+  it("орыс тілі: users.lang = ru алушыға хабар орысша, батырма да орысша (PATCH /v1/me)", async () => {
+    const RU = 804;
+    await app.request("/v1/me", { method: "PATCH", headers: h(RU), body: JSON.stringify({ lang: "ru" }) });
+    const p = await buy(RU);
+    const o = await json(post("/v1/orders", { packId: p, type: "now", idempotencyKey: key() }, RU));
+    await post(`/v1/venue/orders/${o.order.id}/status`, { status: "ready" }, CASH);
+    const m = to(RU).at(-1)!;
+    expect(m.text).toMatch(/^🍽 Заказ № \d+ готов/);
+    expect(m.button?.text).toBe("Открыть пакет");
+    // Мекеме иесі орыс тілін таңдаса — жаңа тапсырыс туралы хабар орысша
+    await dbh.pool.query("update app.users set lang = 'ru' where telegram_id = $1", [OWNER]);
+    await json(post("/v1/orders", { packId: p, type: "now", idempotencyKey: key() }, RU));
+    expect(to(OWNER).at(-1)?.text).toMatch(/^🛒 Новый заказ № \d+/);
+    expect(to(CASH).at(-1)?.text).toMatch(/^🛒 Жаңа тапсырыс № \d+/); // кассир — қазақша
+    await dbh.pool.query("update app.users set lang = 'kk' where telegram_id = $1", [OWNER]);
+  });
 });

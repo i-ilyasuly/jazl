@@ -92,7 +92,7 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "8px 16px" }}>
         {mode === "medeo" ? <>
           <button style={step} onClick={() => setUnits(Math.max(1, units - 1))}>−</button>
-          <b className="t-title3">{units} дана</b>
+          <b className="t-title3">{`${units} дана`}</b>
           <button style={step} onClick={() => setUnits(Math.min(10, units + 1))}>+</button>
         </> : <>
           <button style={step} onClick={() => setAmount(Math.max(500, amount - 500))}>−</button>
@@ -103,7 +103,7 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "8px 16px 16px" }}>
         <span style={{ width: 200, height: 200 }} dangerouslySetInnerHTML={{ __html: svg }} />
         <span className="t-sub2" style={{ textAlign: "center" }}>{pick.venue} · {pick.address}</span>
-        {mode === "medeo" && <span className="t-cap1 w-600" style={{ color: left <= 5 ? "#e53935" : "var(--link)" }}>QR {left} секундтан кейін жаңарады</span>}
+        {mode === "medeo" && <span className="t-cap1 w-600" style={{ color: left <= 5 ? "#e53935" : "var(--link)" }}>{`QR ${left} секундтан кейін жаңарады`}</span>}
         <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Компьютерден ашып, телефондағы Medeo → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — серверде шегеріледі; басқа мекемеден болса — ескерту шығады.</span>
       </div>
     </Group>

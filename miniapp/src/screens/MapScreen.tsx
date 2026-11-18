@@ -80,7 +80,7 @@ export function MapScreen() {
             return (
               <button key={v.id} className={`${s.pin} ${on ? s.pinOn : ""} ${hidden ? s.pinHidden : ""}`} style={{ left: v.x, top: v.y, ["--i" as string]: i, ["--tint" as string]: kindTint[v.kind] }} onPointerDown={(e) => e.stopPropagation()} onClick={() => pick(v)} aria-label={v.name}>
                 <span className={s.pinDot}><Emo kind={v.kind} size={24} /></span>
-                {on && <span className={`t-cap1 w-600 ${s.price}`}>{fmt(Math.min(...v.offers.map((o) => o[1])))}-дан</span>}
+                {on && <span className={`t-cap1 w-600 ${s.price}`}>{`${fmt(Math.min(...v.offers.map((o) => o[1])))}-дан`}</span>}
               </button>
             );
           })}
@@ -123,8 +123,8 @@ export function MapScreen() {
               {list.map((v) => (
                 <button key={v.id} className={s.row} onClick={() => pick(v)}>
                   <span className={s.rAvatar} style={{ background: kindTint[v.kind] + "4d" }}><Emo kind={v.kind} size={30} /></span>
-                  <span className={s.rText}><b className="t-text w-600">{v.name}</b><small className="t-cap1" style={{ whiteSpace: "pre" }}>{kindLabel[v.kind]}{st.geo === "denied" ? "" : `  •  ${kmText(v)}`}  •  Ашық</small></span>
-                  <span className={`t-cap1 ${s.gray}`}>{v.offers.length} ұсыныс</span>
+                  <span className={s.rText}><b className="t-text w-600">{v.name}</b><small className="t-cap1" style={{ whiteSpace: "pre" }}>{`${kindLabel[v.kind]}${st.geo === "denied" ? "" : `  •  ${kmText(v)}`}  •  Ашық`}</small></span>
+                  <span className={`t-cap1 ${s.gray}`}>{`${v.offers.length} ұсыныс`}</span>
                 </button>
               ))}
             </div>

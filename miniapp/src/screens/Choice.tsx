@@ -1,5 +1,6 @@
 // Figma: «Тіл» (13886:39121) және «Қала» (13886:39189)
 import { Emo } from "../ui/Emo";
+import { applyLangPref, tgLang, type LangPref } from "../i18n";
 import { setSettings, useSettings } from "../store";
 import { askWriteAccess, haptic, nativeAlert, tg } from "../telegram";
 import { Group, Note, Radio, Row, SubPage } from "../ui/SubPage";
@@ -7,15 +8,14 @@ import s from "./Choice.module.css";
 
 export function Language() {
   const st = useSettings();
-  const code = tg?.initDataUnsafe?.user?.language_code;
-  const pick = (lang: "tg" | "kk") => { haptic.select(); setSettings({ lang }); };
+  // Тіл ауыстырылғанда бет қайта жүктеледі: барлық мәтін (тізімдер де) жаңа тілде қайта құрылады
+  const pick = (lang: LangPref) => { haptic.select(); setSettings({ lang }); applyLangPref(lang); };
   return (
     <SubPage title="Тіл">
       <Group>
-        <Row inset={16} title="Telegram тілі" sub={code === "ru" ? "Русский" : "Қазақша"} onClick={() => pick("tg")} right={<Radio on={st.lang === "tg"} />} />
+        <Row inset={16} title="Telegram тілі" sub={tgLang() === "ru" ? "Русский" : "Қазақша"} onClick={() => pick("tg")} right={<Radio on={st.lang === "tg"} />} />
         <Row inset={16} title="Қазақша" onClick={() => pick("kk")} right={<Radio on={st.lang === "kk"} />} />
-        {/* Орыс тілі кейін қосылады: жол көрініп тұрады, бірақ әзірге таңдалмайды */}
-        <Row inset={16} title="Русский" onClick={() => { haptic.tap(); nativeAlert("Орыс тілі жуырда қосылады."); }} right={<Radio on={false} />} />
+        <Row inset={16} title="Русский" onClick={() => pick("ru")} right={<Radio on={st.lang === "ru"} />} />
       </Group>
       <Note i={1}>Қолданба тілі Telegram тіліне сәйкес өзгереді. Қаласаң, бөлек тіл таңда.</Note>
     </SubPage>

@@ -84,7 +84,7 @@ function ReplySheet({ r, onClose, onDone }: { r: Review; onClose: () => void; on
   };
   return (
     <Sheet title="Пікірге жауап" onClose={onClose} grab={false}>
-      <p className={s.muted} style={{ marginTop: -6 }}>{r.customer} • {r.stars} жұлдыз</p>
+      <p className={s.muted} style={{ marginTop: -6 }}>{`${r.customer} • ${r.stars} жұлдыз`}</p>
       <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
         <span className="t-cap1" style={{ color: "var(--link)" }}>Жауабың</span>
         <textarea autoFocus rows={2} maxLength={300} value={t} onChange={(e) => setT(e.target.value)} placeholder="Рақмет! Келесіде де күтеміз"

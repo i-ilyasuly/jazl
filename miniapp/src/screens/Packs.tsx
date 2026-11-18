@@ -36,7 +36,7 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
         <div className={s.text}>
           <p className="t-headline">{o.title}</p>
           <p className={`t-sub2 ${s.sub}`}>{o.venue} · {o.distance}</p>
-          <span className={`t-cap1 ${s.days} ${soon ? s.daysSoon : ""}`}>{pack.daysLeft} күн қалды</span>
+          <span className={`t-cap1 ${s.days} ${soon ? s.daysSoon : ""}`}>{`${pack.daysLeft} күн қалды`}</span>
         </div>
       </div>
       <hr className={s.sep} />
@@ -171,7 +171,7 @@ export function Packs() {
             ? [pending && (
                 <section key="rate" className={`${s.rate} rise`}>
                   <div className={s.rateHead}>
-                    <span className={s.rateText}><b>{pending.title.split(" · ")[0]} қалай болды?</b><small>{pending.sub.replace(" · ", "  •  ")}</small></span>
+                    <span className={s.rateText}><b>{`${pending.title.split(" · ")[0]} қалай болды?`}</b><small>{pending.sub.replace(" · ", "  •  ")}</small></span>
                     <button className={s.rateClose} aria-label="Жабу" onClick={() => { haptic.soft(); hideRate(pending.id); }}><img src={close} width={24} height={24} alt="" /></button>
                   </div>
                   <Stars value={0} onPick={(n) => { haptic.select(); setRating({ act: pending, stars: n }); }} />

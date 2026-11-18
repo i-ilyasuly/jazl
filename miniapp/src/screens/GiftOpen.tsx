@@ -77,7 +77,7 @@ export function GiftOpen() {
           <section className={`${s.card} rise`} style={{ ["--i" as string]: 1 }}>
             <div className={s.row}>
               <span className={s.emoji}><Emo e={g.emoji} size={28} /></span>
-              <span className={s.text}><span className="t-text w-600">{o.title}</span><span className={`t-sub2 ${s.muted}`}>{o.venue} • 30 күн</span></span>
+              <span className={s.text}><span className="t-text w-600">{o.title}</span><span className={`t-sub2 ${s.muted}`}>{`${o.venue} • 30 күн`}</span></span>
             </div>
             {anon && <div className={s.kv}><span className={s.muted}>Жіберуші</span><span className="w-600">Аноним</span></div>}
             <div className={s.kv}><span className={s.muted}>Қабылдау мерзімі</span><span className="w-600">5 күн қалды</span></div>

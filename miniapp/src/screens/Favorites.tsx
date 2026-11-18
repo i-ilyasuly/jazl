@@ -33,7 +33,7 @@ export function Favorites() {
         </button>
       <header className={s.top}>
         <TelegramChrome mode="back" onBack={back} />
-        <h1 className={s.title}>Таңдаулы{total ? ` · ${total}` : ""}</h1>
+        <h1 className={s.title}>{`Таңдаулы${total ? ` · ${total}` : ""}`}</h1>
         <div className={s.seg}>
           <span className={s.thumb} style={{ translate: `${Math.max(0, Math.min(250.66, sort * 125.33 - (sw.drag / 380) * 125.33))}px 0` }} />
           {sorts.map((t, i) => <button key={t} className={`t-sub2 ${s.segBtn} ${sort === i ? s.on : ""}`} onClick={() => { if (sort !== i) { haptic.select(); setSort(i); } }}>{t}</button>)}

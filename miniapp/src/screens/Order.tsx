@@ -96,13 +96,13 @@ export function Order() {
     <SubPage title={hair ? "Жазылу" : "Тапсырыс"} variant="settings">
       <div className={`${s.pack} rise`} style={{ ["--i" as string]: 0 }}>
         <span className={s.emoji}><Emo kind={o.kind} size={40} /></span>
-        <span className={s.packText}><b>{o.title}</b><small>Шегеріледі: 1 бірлік • Қалады: {pack.left - 1} / {pack.total}</small></span>
+        <span className={s.packText}><b>{o.title}</b><small>{`Шегеріледі: 1 бірлік • Қалады: ${pack.left - 1} / ${pack.total}`}</small></span>
       </div>
 
       <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 1 }}>{hair ? "Қай салон" : "Қайда"}</h2>
       <button className={`${s.card} ${s.branch} rise`} style={{ ["--i" as string]: 1 }} onClick={() => { haptic.tap(); setPicking(true); }} disabled={list.length < 2}>
         <Tile e="📍" size={44} />
-        <span className={s.packText}><small>{o.venue} · филиал</small><b>{b?.address}</b></span>
+        <span className={s.packText}><small>{`${o.venue} · филиал`}</small><b>{b?.address}</b></span>
         {list.length > 1 && <i className={s.chev} />}
       </button>
 
@@ -137,7 +137,7 @@ export function Order() {
             {list.map((x) => (
               <button key={x.id} className={`${s.bRow} ${branch === x.id ? s.bOn : ""}`} disabled={!x.open} onClick={() => { haptic.select(); setBranch(x.id); setTimeout(() => setPicking(false), 180); }}>
                 <span className={s.packText}><b>{x.address}</b><small>Бүгін {x.hours} • <span className={x.open ? s.green : s.red}>{x.open ? "ашық" : "уақытша жабық"}</span></small></span>
-                <span className={s.km}>{x.km.toFixed(1).replace(".", ",")} км</span>
+                <span className={s.km}>{`${x.km.toFixed(1).replace(".", ",")} км`}</span>
                 <span className={s.radio} />
               </button>
             ))}

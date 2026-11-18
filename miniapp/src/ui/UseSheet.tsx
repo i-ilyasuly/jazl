@@ -43,7 +43,7 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
       <div className={s.sheet} role="dialog" aria-label="Қолдану">
         <span className={s.grabber} />
         <h2 className={s.title}>{hair ? "Қалай қолданасың?" : "Қолдану"}</h2>
-        <p className={s.sub}>{o.title.split(" · ")[0]} · {o.venue} • қалды {pack.left} / {pack.total}</p>
+        <p className={s.sub}>{`${o.title.split(" · ")[0]} · ${o.venue} • қалды ${pack.left} / ${pack.total}`}</p>
         <div className={s.list}>
           {opts.map((x) => (
             <button key={x.id} className={`${s.opt} ${way === x.id ? s.on : ""}`} onClick={() => { if (way !== x.id) { haptic.select(); setWay(x.id); } }}>
@@ -53,7 +53,7 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
             </button>
           ))}
         </div>
-        <p className={s.note}>{hair ? "Екі" : "Үш"} жағдайда да ақша төленбейді: пакеттен бір бірлік шегеріледі.</p>
+        <p className={s.note}>{`${hair ? "Екі" : "Үш"} жағдайда да ақша төленбейді: пакеттен бір бірлік шегеріледі.`}</p>
         {!inTelegram && (
           <div className={s.bar}>
             <button className={`${s.btn} ${s.second}`} onClick={cancel.onClick}>{cancel.text}</button>

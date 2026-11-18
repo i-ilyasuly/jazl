@@ -45,7 +45,7 @@ export function AVenues() {
           <tbody>
             {shown.map((x) => { const [t, k] = statusTag[x.status] ?? statusTag.active; return (
               <tr key={x.id} className={sel === x.id ? s.sel : ""} onClick={() => go(`/a/venues/${x.id}`)}>
-                <td><b>{x.name}</b><small>{x.branches} филиал</small></td><td>{x.kindName}</td><td><span className={`${v.tag} ${v[k]}`}>{t}</span></td>
+                <td><b>{x.name}</b><small>{`${x.branches} филиал`}</small></td><td>{x.kindName}</td><td><span className={`${v.tag} ${v[k]}`}>{t}</span></td>
                 <td>{x.rating ? `★ ${x.rating.toFixed(1).replace(".", ",")}` : "—"}</td><td className={s.num}>{money(x.sales30)}</td>
               </tr>); })}
             {(f === "all" || f === "app") && apps.map((a) => (
@@ -62,7 +62,7 @@ export function AVenues() {
           {shown.map((x) => { const [t, k] = statusTag[x.status] ?? statusTag.active; return (
             <button key={x.id} className={v.row} style={{ minHeight: 64 }} onClick={() => go(`/a/venues/${x.id}`)}>
               <Person name={x.name} size={40} />
-              <span className={v.rowText}><span className={v.rowTitle}>{x.name}<span className={`${v.tag} ${v[k]}`}>{t}</span></span><span className={v.rowSub}>{x.kindName} · {x.branches} филиал{x.rating ? ` · ★ ${x.rating.toFixed(1).replace(".", ",")}` : ""}</span></span>
+              <span className={v.rowText}><span className={v.rowTitle}>{x.name}<span className={`${v.tag} ${v[k]}`}>{t}</span></span><span className={v.rowSub}>{`${x.kindName} · ${x.branches} филиал${x.rating ? ` · ★ ${x.rating.toFixed(1).replace(".", ",")}` : ""}`}</span></span>
               <span className={s.right}><b>{money(x.sales30)}</b><span>30 күнде</span></span>
             </button>); })}
           {(f === "all" || f === "app") && apps.map((a) => (
@@ -100,21 +100,21 @@ export function AVenue() {
     <VPage title="Мекеме" back>
       <div className={v.card}><div className={v.row} style={{ minHeight: 70 }}>
         <Person name={x.name} size={44} />
-        <span className={v.rowText}><span className={v.rowTitle} style={{ fontSize: 19 }}>{x.name}<span className={`${v.tag} ${v[k]}`}>{t}</span></span><span className={v.rowSub}>{x.kindName} · Қарағанды · {dayMonth(x.createdAt)}-ден бері</span></span>
+        <span className={v.rowText}><span className={v.rowTitle} style={{ fontSize: 19 }}>{x.name}<span className={`${v.tag} ${v[k]}`}>{t}</span></span><span className={v.rowSub}>{`${x.kindName} · Қарағанды · ${dayMonth(x.createdAt)}-ден бері`}</span></span>
       </div></div>
-      {x.status !== "active" && x.statusNote && <Note tone="warn">Себебі: {x.statusNote}</Note>}
+      {x.status !== "active" && x.statusNote && <Note tone="warn">{`Себебі: ${x.statusNote}`}</Note>}
       <div className={v.stats}>
         <div className={v.stat}><span className={v.statLabel}>Сатылым, 30 күн</span><span className={v.statNum}>{money(x.sales30)}</span><Growth v={x.salesGrowth} /></div>
         <div className={v.stat}><span className={v.statLabel}>Комиссия, 30 күн</span><span className={v.statNum}>{money(x.fee30)}</span><span className={v.tag} style={{ alignSelf: "flex-start" }}>{x.feePct}%</span></div>
       </div>
       <div className={v.stats}>
-        <div className={v.stat}><span className={v.statLabel}>Рейтинг</span><span className={v.statNum}>★ {x.rating ? x.rating.toFixed(1).replace(".", ",") : "—"}</span><span className={`${v.tag} ${v.tagGray}`} style={{ alignSelf: "flex-start" }}>{x.reviews} пікір</span></div>
+        <div className={v.stat}><span className={v.statLabel}>Рейтинг</span><span className={v.statNum}>★ {x.rating ? x.rating.toFixed(1).replace(".", ",") : "—"}</span><span className={`${v.tag} ${v.tagGray}`} style={{ alignSelf: "flex-start" }}>{`${x.reviews} пікір`}</span></div>
         <div className={v.stat}><span className={v.statLabel}>Шағым үлесі</span><span className={v.statNum}>{String(x.complaintShare).replace(".", ",")}%</span><span className={`${v.tag} ${x.complaintShare > 5 ? v.tagRed : v.tagGreen}`} style={{ alignSelf: "flex-start" }}>{x.complaintShare > 5 ? "жоғары" : "төмен"}</span></div>
       </div>
       {/* Айла белгілері (Патша, 2026-11-17): күйген бірлік үлесі платформа орташасынан екі есе жоғары болса не «қабылдамады» шағымы көп болса — қызыл */}
       <div className={v.stats}>
-        <div className={v.stat}><span className={v.statLabel}>Күйген бірлік, 90 күн</span><span className={v.statNum}>{String(x.burnShare).replace(".", ",")}%</span><span className={`${v.tag} ${x.burnShare > Math.max(10, x.burnAvg * 2) ? v.tagRed : v.tagGray}`} style={{ alignSelf: "flex-start" }}>орташа {String(x.burnAvg).replace(".", ",")}%</span></div>
-        <div className={v.stat}><span className={v.statLabel}>«Қабылдамады», 30 күн</span><span className={v.statNum}>{x.refused30} клиент</span><span className={`${v.tag} ${x.refused30 >= 3 ? v.tagRed : v.tagGreen}`} style={{ alignSelf: "flex-start" }}>{x.refused30 >= 3 ? "тексеру керек" : "қалыпты"}</span></div>
+        <div className={v.stat}><span className={v.statLabel}>Күйген бірлік, 90 күн</span><span className={v.statNum}>{String(x.burnShare).replace(".", ",")}%</span><span className={`${v.tag} ${x.burnShare > Math.max(10, x.burnAvg * 2) ? v.tagRed : v.tagGray}`} style={{ alignSelf: "flex-start" }}>{`орташа ${String(x.burnAvg).replace(".", ",")}%`}</span></div>
+        <div className={v.stat}><span className={v.statLabel}>«Қабылдамады», 30 күн</span><span className={v.statNum}>{`${x.refused30} клиент`}</span><span className={`${v.tag} ${x.refused30 >= 3 ? v.tagRed : v.tagGreen}`} style={{ alignSelf: "flex-start" }}>{x.refused30 >= 3 ? "тексеру керек" : "қалыпты"}</span></div>
       </div>
       <div className={v.card}>{rows.map((r) => (
         <button key={r.t} className={v.row} style={{ minHeight: 56 }} onClick={() => { haptic.tap(); r.on(); }}>
@@ -160,7 +160,7 @@ function StopSheet({ x, onClose, done }: { x: VCard; onClose: () => void; done: 
         <RadioRow on={mode === "paused"} title="Уақытша тоқтату" sub="Жаңа сатылым жабылады, бар пакеттер жұмыс істейді" onClick={() => setMode("paused")} />
         <RadioRow on={mode === "closed"} title="Біржола өшіру" sub="Қайтарылмайтын әрекет" onClick={() => setMode("closed")} />
       </div>
-      {x.activePacks > 0 && <Note tone="warn">Клиенттерде {x.activePacks} белсенді пакет бар. Олар мерзімі біткенше қолданыла береді: мекеме қызмет көрсетуге міндетті.</Note>}
+      {x.activePacks > 0 && <Note tone="warn">{`Клиенттерде ${x.activePacks} белсенді пакет бар. Олар мерзімі біткенше қолданыла береді: мекеме қызмет көрсетуге міндетті.`}</Note>}
       <Field label="Себебі (мекемеге көрінеді)" value={reason} onChange={setReason} placeholder="Қайталанған шағымдар" />
       <Buttons main={{ text: "Тоқтату", danger: true, onClick: () => { if (reason.trim().length < 3) { haptic.error(); nativeAlert("Себебін жазыңыз."); return; } setPin(true); } }} second={{ text: "Бас тарту", onClick: onClose }} />
     </Sheet>
@@ -332,7 +332,7 @@ export function AAppDone() {
     <VPage>
       <div className={v.state} style={{ top: "calc(300px + var(--top-shift))" }}>
         <VSticker name="party" size={120} />
-        <h2 className={v.stateTitle}>{d?.application.data.name ?? "Мекеме"} қосылды</h2>
+        <h2 className={v.stateTitle}>{`${d?.application.data.name ?? "Мекеме"} қосылды`}</h2>
         <p className={v.stateText}>Мекемеге хабарлама жіберілді. Енді ол ұсыныс құра алады; алғашқы ұсынысы модерацияға түседі.</p>
       </div>
       <Buttons main={{ text: "Келесі өтінім", onClick: () => void next() }} second={{ text: "Мекеме картасы", onClick: () => d?.application.venueId && go(`/a/venues/${d.application.venueId}`, "fade", { replace: true }) }} />

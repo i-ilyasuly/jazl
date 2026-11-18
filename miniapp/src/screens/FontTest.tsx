@@ -34,7 +34,7 @@ export function FontTest() {
         <div className={s.box}>
           <p className={`mono ${s.code}`}>4 7 2 9</p>
           <p className="mono t-text">MD-8F3K29 · MD-ORD104 · 0123456789</p>
-          {[400, 600, 800].map((w) => <p key={w} className="mono t-sub2" style={{ fontWeight: w }}>{w} · Тапсырыс №104 · 6 000 ₸</p>)}
+          {[400, 600, 800].map((w) => <p key={w} className="mono t-sub2" style={{ fontWeight: w }}>{`${w} · Тапсырыс №104 · 6 000 ₸`}</p>)}
         </div>
       </Group>
       <Group header="Medeo Serif" i={5}>

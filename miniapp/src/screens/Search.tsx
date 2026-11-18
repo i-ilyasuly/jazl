@@ -80,13 +80,13 @@ export function Search() {
             <button className={`t-sub2 w-600 ${s.tool}`} onClick={() => { haptic.tap(); setSheet(true); }}><img src={sortIcon} width={16} height={16} alt="" /><span key={sort} className={s.swap}>{sorts.find((x) => x.id === sort)!.text}</span></button>
             <button className={`t-sub2 w-600 ${s.tool} ${nFilters ? s.toolOn : ""}`} onClick={() => { haptic.tap(); setFilterOpen(true); }}><img src={filterIcon} width={16} height={16} alt="" className={nFilters ? "" : s.gray} />Сүзгі{nFilters ? ` · ${nFilters}` : ""}</button>
           </div>
-          <p className={`t-cap1 ${s.count}`}>{found.length} ұсыныс • {venues} мекеме</p>
+          <p className={`t-cap1 ${s.count}`}>{`${found.length} ұсыныс • ${venues} мекеме`}</p>
           <div className={s.list}>{found.map((o, i) => <div key={o.id} className="rise" style={{ ["--i" as string]: i }}><OfferCard offer={o} /></div>)}</div>
         </div>
       ) : (
         <div className={s.none} key="none">
           <Sticker name="search" />
-          <h2 className={s.noneTitle}>«{q.trim()}» бойынша ештеңе табылмады</h2>
+          <h2 className={s.noneTitle}>{`«${q.trim()}» бойынша ештеңе табылмады`}</h2>
           <p className={`t-sub2 ${s.noneText}`}>Емлесін тексеріп, басқа сөзбен іздеп көр немесе сүзгіні тазала</p>
           <p className={`t-sub2 ${s.suggest}`}>Мекемең жоқ па?<button className="w-600" onClick={() => go("/profile/venue")}>Бізге ұсын</button></p>
           {nFilters > 0 && !filterOpen && <MainBar text="Сүзгіні тазалау" onClick={clearFilters} />}

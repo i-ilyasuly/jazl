@@ -96,13 +96,13 @@ export function VInvite() {
       <div className={s.bigCode}>
         <span className={s.rowSub}>Шақыру коды</span>
         {inv ? <b>{inv.code.slice(0, 3)} {inv.code.slice(3)}</b> : <Sk w={160} h={38} />}
-        <span className={s.rowSub}>Жарамдылығы: {hours} сағат</span>
+        <span className={s.rowSub}>{`Жарамдылығы: ${hours} сағат`}</span>
       </div>
       <div className={s.twoBtns}>
         <button className={s.softBtn} onClick={() => { if (inv) { void copyText(inv.code); haptic.success(); } }}>⧉ Көшіру</button>
         <button className={s.softBtn} onClick={() => { if (inv) void shareToChat({ url: inv.link, text }); }}>⇪ Telegram-мен жіберу</button>
       </div>
-      <h2 className={s.blueHead}>Белсенді кассирлер · {staff ? staff.filter((x) => x.status === "active").length : "–"}</h2>
+      <h2 className={s.blueHead}>{`Белсенді кассирлер · ${staff ? staff.filter((x) => x.status === "active").length : "–"}`}</h2>
       <div className={s.card}>
         {staff === null ? <div className={s.row}><Sk h={40} /></div> : staff.length === 0 ? <div className={s.row}><span className={s.rowSub}>Әзірге кассир жоқ. Кодты кассирге жіберіңіз.</span></div>
           : staff.map((x) => (
@@ -148,12 +148,12 @@ export function VStaff() {
       </div>
       <div className={s.card}>
         <div className={s.row} style={{ ["--inset" as string]: "16px" }}><span className={s.rowText}><span className={s.rowTitle}>Филиал</span><span className={s.rowSub}>{p.branch ?? "Барлық филиал"}</span></span></div>
-        <div className={s.row} style={{ ["--inset" as string]: "16px" }}><span className={s.rowText}><span className={s.rowTitle}>Бүгін</span><span className={s.rowSub}>{p.today.count} төлем • {money(p.today.amount)}</span></span></div>
+        <div className={s.row} style={{ ["--inset" as string]: "16px" }}><span className={s.rowText}><span className={s.rowTitle}>Бүгін</span><span className={s.rowSub}>{`${p.today.count} төлем • ${money(p.today.amount)}`}</span></span></div>
         <div className={s.row} style={{ ["--inset" as string]: "16px" }}><span className={s.rowText}><span className={s.rowTitle}>Қосылған күні</span><span className={s.rowSub}>{dayMonth(p.since)}</span></span></div>
       </div>
       {p.days.length > 0 && <>
         <h2 className={s.blueHead} style={{ textAlign: "center" }}>Соңғы төлемдер</h2>
-        <div className={s.card}>{p.days.map((d) => <div key={d.date} className={s.row} style={{ ["--inset" as string]: "16px" }}><span className={s.rowText}><span className={s.rowTitle}>{dayMonth(d.date)}</span><span className={s.rowSub}>{d.count} төлем • {money(d.amount)}</span></span></div>)}</div>
+        <div className={s.card}>{p.days.map((d) => <div key={d.date} className={s.row} style={{ ["--inset" as string]: "16px" }}><span className={s.rowText}><span className={s.rowTitle}>{dayMonth(d.date)}</span><span className={s.rowSub}>{`${d.count} төлем • ${money(d.amount)}`}</span></span></div>)}</div>
       </>}
       {owner && p.role !== "owner" && <>
         <Note tone="warn">Қолжетімділікті өшірсең, кассир бірден жүйеден шығады.</Note>

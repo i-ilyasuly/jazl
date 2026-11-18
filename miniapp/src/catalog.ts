@@ -1,6 +1,7 @@
 // B1 · Каталогты серверден алу. Мини апп ашылғанда бір рет /v1/catalog шақырылады да, келген деректер
 // үлгі тізімдерге (mocks/offers.ts) жазылады: баға, атау, бірлік, фото — енді серверден. Беттердің коды өзгермейді.
 // Сервер 1,5 секундта жауап бермесе — қосымша үлгі деректермен ашылады (күту жоқ).
+import { locTitle, locUnit } from "./i18n";
 import { api } from "./api";
 import { categoryOffers, endedOffers, moreOffers, offers, type Offer, type OfferKind } from "./mocks/offers";
 import { venues } from "./mocks/venues";
@@ -18,7 +19,7 @@ export async function loadCatalog() {
     for (const v of j.venues) { const m = venues.find((x) => x.id === v.slug); if (m) { m.name = v.name; m.rating = v.rating ?? m.rating; m.reviews = v.reviewsCount; m.address = v.branches[0]?.address ?? m.address; } }
     const lists = [offers, moreOffers, categoryOffers, endedOffers];
     for (const o of j.offers) {
-      const patch: Partial<Offer> = { title: o.title, unitWord: o.unitName, units: o.units, price: o.price, oldPrice: o.regularUnitPrice * o.units, kind: o.kind, venue: vName.get(o.venueSlug) ?? "", photo: o.photos[0] };
+      const patch: Partial<Offer> = { title: locTitle(o.title), unitWord: locUnit(o.unitName), units: o.units, price: o.price, oldPrice: o.regularUnitPrice * o.units, kind: o.kind, venue: vName.get(o.venueSlug) ?? "", photo: o.photos[0] };
       if (o.details?.buyers !== undefined) patch.buyers = o.details.buyers;
       const found = lists.flatMap((l) => l).find((x) => x.id === o.slug);
       if (found) Object.assign(found, patch);

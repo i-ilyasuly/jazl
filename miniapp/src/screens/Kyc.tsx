@@ -63,7 +63,7 @@ export function Doc() {
   const d = legalDoc(useParams().id) ?? legalDoc("terms")!;
   return (
     <SubPage title={d.title} top={92}>
-      <p className={`t-cap1 ${s.draft}`}>Редакция: {LEGAL_UPDATED}</p>
+      <p className={`t-cap1 ${s.draft}`}>{`Редакция: ${LEGAL_UPDATED}`}</p>
       {d.parts.map((x, i) => (
         <section key={x.h} className={`${b.head} ${s.part} rise`} style={{ ["--i" as string]: Math.min(i, 6) }}>
           <h2 className="t-title3 w-600">{x.h}</h2>

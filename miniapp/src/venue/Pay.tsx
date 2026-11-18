@@ -56,7 +56,7 @@ export function VPay() {
         : offers.map((o) => (
           <button key={o.id} className={`${s.offer} ${o.id === offerId ? s.offerOn : ""}`} onClick={() => { haptic.select(); setOfferId(o.id); setUnits(1); }}>
             <span className={s.offerPic}><OfferPic kind={o.kind} size={30} /></span>
-            <span className={s.rowText}><span className={s.offerName}>{o.title}</span><span className={s.offerSub}>Пакет: {[...new Set(o.sizes)].join(" · ")} бірлік</span></span>
+            <span className={s.rowText}><span className={s.offerName}>{o.title}</span><span className={s.offerSub}>{`Пакет: ${[...new Set(o.sizes)].join(" · ")} бірлік`}</span></span>
             <span className={`${s.check} ${o.id === offerId ? s.checkOn : ""}`} />
           </button>
         ))}
@@ -69,7 +69,7 @@ export function VPay() {
       </div>
 
       <div className={s.sum}>
-        <div className={s.kv}><span>Пакеттен алынады</span><b className={s.blue}>{units} бірлік</b></div>
+        <div className={s.kv}><span>Пакеттен алынады</span><b className={s.blue}>{`${units} бірлік`}</b></div>
       </div>
       <Buttons main={{ text: busy ? "QR жасалуда…" : `QR шығару · ${units} бірлік`, onClick: () => void make(), disabled: !offer || busy, shine: true }} />
     </VPage>
@@ -136,7 +136,7 @@ export function VQr() {
   return (
     <VPage title="Төлем QR" back>
       <div className={s.amount}>{w ? `${w.units} бірлік` : <Sk w={140} h={36} />}</div>
-      {w?.title && <p className={`${s.muted} ${s.amountSub}`}>{w.title} × {w.units} • пакеттен</p>}
+      {w?.title && <p className={`${s.muted} ${s.amountSub}`}>{`${w.title} × ${w.units} • пакеттен`}</p>}
       <div className={s.qrCard}>
         <span className={`${s.qrImg} ${svg ? "" : s.qrFade}`} dangerouslySetInnerHTML={{ __html: svg }} />
         <span className={s.valid}><i className={s.clock} />Жарамдылығы {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}</span>
@@ -171,7 +171,7 @@ export function VPaid() {
         <div className={s.card}>
           <div className={s.kv}><span>Клиент</span><b>{p.customer}</b></div>
           <div className={s.kv}><span>Пакет</span><b>{p.title} × {p.units}</b></div>
-          <div className={s.kv}><span>Пакет күйі</span><span className={s.tag}>{p.left} / {p.total} бірлік қалды</span></div>
+          <div className={s.kv}><span>Пакет күйі</span><span className={s.tag}>{`${p.left} / ${p.total} бірлік қалды`}</span></div>
           <div className={s.kv}><span>Уақыты</span><b>{dayMonth(p.at)}, {hm(p.at)}</b></div>
           {p.ref && <div className={s.kv}><span>Банк референсі</span><b>{p.ref}</b></div>}
         </div>

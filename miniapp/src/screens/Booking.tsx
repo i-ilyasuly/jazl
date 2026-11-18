@@ -107,7 +107,7 @@ function SlotPicker({ days, value, onChange }: { dayTitle?: string; days: number
         })}
       </div>
     </div>
-    <div className={`${s.timesHead} rise`} style={{ ["--i" as string]: 1 }}><b className="t-sub2 w-600">{dayWord(value.day)}</b><span className="t-cap1">бос уақыт · {freeTimes(value.day).length}</span></div>
+    <div className={`${s.timesHead} rise`} style={{ ["--i" as string]: 1 }}><b className="t-sub2 w-600">{dayWord(value.day)}</b><span className="t-cap1">{`бос уақыт · ${freeTimes(value.day).length}`}</span></div>
     <div ref={timesRef} key={value.day} className={`${s.times} rise`} style={{ ["--i" as string]: 1 }}>
       {TIMES.map((t) => {
         const off = busy(value.day, t);
@@ -118,7 +118,7 @@ function SlotPicker({ days, value, onChange }: { dayTitle?: string; days: number
     </div>
     {dayPlans.length > 0 && (
       <div key={"p" + value.day} className={`${s.plans} rise`} style={{ ["--i" as string]: 2 }}>
-        <p className={s.plansHead}><b>{sd.getDate()} {MONTHS[sd.getMonth()].toLowerCase()}</b><span>{dayPlans.length} жоспар бар</span></p>
+        <p className={s.plansHead}><b>{sd.getDate()} {MONTHS[sd.getMonth()].toLowerCase()}</b><span>{`${dayPlans.length} жоспар бар`}</span></p>
         {dayPlans.map((x) => (
           <div key={x.id} className={s.plan}>
             <i style={{ background: x.color }} />
@@ -202,7 +202,7 @@ export function BookDone() {
       <div className={r.body}>
         <Sticker name="party" size={120} className={r.sticker} />
         <h1 className={r.title}>{b && getPack(b.packId) && offerOf(getPack(b.packId)!).kind !== "hair" ? "Жоспарланды" : "Жазылу расталды"}</h1>
-        <p className={r.text}>{b ? bookLabel(b.at) : ""}. Ескерту жазылуға 2 сағат қалғанда келеді.</p>
+        <p className={r.text}>{`${b ? bookLabel(b.at) : ""}. Ескерту жазылуға 2 сағат қалғанда келеді.`}</p>
       </div>
       <Bar left={left} main={main} />
     </div>

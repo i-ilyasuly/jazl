@@ -167,7 +167,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
           <div className={s.row}><span className={s.muted}>Үнем</span><span className={`w-600 ${s.green}`}>−{fmt(saving(offer))}</span></div>
           <div className={s.row}><span>Жиыны</span><span className={s.total}>{fmt(offer.price)}</span></div>
           {(bonus?.balance ?? 0) > 0 && hasServer() && <>
-            <div className={s.row}><span className={s.muted}>Medeo бонусы · {fmt(bonus!.balance)}</span><span className={s.method}>{useB && <span className={`w-600 ${s.green}`}>−{fmt(bonusUse)}</span>}<Switch on={useB} onChange={(v) => { haptic.select(); setUseB(v); }} /></span></div>
+            <div className={s.row}><span className={s.muted}>{`Medeo бонусы · ${fmt(bonus!.balance)}`}</span><span className={s.method}>{useB && <span className={`w-600 ${s.green}`}>−{fmt(bonusUse)}</span>}<Switch on={useB} onChange={(v) => { haptic.select(); setUseB(v); }} /></span></div>
             {useB && <div className={s.row}><span>Төленеді</span><span className={s.total}>{fmt(cash)}</span></div>}
           </>}
           <hr className={s.sep} />
@@ -216,7 +216,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
         {step === "wait" && <>
           <span className={s.ring} />
           <h2 className={`${s.title} ${s.center}`}>Kaspi.kz қосымшасын аш</h2>
-          <p className={`${s.lead} ${s.center}`}>{fmt(price)} шоты {mask(phone || saved)} нөміріне жіберілді</p>
+          <p className={`${s.lead} ${s.center}`}>{`${fmt(price)} шоты ${mask(phone || saved)} нөміріне жіберілді`}</p>
           <hr className={s.sep} />
           <ol className={s.steps}>
             {["Kaspi.kz қосымшасына шот келді", "Төлемді растаңыз", "Пакет автоматты түрде қосылады"].map((t, i) => (

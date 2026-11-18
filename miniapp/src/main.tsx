@@ -2,7 +2,7 @@ import { StrictMode, Suspense, lazy, useEffect, useRef, useState, type ReactNode
 import { Bonus } from "./screens/Bonus";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
-import { loadCards, useLocked, useOnboarded } from "./store";
+import { loadCards, syncServerLang, useLocked, useOnboarded } from "./store";
 import { Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
 import "./styles/base.css";
 import { initTelegram } from "./telegram";
@@ -289,7 +289,7 @@ warmImages();
 void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
 void loadStaff();
-void loadCards(); // сақталған карталар (сервер болса) // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
+void loadCards(); syncServerLang(); // сақталған карталар (сервер болса) // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

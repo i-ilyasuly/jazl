@@ -113,7 +113,7 @@ export function APulse() {
       <div className={v.card}>{att ? rows.map((r) => <Row key={r.t} r={r} />) : <div className={v.row}><Sk h={40} /></div>}</div>
       <div className={v.stats}>
         <div className={v.stat}><span className={v.statLabel}>Жаңа клиент</span><span className={v.statNum}>{p ? p.clients : "–"}</span>{p && <span className={p.clientsDelta >= 0 ? s.pillUp : s.pillDown}>{p.clientsDelta >= 0 ? "▲" : "▼"} {Math.abs(p.clientsDelta)}</span>}</div>
-        <div className={v.stat}><span className={v.statLabel}>Белсенді мекеме</span><span className={v.statNum}>{p ? `${p.venuesActive} / ${p.venuesTotal}` : "–"}</span>{p && p.venuesPaused > 0 && <span className={`${v.tag} ${v.tagYellow}`} style={{ alignSelf: "flex-start" }}>{p.venuesPaused} тоқтатылған</span>}</div>
+        <div className={v.stat}><span className={v.statLabel}>Белсенді мекеме</span><span className={v.statNum}>{p ? `${p.venuesActive} / ${p.venuesTotal}` : "–"}</span>{p && p.venuesPaused > 0 && <span className={`${v.tag} ${v.tagYellow}`} style={{ alignSelf: "flex-start" }}>{`${p.venuesPaused} тоқтатылған`}</span>}</div>
       </div>
       <div className={v.chart}>
         <div className={v.chartHead}><b className={v.lead}>Апталық сатылым</b><span className={v.chartSum}>{p ? money(p.weekTotal) : "–"}</span></div>

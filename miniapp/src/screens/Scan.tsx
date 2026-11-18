@@ -201,7 +201,7 @@ export function Scan() {
             <div className={s.kvList}>
               {([["Мекеме", o.venue], ["Пакеттен", `1 дана · ${unitLabel(pack)}`], ["Таңдалған ас", "Донер + Айран"], ["Қосымша", fmt(extra)]] as const).map(([k, v]) => <p key={k}><span className={s.muted}>{k}</span><b>{v}</b></p>)}
             </div>
-            <p className={`t-sub2 w-600 ${s.extraChip}`}>Қосымша {fmt(extra)} кассада төленеді</p>
+            <p className={`t-sub2 w-600 ${s.extraChip}`}>{`Қосымша ${fmt(extra)} кассада төленеді`}</p>
             <p className={`${s.quote} infoBox`}>Пакет баламасынан бір дана ғана шегеріледі. Қосымша сома пакеттен тыс, мекеменің кассасында төленеді.<i>”</i></p>
             </> : <>
             <h2 className={s.sheetTitle}>Қолдану</h2>
@@ -209,7 +209,7 @@ export function Scan() {
               <span className={s.avatar} />
               <span className={s.venueText}><span className="t-headline">{o.venue}</span><span className={s.packSub}>{info?.branch.address ?? o.address ?? ""}</span></span>
             </div>
-            {switched && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Бұл QR — {qrVenue} мекемесінікі. Сол мекемедегі пакетің таңдалды.<i>”</i></p>}
+            {switched && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>{`Бұл QR — ${qrVenue} мекемесінікі. Сол мекемедегі пакетің таңдалды.`}<i>”</i></p>}
             {multi && <p className={`t-sub2 w-600 ${s.link}`}>Қай пакеттен?</p>}
             <div className={s.opts}>
               {multi ? opts.map((x) => (
@@ -233,7 +233,7 @@ export function Scan() {
             <div className={s.rows}>
               <p><span className={s.muted}>Қалады</span><b>{Math.max(0, (chosen?.left ?? pack.left) - units)} / {chosen?.total ?? pack.total}</b></p>
             </div>
-            {!unitsOk && needUnits !== -1 && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>Пакетте {chosen?.left ?? 0} {word} қалды — {units} {word} жұмсауға жетпейді. Кассирге айт.<i>”</i></p>}
+            {!unitsOk && needUnits !== -1 && <p className={`t-sub2 ${s.quote} infoBox infoWarn`}>{`Пакетте ${chosen?.left ?? 0} ${word} қалды — ${units} ${word} жұмсауға жетпейді. Кассирге айт.`}<i>”</i></p>}
             </>}
             {!inTelegram && (
               <div className={`${s.bar} ${extra ? s.bar2 : ""}`}>
