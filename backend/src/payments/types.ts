@@ -11,13 +11,16 @@ export interface CardInfo { token: string; brand: string; last4: string; expMont
 export interface ChargeInput {
   /** Біздегі төлем ID-і (провайдерге «тапсырыс нөмірі» ретінде) — вебхукта осы арқылы табамыз */
   paymentId: string;
+  /** Төлемнің сандық нөмірі (payments.no): тек сан қабылдайтын провайдерлерге (Halyk invoiceId) */
+  orderNo?: number;
   /** Теңгемен, бүтін сан */
   amount: number;
   /** Клиенттің банк қосымшасында көрінетін сипаттама: «Medeo · Тауық донері · 4 дана» */
   description: string;
   user: { id: string; telegramId: number };
   /** Сақталған картаның токені немесе бір реттік криптограмма (жаңа карта) */
-  card: { token?: string; cryptogram?: string; save?: boolean };
+  /** hosted — карта банктің қорғалған бетінде енгізіледі (клиент confirmUrl-ға өтеді) */
+  card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean };
   /** 3-D Secure біткен соң клиент оралатын мекенжай */
   returnUrl: string;
 }
@@ -33,13 +36,21 @@ export type ChargeResult =
 export type FailReason = "3ds_required" | "declined" | "insufficient_funds" | "expired_card" | "3ds_failed" | "limit" | "fraud" | "provider_error";
 
 /** Вебхуктан алынған нәтиже: externalId не paymentId арқылы төлемді табамыз */
-export interface WebhookEvent { paymentId?: string; externalId: string; status: "paid" | "failed"; reason?: FailReason; card?: CardInfo;
+export interface WebhookEvent { paymentId?: string; externalId: string; status: "paid" | "failed" | "pending"; reason?: FailReason; card?: CardInfo;
   /** Провайдер растаған сома (теңге). Берілсе — біздегі сомамен сәйкес келуі міндетті, әйтпесе төлем қабылданбайды */
-  amount?: number }
+  amount?: number;
+  /** Провайдердегі клиент белгісі (біз жіберген users.id). Берілсе — төлем иесімен сәйкес келуі міндетті */
+  accountId?: string }
 
 export interface PaymentProvider {
   /** payments.provider бағанына жазылады */
   readonly name: string;
+  /** Карта банктің бетінде енгізіледі (мини апп карта формасын көрсетпейді) */
+  readonly hosted?: boolean;
+  /** Банктің сынақ ортасы (ақша жүрмейді) — мини аппта белгі көрсетіледі */
+  readonly testMode?: boolean;
+  /** Төлемнің нақты күйін провайдерден сұрау (хабарлама келмей қалса — мини апп күту бетінде осыны шақырады) */
+  check?(externalId: string): Promise<WebhookEvent | null>;
   /** Төлем жасау (жаңа карта криптограммасы не сақталған карта токені) */
   charge(input: ChargeInput): Promise<ChargeResult>;
   /** Картаны сақтау (ақша алмай, токенге айналдыру): криптограмма → токен */

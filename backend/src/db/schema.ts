@@ -223,6 +223,8 @@ export const payments = app.table("payments", {
   id: id(),
   userId: uuid("user_id").notNull().references(() => users.id),
   packId: uuid("pack_id").references(() => packs.id),
+  /** Сандық нөмір (Halyk invoiceId) — 0023_pay_no.sql, дерекқор өзі береді */
+  no: bigint("no", { mode: "number" }).notNull().default(sql`nextval('app.pay_no_seq')`),
   provider: text("provider").notNull(),
   amount: integer("amount").notNull(),
   status: paymentStatus("status").notNull().default("created"),

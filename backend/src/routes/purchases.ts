@@ -11,11 +11,34 @@ import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import { branches, gifts, offers, packEvents, packs, paymentCards, payments, receipts, users, venues } from "../db/schema.js";
-import { paymentProvider, type CardInfo } from "../payments/index.js";
+import { hostedProviders, paymentProvider, providerByName, type CardInfo, type PaymentProvider } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
 import { leftValue } from "../value.js";
 import { getSettings } from "../settings.js";
 import { offPeakPrice, type OffPeakT } from "../offpeak.js";
+
+/** Карта: сақталған (id), жаңа картаның криптограммасы (сынақ провайдері) не банктің қорғалған беті (hosted — Halyk т.б.). save — картаны сақтау */
+export const CardBody = z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional(),
+  hosted: z.boolean().optional(), provider: z.enum(["halyk"]).optional() }).strict();
+type CardIn = z.infer<typeof CardBody>;
+export type ResolvedCard = { provider: PaymentProvider; card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; id?: string; label?: string } };
+/** Төлем қай провайдер арқылы өтеді: сақталған карта — өз провайдері (сол банкте сақталған); банк беті — таңдалған hosted провайдер; әйтпесе — PAYMENTS_PROVIDER */
+export async function resolveCard(db: Db, cfg: Config, userId: string, b: CardIn): Promise<ResolvedCard | { error: string; status: 400 | 404 }> {
+  if (b.id) {
+    const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, b.id), eq(paymentCards.userId, userId), isNull(paymentCards.removedAt))).limit(1);
+    if (!pc) return { error: "card_not_found", status: 404 };
+    const provider = providerByName(cfg, pc.provider);
+    if (!provider) return { error: "card_not_found", status: 404 };
+    return { provider, card: { token: pc.token, id: pc.id, label: `${pc.brand} •• ${pc.last4}` } };
+  }
+  if (b.hosted) {
+    const provider = hostedProviders(cfg).find((p) => !b.provider || p.name === b.provider);
+    if (!provider) return { error: "provider_unavailable", status: 400 };
+    return { provider, card: { hosted: true, save: b.save ?? false, label: "Банк картасы" } };
+  }
+  if (b.cryptogram) return { provider: paymentProvider(cfg), card: { cryptogram: b.cryptogram, save: b.save ?? false } };
+  return { error: "bad_request", status: 400 };
+}
 
 const Buy = z.object({
   offerSlug: z.string().min(1).max(64),
@@ -33,7 +56,7 @@ const Buy = z.object({
   /** Бос сағат жеңілдігі: пакет арзанырақ, бірақ келу уақыты тек мекеменің бос терезесінде (offpeak.ts) */
   offPeak: z.boolean().optional(),
   /** Карта: сақталған (id) не жаңа картаның провайдер криптограммасы (карта нөмірі ЕШҚАШАН жіберілмейді); save — картаны сақтау */
-  card: z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional() }).strict().optional(),
+  card: CardBody.optional(),
   /** Medeo бонусын жұмсау (күйген бірліктен қайтқан ақша): бағадан шегеріледі, қалғаны картадан/Kaspi-ден */
   useBonus: z.boolean().optional(),
 }).strict();
@@ -193,13 +216,13 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
     if (old.offPeak && rules.offPeak && rules.planOnly && !offPeak) { offPeak = rules.offPeak; price = offPeakPrice(size.price, offPeak.pct); }
   }
   // Карта: сақталған карта (id) не жаңа картаның криптограммасы. Карта нөмірі серверге келмейді.
-  const provider = paymentProvider(cfg);
-  let card: { token?: string; cryptogram?: string; save?: boolean; id?: string; label?: string } | null = null;
-  if (body.method === "card" && body.card?.id) {
-    const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, body.card.id), eq(paymentCards.userId, user.id), isNull(paymentCards.removedAt))).limit(1);
-    if (!pc) return err("card_not_found", 404);
-    card = { token: pc.token, id: pc.id, label: `${pc.brand} •• ${pc.last4}` };
-  } else if (body.method === "card" && body.card?.cryptogram) card = { cryptogram: body.card.cryptogram, save: body.card.save ?? false };
+  let provider = paymentProvider(cfg);
+  let card: ResolvedCard["card"] | null = null;
+  if (body.method === "card" && body.card && (body.card.id || body.card.cryptogram || body.card.hosted)) {
+    const rc = await resolveCard(db, cfg, user.id, body.card);
+    if ("error" in rc) return err(rc.error, rc.status);
+    provider = rc.provider; card = rc.card;
+  }
   if (opts.background && !card?.token) return err("card_required"); // автожаңарту тек сақталған картамен, ешқашан сынақ «төленді» жолымен емес
   const methodLabel = card?.label ?? body.methodLabel ?? { kaspi: "Kaspi Pay", card: "Банк картасы", test: "Сынақ төлемі" }[body.method];
   const total = price * count;
@@ -230,8 +253,8 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   }
   let res: Awaited<ReturnType<typeof provider.charge>>;
   try {
-    res = await provider.charge({ paymentId: created.id, amount: created.amount, description: `Medeo · ${o.title}${count > 1 ? ` × ${count}` : ""}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
-      card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
+    res = await provider.charge({ paymentId: created.id, orderNo: created.no, amount: created.amount, description: `Medeo · ${o.title}${count > 1 ? ` × ${count}` : ""}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
+      card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save, hosted: card!.hosted }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
   } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
   if (res.status === "action_required" && opts.background) res = { status: "failed", externalId: res.externalId, reason: "3ds_required" };
   if (res.status === "failed") {

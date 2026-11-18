@@ -50,7 +50,8 @@ export function Pay3ds() {
     setBusy(false);
     if (!done(r)) haptic.error();
   }, [busy, code, id, done]);
-  const cancel = useCallback(() => void confirm(false), [confirm]);
+  // Банк бетінде күтіп тұрғанда «Бас тарту» — тек артқа: төлемді банк бетінде өзі жабады (төленбесе, пакет берілмейді)
+  const cancel = useCallback(() => { if (wait) { haptic.soft(); if (window.history.length > 1) go(-1, "back"); else go("/packs", "fade", { replace: true }); } else void confirm(false); }, [confirm, wait, go]);
   useBackButton(cancel);
   const main = useMemo<{ text: string; disabled?: boolean; onClick: () => void }>(() => (wait ? { text: "Тексеру", onClick: () => { void paymentStatus(id).then(done); } } : { text: busy ? "…" : "Растау", disabled: busy || code.length < 6, onClick: () => { void confirm(true); } }), [wait, busy, code, id, done, confirm]);
   const second = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: cancel }), [cancel]);

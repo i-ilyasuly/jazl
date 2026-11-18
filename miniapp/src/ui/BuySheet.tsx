@@ -8,7 +8,7 @@ import { fmt, saving, type Offer } from "../mocks/offers";
 import { useGo } from "../nav";
 import { offPeakPrice, winLabel } from "../offpeak";
 import { adoptPurchase, setBuyExtra, setDefaultMethod, setKaspiPhone, useDefaultMethod, useKaspiPhone, useMethods } from "../store";
-import { checkoutBonus, checkoutCard, hasServer } from "../pay/checkout";
+import { cardOf, checkoutBonus, checkoutCard, hasServer } from "../pay/checkout";
 import { loadBonus, setBonusNext, useBonus } from "../pay/bonus";
 import { Switch } from "./SubPage";
 import { askPhone, haptic, inTelegram, openExternal, tg, useBackButton, useBottomButtons } from "../telegram";
@@ -90,9 +90,10 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
       return;
     }
     // Карта (сақталған не бір реттік) және сервер бар: нақты төлем ағыны — бірден өтеді / банк растауы / өтпеді
-    if (m?.card && hasServer() && (m.cardId || m.cryptogram)) {
+    const cardBody = m?.card && hasServer() ? cardOf(m) : null;
+    if (m && cardBody) {
       setBonusNext(false); setBusy(true); tg?.MainButton?.showProgress?.(false);
-      void checkoutCard(offer.id, m.cardId ? { id: m.cardId } : { cryptogram: m.cryptogram!, save: false }, { ...(bonusUse ? { useBonus: true } : {}), ...extra }).then((r) => {
+      void checkoutCard(offer.id, cardBody, { ...(bonusUse ? { useBonus: true } : {}), ...extra }).then((r) => {
         tg?.MainButton?.hideProgress?.(); setBusy(false); if (bonusUse) void loadBonus(true);
         if (r.status === "paid") { adoptPurchase(offer.id, r.pack, m.title); haptic.success(); onPaid(); return; }
         if (r.status === "action_required") {
