@@ -1,7 +1,7 @@
 import { StrictMode, Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
-import { loadCards, syncServerLang, useLocked, useOnboarded } from "./store";
+import { loadCards, loadWaits, syncServerLang, useLocked, useOnboarded } from "./store";
 import { Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
 import "./styles/base.css";
 import { initTelegram } from "./telegram";
@@ -148,7 +148,7 @@ initTelegram();
   const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
   // Бот хабарламаларының батырмалары (backend/src/notify.ts): vo_ — тапсырыс, vc_ — шағым, pk_ — клиент пакеті, v_<бет> — мекеме беті
   const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v|a|pay|p)_([\w-]+)$/);
-  const vPage: Record<string, string> = { home: "/v", report: "/v/report", team: "/v/team", reviews: "/v/reviews", apply: "/v/apply/status", complaints: "/v/complaints", new: "/v/apply" }; // new — бот /business: тіркелуді бастау
+  const vPage: Record<string, string> = { home: "/v", report: "/v/report", team: "/v/team", reviews: "/v/reviews", apply: "/v/apply/status", complaints: "/v/complaints", new: "/v/apply", offers: "/v/offers" }; // new — бот /business: тіркелуді бастау
   const to = m && (m[1] === "a" ? "/a" : m[1] === "pay" ? `/pay/3ds/${m[2]}?wait=1` : m[1] === "v" ? vPage[m[2]] : m[1] === "p" ? ({ bonus: "/profile/bonus", packs: "/packs", help: "/profile/faq", report: "/profile/report", lang: "/profile/language", home: "/" } as Record<string, string>)[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
   if (m && to) window.location.hash = "#" + to;
 }
@@ -357,7 +357,7 @@ window.addEventListener("load", () => {
 void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
 void loadStaff();
-void loadCards(); syncServerLang(); // сақталған карталар (сервер болса) // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
+void loadCards(); syncServerLang(); idle(() => void loadWaits(), 4000); // «Хабарла» тізімі // сақталған карталар (сервер болса) // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

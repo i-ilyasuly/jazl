@@ -49,7 +49,7 @@ export function VOffers() {
                 </span>
                 {(o.status === "active" || o.status === "paused") && me?.role !== "cashier" && <Switch on={on} onChange={(v) => void toggle(o, v)} />}
               </div>
-              <div className={s.ocBottom}><span className={s.ocPrice}>{`${money(o.fromPrice)}-дан`}</span><span className={s.rowSub}>{`${o.sold} пакет сатылды`}</span></div>
+              <div className={s.ocBottom}><span className={s.ocPrice}>{`${money(o.fromPrice)}-дан`}</span><span className={s.rowSub}>{o.limit ? (o.soldMonth >= o.limit ? `Осы айға таусылды · ${o.limit}` : `Осы ай: ${o.soldMonth} / ${o.limit}`) : `${o.sold} пакет сатылды`}</span></div>
             </div>
           );
         })}

@@ -451,3 +451,11 @@ export const settings = app.table("settings", {
   value: jsonb("value").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** «Қайта шыққанда хабарла» (Патша, 2026-11-18): ұсыныс аяқталса не айлық лимиті таусылса, клиент тізімге жазылады;
+ *  ұсыныс қайта сатылымға шыққанда (жаңа ай, лимит көбейді, қайта қосылды) бот бір рет хабарлайды да, жазба өшеді. */
+export const offerWaits = app.table("offer_waits", {
+  userId: uuid("user_id").notNull().references(() => users.id),
+  offerId: uuid("offer_id").notNull().references(() => offers.id),
+  createdAt: created(),
+}, (t) => [uniqueIndex("offer_waits_pk").on(t.userId, t.offerId), index("offer_waits_offer").on(t.offerId)]);

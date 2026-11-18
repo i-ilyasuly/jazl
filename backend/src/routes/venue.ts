@@ -14,6 +14,7 @@ import type { Notifier } from "../notify.js";
 import { venuePrefDefaults } from "../notify.js";
 import { feeFor, getSettings } from "../settings.js";
 import { OffPeak, offPeakPrice } from "../offpeak.js";
+import { limitsOf, soldThisMonth } from "../limits.js";
 import { branches, offers, packs, qrSessions, redemptions, staffInvites, users, venueStaff, venues } from "../db/schema.js";
 import { makeSessionQr } from "../qr.js";
 import { branchStatus } from "../hours.js";
@@ -240,13 +241,16 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   r.get("/venue/:venueId/offers", async (c) => {
     const venueId = c.req.param("venueId");
     if (!(await guard(c, venueId))) return deny(c); // кассир де көреді: «Клиенттің пакетін таңда»
-    const rows = await db.execute(sql`select o.id, o.slug, o.title, o.title_ru, o.kind, o.unit_name, o.units, o.price, o.sizes, o.status, o.valid_days, o.photos,
+    const rows = await db.execute(sql`select o.id, o.slug, o.title, o.title_ru, o.kind, o.unit_name, o.units, o.price, o.sizes, o.status, o.valid_days, o.photos, o.rules,
         (select count(*) from app.packs p where p.offer_id = o.id and p.status not in ('pending_payment','refunded'))::int as sold
       from app.offers o where o.venue_id = ${venueId} order by o.created_at`);
-    return c.json({ ok: true, offers: (rows.rows as { id: string; slug: string; title: string; title_ru: string | null; kind: string; unit_name: string; units: number; price: number; sizes: { units: number; price: number }[] | null; status: string; valid_days: number; photos: string[]; sold: number }[])
+    const list = rows.rows as { id: string; slug: string; title: string; title_ru: string | null; kind: string; unit_name: string; units: number; price: number; sizes: { units: number; price: number }[] | null; status: string; valid_days: number; photos: string[]; rules: unknown; sold: number }[];
+    const month = await soldThisMonth(db, list.filter((o) => limitsOf(o.rules).monthlyLimit).map((o) => o.id));
+    return c.json({ ok: true, offers: list
       .map((o) => { const sizes = [{ units: o.units, price: o.price }, ...(o.sizes ?? [])].sort((a, b) => a.units - b.units);
         return { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], titleRu: o.title_ru, kind: o.kind, unitName: o.unit_name, status: o.status, sold: o.sold, validDays: o.valid_days, photo: o.photos?.[0] ?? null,
-          sizes: sizes.map((s) => s.units), fromPrice: Math.min(...sizes.map((s) => s.price)), unitPrice: Math.round(o.price / o.units) }; }) });
+          sizes: sizes.map((s) => s.units), fromPrice: Math.min(...sizes.map((s) => s.price)), unitPrice: Math.round(o.price / o.units),
+          limit: limitsOf(o.rules).monthlyLimit, soldMonth: month.get(o.id) ?? 0 }; }) });
   });
   r.post("/venue/:venueId/offers/:offerId/status", async (c) => {
     const venueId = c.req.param("venueId");
@@ -259,6 +263,11 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
 
   // ── 06 · Ұсыныс құру, ұсыныс беті, бағаны өзгерту (Figma 14007/14008/14018) ──
   const Size = z.object({ units: z.number().int().min(1).max(100), price: z.number().int().min(100).max(10_000_000) });
+  const Portion = z.object({ value: z.number().positive().max(100_000), unit: z.enum(["g", "kg", "ml", "l", "cm", "pcs", "min"]) }).strict();
+  /** Ұсыныстың details ішіне жазылатын құрам/порция (бос жол — жоқ) */
+  const extraDetails = (d: { composition?: string; compositionRu?: string; portion?: { value: number; unit: string } | null }) => ({
+    ...(d.composition !== undefined ? { composition: d.composition || null } : {}), ...(d.compositionRu !== undefined ? { compositionRu: d.compositionRu || null } : {}),
+    ...(d.portion !== undefined ? { portion: d.portion } : {}) });
   const OfferBody = z.object({
     title: z.string().trim().min(2).max(60), titleRu: z.string().trim().min(2).max(60).optional(), category: z.string().trim().max(30).optional(), about: z.string().max(500).default(""), aboutRu: z.string().max(500).optional(),
     sizes: z.array(Size).min(1).max(5), regularUnitPrice: z.number().int().min(50).max(1_000_000), validDays: z.number().int().min(7).max(365),
@@ -266,11 +275,17 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
       /** «Тек жоспар бойынша» (Патша, 2026-11-18): клиент тек алдын ала жазылу/жоспар арқылы қолданады; QR мен «қазір» тапсырыс жабық */
       planOnly: z.boolean().optional(),
       /** Бос сағат жеңілдігі (Патша, 2026-11-18): тек «Тек жоспар бойынша» ұсыныста — әйтпесе алынып тасталады */
-      offPeak: OffPeak.nullable().optional() }).transform((r) => {
+      offPeak: OffPeak.nullable().optional(),
+      /** Сату лимиті (Патша, 2026-11-18): айына неше пакет сатылады (әр айдың 1-інде жаңарады); бір адам айына неше пакет ала алады. null — шексіз */
+      monthlyLimit: z.number().int().min(1).max(100_000).nullable().optional(),
+      perUserLimit: z.number().int().min(1).max(100).nullable().optional() }).transform((r) => {
       const x = r.planOnly ? { ...r, preorder: true } : r;
       return x.planOnly && x.offPeak ? x : { ...x, offPeak: undefined };
     }),
     publish: z.boolean().default(false),
+    /** Құрамы (екі тілде) және порциясы (Патша, 2026-11-18): «Лаваш, тауық еті, көкөніс…», «350 г» */
+    composition: z.string().trim().max(300).optional(), compositionRu: z.string().trim().max(300).optional(),
+    portion: Portion.nullable().optional(),
     photos: z.array(z.string().url().max(500)).max(5).default([]),
   }).strict();
   /** Жеңілдік кемінде 10% (Figma «Ұсыныс: жеңілдік 10%-дан аз»): әр көлем бағасы бөлек алғандағы сомадан ≤ 90% */
@@ -312,9 +327,10 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     { const max = d.publish ? await bigOffPeak(sizes, d.regularUnitPrice, d.rules.offPeak) : 0; if (max) return c.json({ ok: false, error: "big_off_peak", max }, 409); }
     if (d.publish && !d.titleRu) return c.json({ ok: false, error: "title_ru_required" }, 400); // клиент орысша да көреді
     if (d.publish && d.about && !d.aboutRu) return c.json({ ok: false, error: "about_ru_required" }, 400);
+    if (d.publish && d.composition && !d.compositionRu) return c.json({ ok: false, error: "composition_ru_required" }, 400);
     const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
     const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, titleRu: d.titleRu ?? null, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
-      regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about, aboutRu: d.aboutRu ?? null }, photos: d.photos, category: d.category ?? null, rules: { ...d.rules, branches: await ownBranches(venueId, d.rules.branches) },
+      regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about, aboutRu: d.aboutRu ?? null, ...extraDetails(d) }, photos: d.photos, category: d.category ?? null, rules: { ...d.rules, branches: await ownBranches(venueId, d.rules.branches) },
       status: d.publish ? await statusAfterPublish() : "draft" }).returning();
     if (o.status === "review") await notify?.adminModeration(o.id);
     return c.json({ ok: true, offer: { id: o.id, status: o.status } });
@@ -338,8 +354,9 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
       const max = d.publish || !draft ? await bigOffPeak(real, keepSizes ? cur.regularUnitPrice : d.regularUnitPrice, d.rules.offPeak) : 0; if (max) return c.json({ ok: false, error: "big_off_peak", max }, 409); }
     if (d.publish && draft && !(d.titleRu ?? cur.titleRu)) return c.json({ ok: false, error: "title_ru_required" }, 400);
     if (d.publish && draft && d.about && !(d.aboutRu ?? (cur.details as { aboutRu?: string } | null)?.aboutRu)) return c.json({ ok: false, error: "about_ru_required" }, 400);
+    if (d.composition && !(d.compositionRu ?? (cur.details as { compositionRu?: string } | null)?.compositionRu) && (d.publish || !draft)) return c.json({ ok: false, error: "composition_ru_required" }, 400);
     const next = d.publish && draft ? await statusAfterPublish() : cur.status;
-    await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, titleRu: d.titleRu ?? cur.titleRu, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about, ...(d.aboutRu !== undefined ? { aboutRu: d.aboutRu } : {}) },
+    await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, titleRu: d.titleRu ?? cur.titleRu, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about, ...(d.aboutRu !== undefined ? { aboutRu: d.aboutRu } : {}), ...extraDetails(d) },
       category: d.category ?? null, rules: { ...d.rules, branches: await ownBranches(venueId, d.rules.branches) }, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
       ...(keepSizes ? {} : { units: sizes[0].units, price: sizes[0].price, sizes: sizes.length > 1 ? sizes : null }),
       ...(d.publish && draft ? { status: next, reviewNote: null } : {}) }).where(eq(offers.id, cur.id)); // түзетіп қайта жіберсе — ескерту өшеді
@@ -365,6 +382,8 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const sizes = (o.sizes as { units: number; price: number }[] | null) ?? [{ units: o.units, price: o.price }];
     const all = sizes.some((x) => x.units === o.units) ? sizes : [{ units: o.units, price: o.price }, ...sizes];
     return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], titleRu: o.titleRu, kind: o.kind, status: o.status, reviewNote: o.reviewNote, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "", aboutRu: (o.details as { aboutRu?: string } | null)?.aboutRu ?? null,
+      composition: (o.details as { composition?: string } | null)?.composition ?? "", compositionRu: (o.details as { compositionRu?: string } | null)?.compositionRu ?? "", portion: (o.details as { portion?: unknown } | null)?.portion ?? null,
+      soldMonth: (await soldThisMonth(db, [o.id])).get(o.id) ?? 0,
       regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, photos: o.photos, rules: o.rules ?? { carry: true, extend: true, preorder: true, branches: null },
       sizes: all.sort((a, z) => a.units - z.units).map((x) => ({ ...x, sold: bySize.find((y) => y.units === x.units)?.n ?? 0 })),
       stats: { ...st, revenue: share(st.gross, venueId), series, growth: prev ? Math.round(((now7 - prev) / prev) * 100) : null } } });

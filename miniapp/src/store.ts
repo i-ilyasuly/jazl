@@ -3,7 +3,7 @@
 import type { OffPeak } from "./offpeak";
 import { applyLangPref, getLang, getPref, kk } from "./i18n";
 import { loadBonus, takeBonusNext } from "./pay/bonus";
-import { kv } from "./telegram";
+import { kv, nativeAlert } from "./telegram";
 import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
 import { venues } from "./mocks/venues";
 import { useSyncExternalStore } from "react";
@@ -130,6 +130,17 @@ export function buyPack(offerId: string, methodLabel = "Kaspi Pay"): string {
   return id;
 }
 
+/** Сату лимиті (сервер 409 қайтарады): жергілікті алдын ала қосылған пакет алынады, клиентке себебі айтылады. Ақша алынбаған. */
+export const limitText = (code?: string) => code === "sold_out" ? "Осы айдың пакеттері таусылып қалды. Келесі айдың 1-інде қайта ашылады — «Хабарла» басып қойсаң, бот хабарлайды. Ақша алынған жоқ."
+  : code === "user_limit" ? "Бұл ұсыныстан осы айға шегіңе жеттің: мекеме бір адамға айына шектеулі пакет береді. Ақша алынған жоқ." : null;
+function limitRefused(localId: string, e: unknown) {
+  const t = limitText((e as { body?: { error?: string } }).body?.error);
+  if (!t) return false;
+  packs = packs.filter((p) => p.id !== localId); emit();
+  void nativeAlert(t);
+  return true;
+}
+
 export interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null; extendLeft?: number; source?: string; autoRenew?: boolean; offPeak?: OffPeak | null }
 async function buyOnServer(localId: string, offerSlug: string, methodLabel: string) {
   if (!(window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData) return; // браузерде — тек жергілікті
@@ -144,7 +155,7 @@ async function buyOnServer(localId: string, offerSlug: string, methodLabel: stri
     packs = packs.some((p) => p.serverId === j.pack.id && p.id !== localId) ? packs.filter((p) => p.id !== localId)
       : packs.map((p) => (p.id === localId ? { ...p, serverId: j.pack.id, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : p));
     emit();
-  } catch { /* сервер жауап бермесе — пакет жергілікті күйде қалады */ }
+  } catch (e) { limitRefused(localId, e); /* басқа қатеде (сервер жауап бермесе) — пакет жергілікті күйде қалады */ }
 }
 
 /** Сервердегі пакеттерді алып, жергілікті тізімде жоқтарын қосады (басқа құрылғыдан сатып алынғандар). */
@@ -244,7 +255,7 @@ export function rebuyPack(packId: string, paid: number, method = "Kaspi Pay", sr
   // B4: серверде қайта алу — ескі пакеттің қалғаны (3 күн ережесі) серверде есептеліп көшеді
   if (srv) { packs = packs.map((x) => (x.id === id ? { ...x, serverId: srv.id, total: srv.unitsTotal, left: srv.unitsLeft, receiptId: srv.receipt?.id, receiptNo: srv.receipt?.no } : x)); emit(); }
   else if (old.serverId) void api<{ pack: SrvPack }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: o.id, fromPackId: old.serverId, method: /kaspi/i.test(method) ? "kaspi" : "card", methodLabel: method, idempotencyKey: newKey() }) }, 12000)
-    .then((j) => { packs = packs.map((x) => (x.id === id ? { ...x, serverId: j.pack.id, total: j.pack.unitsTotal, left: j.pack.unitsLeft, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : x)); emit(); }).catch(() => undefined);
+    .then((j) => { packs = packs.map((x) => (x.id === id ? { ...x, serverId: j.pack.id, total: j.pack.unitsTotal, left: j.pack.unitsLeft, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : x)); emit(); }).catch((e) => { limitRefused(id, e); });
   return id;
 }
 
@@ -327,7 +338,13 @@ let restock: string[] = [];
 export const useFavs = () => useSyncExternalStore(subscribe, () => favs);
 export const useRestock = () => useSyncExternalStore(subscribe, () => restock);
 export function toggleFav(id: string) { favs = favs.includes(id) ? favs.filter((x) => x !== id) : [id, ...favs]; emit(); kv.set("medeo_favs", favs.join(",")); }
-export function toggleRestock(id: string) { restock = restock.includes(id) ? restock.filter((x) => x !== id) : [...restock, id]; emit(); }
+/** «Қайта шыққанда хабарла»: серверге жазылады (ұсыныс қайта сатылымға шыққанда бот хабарлайды). Сервер жоқ болса — тек осы құрылғыда. */
+export function toggleRestock(id: string) {
+  const on = !restock.includes(id);
+  restock = on ? [...restock, id] : restock.filter((x) => x !== id); emit();
+  api(`/v1/offers/${encodeURIComponent(id)}/wait`, { method: "POST", body: JSON.stringify({ on }) }).catch(() => null);
+}
+export async function loadWaits() { try { const j = await api<{ slugs: string[] }>("/v1/waits"); restock = j.slugs; emit(); } catch { /* бэкенд жоқ */ } }
 void kv.get("medeo_favs").then((v) => { if (v !== null) { favs = v ? v.split(",") : []; emit(); } });
 
 // ── Төлем тәсілдері ─────────────────────────────────────────────────────────

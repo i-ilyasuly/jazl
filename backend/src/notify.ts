@@ -3,6 +3,7 @@
 // Telegram мини аппты бірден тиісті бетте ашады (main.tsx start_param).
 // Хабар жіберілмесе (бот бұғатталған, желі) — тек журналға жазылады: негізгі әрекет (тапсырыс, шағым) ешқашан құламайды.
 import { creditBreakage } from "./bonus.js";
+import { limitsOf, soldThisMonth } from "./limits.js";
 import { sql } from "drizzle-orm";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
@@ -252,7 +253,7 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
 
     /** Жоспарлы жұмыс (Cloud Scheduler, 15 минут сайын): өтінім нәтижелері, 22:00 күндік қорытынды, 10:00 мерзім ескертуі */
     tick: async (now = new Date()) => {
-      const out = { applications: 0, daily: 0, expiry: 0, bonus: 0 };
+      const out = { applications: 0, daily: 0, expiry: 0, bonus: 0, soldOut: 0, restock: 0 };
       // 🎁 Күйген бірлік → клиентке Medeo бонусы (мекемеге үлес жоқ — Патша, 2026-11-17)
       for (const b of await creditBreakage(db, now).catch((e) => { console.error("creditBreakage", e); return []; })) {
         if (b.amount <= 0 || !(await once(`bonus:${b.packId}`))) continue;
@@ -261,6 +262,32 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
           `🎁 В пакете «${b.titleRu ?? head(b.title)}» осталось неиспользованных единиц: ${b.units}. Деньги не сгорели: ${money(b.amount)} вернулись бонусом Medeo. Бонус действует 12 месяцев, его можно потратить на следующую покупку в любом заведении.`), button: { text: L("Бонусты көру", "Посмотреть бонус"), start: "p_bonus" } }).catch(() => null);
         out.bonus++;
       }
+      // 🔔 Сату лимиті: таусылса — мекемеге (айына бір рет); қайта ашылса (жаңа ай, лимит көбейді, ұсыныс қайта қосылды) — күткен клиенттерге
+      await safe("limits", async () => {
+        const lim = await rows<{ id: string; title: string; venue_id: string; rules: unknown }>(sql`select id, title, venue_id, rules from app.offers where status = 'active' and (rules->>'monthlyLimit') is not null`);
+        const sold = await soldThisMonth(db, lim.map((o) => o.id));
+        const ym = ymd(now).slice(0, 7);
+        for (const o of lim) {
+          const max = limitsOf(o.rules).monthlyLimit; if (!max || (sold.get(o.id) ?? 0) < max) continue;
+          if (!(await once(`soldout:${o.id}:${ym}:${max}`))) continue;
+          await sendAll(await staff(o.venue_id, ["owner", "manager"]), { text: L(`🔥 «${head(o.title)}» осы айдың лимиті (${max}) түгел сатылды. Келесі айдың 1-інде қайта ашылады. Қазір көбейтсеңіз — күтіп тұрған клиенттерге бірден хабар барады.`,
+            `🔥 Лимит этого месяца по «${head(o.title)}» (${max}) распродан. Продажи откроются 1-го числа следующего месяца. Если увеличите лимит сейчас — ожидающим клиентам сразу придёт уведомление.`), button: { text: L("Лимитті өзгерту", "Изменить лимит"), start: "v_offers" } });
+          out.soldOut++;
+        }
+        const waits = await rows<{ user_id: string; tg: string; offer_id: string; slug: string; title: string; title_ru: string | null; rules: unknown }>(sql`select w.user_id, u.telegram_id as tg, o.id as offer_id, o.slug, o.title, o.title_ru, o.rules
+          from app.offer_waits w join app.users u on u.id = w.user_id join app.offers o on o.id = w.offer_id join app.venues v on v.id = o.venue_id
+          where o.status = 'active' and v.status = 'active' limit 500`);
+        const wSold = await soldThisMonth(db, [...new Set(waits.map((w) => w.offer_id))]);
+        for (const w of waits) {
+          const max = limitsOf(w.rules).monthlyLimit;
+          if (max && (wSold.get(w.offer_id) ?? 0) >= max) continue; // әлі таусылған
+          const del = await rows(sql`delete from app.offer_waits where user_id = ${w.user_id} and offer_id = ${w.offer_id} returning user_id`);
+          if (!del.length) continue;
+          await send({ chatId: Number(w.tg), text: L(`🔔 «${head(w.title)}» қайта сатылымда! Орын шектеулі — үлгеріп ал.`, `🔔 «${w.title_ru ?? head(w.title)}» снова в продаже! Мест немного — успейте.`),
+            button: { text: L("Ашу", "Открыть"), start: `offer_${w.slug}` } }).catch(() => null);
+          out.restock++;
+        }
+      });
       // Өтінім күйі қолмен (дерекқорда) өзгерсе де хабар кетеді
       for (const a of await rows<{ id: string }>(sql`select a.id from app.venue_applications a where a.status in ('approved','need_info','rejected')
           and coalesce(a.decided_at, a.submitted_at, a.created_at) > now() - interval '14 days'

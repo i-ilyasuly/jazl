@@ -9,7 +9,7 @@ import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { UseSheet } from "../ui/UseSheet";
-import { detailsOf, discount, findOffer, fmt, isEnded, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
+import { detailsOf, discount, findOffer, fmt, hasSampleIncludes, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
 import { venues } from "../mocks/venues";
 import { HowSheet } from "../ui/HowSheet";
@@ -88,6 +88,9 @@ function OfferView({ id }: { id?: string }) {
   const offer = useMemo(() => { const z = base.sizes?.[size]; return z ? { ...base, ...z, title: base.title.replace(/· \d+ /, `· ${z.units} `) } : base; }, [base, size]);
   const fav = useFavs().includes(offer.id);
   const ended = isEnded(base.id);
+  // Айлық лимит таусылды: сатып алу жабық, «Хабарла» — келесі айда не лимит көбейгенде бот хабарлайды
+  const soldOut = !ended && isSoldOut(base);
+  const lim = base.limit;
   const pack = usePacks().find((p) => p.offerId === base.id && p.left > 0 && !p.expired);
   const waiting = useRestock().includes(base.id);
   const venue = venues.find((v) => v.name === base.venue);
@@ -146,9 +149,10 @@ function OfferView({ id }: { id?: string }) {
   const use = useMemo(() => ({ text: "Қолдану", shine: true, onClick: () => { haptic.medium(); setUsing(true); } }), []);
   const notify = useMemo(() => ({ text: waiting ? "Хабарланады" : "Хабарла", onClick: async () => { if (waiting) return toggleRestock(base.id); if (await askWriteAccess()) { haptic.success(); toggleRestock(base.id); } } }), [waiting, base.id]);
   // «Қолжетімді» — Сыйлау + Төлеу; «Белсенді пакет» — Тағы алу + Қолдану (сканерлеу НЕМЕСЕ тапсырыс); «Аяқталған» — Хабарла
-  const mainBtn = ended ? notify : pack ? use : pay;
-  const secondBtn = ended ? undefined : pack ? again : gift;
-  const caption = ended ? "Бұл ұсыныс аяқталды" : pack ? `${pack.left} / ${pack.total} қалды · мерзімі ${pack.daysLeft} күн` : "";
+  // Пакеті бар адам лимит таусылса да өз пакетін қолдана береді
+  const mainBtn = ended || (soldOut && !pack) ? notify : pack ? use : pay;
+  const secondBtn = ended || soldOut ? undefined : pack ? again : gift;
+  const caption = ended ? "Бұл ұсыныс аяқталды" : pack ? `${pack.left} / ${pack.total} қалды · мерзімі ${pack.daysLeft} күн` : soldOut ? "Осы айдың пакеттері таусылды · келесі айдың 1-інде ашылады" : "";
   useBottomButtons(mainBtn, secondBtn, !buying && !sheet && !using && !choose);
   const toVenue = () => go("/venue/" + (venue?.id ?? "damdi"));
   const handle = "@" + base.venue.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/ä/g, "a");
@@ -194,6 +198,13 @@ function OfferView({ id }: { id?: string }) {
               <span className={`${s.badge} ${s.green}`}>{`${fmt(saving(offer))} үнем`}</span>
             </div>
           </div>
+          {/* Сату лимиті (Патша, 2026-11-18): қалған орын және бір адамға шек */}
+          {!ended && lim && (lim.monthly != null || lim.perUser != null) && (
+            <div className={s.limitRow}>
+              {lim.monthly != null && <span className={`${s.limitBadge} ${(lim.left ?? 0) <= 10 ? s.limitHot : ""}`}>{soldOut ? `Осы айға таусылды · ${lim.monthly} пакет` : `Қалды ${lim.left} / ${lim.monthly} · осы айға`}</span>}
+              {lim.perUser != null && <span className={s.limitNote}>{`Бір адамға айына ${lim.perUser} пакет`}</span>}
+            </div>
+          )}
           {/* Дана нұсқасы тек әлі сатып алмаған адамға (Патша, 2026-11-18): пакеті барда — көрсетілмейді */}
           {base.sizes && !pack && (
             <div className={`${s.sizeRow} ${s.sizesIn}`} role="radiogroup" aria-label="Пакет көлемі">
@@ -211,6 +222,7 @@ function OfferView({ id }: { id?: string }) {
         <h2 className={s.blockTitle}>Шарттары</h2>
         <dl className={s.params}>
           <div><dt>Бірлік</dt><dd>{`${offer.units} ${offer.unitWord}, әрқайсысы бөлек`}</dd></div>
+          {base.portion && <div><dt>{base.kind === "hair" ? "Ұзақтығы" : "Порция"}</dt><dd>{base.kind === "hair" ? portionText(base.portion) : `${portionText(base.portion)}, бір ${offer.unitWord}`}</dd></div>}
           <div><dt>Мерзімі</dt><dd>{`${d.days ?? 30} күн, сатып алған сәттен`}</dd></div>
           {d.duration && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
           {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
@@ -219,10 +231,18 @@ function OfferView({ id }: { id?: string }) {
         </dl>
         </section>
 
-        <section className={`${s.block} ${s.blk}`}>
-          <h2 className={s.blockTitle}>Пакетке не кіреді</h2>
-          <ul className={s.bullets}>{d.includes.map((x, i) => <li key={i}><Segs list={[x]} /></li>)}</ul>
-        </section>
+        {/* Құрамы — мекеме өзі жазады (Патша, 2026-11-18). Жоқ болса — тек үлгі ұсыныстарда бұрынғы тізім */}
+        {base.composition ? (
+          <section className={`${s.block} ${s.blk}`}>
+            <h2 className={s.blockTitle}>{base.kind === "hair" ? "Қызметке не кіреді" : "Құрамы"}</h2>
+            <p className={s.composition}>{base.composition}</p>
+          </section>
+        ) : hasSampleIncludes(base.id) && (
+          <section className={`${s.block} ${s.blk}`}>
+            <h2 className={s.blockTitle}>Пакетке не кіреді</h2>
+            <ul className={s.bullets}>{d.includes.map((x, i) => <li key={i}><Segs list={[x]} /></li>)}</ul>
+          </section>
+        )}
 
         <section className={`${s.block} ${s.blk}`} style={{ position: "relative" }}>
           <h2 className={s.blockTitle}>Сипаттама</h2>
@@ -283,7 +303,7 @@ function OfferView({ id }: { id?: string }) {
         <div className={`${s.bar} ${caption ? s.barTall : ""}`}>
           {caption && <p className={`t-cap1 ${s.caption}`}>{caption}</p>}
           {secondBtn && <button className={`t-text w-600 ${s.btn} ${s.secondary}`} onClick={secondBtn.onClick}>{secondBtn.text}</button>}
-          <button key={mainBtn.text} className={`t-text w-600 ${s.btn} ${s.main} ${"shine" in mainBtn && mainBtn.shine ? s.shine : ""} ${ended && waiting ? s.mainDone : ""}`} onClick={mainBtn.onClick}>{mainBtn.text}</button>
+          <button key={mainBtn.text} className={`t-text w-600 ${s.btn} ${s.main} ${"shine" in mainBtn && mainBtn.shine ? s.shine : ""} ${(ended || soldOut) && waiting ? s.mainDone : ""}`} onClick={mainBtn.onClick}>{mainBtn.text}</button>
         </div>
       )}
     </div>

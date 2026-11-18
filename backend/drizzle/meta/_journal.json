@@ -176,6 +176,13 @@
       "when": 1795030000000,
       "tag": "0024_pack_card",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795040000000,
+      "tag": "0025_offer_waits",
+      "breakpoints": true
     }
   ]
 }

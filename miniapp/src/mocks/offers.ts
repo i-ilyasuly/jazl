@@ -8,6 +8,11 @@ export interface Offer {
   planOnly?: boolean;
   /** Бос сағат жеңілдігі (тек planOnly ұсыныста): терезе мен қосымша % */
   offPeak?: { days: number[]; from: string; to: string; pct: number };
+  /** Құрамы (мекеме жазады, клиент тілінде) және порциясы: «350 г» (Патша, 2026-11-18) */
+  composition?: string;
+  portion?: { value: number; unit: "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min" };
+  /** Сату лимиті: айына monthly пакет (left — осы айда қалғаны), бір адамға айына perUser */
+  limit?: { monthly: number | null; left: number | null; perUser: number | null } | null;
   /** Пакет көлемінің нұсқалары (Figma: «Ұсыныс беті / Пакет көлемі»). Бірінші — негізгі. */
   sizes?: { units: number; price: number; oldPrice: number }[];
   id: string;
@@ -106,3 +111,10 @@ const includesById: Record<string, Seg[]> = {
   americano: ["Американо 300 мл", { g: "Сүт қосу тегін" }, "Сироп пен десерт кірмейді"],
 };
 export const detailsOf = (o: Offer): OfferDetails => ({ ...byKind[o.kind], includes: includesById[o.id] ?? byKind[o.kind].includes });
+
+/** Айлық лимит таусылды (ұсыныс белсенді, бірақ осы айға орын жоқ) */
+export const isSoldOut = (o: Offer) => o.limit?.monthly != null && (o.limit.left ?? 0) <= 0;
+/** Порция мәтіні: «350 г», «0,5 л», «45 мин» */
+export const portionText = (p?: Offer["portion"]) => p ? `${String(p.value).replace(".", ",")} ${({ g: "г", kg: "кг", ml: "мл", l: "л", cm: "см", pcs: "дана", min: "мин" } as const)[p.unit]}` : "";
+/** Үлгі «Пакетке не кіреді» тізімі бар ма (мекеме құрған жаңа ұсыныста жоқ — онда тек мекеме жазған «Құрамы» көрінеді) */
+export const hasSampleIncludes = (id: string) => id in includesById;

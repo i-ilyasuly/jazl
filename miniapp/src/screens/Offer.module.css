@@ -180,3 +180,11 @@ button.link:active, .link button:active { opacity: 0.55; }
 .trust { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: 6px 0 0; padding: 3px 10px 3px 8px; border-radius: 10px;
   background: rgba(49, 209, 88, 0.14); color: #1f9d48; font-size: 13px; line-height: 18px; font-weight: 600; }
 .trust span { font-weight: 800; }
+/* Сату лимиті (Патша, 2026-11-18): «Қалды 12 / 50 · осы айға», аз қалса сары; бір адамға шек — сұр жазу */
+.limitRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
+.limitBadge { height: 28px; padding: 4px 12px; border-radius: 6px; font-size: 15px; line-height: 20px; white-space: nowrap; background: var(--fill-secondary, rgba(116, 116, 128, 0.12)); color: var(--text-strong); }
+.limitHot { background: var(--orange-bg); color: var(--orange-text); font-weight: 600; }
+.limitNote { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+/* Құрамы: мекеме жазған мәтін, порциясы астында */
+.composition { font-size: 17px; line-height: 22px; color: var(--text-strong); white-space: pre-line; }
+.portion { margin-top: 8px; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
