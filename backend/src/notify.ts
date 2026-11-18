@@ -180,6 +180,23 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
     }),
 
     /** Medeo Басқару «Хабарлама жазу»: мекеме иесіне (иелеріне) не нақты пайдаланушыға */
+    /** Автожаңарту (Патша, 2026-11-18): жаңа пакет алынды не тоқтады (себебі) → клиентке */
+    autoRenew: (userId: string, title: string, titleRu: string | null, r: { ok: true; amount: number; packId: string } | { ok: false; why: "card" | "price" | "unavailable" | "payment" }) => safe("autoRenew", async () => {
+      const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${userId}`);
+      if (!u) return;
+      const t = head(title), tr = titleRu ?? head(title);
+      if (r.ok) { await send({ chatId: Number(u.tg), text: L(`🔁 «${t}» пакеті автоматты жаңарды: картаңыздан ${money(r.amount)} алынды. Қалған бірліктер жаңа пакетке көшті. Автожаңартуды пакет бетінде өшіруге болады.`, `🔁 Пакет «${tr}» продлён автоматически: с карты списано ${money(r.amount)}. Оставшиеся единицы перенесены в новый пакет. Автопродление можно отключить на странице пакета.`), button: { text: L("Пакетті ашу", "Открыть пакет"), start: `pk_${r.packId}` } }); return; }
+      const why = { card: { kk: "сақталған карта өшірілген", ru: "сохранённая карта удалена" }, price: { kk: "мекеме бағаны көтерген", ru: "заведение повысило цену" }, unavailable: { kk: "ұсыныс қазір сатылмайды", ru: "предложение сейчас не продаётся" }, payment: { kk: "банк төлемді өткізбеді (растау не қаражат керек)", ru: "банк не провёл платёж (нужно подтверждение или средства)" } }[r.why];
+      await send({ chatId: Number(u.tg), text: L(`⏸ «${t}» пакетінің автожаңартуы тоқтады: ${why.kk}. Ақша алынған жоқ. Қаласаңыз, пакетті қолмен қайта алыңыз.`, `⏸ Автопродление пакета «${tr}» остановлено: ${why.ru}. Деньги не списаны. При желании купите пакет заново вручную.`), button: { text: L("Қайта алу", "Купить снова"), start: "packs" } });
+    }),
+    /** Комиссия деңгейі өзгерді (рейтинг өсті не түсті) → иесіне (Патша, 2026-11-18) */
+    feeTier: (venueId: string, pct: number, prev: number, rating: number) => safe("feeTier", async () => {
+      const r = rating.toFixed(1);
+      const text = pct < prev
+        ? L(`🎉 Құттықтаймыз! Рейтингіңіз ${r} — Medeo комиссиясы ${prev}%-дан ${pct}%-ға түсті. Жаңа қолданулар осы комиссиямен есептеледі.`, `🎉 Поздравляем! Ваш рейтинг ${r} — комиссия Medeo снижена с ${prev}% до ${pct}%. Новые использования считаются по этой ставке.`)
+        : L(`ℹ️ Рейтингіңіз ${r} — комиссия ${pct}%-ға оралды. Рейтинг қайта өссе, комиссия қайта азаяды.`, `ℹ️ Ваш рейтинг ${r} — комиссия вернулась к ${pct}%. Когда рейтинг снова вырастет, комиссия снова снизится.`);
+      await sendAll(await staff(venueId, ["owner"]), { text, button: { text: L("Ашу", "Открыть"), start: "v_home" } });
+    }),
     toVenue: async (venueId: string, text: string) => { const to = await staff(venueId, ["owner"]); await sendAll(to, { text: `✉️ Medeo: ${text}`, button: { text: L("Ашу", "Открыть"), start: "v_home" } }); return to.length; },
     toUser: async (userId: string, text: string, start?: string) => {
       const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${userId}`);
@@ -253,10 +270,10 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
         // 📊 Бүгінгі қорытынды → иесі («Күндік қорытынды» баптауы); бүгін қолдану не тапсырыс болған мекемелерге ғана
         const from = new Date(`${day}T00:00:00+05:00`);
         const stats = await rows<{ venue_id: string; uses: number; orders: number; amount: number }>(sql`
-          with u as (select b.venue_id, sum(r.units)::int as uses, sum(r.units * (p.price_paid / p.units_total))::int as amount from app.redemptions r
+          with u as (select b.venue_id, sum(r.units)::int as uses, sum(r.amount)::int as amount from app.redemptions r
               join app.branches b on b.id = r.branch_id join app.packs p on p.id = r.pack_id where r.created_at >= ${from} and r.cancelled_at is null group by b.venue_id),
-            o as (select b.venue_id, count(*)::int as orders, sum(p.price_paid / p.units_total)::int as amount from app.orders o join app.branches b on b.id = o.branch_id
-              join app.packs p on p.id = o.pack_id where o.created_at >= ${from} and o.status not in ('cancelled','failed') group by b.venue_id)
+            o as (select b.venue_id, count(*)::int as orders, sum(o.amount)::int as amount from app.orders o join app.branches b on b.id = o.branch_id
+              join app.packs p on p.id = o.pack_id where o.created_at >= ${from} and o.status in ('done','missed') group by b.venue_id)
           select coalesce(u.venue_id, o.venue_id) as venue_id, coalesce(u.uses, 0) as uses, coalesce(o.orders, 0) as orders, coalesce(u.amount, 0) + coalesce(o.amount, 0) as amount
           from u full join o on o.venue_id = u.venue_id`);
         for (const s of stats) {
@@ -270,7 +287,7 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
         const y = new Date(new Date(`${day}T00:00:00+05:00`).getTime() - 86400_000); const t = new Date(`${day}T00:00:00+05:00`);
         const sum = async (from: Date) => (await rows<{ sales: number; fee: number; packs: number; uses: number; complaints: number }>(sql`select
           coalesce((select sum(p.price_paid) from app.packs p where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at >= ${from} and p.created_at < ${t}), 0)::int as sales,
-          coalesce((select sum(round(p.price_paid * coalesce(v.fee_pct, ${sql.raw(String(Number(opts.feePct ?? 10)))}) / 100.0)) from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at >= ${from} and p.created_at < ${t}), 0)::int as fee,
+          coalesce((select sum(round(p.price_paid * coalesce(v.fee_pct, v.auto_fee_pct, ${sql.raw(String(Number(opts.feePct ?? 10)))}) / 100.0)) from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where p.status <> 'pending_payment' and p.source <> 'carry' and p.created_at >= ${from} and p.created_at < ${t}), 0)::int as fee,
           (select count(*) from app.packs where status <> 'pending_payment' and source <> 'carry' and created_at >= ${from} and created_at < ${t})::int as packs,
           coalesce((select sum(units) from app.redemptions where cancelled_at is null and created_at >= ${from} and created_at < ${t}), 0)::int as uses,
           (select count(*) from app.complaints where created_at >= ${from} and created_at < ${t})::int as complaints`))[0];

@@ -86,6 +86,7 @@ function VenueView({ id }: { id?: string }) {
         {status === "new"
           ? <p className={s.meta}><span className={s.badgeNew}>Жаңа мекеме</span></p>
           : <p className={s.meta} style={{ whiteSpace: "pre" }}>{`★ ${String(v.rating).replace(".", ",")} (${v.reviews})  •  ${v.km.toFixed(1).replace(".", ",")} км  •  48 клиент`}</p>}
+        {v.trust != null && <p className={s.trust}><span aria-hidden>✓</span>{`Сенімді мекеме · ${v.trust}% қызмет шағымсыз`}</p>}
         {status === "closed"
           ? <p className={`${s.meta} ${s.open} ${s.closed}`} style={{ whiteSpace: "pre" }}><i />{`Қазір жабық  •  ${v.opensAt ?? v.hours.split("–")[0]}-де ашылады`}</p>
           : status === "247"

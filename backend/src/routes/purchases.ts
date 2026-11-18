@@ -13,6 +13,9 @@ import type { Db } from "../db/client.js";
 import { branches, gifts, offers, packEvents, packs, paymentCards, payments, receipts, users, venues } from "../db/schema.js";
 import { paymentProvider, type CardInfo } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
+import { leftValue } from "../value.js";
+import { getSettings } from "../settings.js";
+import { offPeakPrice, type OffPeakT } from "../offpeak.js";
 
 const Buy = z.object({
   offerSlug: z.string().min(1).max(64),
@@ -24,7 +27,11 @@ const Buy = z.object({
   /** B4 · қайта алу: бұрынғы пакеттің қалған бірлігі жаңасына көшеді (мерзімі өткеніне 3 күннен аспаса) */
   fromPackId: z.string().uuid().optional(),
   /** B4 · сыйлыққа алу: пакет алушы қабылдағанша «gifted» күйінде тұрады */
-  gift: z.object({ message: z.string().max(120).optional(), anonymous: z.boolean().default(false), toUsername: z.string().regex(/^@?[A-Za-z0-9_]{4,32}$/).optional() }).optional(),
+  gift: z.object({ message: z.string().max(120).optional(), anonymous: z.boolean().default(false), toUsername: z.string().regex(/^@?[A-Za-z0-9_]{4,32}$/).optional(),
+    /** Корпоративтік сыйлық (Патша, 2026-11-18): бір төлеммен 2–50 адамға — әрқайсысына жеке сыйлық сілтемесі */
+    count: z.number().int().min(1).max(50).optional() }).optional(),
+  /** Бос сағат жеңілдігі: пакет арзанырақ, бірақ келу уақыты тек мекеменің бос терезесінде (offpeak.ts) */
+  offPeak: z.boolean().optional(),
   /** Карта: сақталған (id) не жаңа картаның провайдер криптограммасы (карта нөмірі ЕШҚАШАН жіберілмейді); save — картаны сақтау */
   card: z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional() }).strict().optional(),
   /** Medeo бонусын жұмсау (күйген бірліктен қайтқан ақша): бағадан шегеріледі, қалғаны картадан/Kaspi-ден */
@@ -33,6 +40,8 @@ const Buy = z.object({
 
 export const CARRY_DAYS = 3;
 export const GIFT_DAYS = 7;
+/** Корпоративтік сыйлық сілтемелері 30 күн жарамды (көп адамға тарату уақыт алады) */
+export const BULK_GIFT_DAYS = 30;
 const giftCode = () => randomUUID().replace(/-/g, "").slice(0, 10);
 
 type Sizes = { units: number; price: number; oldPrice?: number }[] | null;
@@ -55,82 +64,18 @@ export function purchaseRoutes(cfg: Config, db: Db) {
   r.post("/purchases", async (c) => {
     const parsed = Buy.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ ok: false, error: "bad_request" }, 400);
-    const body = parsed.data;
     const user = c.get("user");
-
-    // Қайталанған сұрау: бұрын сол кілтпен жасалған төлемнің күйін қайтарамыз (екінші рет ақша алынбайды)
-    const [prev] = await db.select().from(payments).where(and(eq(payments.userId, user.id), eq(payments.idempotencyKey, body.idempotencyKey))).limit(1);
-    if (prev) return c.json(...(await paymentReply(db, user.id, prev, true)));
-
-    const [row] = await db.select({ o: offers, v: venues }).from(offers).innerJoin(venues, eq(offers.venueId, venues.id)).where(eq(offers.slug, body.offerSlug)).limit(1);
-    if (!row || row.o.status !== "active" || row.v.status !== "active") return c.json({ ok: false, error: "offer_unavailable" }, 409);
-    const { o, v } = row;
-    const units = body.units ?? o.units;
-    const size = units === o.units ? { units, price: o.price } : ((o.sizes as Sizes) ?? []).find((x) => x.units === units);
-    if (!size) return c.json({ ok: false, error: "bad_size" }, 400);
-    // Ақша алынбай тұрып тексерілетін қателер (төленген соң пакет берілмей қалмауы үшін)
-    const toUsername = body.gift?.toUsername?.replace(/^@/, "").toLowerCase() ?? null;
-    if (toUsername && user.username && toUsername === user.username.toLowerCase()) return c.json({ ok: false, error: "gift_to_self" }, 409);
-    if (body.fromPackId) {
-      const [old] = await db.select().from(packs).where(and(eq(packs.id, body.fromPackId), eq(packs.userId, user.id))).limit(1);
-      if (!old || old.offerId !== o.id) return c.json({ ok: false, error: "bad_from_pack" }, 409);
-    }
-    // Карта: сақталған карта (id) не жаңа картаның криптограммасы. Карта нөмірі серверге келмейді.
-    const provider = paymentProvider(cfg);
-    let card: { token?: string; cryptogram?: string; save?: boolean; id?: string; label?: string } | null = null;
-    if (body.method === "card" && body.card?.id) {
-      const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, body.card.id), eq(paymentCards.userId, user.id), isNull(paymentCards.removedAt))).limit(1);
-      if (!pc) return c.json({ ok: false, error: "card_not_found" }, 404);
-      card = { token: pc.token, id: pc.id, label: `${pc.brand} •• ${pc.last4}` };
-    } else if (body.method === "card" && body.card?.cryptogram) card = { cryptogram: body.card.cryptogram, save: body.card.save ?? false };
-    const methodLabel = card?.label ?? body.methodLabel ?? { kaspi: "Kaspi Pay", card: "Банк картасы", test: "Сынақ төлемі" }[body.method];
     const ip = (c.req.header("x-forwarded-for") ?? "").split(",")[0].trim();
-    const meta = { body, units, price: size.price, methodLabel, card: card?.id ? { id: card.id, label: card.label } : null,
-      client: { platform: c.req.header("x-tg-platform") ?? null, tgVersion: c.req.header("x-tg-version") ?? null, appVersion: c.req.header("x-app-version") ?? null, userAgent: c.req.header("user-agent") ?? null,
-        ipHash: ip ? createHash("sha256").update(ip).digest("hex").slice(0, 16) : null, authDate: c.get("auth").authDate, startParam: c.get("auth").startParam ?? null } };
-
-    const created = await db.transaction(async (tx) => {
-      // Бонус бірден ұсталады (екі рет жұмсалмауы үшін); төлем өтпесе releaseBonus қайтарады
-      const bonus = body.useBonus ? await holdBonus(tx, user.id, size.price) : { used: 0, from: [] };
-      const cash = size.price - bonus.used;
-      const viaProvider = Boolean(card) && cash > 0;
-      const [pay] = await tx.insert(payments).values({ userId: user.id, provider: viaProvider ? provider.name : cash === 0 && bonus.used ? "bonus" : cfg.PAYMENTS_MODE, method: cash === 0 && bonus.used ? "bonus" : body.method, amount: cash, status: "created",
-        idempotencyKey: body.idempotencyKey, externalId: viaProvider ? null : (cash === 0 ? "bonus_" : "test_") + randomUUID(), meta: { ...meta, ...(bonus.used ? { bonus } : {}), ...(cash === 0 && bonus.used ? { methodLabel: "Medeo бонусы" } : {}) }, cardId: viaProvider ? card?.id ?? null : null }).returning();
-      const [pack] = await tx.insert(packs).values({ userId: user.id, offerId: o.id, unitsTotal: units, unitsLeft: units, pricePaid: size.price,
-        validUntil: new Date(Date.now() + o.validDays * 86400_000), status: "pending_payment", source: "purchase" }).returning();
-      await tx.update(payments).set({ packId: pack.id }).where(eq(payments.id, pay.id));
-      return { ...pay, packId: pack.id, viaProvider };
-    });
-    const viaProvider = created.viaProvider;
-
-    // Сынақ режимі (Kaspi, сынақ, картасыз ескі клиент): провайдер бірден «төленді» дейді
-    if (!viaProvider) {
-      const out = await finalizePurchase(db, cfg, created.id);
-      if ("error" in out) return c.json({ ok: false, error: out.error }, 409);
-      return c.json({ ok: true, repeated: false, status: "paid", paymentId: created.id, carried: out.carried, gift: out.gift, ...(await packAndReceipt(db, user.id, out.packId)) });
-    }
-    let res: Awaited<ReturnType<typeof provider.charge>>;
-    try {
-      res = await provider.charge({ paymentId: created.id, amount: created.amount, description: `Medeo · ${o.title}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
-        card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
-    } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
-    if (res.status === "failed") {
-      await db.update(payments).set({ status: "failed", failure: res.reason, externalId: res.externalId ?? null }).where(eq(payments.id, created.id));
-      await releaseBonus(db, created.id);
-      return c.json({ ok: false, error: "payment_failed", reason: res.reason, paymentId: created.id }, 402);
-    }
-    await db.update(payments).set({ externalId: res.externalId, status: res.status === "paid" ? "created" : "pending" }).where(eq(payments.id, created.id));
-    if (res.status === "action_required") {
-      await db.execute(sql`update app.payments set meta = meta || ${JSON.stringify({ confirmUrl: res.confirmUrl })}::jsonb where id = ${created.id}`);
-      return c.json({ ok: true, status: "action_required", paymentId: created.id, confirmUrl: res.confirmUrl }, 202);
-    }
-    if (res.card) await saveCard(db, provider.name, user.id, res.card);
-    const out = await finalizePurchase(db, cfg, created.id);
-    if ("error" in out) return c.json({ ok: false, error: out.error }, 409);
-    return c.json({ ok: true, repeated: false, status: "paid", paymentId: created.id, carried: out.carried, gift: out.gift, ...(await packAndReceipt(db, user.id, out.packId)) });
+    const client = { platform: c.req.header("x-tg-platform") ?? null, tgVersion: c.req.header("x-tg-version") ?? null, appVersion: c.req.header("x-app-version") ?? null, userAgent: c.req.header("user-agent") ?? null,
+      ipHash: ip ? createHash("sha256").update(ip).digest("hex").slice(0, 16) : null, authDate: c.get("auth").authDate, startParam: c.get("auth").startParam ?? null };
+    const r = await startPurchase(db, cfg, user, parsed.data, client);
+    if (r.type === "repeated") return c.json(...(await paymentReply(db, user.id, r.pay, true)));
+    if (r.type === "error") return c.json({ ok: false, error: r.code, ...(r.extra ?? {}) }, r.status);
+    if (r.type === "failed") return c.json({ ok: false, error: "payment_failed", reason: r.reason, paymentId: r.paymentId }, 402);
+    if (r.type === "action") return c.json({ ok: true, status: "action_required", paymentId: r.paymentId, confirmUrl: r.confirmUrl }, 202);
+    return c.json({ ok: true, repeated: false, status: "paid", paymentId: r.paymentId, carried: r.out.carried, gift: r.out.gift, gifts: r.out.gifts, ...(await packAndReceipt(db, user.id, r.out.packId)) });
   });
 
-  // Medeo бонусы: қалдық, ең жақын мерзім, тарих (күйген бірліктен қайтқан ақша)
   r.get("/bonus", async (c) => c.json({ ok: true, ...(await bonusOf(db, c.get("user").id)) }));
 
   r.get("/packs", async (c) => {
@@ -139,7 +84,10 @@ export function purchaseRoutes(cfg: Config, db: Db) {
       .where(and(eq(packs.userId, user.id), inArray(packs.status, ["active", "used", "expired"]))).orderBy(desc(packs.createdAt));
     const ids = rows.map((x) => x.p.id);
     const rcs = ids.length ? await db.select({ id: receipts.id, no: receipts.no, packId: receipts.packId }).from(receipts).where(and(inArray(receipts.packId, ids), eq(receipts.kind, "purchase"))) : [];
-    return c.json({ ok: true, packs: rows.map(({ p, o }) => packDto(p, o.slug, rcs.find((x) => x.packId === p.id))) });
+    // Ұзарту шегінен қалған күн (мини апп ұзарту парағында тек осыған сыятын нұсқаларды ұсынады)
+    const ext = ids.length ? (await db.execute(sql`select pack_id, coalesce(sum((meta->>'days')::int), 0)::int as d from app.pack_events where type = 'extend' and meta->>'via' is null and pack_id in ${ids} group by pack_id`)).rows as { pack_id: string; d: number }[] : [];
+    const maxDays = (await getSettings(db)).extendMaxDays;
+    return c.json({ ok: true, packs: rows.map(({ p, o }) => ({ ...packDto(p, o.slug, rcs.find((x) => x.packId === p.id)), extendLeft: Math.max(0, maxDays - Number(ext.find((x) => x.pack_id === p.id)?.d ?? 0)) })) });
   });
 
   r.get("/receipts/no/:no", async (c) => {
@@ -201,9 +149,110 @@ export function receiptFileRoutes(cfg: Config, db: Db) {
   return r;
 }
 
+type BuyBody = z.infer<typeof Buy>;
+type BuyUser = { id: string; telegramId: number; username: string | null };
+export type StartResult =
+  | { type: "repeated"; pay: typeof payments.$inferSelect }
+  | { type: "error"; code: string; status: 400 | 404 | 409; extra?: Record<string, unknown> }
+  | { type: "failed"; paymentId: string; reason?: string }
+  | { type: "action"; paymentId: string; confirmUrl?: string }
+  | { type: "paid"; paymentId: string; out: Exclude<Awaited<ReturnType<typeof finalizePurchase>>, { error: string }> };
+
+/** Сатып алу екі кезеңмен: (1) төлем мен пакет(тер) «күтуде» жасалады, провайдерден төлем сұралады;
+ *  (2) төлем расталғанда (бірден, 3-D Secure-ден кейін не вебхукпен) finalizePurchase пакетті белсендіріп, чек жазады.
+ *  Мини апп пен автожаңарту (autoRenew.ts) осы бір жолды пайдаланады. background — автожаңарту: банк растауы (3-D Secure)
+ *  сұралса, клиент жоқ — төлем тоқтатылады (ақша алынбайды), клиентке хабар барады. */
+export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: BuyBody, client: Record<string, unknown>, opts: { background?: boolean } = {}): Promise<StartResult> {
+  // Қайталанған сұрау: бұрын сол кілтпен жасалған төлемнің күйі (екінші рет ақша алынбайды)
+  const [prev] = await db.select().from(payments).where(and(eq(payments.userId, user.id), eq(payments.idempotencyKey, body.idempotencyKey))).limit(1);
+  if (prev) return { type: "repeated", pay: prev };
+  const err = (code: string, status: 400 | 404 | 409 = 409, extra?: Record<string, unknown>): StartResult => ({ type: "error", code, status, extra });
+
+  const [row] = await db.select({ o: offers, v: venues }).from(offers).innerJoin(venues, eq(offers.venueId, venues.id)).where(eq(offers.slug, body.offerSlug)).limit(1);
+  if (!row || row.o.status !== "active" || row.v.status !== "active") return err("offer_unavailable");
+  const { o } = row;
+  const units = body.units ?? o.units;
+  const size = units === o.units ? { units, price: o.price } : ((o.sizes as Sizes) ?? []).find((x) => x.units === units);
+  if (!size) return err("bad_size", 400);
+  // Бос сағат: тек мекеме қосқан «Тек жоспар бойынша» ұсыныста. Терезе пакетке сатып алған сәттегідей жазылады.
+  const rules = (o.rules ?? {}) as { offPeak?: OffPeakT; planOnly?: boolean };
+  let price = size.price; let offPeak: OffPeakT | null = null;
+  if (body.offPeak) {
+    if (!rules.offPeak || !rules.planOnly) return err("no_off_peak");
+    offPeak = rules.offPeak; price = offPeakPrice(size.price, offPeak.pct);
+  }
+  // Ақша алынбай тұрып тексерілетін қателер (төленген соң пакет берілмей қалмауы үшін)
+  const count = body.gift?.count ?? 1;
+  if (count > 1 && (body.gift?.toUsername || body.fromPackId)) return err("bad_request", 400);
+  const toUsername = body.gift?.toUsername?.replace(/^@/, "").toLowerCase() ?? null;
+  if (toUsername && user.username && toUsername === user.username.toLowerCase()) return err("gift_to_self");
+  if (body.fromPackId) {
+    const [old] = await db.select().from(packs).where(and(eq(packs.id, body.fromPackId), eq(packs.userId, user.id))).limit(1);
+    if (!old || old.offerId !== o.id) return err("bad_from_pack");
+    // Бос сағат пакетін қайта алса — жаңасы да бос сағатпен (мекеме әлі ұсынса): арзан бірліктер шектеусіз пакетке өтіп кетпейді
+    if (old.offPeak && rules.offPeak && rules.planOnly && !offPeak) { offPeak = rules.offPeak; price = offPeakPrice(size.price, offPeak.pct); }
+  }
+  // Карта: сақталған карта (id) не жаңа картаның криптограммасы. Карта нөмірі серверге келмейді.
+  const provider = paymentProvider(cfg);
+  let card: { token?: string; cryptogram?: string; save?: boolean; id?: string; label?: string } | null = null;
+  if (body.method === "card" && body.card?.id) {
+    const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, body.card.id), eq(paymentCards.userId, user.id), isNull(paymentCards.removedAt))).limit(1);
+    if (!pc) return err("card_not_found", 404);
+    card = { token: pc.token, id: pc.id, label: `${pc.brand} •• ${pc.last4}` };
+  } else if (body.method === "card" && body.card?.cryptogram) card = { cryptogram: body.card.cryptogram, save: body.card.save ?? false };
+  if (opts.background && !card?.token) return err("card_required"); // автожаңарту тек сақталған картамен, ешқашан сынақ «төленді» жолымен емес
+  const methodLabel = card?.label ?? body.methodLabel ?? { kaspi: "Kaspi Pay", card: "Банк картасы", test: "Сынақ төлемі" }[body.method];
+  const total = price * count;
+  const meta = { body, units, price, count, offPeak, methodLabel, card: card?.id ? { id: card.id, label: card.label } : null, client, ...(opts.background ? { kind: "purchase", auto: true } : {}) };
+
+  const created = await db.transaction(async (tx) => {
+    // Бонус бірден ұсталады (екі рет жұмсалмауы үшін); төлем өтпесе releaseBonus қайтарады
+    const bonus = body.useBonus ? await holdBonus(tx, user.id, total) : { used: 0, from: [] };
+    const cash = total - bonus.used;
+    const viaProvider = Boolean(card) && cash > 0;
+    const [pay] = await tx.insert(payments).values({ userId: user.id, provider: viaProvider ? provider.name : cash === 0 && bonus.used ? "bonus" : cfg.PAYMENTS_MODE, method: cash === 0 && bonus.used ? "bonus" : body.method, amount: cash, status: "created",
+      idempotencyKey: body.idempotencyKey, externalId: viaProvider ? null : (cash === 0 ? "bonus_" : "test_") + randomUUID(), meta: { ...meta, ...(bonus.used ? { bonus } : {}), ...(cash === 0 && bonus.used ? { methodLabel: "Medeo бонусы" } : {}) }, cardId: viaProvider ? card?.id ?? null : null }).returning();
+    const ids: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const [pack] = await tx.insert(packs).values({ userId: user.id, offerId: o.id, unitsTotal: units, unitsLeft: units, pricePaid: price, offPeak,
+        validUntil: new Date(Date.now() + o.validDays * 86400_000), status: "pending_payment", source: "purchase" }).returning();
+      ids.push(pack.id);
+    }
+    await tx.update(payments).set({ packId: ids[0], ...(count > 1 ? { meta: sql`${payments.meta} || ${JSON.stringify({ packIds: ids })}::jsonb` } : {}) }).where(eq(payments.id, pay.id));
+    return { ...pay, packId: ids[0], viaProvider };
+  });
+
+  // Сынақ режимі (Kaspi, сынақ, картасыз) не толық бонуспен: бірден «төленді»
+  if (!created.viaProvider) {
+    const out = await finalizePurchase(db, cfg, created.id);
+    if ("error" in out) return err(out.error);
+    return { type: "paid", paymentId: created.id, out };
+  }
+  let res: Awaited<ReturnType<typeof provider.charge>>;
+  try {
+    res = await provider.charge({ paymentId: created.id, amount: created.amount, description: `Medeo · ${o.title}${count > 1 ? ` × ${count}` : ""}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
+      card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
+  } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
+  if (res.status === "action_required" && opts.background) res = { status: "failed", externalId: res.externalId, reason: "3ds_required" };
+  if (res.status === "failed") {
+    await db.update(payments).set({ status: "failed", failure: res.reason, externalId: res.externalId ?? null }).where(eq(payments.id, created.id));
+    await releaseBonus(db, created.id);
+    return { type: "failed", paymentId: created.id, reason: res.reason };
+  }
+  await db.update(payments).set({ externalId: res.externalId, status: res.status === "paid" ? "created" : "pending" }).where(eq(payments.id, created.id));
+  if (res.status === "action_required") {
+    await db.execute(sql`update app.payments set meta = meta || ${JSON.stringify({ confirmUrl: res.confirmUrl })}::jsonb where id = ${created.id}`);
+    return { type: "action", paymentId: created.id, confirmUrl: res.confirmUrl };
+  }
+  if (res.card) await saveCard(db, provider.name, user.id, res.card);
+  const out = await finalizePurchase(db, cfg, created.id);
+  if ("error" in out) return err(out.error);
+  return { type: "paid", paymentId: created.id, out };
+}
+
 type PackRow = typeof packs.$inferSelect;
 function packDto(p: PackRow, offerSlug: string, rc?: { id: string; no: number }) {
-  return { id: p.id, offerSlug, unitsTotal: p.unitsTotal, unitsLeft: p.unitsLeft, pricePaid: p.pricePaid, validUntil: p.validUntil, status: packStatusNow(p), source: p.source, freeExtendUsed: p.freeExtendUsed, createdAt: p.createdAt,
+  return { id: p.id, offerSlug, unitsTotal: p.unitsTotal, unitsLeft: p.unitsLeft, pricePaid: p.pricePaid, validUntil: p.validUntil, status: packStatusNow(p), source: p.source, freeExtendUsed: p.freeExtendUsed, createdAt: p.createdAt, autoRenew: p.autoRenew, offPeak: p.offPeak ?? null,
     receipt: rc ? { id: rc.id, no: receiptNo(rc.no) } : null };
 }
 
@@ -219,9 +268,12 @@ async function packAndReceipt(db: Db, userId: string, packId: string) {
 /** Төлемнің күйі бойынша жауап (қайталанған сұрау мен GET /payments/:id үшін ортақ) */
 export async function paymentReply(db: Db, userId: string, pay: typeof payments.$inferSelect, repeated = false): Promise<[object, 200 | 202 | 402]> {
   if (pay.status === "paid" && pay.packId) {
-    const [g] = await db.select({ code: gifts.code }).from(gifts).where(eq(gifts.packId, pay.packId)).limit(1);
+    const ids = (pay.meta as { packIds?: string[] } | null)?.packIds ?? [pay.packId];
+    const gs = await db.select({ code: gifts.code, packId: gifts.packId, expiresAt: gifts.expiresAt }).from(gifts).where(inArray(gifts.packId, ids));
+    const g = gs.find((x) => x.packId === pay.packId);
     const kind = (pay.meta as { kind?: string } | null)?.kind ?? "purchase";
-    return [{ ok: true, repeated, status: "paid", paymentId: pay.id, kind, gift: g ? { code: g.code } : null, ...(await packAndReceipt(db, userId, pay.packId)) }, 200];
+    const giftList = ids.length > 1 ? gs.map((x) => ({ code: x.code, expiresAt: x.expiresAt })) : undefined;
+    return [{ ok: true, repeated, status: "paid", paymentId: pay.id, kind, gift: g ? { code: g.code } : null, ...(giftList ? { gifts: giftList } : {}), ...(await packAndReceipt(db, userId, pay.packId)) }, 200];
   }
   if (pay.status === "failed") return [{ ok: false, repeated, error: "payment_failed", reason: pay.failure, paymentId: pay.id }, 402];
   return [{ ok: true, repeated, status: "action_required", paymentId: pay.id, amount: pay.amount, confirmUrl: (pay.meta as { confirmUrl?: string } | null)?.confirmUrl ?? null }, 202];
@@ -234,67 +286,76 @@ export async function saveCard(db: Db, provider: string, userId: string, card: C
   return row;
 }
 
-/** Төлем расталды → пакет белсенді, көшіру/сыйлық, тарих, чек. Идемпотентті: екінші рет шақырылса ештеңе өзгермейді. */
-export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): Promise<{ packId: string; receiptId: string | null; gift: { code: string; link: string; expiresAt: Date } | null; carried: number } | { error: string }> {
+type GiftLink = { code: string; link: string; expiresAt: Date };
+/** Төлем расталды → пакет(тер) белсенді, көшіру/сыйлық, тарих, чек. Идемпотентті: екінші рет шақырылса ештеңе өзгермейді.
+ *  Корпоративтік сыйлықта бір төлем — N пакет (meta.packIds): әр пакетке жеке сыйлық коды мен жеке чек (әрқайсысын бөлек қайтаруға болады). */
+export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): Promise<{ packId: string; receiptId: string | null; gift: GiftLink | null; gifts: GiftLink[]; carried: number } | { error: string }> {
   return db.transaction(async (tx) => {
     const lk = (await tx.execute(sql`select id, status, pack_id from app.payments where id = ${paymentId} for update`)).rows[0] as { id: string; status: string; pack_id: string } | undefined;
     if (!lk) throw new PurchaseError("not_found");
     if (lk.status === "paid") {
       const [rc] = await tx.select({ id: receipts.id }).from(receipts).where(and(eq(receipts.packId, lk.pack_id), eq(receipts.kind, "purchase"))).limit(1);
-      return { packId: lk.pack_id, receiptId: rc?.id ?? null, gift: null, carried: 0 };
+      return { packId: lk.pack_id, receiptId: rc?.id ?? null, gift: null, gifts: [], carried: 0 };
     }
     if (lk.status === "failed") throw new PurchaseError("payment_failed");
     const [pay] = await tx.select().from(payments).where(eq(payments.id, paymentId));
-    const m = pay.meta as { body: z.infer<typeof Buy>; units: number; price: number; methodLabel: string; card: { id: string; label: string } | null; client: Record<string, unknown> };
+    const m = pay.meta as { body: z.infer<typeof Buy>; units: number; price: number; count?: number; packIds?: string[]; offPeak?: OffPeakT | null; methodLabel: string; card: { id: string; label: string } | null; client: Record<string, unknown>; bonus?: { used: number } };
     const body = m.body; const units = m.units; const size = { units, price: m.price }; const methodLabel = m.methodLabel;
-    const [pk] = await tx.select().from(packs).where(eq(packs.id, pay.packId!));
-    const [{ o, v }] = await tx.select({ o: offers, v: venues }).from(offers).innerJoin(venues, eq(offers.venueId, venues.id)).where(eq(offers.id, pk.offerId));
+    const ids = m.packIds?.length ? m.packIds : [pay.packId!];
+    const bulk = ids.length > 1;
+    const [pk0] = await tx.select().from(packs).where(eq(packs.id, ids[0]));
+    const [{ o, v }] = await tx.select({ o: offers, v: venues }).from(offers).innerJoin(venues, eq(offers.venueId, venues.id)).where(eq(offers.id, pk0.offerId));
     const [user] = await tx.select().from(users).where(eq(users.id, pay.userId));
     const [branch] = await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true))).limit(1);
     const now = pay.createdAt;
     const validUntil = new Date(Date.now() + o.validDays * 86400_000);
     const regularTotal = o.regularUnitPrice * units;
     const saving = Math.max(0, regularTotal - size.price);
-    const feePct = v.feePct ?? cfg.MEDEO_FEE_PCT;
+    const feePct = v.feePct ?? v.autoFeePct ?? cfg.MEDEO_FEE_PCT;
     const fee = Math.round((size.price * feePct) / 100);
     const paidAt = new Date();
     await tx.update(payments).set({ status: "paid", paidAt }).where(eq(payments.id, pay.id));
-    await tx.update(packs).set({ validUntil }).where(eq(packs.id, pk.id));
-    const pack = { ...pk, validUntil };
-    // B4 · көшіру: ескі пакетті бұғаттап, қалған бірлігін жаңасына қосамыз
-    let carried = 0;
-    if (body.fromPackId) {
-      const res = await tx.execute(sql`select * from app.packs where id = ${body.fromPackId} and user_id = ${user.id} for update`);
-      const old = res.rows[0] as { id: string; offer_id: string; units_left: number; valid_until: Date; status: string } | undefined;
-      if (old && old.offer_id === o.id) {
-        const expiredFor = Date.now() - new Date(old.valid_until).getTime();
-        carried = ["active", "expired"].includes(old.status) && expiredFor <= CARRY_DAYS * 86400_000 ? old.units_left : 0;
-        await tx.update(packs).set({ unitsLeft: 0, status: "used" }).where(eq(packs.id, old.id));
-        if (carried) {
-          await tx.insert(packEvents).values({ packId: old.id, type: "carry_out", unitsDelta: -carried, meta: { toPackId: pack.id } });
-          await tx.update(packs).set({ unitsTotal: units + carried, unitsLeft: units + carried }).where(eq(packs.id, pack.id));
-          await tx.insert(packEvents).values({ packId: pack.id, type: "carry_in", unitsDelta: carried, meta: { fromPackId: old.id } });
+    const gifts_: GiftLink[] = []; let firstReceipt: string | null = null; let carried = 0;
+    for (const [i, packId] of ids.entries()) {
+      await tx.update(packs).set({ validUntil }).where(eq(packs.id, packId));
+      const pack = { id: packId, validUntil };
+      // B4 · көшіру (тек жалғыз пакетте): ескі пакетті бұғаттап, қалған бірлігін жаңасына қосамыз
+      if (body.fromPackId && !bulk) {
+        const res = await tx.execute(sql`select * from app.packs where id = ${body.fromPackId} and user_id = ${user.id} for update`);
+        const old = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; value_total: number; valid_until: Date; status: string } | undefined;
+        if (old && old.offer_id === o.id) {
+          const expiredFor = Date.now() - new Date(old.valid_until).getTime();
+          carried = ["active", "expired"].includes(old.status) && expiredFor <= CARRY_DAYS * 86400_000 ? old.units_left : 0;
+          // Көшірілген бірліктер ескі пакетте төленген бағасымен келеді (Патша, 2026-11-18): мекеме оларды да толық бағасымен алады.
+          // Мысал: латте 900 ₸, 3 кесе қалды → жаңа пакет 10 800 + 2 700 = 13 500 ₸ / 15 кесе = 900 ₸ (бұрын 720 ₸ болып, мекеме 2 700 ₸ жоғалтатын).
+          const carriedValue = carried ? leftValue(old.value_total, old.units_total, carried) : 0;
+          await tx.update(packs).set({ unitsLeft: 0, status: "used", renewedTo: packId }).where(eq(packs.id, old.id));
+          if (carried) {
+            await tx.insert(packEvents).values({ packId: old.id, type: "carry_out", unitsDelta: -carried, meta: { toPackId: pack.id, value: carriedValue } });
+            await tx.update(packs).set({ unitsTotal: units + carried, unitsLeft: units + carried, valueTotal: size.price + carriedValue }).where(eq(packs.id, pack.id));
+            await tx.insert(packEvents).values({ packId: pack.id, type: "carry_in", unitsDelta: carried, meta: { fromPackId: old.id, value: carriedValue } });
+          }
         }
       }
-    }
-    await tx.update(packs).set({ status: body.gift ? "gifted" : "active", source: body.gift ? "gift" : body.fromPackId ? "rebuy" : "purchase" }).where(eq(packs.id, pack.id));
-    await tx.insert(packEvents).values({ packId: pack.id, type: body.gift ? "gift_bought" : "purchase", unitsDelta: units, meta: { paymentId: pay.id, price: size.price, method: body.method } });
-    let gift: { code: string; link: string; expiresAt: Date } | null = null;
-    if (body.gift) {
-      const code = giftCode(); const expiresAt = new Date(Date.now() + GIFT_DAYS * 86400_000);
-      const toUsername = body.gift.toUsername?.replace(/^@/, "").toLowerCase() ?? null;
-      await tx.insert(gifts).values({ packId: pack.id, fromUserId: user.id, toUsername, code, message: body.gift.message ?? null, anonymous: body.gift.anonymous, status: "sent", expiresAt });
-      gift = { code, link: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=gift_${code}`, expiresAt };
-    }
+      await tx.update(packs).set({ status: body.gift ? "gifted" : "active", source: body.gift ? "gift" : body.fromPackId ? "rebuy" : "purchase" }).where(eq(packs.id, pack.id));
+      await tx.insert(packEvents).values({ packId: pack.id, type: body.gift ? "gift_bought" : "purchase", unitsDelta: units, meta: { paymentId: pay.id, price: size.price, method: body.method, ...(bulk ? { bulk: i + 1, of: ids.length } : {}), ...(m.offPeak ? { offPeak: m.offPeak } : {}) } });
+      if (body.gift) {
+        // Корпоративтік сыйлыққа 30 күн (көп адамға тарату уақыт алады), жеке сыйлыққа — 7 күн
+        const code = giftCode(); const expiresAt = new Date(Date.now() + (bulk ? BULK_GIFT_DAYS : GIFT_DAYS) * 86400_000);
+        const toUsername = body.gift.toUsername?.replace(/^@/, "").toLowerCase() ?? null;
+        await tx.insert(gifts).values({ packId: pack.id, fromUserId: user.id, toUsername, code, message: body.gift.message ?? null, anonymous: body.gift.anonymous, status: "sent", expiresAt });
+        gifts_.push({ code, link: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=gift_${code}`, expiresAt });
+      }
+      const share = bulk ? Math.round(pay.amount / ids.length) : pay.amount; // бұл пакетке картадан келген үлес
       const pub = {
         title: body.gift ? "Сыйлық сатып алынды" : body.fromPackId ? "Пакет қайта алынды" : "Пакет сатып алынды", status: "Төленді",
         dateLocal: almaty(paidAt), timezone: "Asia/Almaty",
         seller: { name: v.name, kind: v.kind, address: branch?.address ?? null, city: v.city, bin: null as string | null },
         agent: { name: "Medeo", note: "Пакетті Medeo сервисі арқылы сатып алдыңыз" },
-        item: { title: o.title, units, carried, unitName: o.unitName, pricePerUnit: Math.round(size.price / units), regularPricePerUnit: o.regularUnitPrice, regularTotal, saving, discountPct: regularTotal ? Math.round((saving / regularTotal) * 100) : 0 },
+        item: { title: o.title, units, carried, unitName: o.unitName, pricePerUnit: Math.round(size.price / units), regularPricePerUnit: o.regularUnitPrice, regularTotal, saving, discountPct: regularTotal ? Math.round((saving / regularTotal) * 100) : 0, ...(m.offPeak ? { offPeak: m.offPeak } : {}) },
         total: size.price, currency: "KZT",
-        payment: { method: pay.method, label: methodLabel, ref: pay.externalId, mode: cfg.PAYMENTS_MODE, bonus: (m as { bonus?: { used: number } }).bonus?.used ?? 0, charged: pay.amount },
-        pack: { id: pack.id, validFrom: almaty(now), validUntil: almaty(validUntil), validDays: o.validDays, howToUse: "Мекемеде «Medeo бойынша» деп айтып, кассадағы QR-ды сканерле немесе алдын ала тапсырыс бер" },
+        payment: { method: pay.method, label: methodLabel, ref: pay.externalId, mode: cfg.PAYMENTS_MODE, bonus: Math.max(0, size.price - share), charged: share, ...(bulk ? { order: { count: ids.length, total: size.price * ids.length } } : {}) },
+        pack: { id: pack.id, validFrom: almaty(now), validUntil: almaty(validUntil), validDays: o.validDays, howToUse: m.offPeak ? "Тек мекеменің бос уақытында: келу уақытын алдын ала таңда" : "Мекемеде «Medeo бойынша» деп айтып, кассадағы QR-ды сканерле немесе алдын ала тапсырыс бер" },
         support: { bot: "@" + cfg.MINIAPP_BOT_USERNAME },
       };
       const internal = {
@@ -309,11 +370,13 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
         // Клиенттің бағасы (жұлдыз) — бағалағанда осы чекке жазылады (B4)
         rating: null,
         client: m.client,
-        offer: { id: o.id, slug: o.slug, venueId: v.id, branchId: branch?.id ?? null, catalogPrice: o.price, sizesOffered: o.sizes ?? null, chosenUnits: units, priceSource: "server" },
+        offer: { id: o.id, slug: o.slug, venueId: v.id, branchId: branch?.id ?? null, catalogPrice: o.price, sizesOffered: o.sizes ?? null, chosenUnits: units, priceSource: "server", offPeak: m.offPeak ?? null },
         money: { total: size.price, regularTotal, saving, medeoFeePct: feePct, medeoFee: fee, venuePayout: size.price - fee, currency: "KZT" },
-        payment: { id: pay.id, provider: pay.provider, externalId: pay.externalId, idempotencyKey: body.idempotencyKey, createdAt: pay.createdAt, paidAt, card: m.card ?? null },
+        payment: { id: pay.id, provider: pay.provider, externalId: pay.externalId, idempotencyKey: body.idempotencyKey, createdAt: pay.createdAt, paidAt, card: m.card ?? null, ...(bulk ? { bulk: { index: i + 1, count: ids.length } } : {}) },
       };
       const [rc] = await tx.insert(receipts).values({ kind: "purchase", userId: user.id, packId: pack.id, paymentId: pay.id, venueId: v.id, branchId: branch?.id, total: size.price, public: pub, internal }).returning();
-    return { packId: pack.id, receiptId: rc.id, gift, carried };
+      if (i === 0) firstReceipt = rc.id;
+    }
+    return { packId: ids[0], receiptId: firstReceipt, gift: gifts_[0] ?? null, gifts: gifts_, carried };
   }).catch((e) => { if (e instanceof PurchaseError) return { error: e.code }; throw e; });
 }

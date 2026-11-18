@@ -18,11 +18,13 @@ import s from "./ServerReceipt.module.css";
 interface Rc {
   id: string; no: string; kind?: string; total: number; status: string; title: string; dateLocal: string; verifyUrl: string;
   left?: number; via?: string; extra?: { amount: number; note: string } | null;
-  seller: { name: string; address: string | null; bin: string | null };
+  seller?: { name: string; address: string | null; bin: string | null };
   item: { title: string; units: number; unitName: string; pricePerUnit: number; regularPricePerUnit?: number; regularTotal?: number; saving?: number; discountPct?: number };
   /** Тек сатып алу чегінде. Қолдану/тапсырыс чегінде жоқ (бұрын осыдан бет құлайтын — Патша, 2026-11-17) */
   payment?: { label: string; ref: string; mode: string };
   pack?: { validFrom: string; validUntil: string; validDays: number; howToUse: string };
+  /** Қайтару чегі (2026-11-18): картаға/Kaspi-ге, бонусқа және ескі пакетке оралған бөліктер */
+  refund?: { cash: number; bonus: number; carriedBack?: number };
 }
 
 const Row = ({ k, v, mono, copy }: { k: string; v: string; mono?: boolean; copy?: boolean }) => (
@@ -63,22 +65,33 @@ export function ServerReceipt() {
   );
   const i = rc.item;
   const buy = Boolean(rc.payment && rc.pack);
+  // Ескі қайтару чектерінде мекеме дерегі жоқ (2026-11-18 дейін) — бет құламауы үшін
+  const seller = rc.seller ?? { name: "Medeo", address: null, bin: null };
   return (
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} onDark />
       <header className={s.head}>
         <div className={s.brandRow}><b className={s.brand}><Brand /></b><span className={s.tag}>ЭЛЕКТРОНДЫҚ ЧЕК</span></div>
-        <h1 className={s.venue}>{rc.seller.name}</h1>
-        {rc.seller.address && <p className={s.addr}>{rc.seller.address}</p>}
+        <h1 className={s.venue}>{seller.name}</h1>
+        {seller.address && <p className={s.addr}>{seller.address}</p>}
         <p className={`${s.meta} mono`}>{rc.no} · {rc.dateLocal}</p>
       </header>
       <article className={s.paper}>
         <span className={s.perf} aria-hidden />
         <p className={s.title}>{trs(rc.title)}</p>
-        <p className={s.total}>{buy ? fmt(rc.total) : `${i.units} ${locUnit(i.unitName, i.units)}`}</p>
+        <p className={s.total}>{buy || rc.refund ? fmt(Math.abs(rc.total)) : `${i.units} ${locUnit(i.unitName, i.units)}`}</p>
         <span className={s.status}>{trs(rc.status)}</span>
 
-        {buy ? <>
+        {rc.refund ? <>
+          <h2 className={s.sec}>Қайтарылды</h2>
+          <Row k="Пакет" v={locTitle(i.title)} />
+          {rc.refund.cash > 0 && <Row k="Төлем тәсіліңе" v={fmt(rc.refund.cash)} />}
+          {rc.refund.bonus > 0 && <Row k="Medeo бонусына" v={fmt(rc.refund.bonus)} />}
+          {(rc.refund.carriedBack ?? 0) > 0 && <Row k="Бұрынғы пакетке оралды" v={`${rc.refund.carriedBack} ${locUnit(i.unitName ?? "", rc.refund.carriedBack)}`} />}
+          <Row k="Уақыты" v={rc.dateLocal} />
+          <Row k="Чек №" v={rc.no} copy />
+          {rc.refund.cash > 0 && <p className={s.legal}>{"Ақша төлем тәсіліңе 1–3 жұмыс күнінде түседі"}</p>}
+        </> : buy ? <>
           <h2 className={s.sec}>Сатып алынды</h2>
           <Row k="Пакет" v={locTitle(i.title)} />
           <Row k="Көлемі" v={`${i.units} ${locUnit(i.unitName, i.units)}`} />
@@ -98,9 +111,9 @@ export function ServerReceipt() {
         </>}
 
         <h2 className={s.sec}>Мекеме</h2>
-        <Row k="Атауы" v={rc.seller.name} />
-        {rc.seller.address && <Row k="Мекенжайы" v={rc.seller.address} />}
-        {rc.seller.bin && <Row k="БСН" v={rc.seller.bin} mono />}
+        <Row k="Атауы" v={seller.name} />
+        {seller.address && <Row k="Мекенжайы" v={seller.address} />}
+        {seller.bin && <Row k="БСН" v={seller.bin} mono />}
 
         {rc.payment && rc.pack && <>
           <h2 className={s.sec}>Төлем</h2>

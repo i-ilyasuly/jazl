@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useGo } from "../nav";
+import { type OffPeak, winLabel } from "../offpeak";
 import { confirmSpend } from "../scanFlow";
 import { atOf, book, bookLabel, cancelBooking, dayWord, freeCancel, getBooking, getPack, moveBooking, offerOf, useBookings, usePacks } from "../store";
 import { haptic, inTelegram, tg, useBackButton, useBottomButtons, type BottomAction } from "../telegram";
@@ -17,7 +18,16 @@ import s from "./Booking.module.css";
 
 const TIMES = ["10:00", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30"];
 /** Бос емес уақыттар (мок): Figma-дағыдай ертең 11:00, 15:30, 17:00; басқа күндерде — өзгеше. Бүгін өтіп кеткен уақыт та бос емес. */
+/** Бос сағат пакеті (Патша, 2026-11-18): уақыт тек мекеменің бос терезесінде — BookTime/BookMove пакетке қарай қояды */
+let curWin: OffPeak | null = null;
+const halfHours = (from: string, to: string) => {
+  const out: string[] = []; const [h0, m0] = from.split(":").map(Number); const [h1, m1] = to.split(":").map(Number);
+  for (let t = h0 * 60 + Math.ceil(m0 / 30) * 30; t < h1 * 60 + m1; t += 30) out.push(`${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`);
+  return out;
+};
+const slotsOf = () => (curWin ? halfHours(curWin.from, curWin.to) : TIMES);
 function busy(day: number, t: string) {
+  if (curWin) { const wd = ((dayDate(day).getDay() + 6) % 7) + 1; if (!curWin.days.includes(wd) || t < curWin.from || t >= curWin.to) return true; }
   if (day === 0 && atOf(0, t) < Date.now() + 3600_000) return true;
   const i = TIMES.indexOf(t);
   return day === 1 ? [1, 4, 5].includes(i) : (i + day) % 3 === 0;
@@ -38,7 +48,7 @@ const MONTHS = ["Қаңтар", "Ақпан", "Наурыз", "Сәуір", "М�
 const WEEK = ["ДС", "СС", "СР", "БС", "ЖМ", "СБ", "ЖС"];
 const dayDate = (off: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return d; };
 const offOf = (d: Date) => Math.round((d.getTime() - dayDate(0).getTime()) / 86400000);
-const freeTimes = (off: number) => TIMES.filter((t) => !busy(off, t));
+const freeTimes = (off: number) => slotsOf().filter((t) => !busy(off, t));
 
 /** Жоспар нүктесінің түсі: түріне қарай (тамақ — қызғылт сары, кофе — индиго, шаштараз — күлгін) */
 const kindDot = { food: "#FE9500", coffee: "#4378FF", hair: "#B00FB4" } as const;
@@ -109,7 +119,7 @@ function SlotPicker({ days, value, onChange }: { dayTitle?: string; days: number
     </div>
     <div className={`${s.timesHead} rise`} style={{ ["--i" as string]: 1 }}><b className="t-sub2 w-600">{dayWord(value.day)}</b><span className="t-cap1">{`бос уақыт · ${freeTimes(value.day).length}`}</span></div>
     <div ref={timesRef} key={value.day} className={`${s.times} rise`} style={{ ["--i" as string]: 1 }}>
-      {TIMES.map((t) => {
+      {slotsOf().map((t) => {
         const off = busy(value.day, t);
         const on = value.time === t;
         return <button key={t} disabled={off} data-on={on || undefined} aria-label={off ? `${t}, бос емес` : t} className={`t-text ${s.slot} ${off ? s.busy : ""} ${on ? s.slotOn : ""}`}
@@ -136,8 +146,13 @@ export function BookTime() {
   usePacks();
   const go = useGo();
   const pack = getPack(packId);
+  curWin = pack?.offPeak ?? null;
   const days = pack ? Math.max(1, Math.min(60, pack.daysLeft + 1)) : 30;
-  const [v, setV] = useState(() => { const d = Math.min(1, days - 1); return { day: d, time: busy(d, "14:00") ? (freeTimes(d)[0] ?? "") : "14:00" }; });
+  const [v, setV] = useState(() => {
+    // Бос сағат пакетінде — терезедегі алғашқы бос күн мен уақыт
+    if (curWin) { for (let d = Math.min(1, days - 1); d < days; d++) { const t = freeTimes(d)[0]; if (t) return { day: d, time: t }; } }
+    const d = Math.min(1, days - 1); return { day: d, time: busy(d, "14:00") ? (freeTimes(d)[0] ?? "") : "14:00" };
+  });
   const back = useCallback(() => go(-1, "back"), [go]);
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); back(); } }), [back]);
   const main = useMemo(() => ({ text: "Жалғастыру", disabled: !v.time, onClick: () => { haptic.medium(); go(`/book/${packId}/confirm`, "forward", { state: { at: atOf(v.day, v.time) } }); } }), [go, packId, v]);
@@ -146,6 +161,7 @@ export function BookTime() {
       <SlotPicker days={days} value={v} onChange={setV} />
       {v.time && <p className={`t-text ${s.picked} rise`} style={{ ["--i" as string]: 3 }}>Таңдалған: <span key={v.day + v.time} className={`t-sub2 w-600 ${s.pickedChip}`}>{dayWord(v.day)}, {v.time}</span></p>}
       <p className={`t-cap1 ${s.legend} rise`} style={{ ["--i" as string]: 3 }}>Сызылған күн не уақыт — бос емес. Түсті нүкте — сол күнгі жоспарың.</p>
+      {pack?.offPeak && <p className={`t-sub2 ${s.note} infoBox rise`} style={{ ["--i" as string]: 3 }}>{`Бос сағат пакеті (−${pack.offPeak.pct}%): келу уақыты тек ${winLabel(pack.offPeak)}.`}<i>”</i></p>}
       <Bar left={left} main={main} />
     </SubPage>
   );
@@ -243,6 +259,7 @@ export function BookMove() {
   useBookings();
   const b = getBooking(useParams().id);
   const pack = b ? getPack(b.packId) : undefined;
+  curWin = pack?.offPeak ?? null;
   const days = pack ? Math.max(1, Math.min(60, pack.daysLeft + 1)) : 30;
   const [v, setV] = useState({ day: Math.min(1, days - 1), time: "" });
   const left = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: () => { haptic.soft(); go(-1, "back"); } }), [go]);

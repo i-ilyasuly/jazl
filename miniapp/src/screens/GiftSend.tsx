@@ -7,7 +7,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
-import { giftLink, prepareGift, sendGift, waitGift } from "../store";
+import { giftLink, prepareGift, sendGift, sendGiftsBulk, waitGift } from "../store";
+import { copyText } from "../telegram";
 import { haptic, inTelegram, shareToChat, tg, useBackButton, useBottomButtons } from "../telegram";
 import { Sticker } from "../ui/Sticker";
 import { Switch } from "../ui/SubPage";
@@ -37,17 +38,29 @@ export function GiftSend() {
   const user = to.trim().replace(/^@/, "");
   const userOk = /^[A-Za-z0-9_]{4,32}$/.test(user);
   const [snack, setSnack] = useState("");
+  // Корпоративтік сыйлық (Патша, 2026-11-18): бір төлеммен 2–50 адамға, әрқайсысына жеке сілтеме (30 күн)
+  const [count, setCount] = useState(1);
+  const bulk = count > 1;
+  const [links, setLinks] = useState<string[] | null>(null);
   const busy = flow.sheetOpen;
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back, !busy);
   useEffect(() => { if (!snack) return; const t = window.setTimeout(() => setSnack(""), 2400); return () => clearTimeout(t); }, [snack]);
 
-  const gift = { ...o, title: `Сыйлық · ${o.title}` };
+  const gift = { ...o, title: bulk ? `Сыйлық · ${o.title} × ${count}` : `Сыйлық · ${o.title}`, price: o.price * count, oldPrice: o.oldPrice * count };
   // Карта төлемі: сыйлық серверде төлеммен бірге жасалады (код жауапта келеді)
   const giftCharge = (toUsername?: string) => (card: CheckoutCard) =>
-    checkoutCard(o.id, card, { gift: { message: msg.trim() || undefined, anonymous: anon, toUsername }, methodLabel: flow.method?.title });
+    checkoutCard(o.id, card, { gift: { message: msg.trim() || undefined, anonymous: anon, toUsername, ...(bulk ? { count } : {}) }, methodLabel: flow.method?.title });
+  // Көп сыйлық: төлем → барлық сілтеме бір тізімде (көшіру, тарату)
+  const payBulk = useCallback(() => flow.pay(gift, async (r) => {
+    const list = await sendGiftsBulk(o.id, count, msg.trim(), anon, r?.gifts?.map((x) => x.code), flow.method?.title);
+    if (!list.length) { haptic.error(); setSnack("Сыйлықтар жасалмады. Қайталап көр."); return; }
+    haptic.success(); setLinks(list);
+  }, giftCharge()), [flow, gift, o.id, count, msg, anon]); // eslint-disable-line react-hooks/exhaustive-deps
+  const copyAll = useCallback(() => { if (!links) return; void copyText(links.map((l, i) => `${i + 1}. ${l}`).join("\n")); haptic.success(); setSnack(`${links.length} сілтеме көшірілді`); }, [links]);
   // Төлем → сыйлық жасалады → Telegram-ның контакт/чат тізімі ашылады → сыйлық беті
   const send = useCallback(() => {
+    if (bulk) { payBulk(); return; }
     if (to.trim() && !userOk) { haptic.error(); setSnack("Username дұрыс емес: латын әріп, сан, _ (4–32)"); return; }
     flow.pay(gift, async (r) => {
       const gid = sendGift(o.id, msg.trim(), anon, userOk ? user : undefined, r?.gift?.code);
@@ -61,7 +74,7 @@ export function GiftSend() {
       } else await shareGift(gid, o.title);
       go("/profile/gift/" + gid, "fade", { replace: true });
     }, giftCharge(userOk ? user : undefined));
-  }, [flow, gift, o.id, o.title, msg, anon, go, to, user, userOk]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [flow, gift, o.id, o.title, msg, anon, go, to, user, userOk, bulk, payBulk]); // eslint-disable-line react-hooks/exhaustive-deps
   // «Сілтеме»: төлем → сілтеме көшіріледі (кез келген мессенджерге жіберуге болады)
   const byLink = useCallback(() => flow.pay(gift, async (r) => {
     const gid = sendGift(o.id, msg.trim(), anon, undefined, r?.gift?.code);
@@ -69,9 +82,43 @@ export function GiftSend() {
     try { await navigator.clipboard.writeText(giftLink(gid)); haptic.success(); setSnack("Сілтеме көшірілді"); } catch { await shareGift(gid, o.title); }
     window.setTimeout(() => go("/profile/gift/" + gid, "fade", { replace: true }), 900);
   }, giftCharge()), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
-  const main = useMemo(() => ({ text: `Сыйлау · ${fmt(o.price)}`, shine: true, onClick: send }), [o.price, send]);
-  const second = useMemo(() => ({ text: "Сілтеме", position: "left" as const, onClick: byLink }), [byLink]);
+  const main = useMemo(() => links ? { text: "Барлығын көшіру", shine: true, onClick: copyAll }
+    : { text: bulk ? `${count} сыйлық · ${fmt(o.price * count)}` : `Сыйлау · ${fmt(o.price)}`, shine: true, onClick: send }, [o.price, send, bulk, count, links, copyAll]);
+  const second = useMemo(() => links ? { text: "Сыйлықтарым", position: "left" as const, onClick: () => go("/profile/gifts", "fade", { replace: true }) }
+    : bulk ? undefined : { text: "Сілтеме", position: "left" as const, onClick: byLink }, [byLink, bulk, links, go]);
   useBottomButtons(main, second, !busy);
+
+  if (links) return (
+    <div className={s.page}>
+      <TelegramChrome mode="back" onBack={back} />
+      <div className={s.col}>
+        <div className={s.hero}>
+          <Sticker name="gift" size={112} />
+          <h1 className="t-title2 w-700">{`${links.length} сыйлық дайын`}</h1>
+          <p className={`t-sub2 ${s.muted}`}>Әр адамға бір сілтеме жібер: ол ашып, пакетті өзіне қабылдайды</p>
+        </div>
+        <section className={`${s.card} rise`}>
+          {links.map((l, i) => (
+            <div key={l} className={s.row}>
+              <span className={`${s.avatar} ${s.num}`}><b className={s.letter}>{i + 1}</b></span>
+              <span className={s.cText}><span className={`t-sub2 ${s.link}`}>{l.replace(/^https?:\/\//, "")}</span></span>
+              <button type="button" className={s.copy} onClick={() => { void copyText(l); haptic.select(); setSnack("Көшірілді"); }}>Көшіру</button>
+            </div>
+          ))}
+        </section>
+        <p className={`t-sub2 ${s.note} rise`} style={{ ["--i" as string]: 1 }}>
+          {"Сілтемелер 30 күн жарамды. Қабылданбаған сыйлық саған пакет болып қайтарылады — оны өзің қолдана не қайта сыйлай аласың. Ақшасын сатып алғаннан кейін 14 күн ішінде, сыйлық әлі қабылданбаса қайтаруға болады."}
+        </p>
+      </div>
+      {!inTelegram && (
+        <div className={s.bar}>
+          <button className={`${s.btn} ${s.btn2}`} onClick={second!.onClick}>{second!.text}</button>
+          <button className={`${s.btn} ${s.shine}`} onClick={copyAll}>{main.text}</button>
+        </div>
+      )}
+      {snack && <div className={`t-sub2 ${s.snack}`} role="status">{snack}</div>}
+    </div>
+  );
 
   return (
     <div className={s.page}>
@@ -83,6 +130,18 @@ export function GiftSend() {
           <p className={`t-sub2 ${s.muted}`}>{o.title} · {o.venue}</p>
         </div>
 
+        <section className={`${s.card} rise`}>
+          <div className={s.row}>
+            <span className={s.cText}><span className="t-text">Неше адамға</span><span className={`t-sub2 ${s.muted}`} style={{ whiteSpace: "normal" }}>{bulk ? "Корпоративтік: әр адамға жеке сілтеме" : "Әріптестерге, командаға — 50-ге дейін"}</span></span>
+            <span className={s.stepper}>
+              <button type="button" aria-label="Азайту" disabled={count <= 1} onClick={() => { haptic.select(); setCount(Math.max(1, count - 1)); }}>−</button>
+              <b>{count}</b>
+              <button type="button" aria-label="Көбейту" disabled={count >= 50} onClick={() => { haptic.select(); setCount(Math.min(50, count + (count >= 10 ? 5 : 1))); }}>+</button>
+            </span>
+          </div>
+        </section>
+
+        {!bulk && <>
         <section className={`${s.card} rise`}>
           <h2 className={`t-sub2 w-600 ${s.head}`}>Кімге</h2>
           <label className={s.row}>
@@ -100,6 +159,7 @@ export function GiftSend() {
             : to.trim() ? "Username: латын әріп, сан және _ · 4–32 таңба"
             : "Бос қалдырсаң — төлемнен кейін Telegram тізімінен алушыны таңдайсың."}</span>
         </p>
+        </>}
 
         <section className={`${s.card} rise`} style={{ ["--i" as string]: 1 }}>
           <h2 className={`t-sub2 w-600 ${s.head}`}>Құттықтау<span className={`t-cap1 ${s.count}`}>{msg.length} / {MAX}</span></h2>
@@ -116,13 +176,14 @@ export function GiftSend() {
         </section>
 
         <p className={`t-sub2 ${s.note} rise`} style={{ ["--i" as string]: 3 }}>
-          Алушы сыйлықты <b className={s.blue}>7 күн</b> ішінде қабылдамаса, пакет саған <b className={s.green}>қайтарылады</b>. 30 күн мерзім алушы қабылдаған сәттен басталады.
+          {bulk ? "Әр адамға жеке сілтеме. 30 күн ішінде қабылданбаған сыйлық саған қайтарылады. Пакет мерзімі әркім қабылдаған сәттен басталады."
+            : <>Алушы сыйлықты <b className={s.blue}>7 күн</b> ішінде қабылдамаса, пакет саған <b className={s.green}>қайтарылады</b>. 30 күн мерзім алушы қабылдаған сәттен басталады.</>}
         </p>
       </div>
 
       {!inTelegram && (
         <div className={s.bar}>
-          <button className={`${s.btn} ${s.btn2}`} onClick={byLink}>Сілтеме</button>
+          {!bulk && <button className={`${s.btn} ${s.btn2}`} onClick={byLink}>Сілтеме</button>}
           <button className={`${s.btn} ${s.shine}`} disabled={flow.busy} onClick={send}>{flow.busy ? <span className={s.spinner} /> : main.text}</button>
         </div>
       )}

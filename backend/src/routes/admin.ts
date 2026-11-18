@@ -12,10 +12,14 @@ import { adminLog, admins, users, venueApplications, venueNotes, venues } from "
 import { validateLoginWidget } from "../auth/telegram.js";
 import { adminPrefDefaults, type Notifier } from "../notify.js";
 import { getSettings, refreshFees, setSetting, SETTING_DEFAULTS, type Settings } from "../settings.js";
+import { leftValueSql } from "../value.js";
+import { pushRefund } from "../refund.js";
 import { approve, bankOf, type AppData } from "./apply.js";
 import { decideComplaint } from "./complaints.js";
 
 type Row = Record<string, unknown>;
+/** Мекемеге төленетін тапсырыс күйлері: орындалды не клиент келмеді (бірлік жұмсалды, мекеме уақытын бөлді) */
+const PAYABLE = sql.raw("('done','missed')");
 const TOKEN_TTL = 12 * 3600;
 const LOCK_MIN = 15;
 const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f);
@@ -115,7 +119,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   };
 
   // ── 02 · Пульс ──────────────────────────────────────────────────
-  const feeExpr = sql.raw(`coalesce(v.fee_pct, ${Number(cfg.MEDEO_FEE_PCT)})`);
+  const feeExpr = sql.raw(`coalesce(v.fee_pct, v.auto_fee_pct, ${Number(cfg.MEDEO_FEE_PCT)})`);
   const salesIn = async (from: Date, to: Date) => (await rows<{ sales: number; fee: number; packs: number }>(sql`
     select coalesce(sum(p.price_paid), 0)::int as sales, coalesce(sum(round(p.price_paid * ${feeExpr} / 100.0)), 0)::int as fee, count(*)::int as packs
     from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id
@@ -125,7 +129,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       + (select count(*) from app.orders where status not in ('cancelled','failed') and created_at >= ${from} and created_at < ${to}))::int as units`))[0].units;
   const attention = async () => {
     const s = await getSettings(db);
-    const [x] = await rows<{ apps: number; oldest: Date | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold: number }>(sql`select
+    const [x] = await rows<{ apps: number; oldest: Date | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold: number; refund_failed: number }>(sql`select
       (select count(*) from app.venue_applications where status = 'review')::int as apps,
       (select min(submitted_at) from app.venue_applications where status = 'review') as oldest,
       (select count(*) from app.offers o where o.status = 'review' and not exists (select 1 from app.packs p where p.offer_id = o.id))::int as offers_new,
@@ -134,7 +138,8 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       (select count(*) from app.complaints where status = 'new' and created_at + make_interval(hours => ${s.complaintHours}) < now() + interval '1 day')::int as due_today,
       (select count(*) from app.payments where status = 'failed' and created_at > now() - interval '1 day')::int as failed,
       (select count(*) from app.packs where units_left > 0 and valid_until < now() and valid_until > now() - make_interval(days => ${s.graceDays}) and valid_until + make_interval(days => ${s.graceDays}) < now() + interval '1 day')::int as grace,
-      (select count(*) from app.packs where status <> 'pending_payment' and source <> 'carry')::int as sold`);
+      (select count(*) from app.packs where status <> 'pending_payment' and source <> 'carry')::int as sold,
+      (select count(*) from app.payments where refund_status = 'failed' or (refund_status = 'pending' and coalesce((meta->>'refundAt')::timestamptz, created_at) < now() - interval '15 minutes'))::int as refund_failed`);
     return { ...x, tickAt: s.lastTick || null };
   };
   r.get("/admin/pulse", async (c) => {
@@ -163,6 +168,22 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     }, attention: await attention() });
   });
   r.get("/admin/attention", async (c) => c.json({ ok: true, attention: await attention() }));
+  // Сәтсіз қайтарулар (провайдер қабылдамаған): тізім және «Қайта жіберу» (src/refund.ts)
+  r.get("/admin/refunds/failed", async (c) => {
+    const list = await rows<Row>(sql`select p.id, p.amount, p.refunded, p.refund_failure, p.meta->>'lastRefund' as last, p.meta->>'refundAt' as at, u.first_name, u.last_name from app.payments p join app.users u on u.id = p.user_id
+      where p.refund_status = 'failed' or (p.refund_status = 'pending' and coalesce((p.meta->>'refundAt')::timestamptz, p.created_at) < now() - interval '15 minutes') order by p.created_at desc limit 100`);
+    return c.json({ ok: true, refunds: list.map((x) => ({ id: x.id, amount: Number(x.last ?? x.refunded), reason: x.refund_failure, at: x.at, customer: short(String(x.first_name), x.last_name as string | null) })) });
+  });
+  r.post("/admin/payments/:id/refund-retry", async (c) => {
+    const body = await c.req.json().catch(() => ({})) as { pin?: unknown };
+    const bad = await danger(c, body.pin); if (bad) return bad; // ақша әрекеті — PIN-мен
+    // Жолды бір сұраумен «алып қоямыз» (failed → pending): екі рет басылса да ақша екі рет қайтарылмайды
+    const [x] = await rows<{ id: string }>(sql`update app.payments set refund_status = 'pending' where id = ${c.req.param("id")} and refund_status in ('failed') returning id`);
+    if (!x) return c.json({ ok: false, error: "not_failed" }, 409);
+    const st = await pushRefund(db, cfg, x.id);
+    await log(c, "Қайтару қайта жіберілді", `${x.id.slice(0, 8)} · ${st}`, { paymentId: x.id, result: st });
+    return c.json({ ok: st === "done", refundStatus: st });
+  });
 
   // ── 03 · Мекемелер ──────────────────────────────────────────────
   r.get("/admin/venues", async (c) => {
@@ -381,10 +402,10 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   });
   r.get("/admin/packs/:id", async (c) => {
     const id = c.req.param("id");
-    const [p] = await rows<Row>(sql`select p.*, o.title, o.unit_name, v.name as venue, v.id as venue_id, coalesce(v.fee_pct, ${cfg.MEDEO_FEE_PCT})::int as fee_pct, u.first_name, u.last_name, ${packRef} as ref
+    const [p] = await rows<Row>(sql`select p.*, o.title, o.unit_name, v.name as venue, v.id as venue_id, coalesce(v.fee_pct, v.auto_fee_pct, ${cfg.MEDEO_FEE_PCT})::int as fee_pct, u.first_name, u.last_name, ${packRef} as ref
       from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id join app.users u on u.id = p.user_id where p.id = ${id}`);
     if (!p) return c.json({ ok: false, error: "not_found" }, 404);
-    const unitPrice = Math.round(Number(p.price_paid) / Number(p.units_total));
+    const unitPrice = Math.round(Number(p.value_total ?? p.price_paid) / Number(p.units_total));
     const ev = await rows<Row>(sql`select e.type, e.units_delta, e.meta, e.created_at, b.address, cu.first_name as cashier, r.cancelled_at
       from app.pack_events e left join app.redemptions r on r.id = (e.meta->>'redemptionId')::uuid left join app.branches b on b.id = r.branch_id left join app.users cu on cu.id = r.cashier_id
       where e.pack_id = ${id} order by e.created_at desc`);
@@ -438,12 +459,13 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const p = periodOf(c.req.query("period") ?? "30");
     const [now, prev] = await Promise.all([salesIn(p.from, p.to), salesIn(p.prevFrom, p.prevTo)]);
     const [m] = await rows<{ venue: number; uses: number; balance: number; payments: number; refunds: number; expired: number }>(sql`select
-      coalesce((select sum(round(r.units * (pk.price_paid / pk.units_total) * (100 - coalesce(v.fee_pct, ${cfg.MEDEO_FEE_PCT})) / 100.0)) from app.redemptions r join app.packs pk on pk.id = r.pack_id join app.offers o on o.id = pk.offer_id join app.venues v on v.id = o.venue_id where r.cancelled_at is null and r.created_at >= ${p.from}), 0)::int as venue,
+      (coalesce((select sum(round(r.amount * (100 - r.fee_pct) / 100.0)) from app.redemptions r where r.cancelled_at is null and r.created_at >= ${p.from}), 0)
+        + coalesce((select sum(round(o.amount * (100 - o.fee_pct) / 100.0)) from app.orders o where o.status in ${PAYABLE} and o.created_at >= ${p.from}), 0))::int as venue,
       (select count(*) from app.redemptions where cancelled_at is null and created_at >= ${p.from})::int as uses,
-      coalesce((select sum(units_left * (price_paid / units_total)) from app.packs where status = 'active' and units_left > 0 and valid_until > now()), 0)::int as balance,
+      coalesce((select sum(${leftValueSql("packs")}) from app.packs where status = 'active' and units_left > 0 and valid_until > now()), 0)::int as balance,
       (select count(*) from app.payments where status = 'paid' and created_at >= ${p.from})::int as payments,
       (select count(*) from app.pack_events where type in ('complaint_refund','use_cancelled') and created_at >= ${p.from})::int as refunds,
-      coalesce((select sum(units_left * (price_paid / units_total)) from app.packs where units_left > 0 and valid_until < now() and valid_until > now() - interval '60 days'), 0)::int as expired`);
+      coalesce((select sum(${leftValueSql("packs")}) from app.packs where units_left > 0 and valid_until < now() and valid_until > now() - interval '60 days'), 0)::int as expired`);
     return c.json({ ok: true, money: { sales: now.sales, salesGrowth: growth(now.sales, prev.sales), fee: now.fee, feeGrowth: growth(now.fee, prev.fee), venue: m.venue, uses: m.uses, balance: m.balance, payments: m.payments, refunds: m.refunds, expired: m.expired, testMode: cfg.PAYMENTS_MODE === "test" } });
   });
 
@@ -459,12 +481,16 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   // Есеп айырысу (Figma «Мекемелермен есеп»): айлар бойынша — ақша әр қолданған сайын мекемеге өтеді
   const settlements = async (month: string) => {
     const from = new Date(`${month}-01T00:00:00+05:00`); const to = new Date(from); to.setMonth(to.getMonth() + 1);
-    return rows<{ id: string; name: string; status: string; fee: number; uses: number; amount: number; gross: number }>(sql`select v.id, v.name, v.status, coalesce(v.fee_pct, ${cfg.MEDEO_FEE_PCT})::int as fee,
-        coalesce(sum(r.units), 0)::int as uses, coalesce(sum(r.units * (p.price_paid / p.units_total)), 0)::int as gross,
-        coalesce(sum(round(r.units * (p.price_paid / p.units_total) * (100 - coalesce(v.fee_pct, ${cfg.MEDEO_FEE_PCT})) / 100.0)), 0)::int as amount
-      from app.venues v left join app.branches b on b.venue_id = v.id
-      left join app.redemptions r on r.branch_id = b.id and r.cancelled_at is null and r.created_at >= ${from} and r.created_at < ${to}
-      left join app.packs p on p.id = r.pack_id
+    // Мекемеге төленетін қызмет: кассадағы қолдану (бас тартылмаған) + тапсырыс/жоспар (орындалған не клиент келмеген — бірлік жұмсалды)
+    return rows<{ id: string; name: string; status: string; fee: number; uses: number; amount: number; gross: number }>(sql`
+      with u as (
+        select b.venue_id, r.units, r.amount, r.fee_pct from app.redemptions r join app.branches b on b.id = r.branch_id where r.cancelled_at is null and r.created_at >= ${from} and r.created_at < ${to}
+        union all
+        select b.venue_id, 1, o.amount, o.fee_pct from app.orders o join app.branches b on b.id = o.branch_id where o.status in ${PAYABLE} and o.created_at >= ${from} and o.created_at < ${to})
+      select v.id, v.name, v.status, coalesce(v.fee_pct, v.auto_fee_pct, ${cfg.MEDEO_FEE_PCT})::int as fee,
+        coalesce(sum(u.units), 0)::int as uses, coalesce(sum(u.amount), 0)::int as gross,
+        coalesce(sum(round(u.amount * (100 - u.fee_pct) / 100.0)), 0)::int as amount
+      from app.venues v left join u on u.venue_id = v.id
       where v.status in ('active','paused','closed') group by v.id order by amount desc, v.name`);
   };
   r.get("/admin/settlements", async (c) => {
@@ -472,7 +498,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, month, venues: await settlements(month) });
   });
   // Қайтарулар (Figma «Қайтарулар»): бірлік пакетке оралады, сомасы мекемеден ұсталады; ақшалай қайтару өшірулі
-  const refunds = (from: Date) => rows<Row>(sql`select e.id, e.type, e.units_delta::int as units, e.created_at, e.meta, u.first_name, u.last_name, o.title, v.name as venue, (p.price_paid / p.units_total)::int as unit_price
+  const refunds = (from: Date) => rows<Row>(sql`select e.id, e.type, e.units_delta::int as units, e.created_at, e.meta, u.first_name, u.last_name, o.title, v.name as venue, round(p.value_total::numeric / p.units_total)::int as unit_price
       from app.pack_events e join app.packs p on p.id = e.pack_id join app.users u on u.id = p.user_id join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id
       where e.type in ('complaint_refund','use_cancelled') and e.created_at >= ${from} order by e.created_at desc limit 200`);
   const refundDto = (x: Row) => { const m = (x.meta ?? {}) as Record<string, unknown>; return { id: x.id, units: x.units, at: x.created_at, customer: short(String(x.first_name), x.last_name as string | null), title: head(String(x.title)), venue: x.venue,
@@ -532,7 +558,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
         (select count(*) from app.complaints c3 where c3.user_id = c.user_id)::int as client_complaints,
         (select count(*) from app.complaints c2 where c2.created_at <= c.created_at)::int as no,
         exists (select 1 from app.admins a where a.user_id = c.decided_by) as by_admin,
-        (p.price_paid / p.units_total)::int as unit_price
+        round(p.value_total::numeric / p.units_total)::int as unit_price
       from app.complaints c join app.users u on u.id = c.user_id join app.packs p on p.id = c.pack_id join app.offers o on o.id = p.offer_id join app.venues v on v.id = c.venue_id
       left join app.redemptions r on r.id = c.redemption_id left join app.users cu on cu.id = r.cashier_id where c.id = ${c.req.param("id")}`);
     if (!x) return c.json({ ok: false, error: "not_found" }, 404);

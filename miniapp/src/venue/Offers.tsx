@@ -15,10 +15,11 @@ import { api } from "../api";
 import { err, money, useCurrent, V } from "./api";
 import { Buttons, Note, OfferPic, Sheet, Sk, VPage, VSticker } from "./ui";
 import { pickImage, uploadImage } from "./media";
+import { offPeakPrice, winLabel, WEEK_SHORT, type OffPeak } from "../offpeak";
 import s from "./V.module.css";
 
 type Size = { units: number; price: number };
-interface Draft { title: string; titleRu: string; category: string; about: string; aboutRu: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; branches: string[] | null } }
+interface Draft { title: string; titleRu: string; category: string; about: string; aboutRu: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; branches: string[] | null } }
 interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu"> { titleRu?: string | null; aboutRu?: string | null; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 // Санат серверге қазақша сақталады (тілге тәуелсіз мән), ал экранда таңдалған тілде көрінеді: __t(c)
@@ -30,6 +31,50 @@ const saving = (x: Size, reg: number) => Math.max(0, Math.round((1 - x.price / (
 /** Жеңілдік шегі (Medeo ережесі, әдепкі 30%): тым арзан пакет мекемеге де, клиентке де зиян */
 const bigText = (e: unknown) => `Жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 30}%-дан аспауы керек. Тым арзан пакетте әр клиентке қызмет көрсету мекемеге шығын болады. Бағаны сәл көтеріңіз.`;
 
+
+/** Бос сағат: күндер, уақыт аралығы, қосымша жеңілдік (5–30%). Бағасы клиентке сатып алу парағында көрінеді. */
+function OffPeakRow({ w, sizes, onChange }: { w: OffPeak | null; sizes: Size[]; onChange: (w: OffPeak | null) => void }) {
+  const on = Boolean(w);
+  const cur: OffPeak = w ?? { days: [1, 2, 3, 4, 5], from: "10:00", to: "12:00", pct: 10 };
+  const HOURS = Array.from({ length: 17 }, (_, i) => `${String(7 + i).padStart(2, "0")}:00`); // 07:00–23:00
+  const shift = (k: "from" | "to", dir: 1 | -1) => {
+    const i = HOURS.indexOf(cur[k]); const n = HOURS[Math.min(HOURS.length - 1, Math.max(0, i + dir))];
+    const next = { ...cur, [k]: n };
+    if (next.from < next.to) { haptic.select(); onChange(next); } else haptic.warning();
+  };
+  return (
+    <>
+      <div className={s.row}>
+        <Tile e="v:extend" size={36} />
+        <span className={s.rowText}><span className={s.rowTitle}>Бос сағат жеңілдігі</span><span className={s.rowSub} style={{ whiteSpace: "normal" }}>Бос уақытыңызды толтырыңыз: осы сағаттарда келетін клиентке пакет арзанырақ. Жалпы жеңілдік 40%-дан аспайды.</span></span>
+        <Switch on={on} onChange={(v) => { haptic.select(); onChange(v ? cur : null); }} />
+      </div>
+      {on && <div className={s.row} style={{ flexDirection: "column", alignItems: "stretch", gap: 12, paddingTop: 4, paddingBottom: 14 }}>
+        <div className={s.chips} style={{ flexWrap: "wrap" }}>
+          {WEEK_SHORT.map((x, i) => {
+            const d = i + 1; const sel = cur.days.includes(d);
+            return <button key={x} className={`${s.chip} ${sel ? s.chipOn : ""}`} onClick={() => { const days = sel ? cur.days.filter((y) => y !== d) : [...cur.days, d].sort(); if (!days.length) { haptic.warning(); return; } haptic.select(); onChange({ ...cur, days }); }}>{__t(x)}</button>;
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
+          {(["from", "to"] as const).map((k) => (
+            <div key={k} className={s.stepper}>
+              <button className={s.stepBtn} onClick={() => shift(k, -1)}>−</button>
+              <span className={s.stepVal} style={{ width: 64, fontSize: 16 }}>{cur[k]}</span>
+              <button className={s.stepBtn} onClick={() => shift(k, 1)}>+</button>
+            </div>
+          ))}
+          <div className={s.stepper}>
+            <button className={s.stepBtn} disabled={cur.pct <= 5} onClick={() => { haptic.select(); onChange({ ...cur, pct: cur.pct - 5 }); }}>−</button>
+            <span className={s.stepVal} style={{ width: 52, fontSize: 16 }}>{`−${cur.pct}%`}</span>
+            <button className={s.stepBtn} disabled={cur.pct >= 30} onClick={() => { haptic.select(); onChange({ ...cur, pct: cur.pct + 5 }); }}>+</button>
+          </div>
+        </div>
+        <span className={`t-cap1 ${s.muted}`}>{`${winLabel(cur)} · ${sizes.map((x) => `${x.units} → ${money(offPeakPrice(x.price, cur.pct))}`).join(", ")}`}</span>
+      </div>}
+    </>
+  );
+}
 
 function Steps({ n, label }: { n: number; label: string }) {
   return (
@@ -80,7 +125,7 @@ export function VOfferWizard() {
       haptic.success();
       // «Ұсыныс тексеруде» — тек Medeo тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
-    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : "Сақталмады. Қайталап көріңіз."); }
+    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : err(e) === "big_off_peak" ? `Бос сағат бағасымен жалпы жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 40}%-дан аспауы керек. Бос сағат жеңілдігін азайтыңыз.` : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
   }, [me, busy, d, id, status, go]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -193,8 +238,10 @@ export function VOfferWizard() {
           <div className={s.row}>
             <Tile e="v:clock" size={36} />
             <span className={s.rowText}><span className={s.rowTitle}>Тек жоспар бойынша</span><span className={s.rowSub} style={{ whiteSpace: "normal" }}>Клиент әр келуін күн мен уақытқа алдын ала жоспарлайды. Кассада QR-мен және «қазір» тапсырыспен қолданылмайды.</span></span>
-            <Switch on={Boolean(d.rules.planOnly)} onChange={(v) => up({ rules: { ...d.rules, planOnly: v, ...(v ? { preorder: true } : {}) } })} />
+            <Switch on={Boolean(d.rules.planOnly)} onChange={(v) => up({ rules: { ...d.rules, planOnly: v, ...(v ? { preorder: true } : { offPeak: null }) } })} />
           </div>
+          {/* Бос сағат жеңілдігі (Патша, 2026-11-18): тек «Тек жоспар бойынша» қосулы болса — бос уақытты қосымша жеңілдікпен толтыру */}
+          {d.rules.planOnly && <OffPeakRow w={d.rules.offPeak ?? null} sizes={d.sizes} onChange={(w) => up({ rules: { ...d.rules, offPeak: w } })} />}
         </div>
         <h2 className={s.blueHead}>Қай филиалдарда</h2>
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
@@ -429,7 +476,7 @@ function OfferTerms({ onBack, onAccept }: { onBack: () => void; onAccept: () => 
   const [ok, setOk] = useState(false);
   const blocks: [string, string][] = [
     ["Баға бойынша міндеттеме", "Пакетті сатып алған клиентке көрсетілген бағамен қызмет көрсетуге міндеттенесіз. Баға кейін өзгерсе, бұрын сатылған пакетке әсер етпейді."],
-    ["Комиссия", "Әр сатылымнан 10%. Рейтингі жоғары болса — 8%. Бұл тек мекемеге көрінеді, клиентке көрсетілмейді."],
+    ["Комиссия", "Әр қолданудан 10%. Рейтинг 4,7★ және 20+ пікір болса — 9%, 4,9★ және 50+ пікір — 8%. Комиссия қолданылған сәтте жазылады: кейін өзгерсе де өткен есеп өзгермейді. Клиентке көрсетілмейді."],
     ["Мерзімі өткен пакет", "Мерзім мен күту кезеңі біткен соң қолданылмаған дананың сомасы клиентке Medeo бонусы болып қайтады, мекемеге есептелмейді."],
     ["Қайтару және шағым", "Қате қолдану расталса, дана клиентке қайтарылады, төлем есепте түзетіледі."],
   ];

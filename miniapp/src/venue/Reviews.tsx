@@ -13,6 +13,33 @@ const Stars = ({ n, size = 16 }: { n: number; size?: number }) => (
   <span style={{ display: "inline-flex", gap: 2 }}>{[1, 2, 3, 4, 5].map((i) => <span key={i} style={{ fontSize: size, lineHeight: 1, color: i <= n ? "#ffb800" : "#d5dae0" }}>★</span>)}</span>
 );
 
+/** Комиссия деңгейі (Патша, 2026-11-18): сапа ақшамен ынталандырылады — рейтинг пен пікір өссе, комиссия азаяды */
+function FeeCard({ fee, rating, reviews, reliability }: { fee: NonNullable<NonNullable<ReturnType<typeof useCurrent>>["venue"]["fee"]>; rating: number | null; reviews: number; reliability: number | null }) {
+  const r = rating ?? 0;
+  const n = fee.next;
+  const need = n ? [r < n.rating ? `рейтинг ${String(n.rating).replace(".", ",")}★ (қазір ${r ? String(r.toFixed(1)).replace(".", ",") : "–"})` : "", reviews < n.reviews ? `тағы ${n.reviews - reviews} пікір` : ""].filter(Boolean).join(" және ") : "";
+  return (
+    <div className={s.card} style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+        <b className={s.lead}>Medeo комиссиясы</b>
+        <b style={{ fontSize: 22, lineHeight: "28px", color: fee.pct < fee.base ? "#1f9d48" : "var(--text-strong)" }}>{`${fee.pct}%`}</b>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${fee.tiers.length + 1}, 1fr)`, gap: 4 }}>
+        {[{ pct: fee.base, rating: 0, reviews: 0 }, ...fee.tiers].map((t) => (
+          <span key={t.pct} style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+            <i style={{ alignSelf: "stretch", height: 6, borderRadius: 3, background: fee.pct <= t.pct ? "#31d158" : "var(--separator)" }} />
+            <span className={`t-cap1 ${s.muted}`}>{t.rating ? `${t.pct}% · ${String(t.rating).replace(".", ",")}★, ${t.reviews}+` : `${t.pct}% · негізгі`}</span>
+          </span>
+        ))}
+      </div>
+      <span className={`t-sub2 ${s.muted}`} style={{ whiteSpace: "normal" }}>
+        {fee.custom ? "Комиссияны Medeo жеке келісіммен қойған." : n ? `${n.pct}%-ға түсу үшін: ${need}.` : "Ең төменгі комиссия — керемет жұмыс!"}
+        {reliability != null ? ` Сенімділік: ${reliability}% қызмет шағымсыз.` : ""}
+      </span>
+    </div>
+  );
+}
+
 export function VReviews() {
   const me = useCurrent();
   const [f, setF] = useState<"all" | "noreply" | "low">("all");
@@ -47,6 +74,7 @@ export function VReviews() {
           ))}
         </div>
       </div>
+      {me?.venue.fee && <FeeCard fee={me.venue.fee} rating={me.venue.rating} reviews={me.venue.reviews} reliability={me.venue.reliability ?? null} />}
       <div className={s.chips}>
         {([["all", "Барлығы"], ["noreply", `Жауапсыз${d?.summary.noReply ? " · " + d.summary.noReply : ""}`], ["low", "Төмен баға"]] as const).map(([k, t]) => (
           <button key={k} className={`${s.chip} ${f === k ? s.chipOn : ""}`} onClick={() => { haptic.select(); setF(k); }}>{t}</button>

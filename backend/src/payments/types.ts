@@ -30,7 +30,7 @@ export type ChargeResult =
   /** Өтпеді: себебі клиентке түсінікті мәтінге айналдырылады */
   | { status: "failed"; externalId?: string; reason: FailReason };
 
-export type FailReason = "declined" | "insufficient_funds" | "expired_card" | "3ds_failed" | "limit" | "fraud" | "provider_error";
+export type FailReason = "3ds_required" | "declined" | "insufficient_funds" | "expired_card" | "3ds_failed" | "limit" | "fraud" | "provider_error";
 
 /** Вебхуктан алынған нәтиже: externalId не paymentId арқылы төлемді табамыз */
 export interface WebhookEvent { paymentId?: string; externalId: string; status: "paid" | "failed"; reason?: FailReason; card?: CardInfo }
@@ -44,7 +44,7 @@ export interface PaymentProvider {
   tokenize(cryptogram: string, user: { id: string }): Promise<CardInfo>;
   /** Провайдердің вебхугын тексеру (қолтаңба!) және оқу. Жарамсыз болса — null */
   webhook(req: { headers: Record<string, string>; body: string }): Promise<WebhookEvent | null>;
-  /** Қайтару (толық не жартылай). Ақшалай қайтару әзірге өшірулі — интерфейсте болашаққа */
+  /** Қайтару (толық не жартылай): клиенттің картасына/Kaspi-іне ақшаны қайтару. Нақты провайдер міндетті түрде жүзеге асырады. */
   refund?(externalId: string, amount: number): Promise<{ ok: boolean; reason?: string }>;
 }
 

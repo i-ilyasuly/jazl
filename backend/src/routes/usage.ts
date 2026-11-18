@@ -12,6 +12,8 @@ import type { Notifier } from "../notify.js";
 import { branches, offers, orders, packEvents, packs, qrSessions, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
 import { makeDynamicQr, makeSessionQr, parseQr } from "../qr.js";
 import { branchStatus } from "../hours.js";
+import { inOffPeak, type OffPeakT } from "../offpeak.js";
+import { takeValue, unitPrice as unitPriceOf } from "../value.js";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type User = typeof users.$inferSelect;
@@ -22,19 +24,24 @@ export const branchQr = (cfg: Config, branchId: string) => `https://t.me/${cfg.M
 
 class UseError extends Error { constructor(public code: string, public status: 400 | 404 | 409 = 409, public extra: Record<string, unknown> = {}) { super(code); } }
 
-/** Пакеттен n бірлік алады (жолды бұғаттап). Қате болса UseError. check — бұғаттан кейінгі қосымша тексеру (мекеме, сома). */
-async function takeUnit(tx: Tx, packId: string, userId: string, n = 1, check?: (p: { venueId: string; offerId: string; unitPrice: number; units_left: number; planOnly: boolean }) => void) {
-  const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug, coalesce((o.rules->>'planOnly')::boolean, false) as "planOnly" from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${packId} and p.user_id = ${userId} for update of p`);
-  const p = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; price_paid: number; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string; planOnly: boolean } | undefined;
+/** Пакеттен n бірлік алады (жолды бұғаттап). Қате болса UseError. check — бұғаттан кейінгі қосымша тексеру (мекеме, сома).
+ *  amount — осы бірліктердің құны (value.ts: көшірілген құн ескеріледі, қалдық тиын соңғы бірлікке), feePct — сол сәттегі Medeo комиссиясы. */
+async function takeUnit(tx: Tx, packId: string, userId: string, n: number, defFee: number, check?: (p: { venueId: string; offerId: string; unitPrice: number; units_left: number; planOnly: boolean; offPeak: OffPeakT | null }) => void) {
+  const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug, coalesce((o.rules->>'planOnly')::boolean, false) as "planOnly",
+      coalesce(v.fee_pct, v.auto_fee_pct, ${defFee})::int as "feePct"
+    from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where p.id = ${packId} and p.user_id = ${userId} for update of p`);
+  const p = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; price_paid: number; value_total: number; off_peak: OffPeakT | null; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string; planOnly: boolean; feePct: number } | undefined;
   if (!p) throw new UseError("pack_not_found", 404);
   if (p.status !== "active") throw new UseError("pack_" + p.status);
   if (new Date(p.valid_until).getTime() < Date.now()) throw new UseError("pack_expired");
-  const unitPrice = Math.round(p.price_paid / p.units_total);
-  check?.({ venueId: p.venueId, offerId: p.offer_id, unitPrice, units_left: p.units_left, planOnly: p.planOnly });
+  const unitPrice = unitPriceOf(p.value_total, p.units_total);
+  // Бос сағатпен алынған пакет әрқашан «тек жоспар бойынша» (мекеме кейін ережені өзгертсе де)
+  check?.({ venueId: p.venueId, offerId: p.offer_id, unitPrice, units_left: p.units_left, planOnly: p.planOnly || Boolean(p.off_peak), offPeak: p.off_peak });
   if (p.units_left < n) throw new UseError("no_units", 409, { left: p.units_left });
   const left = p.units_left - n;
+  const amount = takeValue(p.value_total, p.units_total, p.units_left, n);
   await tx.update(packs).set({ unitsLeft: left, status: left === 0 ? "used" : "active" }).where(eq(packs.id, packId));
-  return { ...p, left, unitPrice };
+  return { ...p, left, unitPrice, amount };
 }
 
 function meta(c: Context<Env>, user: User) {
@@ -119,7 +126,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
           if (lk.cancelled_at) throw new UseError("qr_cancelled");
           if (new Date(lk.expires_at).getTime() < Date.now()) throw new UseError("qr_expired");
         }
-        const p = await takeUnit(tx, b.data.packId, user.id, units, (x) => {
+        const p = await takeUnit(tx, b.data.packId, user.id, units, cfg.MEDEO_FEE_PCT, (x) => {
           if (x.venueId !== br.v.id) throw new UseError("other_venue", 409, { venue: br.v.name });
           // «Тек жоспар бойынша» ұсыныс: кассада QR-мен қолданылмайды — алдын ала жазылу/жоспар арқылы ғана
           if (x.planOnly) throw new UseError("plan_only", 409);
@@ -131,11 +138,11 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
             if (k !== units) throw new UseError("units_mismatch", 409, { expectedUnits: k, amount: q.amount, unitPrice: x.unitPrice });
           }
         });
-        const [rd] = await tx.insert(redemptions).values({ packId: p.id, branchId, units, idempotencyKey: b.data.idempotencyKey, cashierId: ss?.s.createdBy ?? null }).returning();
+        const [rd] = await tx.insert(redemptions).values({ packId: p.id, branchId, units, idempotencyKey: b.data.idempotencyKey, cashierId: ss?.s.createdBy ?? null, amount: p.amount, feePct: p.feePct }).returning();
         if (ss) await tx.update(qrSessions).set({ redemptionId: rd.id }).where(eq(qrSessions.id, ss.s.id));
         await tx.insert(packEvents).values({ packId: p.id, type: "use", unitsDelta: -units, meta: { via: "scan", qr: q.kind, branchId, redemptionId: rd.id } });
         const now = new Date();
-        const [rc] = await tx.insert(receipts).values({ kind: "use", userId: user.id, packId: p.id, venueId: br.v.id, branchId, total: p.unitPrice * units,
+        const [rc] = await tx.insert(receipts).values({ kind: "use", userId: user.id, packId: p.id, venueId: br.v.id, branchId, total: p.amount,
           public: { title: units > 1 ? `${units} бірлік пайдаланылды` : "Бірлік пайдаланылды", status: "Расталды", dateLocal: almaty(now), seller: { name: br.v.name, address: br.b.address, bin: null },
             item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : "Кассадағы Medeo QR", extra: ss && ss.s.extra ? { amount: ss.s.extra, note: "кассада бөлек төленеді" } : null },
           internal: { version: 1, redemptionId: rd.id, ...meta(c, user), item: { title: p.title, units, unitName: p.unitName, packSlug: p.slug },
@@ -160,18 +167,22 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (d.type === "plan" && (!at || isNaN(at.getTime()) || at.getTime() < Date.now() + 15 * 60_000)) return c.json({ ok: false, error: "bad_slot" }, 400);
     try {
       const out = await db.transaction(async (tx) => {
-        const p = await takeUnit(tx, d.packId, user.id, 1, (x) => { if (x.planOnly && d.type === "now") throw new UseError("plan_only", 409); });
+        const p = await takeUnit(tx, d.packId, user.id, 1, cfg.MEDEO_FEE_PCT, (x) => {
+          if (x.planOnly && d.type === "now") throw new UseError("plan_only", 409);
+          // Бос сағат пакеті: келу уақыты мекеменің бос терезесінде болуы керек
+          if (x.offPeak && at && !inOffPeak(x.offPeak, at)) throw new UseError("off_peak_slot", 400, { window: x.offPeak });
+        });
         if (at && at.getTime() > new Date(p.valid_until).getTime()) throw new UseError("slot_after_expiry", 400);
         const [v] = await tx.select().from(venues).where(eq(venues.id, p.venueId));
         if (d.type === "now" && !v.acceptsPreorder) throw new UseError("no_preorder");
         const [br] = d.branchId ? await tx.select().from(branches).where(and(eq(branches.id, d.branchId), eq(branches.venueId, v.id))) : await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true))).limit(1);
         if (!br) throw new UseError("branch_not_found", 404);
         const code = String(randomInt(1000, 10000));
-        const [o] = await tx.insert(orders).values({ type: d.type, packId: p.id, userId: user.id, branchId: br.id, scheduledAt: at, code, courier: d.courier ?? false, idempotencyKey: d.idempotencyKey }).returning();
+        const [o] = await tx.insert(orders).values({ type: d.type, packId: p.id, userId: user.id, branchId: br.id, scheduledAt: at, code, courier: d.courier ?? false, idempotencyKey: d.idempotencyKey, amount: p.amount, feePct: p.feePct }).returning();
         await tx.insert(packEvents).values({ packId: p.id, type: d.type === "plan" ? "plan" : "order", unitsDelta: -1, meta: { orderId: o.id, orderNo: o.no, scheduledAt: at } });
         const now = new Date();
         const slot = at ? almaty(at) : "қазір (~15 мин)";
-        const [rc] = await tx.insert(receipts).values({ kind: "order", userId: user.id, packId: p.id, venueId: v.id, branchId: br.id, total: p.unitPrice,
+        const [rc] = await tx.insert(receipts).values({ kind: "order", userId: user.id, packId: p.id, venueId: v.id, branchId: br.id, total: p.amount,
           public: { title: d.type === "plan" ? (v.kind === "hair" ? "Жазылу расталды" : "Жоспарланды") : "Тапсырыс жіберілді", status: "Жіберілді", dateLocal: almaty(now),
             seller: { name: v.name, address: br.address, bin: null }, item: { title: p.title, units: 1, unitName: p.unitName, pricePerUnit: p.unitPrice },
             order: { no: o.no, slot, code, courier: o.courier }, left: p.left },

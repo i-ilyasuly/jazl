@@ -101,7 +101,7 @@ d("Medeo Басқару", () => {
     expect(sent.at(-1)?.text).toContain("тексеруден өтіп, жарияланды");
   });
 
-  it("комиссия PIN-мен: қате PIN — қалған әрекет; 3 қате — 15 минут бұғат; дұрыс — мекеме есебінде 8%", async () => {
+  it("комиссия PIN-мен: қате PIN — қалған әрекет; 3 қате — 15 минут бұғат; дұрыс — өткен есеп өзгермейді (10%), жаңа қолдану 8%", async () => {
     let r = await json(post(`/v1/admin/venues/${venueId}/fee`, { feePct: 8, pin: "0000" }));
     expect(r).toMatchObject({ error: "bad_pin", left: 2 });
     r = await json(post(`/v1/admin/venues/${venueId}/fee`, { feePct: 8, pin: "5821" }));
@@ -109,7 +109,10 @@ d("Medeo Басқару", () => {
     const card = (await json(get(`/v1/admin/venues/${venueId}`))).venue;
     expect(card).toMatchObject({ feePct: 8, feeCustom: true });
     const hist = await json(get(`/v1/venue/${venueId}/history?days=1`, OWNER));
-    const u = hist.items[0]; expect(u.venueAmount).toBe(Math.round(u.amount * 0.92));
+    // Комиссия қолданылған сәтте жазылады: өткен қолдану бұрынғы 10%-бен қалады (кейін өзгерсе де өткен есеп өзгермейді)
+    const u = hist.items[0]; expect(u.venueAmount).toBe(Math.round(u.amount * 0.9));
+    await dbh.pool.query("update app.redemptions set fee_pct = 8 where id = $1", [u.id]); // жаңа қолдануда 8% жазылатынын usage.test тексереді
+    const u2 = (await json(get(`/v1/venue/${venueId}/history?days=1`, OWNER))).items[0]; expect(u2.venueAmount).toBe(Math.round(u2.amount * 0.92));
     for (let i = 0; i < 2; i++) await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "0000" });
     const locked = await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "0000" });
     expect(locked.status).toBe(423);
@@ -223,6 +226,13 @@ d("Medeo Басқару", () => {
     const dd = st.venues.find((x: { id: string }) => x.id === venueId);
     expect(dd.uses).toBeGreaterThan(0); expect(dd.fee).toBe(8); // жоғарыда 8%-ға өзгертілген
     expect(Math.abs(dd.amount - dd.gross * 0.92)).toBeLessThan(dd.uses);
+    // Тапсырыс/жоспар арқылы көрсетілген қызмет те мекеме есебіне кіреді (орындалды не клиент келмеді)
+    const pk2 = (await json(post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT))).pack;
+    const od = await json(post("/v1/orders", { packId: pk2.id, type: "plan", scheduledAt: new Date(Date.now() + 26 * 3600_000).toISOString(), idempotencyKey: key() }, CLIENT));
+    const before = (await json(get("/v1/admin/settlements"))).venues.find((x: { id: string }) => x.id === venueId);
+    await dbh.pool.query("update app.orders set status = 'done' where id = $1", [od.order?.id ?? od.id]);
+    const after = (await json(get("/v1/admin/settlements"))).venues.find((x: { id: string }) => x.id === venueId);
+    expect(after.uses - before.uses).toBe(1); expect(after.gross - before.gross).toBe(1500);
     const rf = await json(get("/v1/admin/refunds"));
     expect(rf.refunds.map((x: { why: string }) => x.why)).toEqual(expect.arrayContaining(["шағым", "Басқару қайтарды"]));
     const csv = await get("/v1/admin/export?period=all&parts=payments,settlements,refunds");

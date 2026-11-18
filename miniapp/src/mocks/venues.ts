@@ -1,6 +1,8 @@
 // Мекемелер (карта мен мекеме беті үшін). Алғашқы бесеуі Figma-дағы «Карта / Ашық тізім» тізімінен.
 import type { OfferKind } from "./offers";
-export interface Venue { id: string; name: string; kind: OfferKind; km: number; rating: number; reviews: number; address: string; hours: string; x: number; y: number; lng?: number; lat?: number; status?: "closed" | "new" | "nopay" | "247"; opensAt?: string; offers: [string, number, string?][] }
+export interface Venue { id: string; name: string; kind: OfferKind; km: number; rating: number; reviews: number; address: string; hours: string; x: number; y: number; lng?: number; lat?: number; status?: "closed" | "new" | "nopay" | "247";
+  /** Сенімділік белгісі (сервер, 90 күн): шағымсыз өткен қызмет үлесі, % — тек жеткілікті дерек болса */
+  trust?: number | null; opensAt?: string; offers: [string, number, string?][] }
 export const kindLabel: Record<OfferKind, string> = { food: "Тағам", coffee: "Кофе", hair: "Шаштараз" };
 export const kindEmoji: Record<OfferKind, string> = { food: "🍔", coffee: "☕", hair: "✂️" };
 export const kindTint: Record<OfferKind, string> = { food: "#ffb454", coffee: "#c9976a", hair: "#6aa2f5" };

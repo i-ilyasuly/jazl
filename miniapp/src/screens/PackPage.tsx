@@ -10,7 +10,9 @@ import { useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
 import { useGo } from "../nav";
 import { findVenue, venues } from "../mocks/venues";
-import { carryOf, CARRY_DAYS, getPack, offerOf, packState, rateActivityOf, usePacks, type Activity , refundPack } from "../store";
+import { carryOf, CARRY_DAYS, getPack, offerOf, packState, rateActivityOf, usePacks, type Activity , refundPack, setAutoRenew, useDefaultMethod, useMethods } from "../store";
+import { offPeakPrice } from "../offpeak";
+import { Switch } from "../ui/SubPage";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { ExtendSheet } from "../ui/ExtendSheet";
@@ -42,6 +44,18 @@ export function PackPage() {
   const rebuy = useMemo(() => ({ text: "Қайта алу", shine: true, onClick: () => { haptic.medium(); go("/rebuy/" + id); } }), [go, id]);
   useBottomButtons(usable ? order : rebuy, usable ? scan : undefined, Boolean(pack) && !sheet);
   const onExtended = useCallback((until: string) => { setExtending(false); setToast(`Мерзімі ұзартылды: ${until}`); window.setTimeout(() => setToast(""), 2600); }, []);
+  const methods = useMethods(); const defMethod = useDefaultMethod();
+  // Автожаңарту картасы: әдепкі тәсіл карта болса — сол, әйтпесе сақталған алғашқы карта
+  const renewCard = methods.find((m) => m.cardId && m.id === defMethod) ?? methods.find((m) => m.cardId);
+  const say = (t: string) => { setToast(t); window.setTimeout(() => setToast(""), 2600); };
+  const toggleRenew = async (on: boolean) => {
+    if (!pack) return;
+    if (on && !renewCard?.cardId) { haptic.warning(); say("Алдымен картаны сақтаңыз"); go("/profile/card-add"); return; }
+    haptic.select();
+    const r = await setAutoRenew(pack.id, on, on ? renewCard?.cardId : undefined);
+    if (!r.ok) { haptic.error(); say("Өзгерту мүмкін болмады"); return; }
+    say(on ? `Автожаңарту қосылды · ${r.card ?? renewCard?.title ?? ""}` : "Автожаңарту өшірілді");
+  };
   if (!pack) return null;
   const o = offerOf(pack);
   const state = packState(pack);
@@ -107,6 +121,17 @@ export function PackPage() {
           {state === "used" && <button className={`${s.cell} ${s.cellTop}`} onClick={() => { haptic.medium(); setRating(rateActivityOf(pack.id)); }}><span className={s.rowTitle}>Бағалау</span><span className={s.cellAction}>Бағала</span></button>}
         </section>
 
+        {/* Автожаңарту (Патша, 2026-11-18): пакет біткенде сақталған картадан сол көлем өзі қайта алынады — бір рет, клиенттің келісімімен */}
+        {pack.serverId && !pack.gifted && usable && (
+          <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 3 }}>
+            <div className={`${s.cell} ${s.cell2}`}>
+              <span className={s.rowText} style={{ minWidth: 0, whiteSpace: "normal" }}><span className={s.rowTitle}>Автожаңарту</span>
+                <span className={s.cellSub}>{pack.autoRenew ? `Пакет біткенде ${renewCard?.title ?? "сақталған карта"} арқылы ${fmt(pack.offPeak ? offPeakPrice(o.price, pack.offPeak.pct) : o.price)} алынады. Қалған бірлік жаңасына көшеді. Өшіргенше әр пакет біткенде жалғасады.` : "Пакет біткенде өзі қайта алынады — үзіліссіз. Қалаған кезде өшіресің."}</span></span>
+              <Switch on={Boolean(pack.autoRenew)} onChange={(v) => void toggleRenew(v)} />
+            </div>
+          </section>
+        )}
+
         {usable && (soon || pack.extendedTo) && (
           <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 3 }}>
             <button className={`${s.cell} ${s.cell2} ${noExtend ? s.cellOff : ""}`} disabled={noExtend} onClick={() => { haptic.medium(); setExtending(true); }}>
@@ -120,12 +145,12 @@ export function PackPage() {
           {usable && <button className={s.cell} onClick={() => { haptic.tap(); go(`/complaint/${pack.id}?why=refused`); }}><span className={`${s.rowTitle} ${s.linkText}`}>Мекеме қабылдамады ма?</span></button>}
           <button className={s.cell} onClick={() => { haptic.tap(); go("/complaint/" + pack.id); }}><span className={`${s.rowTitle} ${s.linkText}`}>Мәселе туралы жазу</span></button>
           {/* B4: бірде-бір бірлік жұмсалмаса — 14 күн ішінде ақшаны толық қайтаруға болады (сервер тексереді) */}
-          {pack.serverId && pack.left === pack.total && !pack.expired && <button className={s.cell} onClick={() => { haptic.tap(); setAskRefund(true); }}><span className={`${s.rowTitle} ${s.linkText}`}>Ақшаны қайтару</span></button>}
+          {pack.serverId && pack.left === pack.total && !pack.expired && !pack.gifted && <button className={s.cell} onClick={() => { haptic.tap(); setAskRefund(true); }}><span className={`${s.rowTitle} ${s.linkText}`}>Ақшаны қайтару</span></button>}
         </section>
       </div>
 
-      {askRefund && <Confirm title="Ақшаны қайтару?" text="Пакеттен бірде-бір бірлік жұмсалмаған — ақша толық қайтарылады, пакет жабылады." cancel="Жоқ" ok="Қайтару" danger onClose={() => setAskRefund(false)}
-        onOk={() => { setAskRefund(false); void refundPack(pack.id).then((r) => { if (r.ok) { haptic.success(); go("/packs", "fade", { replace: true }); } else { haptic.error(); setToast(r.error === "too_late" ? "14 күн өтіп кеткен — қайтару мүмкін емес" : "Қайтару мүмкін болмады"); } }); }} />}
+      {askRefund && <Confirm title="Ақшаны қайтару?" text="Пакеттен бірде-бір бірлік жұмсалмаған — ақша толық қайтарылады, пакет жабылады. Картадан төленген бөлігі картаңа, Medeo бонусымен төленген бөлігі бонусыңа оралады." cancel="Жоқ" ok="Қайтару" danger onClose={() => setAskRefund(false)}
+        onOk={() => { setAskRefund(false); void refundPack(pack.id).then((r) => { if (r.ok) { haptic.success(); go("/packs", "fade", { replace: true }); } else { haptic.error(); setToast(r.error === "too_late" ? "14 күн өтіп кеткен — қайтару мүмкін емес" : r.error === "gift_refund_giver" ? "Сыйлықты тек сыйлаған адам қайтара алады" : r.error === "units_used" ? "Пакеттен бірлік жұмсалған — қайтару мүмкін емес" : "Қайтару мүмкін болмады"); } }); }} />}
       {extending && <ExtendSheet pack={pack} onClose={() => setExtending(false)} onDone={onExtended} />}
       {rating && <RateSheet act={rating} onClose={() => setRating(null)} />}
       {toast && <div className={s.toast} role="status"><Tile e="📅" size={28} />{toast}</div>}

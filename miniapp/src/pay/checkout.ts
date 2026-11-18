@@ -4,7 +4,7 @@ import { api } from "../api";
 export type CheckoutCard = { id: string } | { cryptogram: string; save?: boolean };
 export interface SrvPurchase { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null }
 export type CheckoutResult =
-  | { status: "paid"; paymentId: string; pack: SrvPurchase; gift?: { code: string } | null; carried?: number }
+  | { status: "paid"; paymentId: string; pack: SrvPurchase; gift?: { code: string } | null; gifts?: { code: string }[]; carried?: number }
   | { status: "action_required"; paymentId: string; confirmUrl: string }
   | { status: "failed"; paymentId?: string; reason: string };
 
@@ -12,8 +12,8 @@ const newKey = () => (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + 
 
 async function call(path: string, init: RequestInit): Promise<CheckoutResult> {
   try {
-    const j = await api<{ status: string; paymentId: string; pack?: SrvPurchase; confirmUrl?: string; gift?: { code: string } | null; carried?: number }>(path, init, 20000);
-    if (j.status === "paid" && j.pack) return { status: "paid", paymentId: j.paymentId, pack: j.pack, gift: j.gift ?? null, carried: j.carried };
+    const j = await api<{ status: string; paymentId: string; pack?: SrvPurchase; confirmUrl?: string; gift?: { code: string } | null; gifts?: { code: string }[]; carried?: number }>(path, init, 20000);
+    if (j.status === "paid" && j.pack) return { status: "paid", paymentId: j.paymentId, pack: j.pack, gift: j.gift ?? null, gifts: j.gifts, carried: j.carried };
     return { status: "action_required", paymentId: j.paymentId, confirmUrl: j.confirmUrl ?? "" };
   } catch (e) {
     const b = (e as { body?: { error?: string; reason?: string; paymentId?: string } }).body;

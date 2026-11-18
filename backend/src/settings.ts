@@ -22,6 +22,16 @@ export const SETTING_DEFAULTS = {
   bonusMonths: 12,
   /** Жоспарлы тапсырма (/cron/tick) соңғы рет қашан жұмыс істеді (ISO). Басқару «Пульсте» тоқтап қалса ескертеді — бонус, ескертулер, қорытынды осыған тәуелді */
   lastTick: "",
+  /** Клиенттің бір пакетті ұзартуының жалпы шегі, күн (тегін 7 күн де кіреді; Басқару мен шағым бойынша ұзарту кірмейді).
+   *  Патша, 2026-11-18: шексіз ұзарту мекемені ескі бағамен мәңгі қызмет етуге мәжбүрлейтін еді. */
+  extendMaxDays: 60,
+  /** Бос сағат жеңілдігімен бірге жалпы жеңілдіктің жоғарғы шегі, % (негізгі шек maxDiscount — бос сағатсыз пакеттерге) */
+  offPeakMaxDiscount: 40,
+  /** Комиссия деңгейлері (Патша, 2026-11-18): рейтинг пен пікір саны жетсе комиссия азаяды. Басқару мекемеге қолмен комиссия қойса — сол басым */
+  feeTiers: [{ rating: 4.7, reviews: 20, minus: 1 }, { rating: 4.9, reviews: 50, minus: 2 }] as { rating: number; reviews: number; minus: number }[],
+  /** Сенімділік белгісі: соңғы 90 күнде кемінде осынша тапсырыс/шағым болса және үлес осыдан жоғары болса көрсетіледі */
+  reliabilityMinN: 20,
+  reliabilityBadgeAt: 90,
 };
 export type Settings = typeof SETTING_DEFAULTS;
 
@@ -53,6 +63,7 @@ export function feeFor(db: Db, venueId: string, def: number) {
 }
 export async function refreshFees(db: Db) {
   const x = st(db);
-  const rows = (await db.execute(sql`select id, fee_pct from app.venues where fee_pct is not null`)).rows as { id: string; fee_pct: number }[];
+  // Басқару қойған комиссия басым, әйтпесе рейтинг деңгейі (venueScore.ts), әйтпесе әдепкі
+  const rows = (await db.execute(sql`select id, coalesce(fee_pct, auto_fee_pct) as fee_pct from app.venues where fee_pct is not null or auto_fee_pct is not null`)).rows as { id: string; fee_pct: number }[];
   x.fees = new Map(rows.map((r) => [r.id, Number(r.fee_pct)])); x.feesAt = Date.now();
 }

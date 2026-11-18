@@ -7,6 +7,7 @@ import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
 import { getSettings } from "../settings.js";
+import { leftValueSql } from "../value.js";
 import { complaints, offers, packEvents, packs, redemptions, venueStaff } from "../db/schema.js";
 
 const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f);
@@ -63,7 +64,7 @@ export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const venueId = c.req.param("venueId");
     if (!(await staffOk(c.get("user").id, venueId))) return c.json({ ok: false, error: "forbidden" }, 403);
     const rows = (await db.execute(sql`select c.id, c.status, c.text, c.reason, c.reply, c.created_at, c.decided_at, u.first_name, u.last_name, o.title,
-        r.created_at as used_at, r.units as used_units, (p.price_paid / p.units_total)::int as unit_price
+        r.created_at as used_at, r.units as used_units, coalesce(r.amount / greatest(r.units, 1), round(p.value_total::numeric / p.units_total))::int as unit_price
       from app.complaints c join app.users u on u.id = c.user_id join app.packs p on p.id = c.pack_id join app.offers o on o.id = p.offer_id
       left join app.redemptions r on r.id = c.redemption_id where c.venue_id = ${venueId} order by (c.status = 'new') desc, c.created_at desc limit 100`)).rows as {
         id: string; status: string; text: string; reason: string | null; reply: string | null; created_at: Date; decided_at: Date | null; first_name: string; last_name: string | null; title: string; used_at: Date | null; used_units: number | null; unit_price: number }[];
@@ -92,18 +93,18 @@ export function complaintRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const venueId = c.req.param("venueId");
     if (!(await staffOk(c.get("user").id, venueId))) return c.json({ ok: false, error: "forbidden" }, 403);
     const grace = (await getSettings(db)).graceDays;
-    const rows = (await db.execute(sql`select p.id, coalesce(b.units, p.units_left)::int as left, p.valid_until, (p.price_paid / p.units_total)::int as unit_price, o.title, u.first_name, u.last_name,
+    const rows = (await db.execute(sql`select p.id, coalesce(b.units, p.units_left)::int as left, p.valid_until, round(p.value_total::numeric / p.units_total)::int as unit_price, b.amount::int as bonus_amount, ${leftValueSql()} as left_value, o.title, u.first_name, u.last_name,
         exists (select 1 from app.pack_events e where e.pack_id = p.id and e.type = 'carry_out') as carried, b.id is not null as bonus
       from app.packs p join app.offers o on o.id = p.offer_id join app.users u on u.id = p.user_id left join app.bonuses b on b.pack_id = p.id
       where o.venue_id = ${venueId} and p.valid_until < now() and p.valid_until > now() - interval '60 days' and p.status in ('active','expired','used')
         and (p.units_left > 0 or b.id is not null or exists (select 1 from app.pack_events e where e.pack_id = p.id and e.type = 'carry_out'))
-      order by p.valid_until desc limit 100`)).rows as { id: string; left: number; valid_until: Date; unit_price: number; title: string; first_name: string; last_name: string | null; carried: boolean; bonus: boolean }[];
+      order by p.valid_until desc limit 100`)).rows as { id: string; left: number; valid_until: Date; unit_price: number; title: string; first_name: string; last_name: string | null; carried: boolean; bonus: boolean; bonus_amount: number | null; left_value: number }[];
     const now = Date.now();
     const items = rows.map((x) => {
       const graceEnd = new Date(x.valid_until).getTime() + grace * 86400_000;
       const state = x.carried ? "carried" : x.bonus || graceEnd <= now ? "bonus" : "waiting";
       return { id: x.id, title: x.title.split(" · ")[0], customer: short(x.first_name, x.last_name), units: x.left, expiredAt: x.valid_until, state,
-        daysLeft: Math.max(0, Math.ceil((graceEnd - now) / 86400_000)), amount: x.unit_price * x.left };
+        daysLeft: Math.max(0, Math.ceil((graceEnd - now) / 86400_000)), amount: x.bonus_amount ?? x.left_value };
     });
     const month = new Date(); month.setDate(1); month.setHours(0, 0, 0, 0);
     const waiting = items.filter((x) => x.state === "waiting");

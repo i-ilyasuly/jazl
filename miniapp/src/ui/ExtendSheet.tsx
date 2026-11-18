@@ -10,8 +10,11 @@ import s from "./ExtendSheet.module.css";
 
 export function ExtendSheet({ pack, onClose, onDone }: { pack: Pack; onClose: () => void; onDone: (until: string) => void }) {
   const flow = usePayFlow();
-  const opts = EXTEND_OPTIONS.filter((x) => x.price > 0 || !pack.freeExtendUsed);
-  const [pick, setPick] = useState(opts[0]);
+  // Ұзарту шегі (сервер: жалпы 60 күн): тек шекке сыятын нұсқалар ұсынылады
+  const limit = pack.extendLeft ?? 60;
+  const opts = EXTEND_OPTIONS.filter((x) => (x.price > 0 || !pack.freeExtendUsed) && x.days <= limit);
+  const [pick, setPick] = useState(opts[0] ?? EXTEND_OPTIONS[0]);
+  const none = opts.length === 0;
   const [closing, setClosing] = useState(false);
   const until = shiftUntil(pack.until, pick.days);
 
@@ -20,11 +23,11 @@ export function ExtendSheet({ pack, onClose, onDone }: { pack: Pack; onClose: ()
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   const finish = useMemo(() => (r?: unknown) => { const u = extendPack(pack.id, pick.days, pick.price, Boolean(r)); if (u) { haptic.success(); onDone(u); } }, [pack.id, pick, onDone]);
-  const main = useMemo(() => pick.price === 0
+  const main = useMemo(() => none ? { text: "Түсінікті", onClick: close } : pick.price === 0
     ? { text: "Тегін ұзарту", onClick: () => { haptic.medium(); finish(); } }
     : { text: `Төлеу · ${fmt(pick.price)}`, shine: true, onClick: () => flow.pay({ ...offerOf(pack), title: `Мерзімін ұзарту · +${pick.days} күн`, price: pick.price }, finish,
         pack.serverId ? (card) => extendCard(pack.serverId!, pick.days, card) : undefined) },
-  [pick, finish, flow, pack]);
+  [pick, finish, flow, pack, none, close]);
   useBottomButtons(main, undefined, !flow.sheetOpen);
 
   return (
@@ -46,7 +49,9 @@ export function ExtendSheet({ pack, onClose, onDone }: { pack: Pack; onClose: ()
             </button>
           ))}
         </div>
-        <div className={s.kv}><span className={s.muted}>Жаңа мерзім</span><span className="w-600">{until}</span></div>
+        {none && <p className={`t-sub2 ${s.muted}`}>{"Бұл пакеттің ұзарту шегі таусылды. Мекеме ескі бағамен шексіз қызмет етпеуі үшін бір пакетті жалпы 60 күнге дейін ұзартуға болады."}</p>}
+        {!none && <div className={s.kv}><span className={s.muted}>Жаңа мерзім</span><span className="w-600">{until}</span></div>}
+        {!none && limit < 60 && <p className={`t-cap1 ${s.muted}`}>{`Ұзарту шегінен қалғаны: ${limit} күн`}</p>}
         {!inTelegram && (
           <div className={s.bar}>
             <button className={`${s.btn} ${main.shine ? s.shine : ""}`} disabled={flow.busy} onClick={main.onClick}>{flow.busy ? <span className={s.spinner} /> : main.text}</button>

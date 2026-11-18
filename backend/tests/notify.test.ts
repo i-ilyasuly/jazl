@@ -99,6 +99,8 @@ d("Бот хабарламалары", () => {
 
   it("пікір → иесіне", async () => {
     const p = await buy(CLIENT);
+    // Баға тек қолданғаннан кейін (2026-11-18): бұрынғы күнгі бір қолдануды жазамыз (бүгінгі есептерге әсер етпеуі үшін)
+    await dbh.pool.query("insert into app.redemptions (pack_id, branch_id, units, amount, fee_pct, created_at) select p.id, b.id, 1, 0, 10, now() - interval '3 days' from app.packs p join app.offers o on o.id = p.offer_id join app.branches b on b.venue_id = o.venue_id where p.id = $1 limit 1", [p]);
     await post("/v1/ratings", { packId: p, stars: 4, tags: ["Дәмді"] }, CLIENT);
     expect(to(OWNER).at(-1)?.text).toBe("⭐ Жаңа пікір: ★★★★☆ — «Дәмді»");
   });

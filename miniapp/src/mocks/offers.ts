@@ -6,6 +6,8 @@ export interface Offer {
   about?: string;
   /** «Тек жоспар бойынша»: пакет тек алдын ала жазылу/жоспар арқылы қолданылады (QR мен «қазір» тапсырыс жабық) */
   planOnly?: boolean;
+  /** Бос сағат жеңілдігі (тек planOnly ұсыныста): терезе мен қосымша % */
+  offPeak?: { days: number[]; from: string; to: string; pct: number };
   /** Пакет көлемінің нұсқалары (Figma: «Ұсыныс беті / Пакет көлемі»). Бірінші — негізгі. */
   sizes?: { units: number; price: number; oldPrice: number }[];
   id: string;

@@ -175,3 +175,8 @@
 .quote:active { transform: scale(0.98); }
 .venue:active { opacity: 0.6; }
 button.link:active, .link button:active { opacity: 0.55; }
+
+/* Сенімділік белгісі (2026-11-18): соңғы 90 күнде шағымсыз өткен қызмет үлесі */
+.trust { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: 6px 0 0; padding: 3px 10px 3px 8px; border-radius: 10px;
+  background: rgba(49, 209, 88, 0.14); color: #1f9d48; font-size: 13px; line-height: 18px; font-weight: 600; }
+.trust span { font-weight: 800; }
