@@ -37,6 +37,8 @@ const BANKS: Record<string, [string, string]> = {
 };
 export const bankOf = (iban: string) => BANKS[iban.replace(/\s/g, "").slice(4, 7)] ?? null;
 
+export const POS_KINDS = ["iiko", "r_keeper", "poster", "syrve", "paloma", "other", "none"] as const;
+export const posName: Record<string, string> = { iiko: "iiko", r_keeper: "r_keeper", poster: "Poster", syrve: "Syrve", paloma: "Paloma365", other: "Басқа", none: "Касса бағдарламасы жоқ" };
 const Hm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const Url = z.string().url().max(500);
 const Data = z.object({
@@ -45,6 +47,8 @@ const Data = z.object({
   contactName: z.string().trim().max(80).optional(), phone: z.string().trim().max(20).optional(), email: z.string().trim().max(80).optional(),
   branches: z.array(z.object({ address: z.string().trim().min(3).max(120), open: Hm, close: Hm })).max(20).optional(),
   logoUrl: Url.nullable().optional(), coverUrl: Url.nullable().optional(), gallery: z.array(Url).max(9).optional(),
+  /** Касса бағдарламасы (Патша, 2026-11-18): алғашқы мекемелердің жауабы POS интеграциясын қайсысынан бастауды көрсетеді */
+  pos: z.enum(POS_KINDS).optional(), posOther: z.string().trim().max(40).optional(),
   iban: z.string().max(40).optional(), ownAccount: z.boolean().optional(), agreeTerms: z.boolean().optional(), agreePrivacy: z.boolean().optional(),
 }).strict();
 export type AppData = z.infer<typeof Data>;
@@ -57,7 +61,7 @@ export function missing(d: AppData, docs: string[]) {
   if (!d.kind || !d.name || d.name.length < 2 || !d.about || d.about.length < 20) m.push("about");
   if (!d.bin || !validBin(d.bin) || !d.legalName || !d.authorized) m.push("legal");
   if (!d.contactName || !d.phone || !/^\+?\d[\d\s()-]{9,}$/.test(d.phone) || !d.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) m.push("contact");
-  if (!d.branches?.length) m.push("branches");
+  if (!d.branches?.length || !d.pos || (d.pos === "other" && !d.posOther)) m.push("branches"); // филиалдар қадамында касса бағдарламасы да
   if (!d.logoUrl || !d.coverUrl || (d.gallery?.length ?? 0) < 3) m.push("photos");
   if (!d.iban || !validIban(d.iban) || !d.ownAccount) m.push("bank");
   if (!docs.includes("bin") || !docs.includes("id") || (d.kind === "food" && !docs.includes("halal"))) m.push("docs");

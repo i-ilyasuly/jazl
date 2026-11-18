@@ -14,7 +14,7 @@ import { adminPrefDefaults, type Notifier } from "../notify.js";
 import { getSettings, refreshFees, setSetting, SETTING_DEFAULTS, type Settings } from "../settings.js";
 import { leftValueSql } from "../value.js";
 import { pushRefund } from "../refund.js";
-import { approve, bankOf, type AppData } from "./apply.js";
+import { approve, bankOf, posName, type AppData } from "./apply.js";
 import { decideComplaint } from "./complaints.js";
 
 type Row = Record<string, unknown>;
@@ -288,7 +288,14 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const d = a.data as AppData;
     const docs = await rows<{ id: string; kind: string; file_name: string; mime: string; size: number }>(sql`select id, kind, file_name, mime, size from app.venue_docs where application_id = ${a.id} order by created_at`);
     const bank = d.iban ? bankOf(d.iban) : null;
-    return c.json({ ok: true, application: { id: a.id, status: a.status, note: a.note, submittedAt: a.submittedAt, data: { ...d, kindName: kindName[d.kind ?? ""] ?? "—", bank: bank?.[0] ?? null }, docs, venueId: a.venueId } });
+    return c.json({ ok: true, application: { id: a.id, status: a.status, note: a.note, submittedAt: a.submittedAt, data: { ...d, kindName: kindName[d.kind ?? ""] ?? "—", bank: bank?.[0] ?? null, posName: d.pos ? (d.pos === "other" ? d.posOther || posName.other : posName[d.pos]) : null }, docs, venueId: a.venueId } });
+  });
+  // Мекемелер қандай касса бағдарламасын қолданады (жіберілген өтінімдер бойынша) — POS интеграциясын қайсысынан бастауды шешу үшін
+  r.get("/admin/pos-stats", async (c) => {
+    const list = await rows<{ pos: string; other: string | null; n: number }>(sql`select coalesce(data->>'pos', 'unknown') as pos, case when data->>'pos' = 'other' then data->>'posOther' end as other, count(*)::int as n
+      from app.venue_applications where status <> 'draft' group by 1, 2 order by n desc`);
+    const total = list.reduce((a, x) => a + x.n, 0);
+    return c.json({ ok: true, total, items: list.map((x) => ({ pos: x.pos, name: x.pos === "unknown" ? "Белгісіз (ескі өтінім)" : x.pos === "other" ? x.other || posName.other : posName[x.pos] ?? x.pos, n: x.n })) });
   });
   // Құжатты ашу: жабық — тек админ токенімен, қысқа қолтаңбалы сілтеме арқылы (Telegram downloadFile header жібере алмайды)
   const docSig = (id: string, exp: number) => createHmac("sha256", cfg.BOT_TOKEN).update(`doc:${id}:${exp}`).digest("hex").slice(0, 32);

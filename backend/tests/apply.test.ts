@@ -46,9 +46,12 @@ d("02 мекемені тіркеу", () => {
     expect(sub.status).toBe(409); expect((await sub.json()).missing).toEqual(expect.arrayContaining(["legal", "contact", "branches", "photos", "bank", "docs", "terms"]));
     a = (await (await req("PUT", "/v1/venue/application", 900, { data: {
       bin: makeBin(), legalName: "ТОО «Дала Донер»", director: "Бекенов Нұрлан", authorized: true, contactName: "Бекенов Нұрлан", phone: "+7 701 234 56 78", email: "info@dala.kz",
-      branches: [{ address: "Бұхар-Жырау, 52", open: "09:00", close: "23:00" }], logoUrl: "https://example.com/l.webp", coverUrl: "https://example.com/c.webp",
+      branches: [{ address: "Бұхар-Жырау, 52", open: "09:00", close: "23:00" }], pos: "poster", logoUrl: "https://example.com/l.webp", coverUrl: "https://example.com/c.webp",
       gallery: ["https://example.com/1.webp", "https://example.com/2.webp", "https://example.com/3.webp"], iban: makeIban(), ownAccount: true, agreeTerms: true, agreePrivacy: true } })).json()).application;
     expect(a.missing).toEqual(["docs"]);
+    // Касса бағдарламасы міндетті: «Басқа» таңдалса — атауы да керек
+    expect((await (await req("PUT", "/v1/venue/application", 900, { data: { pos: "other" } })).json()).application.missing).toContain("branches");
+    expect((await (await req("PUT", "/v1/venue/application", 900, { data: { pos: "poster" } })).json()).application.missing).toEqual(["docs"]);
     const up = (kind: string, type = "application/pdf") => app.request(`/v1/venue/application/docs?kind=${kind}`, { method: "POST", headers: { ...h(900), "Content-Type": type, "X-File-Name": encodeURIComponent("құжат.pdf") }, body: new TextEncoder().encode("%PDF-1.4 test") });
     expect((await up("bin", "text/plain")).status).toBe(415);
     for (const k of ["bin", "id", "halal"]) expect((await up(k)).status).toBe(200);

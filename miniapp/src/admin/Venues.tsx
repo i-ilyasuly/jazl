@@ -232,6 +232,8 @@ export function AApps() {
   const go = useGo();
   const [tab, setTab] = useState<"review" | "need_info" | "rejected">("review");
   const [d] = useCached<{ counts: { review: number; need_info: number; rejected: number }; applications: AppRow[] }>(`a:apps:${tab}`, () => A(`/applications?status=${tab}`));
+  // Мекемелер қандай касса бағдарламасын қолданады (жіберілген өтінімдер) — POS-ты қайсысынан бастау
+  const [pos] = useCached<{ total: number; items: { pos: string; name: string; n: number }[] }>("a:pos", () => A("/pos-stats"));
   return (
     <VPage title="Өтінімдер" back>
       <div className={v.seg}>{([["review", "Жаңа"], ["need_info", "Түзетуде"], ["rejected", "Қайтарылған"]] as const).map(([k, t]) => (
@@ -253,12 +255,17 @@ export function AApps() {
         })}</div>
       )}
       <Note>Өтінімге 24 сағат ішінде жауап беру ұсынылады. Мерзімі жақындағандар қызылмен белгіленеді.</Note>
+      {pos && pos.total > 0 && <>
+        <h2 className={v.blueHead}>{`Касса бағдарламалары · ${pos.total} өтінім`}</h2>
+        <div className={v.card} style={{ padding: "4px 16px" }}>{pos.items.map((p) => <div className={v.kv} key={p.pos + p.name}><span>{p.name}</span><b>{`${p.n} · ${Math.round((p.n * 100) / pos.total)}%`}</b></div>)}</div>
+        <Note>POS интеграциясын ең көп қолданылатын бағдарламадан бастаймыз.</Note>
+      </>}
     </VPage>
   );
 }
 
 interface AppFull { id: string; status: string; note: string | null; submittedAt: string | null; venueId: string | null; docs: { id: string; kind: string; file_name: string; mime: string; size: number }[];
-  data: { name?: string; kindName: string; legalName?: string; bin?: string; director?: string; contactName?: string; phone?: string; email?: string; iban?: string; bank: string | null; branches?: { address: string; open: string; close: string }[]; about?: string } }
+  data: { name?: string; kindName: string; legalName?: string; bin?: string; director?: string; contactName?: string; phone?: string; email?: string; iban?: string; bank: string | null; branches?: { address: string; open: string; close: string }[]; about?: string; posName?: string | null } }
 const DOCS = [["bin", "Тіркеу куәлігі"], ["id", "Жеке куәлік"], ["charter", "Жарғы"], ["halal", "Халал сертификаты"]] as const;
 const REASONS = ["Құжат жетіспейді", "Деректер сәйкес емес", "Санат сәйкес келмейді", "Басқа себеп"];
 export function AApp() {
@@ -296,7 +303,7 @@ export function AApp() {
       <h2 className={v.blueHead}>Шот</h2>
       <div className={v.card} style={{ padding: "4px 16px" }}>{kv("IBAN", iban)}{kv("Банк", x.bank)}</div>
       <h2 className={v.blueHead}>Байланыс және филиалдар</h2>
-      <div className={v.card} style={{ padding: "4px 16px" }}>{kv("Байланыс", x.contactName)}{kv("Телефон", x.phone)}{kv("Email", x.email)}{(x.branches ?? []).map((b, i) => kv(`Филиал ${i + 1}`, `${b.address} · ${b.open}–${b.close}`))}</div>
+      <div className={v.card} style={{ padding: "4px 16px" }}>{kv("Байланыс", x.contactName)}{kv("Телефон", x.phone)}{kv("Email", x.email)}{(x.branches ?? []).map((b, i) => kv(`Филиал ${i + 1}`, `${b.address} · ${b.open}–${b.close}`))}{kv("Касса бағдарламасы", x.posName)}</div>
       {a.status === "review" && <Buttons main={{ text: busy ? "…" : "Бекіту", onClick: () => void approve(), disabled: busy }} second={{ text: "Қайтару", onClick: () => setRet(true) }} />}
       {a.status === "approved" && a.venueId && <Buttons main={{ text: "Мекеме картасы", onClick: () => go(`/a/venues/${a.venueId}`) }} />}
       {ret && <ReturnSheet id={a.id} onClose={() => setRet(false)} done={() => go(-1, "back")} />}
