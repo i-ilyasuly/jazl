@@ -1,17 +1,10 @@
-// Бэкенд жоқ кезде желі кідірісін еліктейді, сонда скелет экрандары көрінеді.
-import { useEffect, useState } from "react";
-
-const seen = new Set<string>();
+// Бұрын бэкенд жоқ кезде желі кідірісін еліктейтін (450–650 мс жасанды скелет). Патша (2026-11-18, видео): ашылу ұзақ —
+// деректер құрылғыда дайын тұрғанда күтудің мәні жоқ, сондықтан енді бірден қайтарады. Нақты жүктелу бар беттерде скелет өз күйімен көрсетіледі.
 
 /** Бос күйді көру үшін: мекенжайға ?empty=1 қосылады (бэкенд қосылғанша). */
 export const demoEmpty = () => window.location.hash.includes("empty=1");
 
-export function useMock<T>(key: string, data: T, delay = 650): { data: T | null; loading: boolean } {
-  const [loading, setLoading] = useState(!seen.has(key));
-  useEffect(() => {
-    if (seen.has(key)) return;
-    const t = setTimeout(() => { seen.add(key); setLoading(false); }, delay);
-    return () => clearTimeout(t);
-  }, [key, delay]);
-  return { data: loading ? null : data, loading };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function useMock<T>(_key: string, data: T, _delay = 0): { data: T | null; loading: boolean } {
+  return { data, loading: false };
 }

@@ -1,5 +1,4 @@
-import { StrictMode, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
-import { Bonus } from "./screens/Bonus";
+import { StrictMode, Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
 import { loadCards, syncServerLang, useLocked, useOnboarded } from "./store";
@@ -8,75 +7,138 @@ import "./styles/base.css";
 import { initTelegram } from "./telegram";
 import { Home } from "./screens/Home";
 import { OfferPage } from "./screens/Offer";
-import { Paid, Success } from "./screens/Success";
 import { Packs } from "./screens/Packs";
 import { PackPage } from "./screens/PackPage";
-import { CarryRules, Rebuy, RebuyDone } from "./screens/Rebuy";
-import { GiftSend } from "./screens/GiftSend";
-import { UsageHistory } from "./screens/UsageHistory";
-import { GiftDone, GiftOpen } from "./screens/GiftOpen";
-import { Scan } from "./screens/Scan";
-import { ScanState } from "./screens/ScanState";
 import { Profile } from "./screens/Profile";
-import { Savings } from "./screens/Savings";
-import { History } from "./screens/History";
-import { Notifications } from "./screens/Notifications";
-import { Receipt, OrderReceipt, UseReceipt } from "./screens/Receipt";
-import { PayResult } from "./screens/PayResult";
-import { CardAdd } from "./screens/CardAdd";
-import { Order } from "./screens/Order";
-import { OrderDone, OrderState, OrderView } from "./screens/OrderResult";
-import { HapticTest } from "./screens/HapticTest";
-import { FontTest } from "./screens/FontTest";
-import { SystemStatus } from "./screens/SystemStatus";
-import { ServerReceipt } from "./screens/ServerReceipt";
-import { Security } from "./screens/Security";
-import { City, Language } from "./screens/Choice";
-import { Favorites } from "./screens/Favorites";
-import { Payment } from "./screens/Payment";
-import { Pay3ds } from "./screens/Pay3ds";
-import { Gifts } from "./screens/Gifts";
 import { Pin } from "./screens/Pin";
-import { AppError } from "./screens/AppError";
-import { CodeEntry, Complaint, ComplaintDone } from "./screens/Extra";
-import { BookConfirm, BookDone, BookingView, BookMissed, BookMove, BookTime } from "./screens/Booking";
 import { OfflineBar } from "./ui/OfflineBar";
 import { Toast } from "./ui/Toast";
-import { About, DeleteData, Faq } from "./screens/Help";
-import { Terms } from "./screens/Terms";
-import { VenueApply, VenueDone } from "./screens/VenueApply";
-import { Report, ReportDone } from "./screens/Report";
-import { Gift } from "./screens/Gift";
-import { Search } from "./screens/Search";
-import { Category } from "./screens/Category";
-import { MapScreen } from "./screens/MapScreen";
-import { VenuePage } from "./screens/VenuePage";
-import { Stub } from "./screens/Stub";
-import { VNavHost } from "./venue/ui";
 // Medeo Басқару — бөлек жүктелетін бөлік; нативті сборкада (VITE_NO_ADMIN=1) мүлде жоқ
 const NO_ADMIN = import.meta.env.VITE_NO_ADMIN === "1";
 const AdminApp = NO_ADMIN ? null : lazy(() => import("./admin/App"));
 const ANavHost = NO_ADMIN ? null : lazy(() => import("./admin/ui").then((m) => ({ default: m.ANavHost })));
-import { VGate, VJoin, VPending, VPickVenue, VWelcome } from "./venue/Entry";
-import { VCashier, VHome } from "./venue/Home";
-import { VPaid, VPay, VQr } from "./venue/Pay";
-import { VHistory, VOrder, VOrders, VRefunded } from "./venue/History";
-import { VMenu, VOffers, VReport } from "./venue/Manage";
-import { VInvite, VStaff, VTeam } from "./venue/Team";
-import { VOfferPage, VOfferReview, VOfferWizard } from "./venue/Offers";
-import { VBranchEdit, VBranches } from "./venue/Branches";
-import { VReviews } from "./venue/Reviews";
-import { VGuide, VProfile, VSettings, VSupport } from "./venue/Settings";
-import { VApplyIntro, VApplyStatus, VApplyStep, VApplyTerms } from "./venue/Apply";
-import { VComplaint, VComplaints, VExpired } from "./venue/Complaints";
-import { VAchievement } from "./venue/States";
 import { loadStaff } from "./venue/api";
-import { Doc, Kyc } from "./screens/Kyc";
 import { NavBar, type TabKey } from "./ui/NavBar";
 import { warmImages } from "./ui/imageCache";
 import { EdgeBack } from "./ui/EdgeBack";
 import { loadCatalog } from "./catalog";
 import { syncServerPacks } from "./store";
+
+// Алғашқы ашылу жылдамдығы (Патша, 2026-11-18, видео: ~6.5 с): клиент бірден көретін экрандар (Басты, Ұсыныс, Пакеттер, Профиль, Тіркелу)
+// негізгі файлда қалады; қалған беттер мен бүкіл мекеме бөлімі — бөлек файлдар, ашылғанда (не бос уақытта алдын ала) жүктеледі.
+const pageLoaders: (() => Promise<unknown>)[] = [];
+function lz<M extends Record<string, unknown>>(load: () => Promise<M>, venue = false) {
+  if (!venue) pageLoaders.push(load);
+  return (name: keyof M & string) => lazy(() => load().then((m) => ({ default: m[name] as ComponentType<any> })));
+}
+const _screens_Bonus = lz(() => import("./screens/Bonus"));
+const Bonus = _screens_Bonus("Bonus");
+const _screens_Success = lz(() => import("./screens/Success"));
+const Paid = _screens_Success("Paid"), Success = _screens_Success("Success");
+const _screens_Rebuy = lz(() => import("./screens/Rebuy"));
+const CarryRules = _screens_Rebuy("CarryRules"), Rebuy = _screens_Rebuy("Rebuy"), RebuyDone = _screens_Rebuy("RebuyDone");
+const _screens_GiftSend = lz(() => import("./screens/GiftSend"));
+const GiftSend = _screens_GiftSend("GiftSend");
+const _screens_UsageHistory = lz(() => import("./screens/UsageHistory"));
+const UsageHistory = _screens_UsageHistory("UsageHistory");
+const _screens_GiftOpen = lz(() => import("./screens/GiftOpen"));
+const GiftDone = _screens_GiftOpen("GiftDone"), GiftOpen = _screens_GiftOpen("GiftOpen");
+const _screens_Scan = lz(() => import("./screens/Scan"));
+const Scan = _screens_Scan("Scan");
+const _screens_ScanState = lz(() => import("./screens/ScanState"));
+const ScanState = _screens_ScanState("ScanState");
+const _screens_Savings = lz(() => import("./screens/Savings"));
+const Savings = _screens_Savings("Savings");
+const _screens_History = lz(() => import("./screens/History"));
+const History = _screens_History("History");
+const _screens_Notifications = lz(() => import("./screens/Notifications"));
+const Notifications = _screens_Notifications("Notifications");
+const _screens_Receipt = lz(() => import("./screens/Receipt"));
+const Receipt = _screens_Receipt("Receipt"), OrderReceipt = _screens_Receipt("OrderReceipt"), UseReceipt = _screens_Receipt("UseReceipt");
+const _screens_PayResult = lz(() => import("./screens/PayResult"));
+const PayResult = _screens_PayResult("PayResult");
+const _screens_CardAdd = lz(() => import("./screens/CardAdd"));
+const CardAdd = _screens_CardAdd("CardAdd");
+const _screens_Order = lz(() => import("./screens/Order"));
+const Order = _screens_Order("Order");
+const _screens_OrderResult = lz(() => import("./screens/OrderResult"));
+const OrderDone = _screens_OrderResult("OrderDone"), OrderState = _screens_OrderResult("OrderState"), OrderView = _screens_OrderResult("OrderView");
+const _screens_HapticTest = lz(() => import("./screens/HapticTest"));
+const HapticTest = _screens_HapticTest("HapticTest");
+const _screens_FontTest = lz(() => import("./screens/FontTest"));
+const FontTest = _screens_FontTest("FontTest");
+const _screens_SystemStatus = lz(() => import("./screens/SystemStatus"));
+const SystemStatus = _screens_SystemStatus("SystemStatus");
+const _screens_ServerReceipt = lz(() => import("./screens/ServerReceipt"));
+const ServerReceipt = _screens_ServerReceipt("ServerReceipt");
+const _screens_Security = lz(() => import("./screens/Security"));
+const Security = _screens_Security("Security");
+const _screens_Choice = lz(() => import("./screens/Choice"));
+const City = _screens_Choice("City"), Language = _screens_Choice("Language");
+const _screens_Favorites = lz(() => import("./screens/Favorites"));
+const Favorites = _screens_Favorites("Favorites");
+const _screens_Payment = lz(() => import("./screens/Payment"));
+const Payment = _screens_Payment("Payment");
+const _screens_Pay3ds = lz(() => import("./screens/Pay3ds"));
+const Pay3ds = _screens_Pay3ds("Pay3ds");
+const _screens_Gifts = lz(() => import("./screens/Gifts"));
+const Gifts = _screens_Gifts("Gifts");
+const _screens_AppError = lz(() => import("./screens/AppError"));
+const AppError = _screens_AppError("AppError");
+const _screens_Extra = lz(() => import("./screens/Extra"));
+const CodeEntry = _screens_Extra("CodeEntry"), Complaint = _screens_Extra("Complaint"), ComplaintDone = _screens_Extra("ComplaintDone");
+const _screens_Booking = lz(() => import("./screens/Booking"));
+const BookConfirm = _screens_Booking("BookConfirm"), BookDone = _screens_Booking("BookDone"), BookingView = _screens_Booking("BookingView"), BookMissed = _screens_Booking("BookMissed"), BookMove = _screens_Booking("BookMove"), BookTime = _screens_Booking("BookTime");
+const _screens_Help = lz(() => import("./screens/Help"));
+const About = _screens_Help("About"), DeleteData = _screens_Help("DeleteData"), Faq = _screens_Help("Faq");
+const _screens_Terms = lz(() => import("./screens/Terms"));
+const Terms = _screens_Terms("Terms");
+const _screens_VenueApply = lz(() => import("./screens/VenueApply"));
+const VenueApply = _screens_VenueApply("VenueApply"), VenueDone = _screens_VenueApply("VenueDone");
+const _screens_Report = lz(() => import("./screens/Report"));
+const Report = _screens_Report("Report"), ReportDone = _screens_Report("ReportDone");
+const _screens_Gift = lz(() => import("./screens/Gift"));
+const Gift = _screens_Gift("Gift");
+const _screens_Search = lz(() => import("./screens/Search"));
+const Search = _screens_Search("Search");
+const _screens_Category = lz(() => import("./screens/Category"));
+const Category = _screens_Category("Category");
+const _screens_MapScreen = lz(() => import("./screens/MapScreen"));
+const MapScreen = _screens_MapScreen("MapScreen");
+const _screens_VenuePage = lz(() => import("./screens/VenuePage"));
+const VenuePage = _screens_VenuePage("VenuePage");
+const _screens_Stub = lz(() => import("./screens/Stub"));
+const Stub = _screens_Stub("Stub");
+const _venue_ui = lz(() => import("./venue/ui"), true);
+const VNavHost = _venue_ui("VNavHost");
+const _venue_Entry = lz(() => import("./venue/Entry"), true);
+const VGate = _venue_Entry("VGate"), VJoin = _venue_Entry("VJoin"), VPending = _venue_Entry("VPending"), VPickVenue = _venue_Entry("VPickVenue"), VWelcome = _venue_Entry("VWelcome");
+const _venue_Home = lz(() => import("./venue/Home"), true);
+const VCashier = _venue_Home("VCashier"), VHome = _venue_Home("VHome");
+const _venue_Pay = lz(() => import("./venue/Pay"), true);
+const VPaid = _venue_Pay("VPaid"), VPay = _venue_Pay("VPay"), VQr = _venue_Pay("VQr");
+const _venue_History = lz(() => import("./venue/History"), true);
+const VHistory = _venue_History("VHistory"), VOrder = _venue_History("VOrder"), VOrders = _venue_History("VOrders"), VRefunded = _venue_History("VRefunded");
+const _venue_Manage = lz(() => import("./venue/Manage"), true);
+const VMenu = _venue_Manage("VMenu"), VOffers = _venue_Manage("VOffers"), VReport = _venue_Manage("VReport");
+const _venue_Team = lz(() => import("./venue/Team"), true);
+const VInvite = _venue_Team("VInvite"), VStaff = _venue_Team("VStaff"), VTeam = _venue_Team("VTeam");
+const _venue_Offers = lz(() => import("./venue/Offers"), true);
+const VOfferPage = _venue_Offers("VOfferPage"), VOfferReview = _venue_Offers("VOfferReview"), VOfferWizard = _venue_Offers("VOfferWizard");
+const _venue_Branches = lz(() => import("./venue/Branches"), true);
+const VBranchEdit = _venue_Branches("VBranchEdit"), VBranches = _venue_Branches("VBranches");
+const _venue_Reviews = lz(() => import("./venue/Reviews"), true);
+const VReviews = _venue_Reviews("VReviews");
+const _venue_Settings = lz(() => import("./venue/Settings"), true);
+const VGuide = _venue_Settings("VGuide"), VProfile = _venue_Settings("VProfile"), VSettings = _venue_Settings("VSettings"), VSupport = _venue_Settings("VSupport");
+const _venue_Apply = lz(() => import("./venue/Apply"), true);
+const VApplyIntro = _venue_Apply("VApplyIntro"), VApplyStatus = _venue_Apply("VApplyStatus"), VApplyStep = _venue_Apply("VApplyStep"), VApplyTerms = _venue_Apply("VApplyTerms");
+const _venue_Complaints = lz(() => import("./venue/Complaints"), true);
+const VComplaint = _venue_Complaints("VComplaint"), VComplaints = _venue_Complaints("VComplaints"), VExpired = _venue_Complaints("VExpired");
+const _venue_States = lz(() => import("./venue/States"), true);
+const VAchievement = _venue_States("VAchievement");
+const _screens_Kyc = lz(() => import("./screens/Kyc"));
+const Doc = _screens_Kyc("Doc"), Kyc = _screens_Kyc("Kyc");
 
 const tabOf: Record<string, TabKey> = { "/": "home", "/packs": "packs", "/profile": "profile" };
 
@@ -129,9 +191,9 @@ function Shell() {
   if (!onboarded && !path.startsWith("/welcome") && !path.startsWith("/v/") && path !== "/v" && !path.startsWith("/a") && !path.startsWith("/legal")) return <Navigate to="/welcome" replace />;
   return (
     <div className="app">
-      <FirstVisit key={path}><Outlet /></FirstVisit>
+      <Suspense fallback={null}><FirstVisit key={path}><Outlet /></FirstVisit></Suspense>
       {tab && <NavBar active={tab} />}
-      {path.startsWith("/v/") && <VNavHost path={path} />}
+      {path.startsWith("/v/") && <Suspense fallback={null}><VNavHost path={path} /></Suspense>}
       {ANavHost && path.startsWith("/a/") && <Suspense fallback={null}><ANavHost path={path} /></Suspense>}
       {tab && <OfflineBar />}
       {locked && <Pin lock />}
@@ -284,7 +346,13 @@ const router = createHashRouter([
   },
 ]);
 
-warmImages();
+// Суреттерді алдын ала жылыту, қалған беттерді алдын ала жүктеу — алғашқы экран салынып болған соң, бос уақытта
+// (бұрын бірден басталып, шрифт пен негізгі файлмен желі үшін таласатын).
+const idle = (cb: () => void, ms: number) => ("requestIdleCallback" in window ? window.requestIdleCallback(cb, { timeout: ms }) : setTimeout(cb, ms));
+window.addEventListener("load", () => {
+  idle(warmImages, 1200);
+  setTimeout(() => idle(() => { for (const load of pageLoaders) void load().catch(() => undefined); }, 3000), 1500);
+}, { once: true });
 // B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
 void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
