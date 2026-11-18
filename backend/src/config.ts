@@ -9,8 +9,6 @@ const Env = z.object({
   BOT_TOKEN: z.string().min(1),
   /** Мини апп басқа ботта ашылса (мысалы @Mmedeo_bot) — сол боттың токені. initData екеуінің кез келгенімен тексеріледі. */
   MINIAPP_BOT_TOKEN: z.string().optional(),
-  /** Ескі бот (@oylarbot, Medeo. атауына ауысқанға дейін): оның ішінен ашылған мини апп пен ескі сілтемелер біраз уақыт жұмыс істей береді */
-  LEGACY_MINIAPP_BOT_TOKEN: z.string().optional(),
   /** Мини апп мекенжайлары (CORS), үтірмен: https://a.vercel.app,https://b.vercel.app */
   ALLOWED_ORIGINS: z.string().default(""),
   /** initData қанша уақыт жарамды (секунд). Telegram ұсынысы: қысқа ұстау. */
