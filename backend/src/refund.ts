@@ -11,7 +11,7 @@
 import { sql } from "drizzle-orm";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
-import { paymentProvider } from "./payments/index.js";
+import { providerByName } from "./payments/index.js";
 
 export const REFUND_DAYS = 14;
 const BONUS_GRACE_DAYS = 30;
@@ -98,17 +98,27 @@ export async function refundPack(db: Db, cfg: Config, userId: string, packId: st
 }
 
 /** Ақшаны провайдер арқылы қайтару (транзакциядан тыс). Сынақ режимінде (ақша жүрмейді) — бірден «өтті». Басқару қайта жібере алады. */
-export async function pushRefund(db: Db, cfg: Config, paymentId: string, amount?: number): Promise<"done" | "failed"> {
+export async function pushRefund(db: Db, cfg: Config, paymentId: string, amount?: number): Promise<"done" | "failed" | "unknown"> {
   const pay = await one<{ id: string; provider: string; external_id: string | null; refunded: number; meta: { refundAttempts?: number; lastRefund?: number } | null }>(db, sql`select id, provider, external_id, refunded, meta from app.payments where id = ${paymentId}`);
   if (!pay) return "failed";
   const sum = amount ?? pay.meta?.lastRefund ?? Number(pay.refunded);
-  const provider = paymentProvider(cfg);
+  // Төлем қай провайдер арқылы өтсе — қайтару да сол арқылы (кейін банк ауысса да)
+  const provider = pay.provider === "bonus" ? null : providerByName(cfg, pay.provider);
   let res: { ok: boolean; reason?: string };
   if (pay.provider === "bonus") res = { ok: true };
-  else if (pay.provider !== provider.name) res = { ok: false, reason: "provider_mismatch" };
+  else if (!provider) res = { ok: false, reason: "provider_unavailable" };
   else if (!provider.refund) res = { ok: false, reason: "refund_not_supported" };
   else if (!pay.external_id) res = { ok: false, reason: "no_external_id" };
-  else { try { res = await provider.refund(pay.external_id, sum); } catch { res = { ok: false, reason: "provider_error" }; } }
+  else {
+    try { res = await provider.refund(pay.external_id, sum); }
+    catch {
+      // Жауап келмеді (желі, уақыт бітті, 5xx): ақша қайтты ма — БЕЛГІСІЗ. «Сәтсіз» деп белгілесек, Басқару қайта жіберіп,
+      // ақшаны екі рет қайтаруы мүмкін. Сондықтан «күтуде» қалады: Пульсте «ескірген қайтару» болып шығады, провайдер кабинетінен тексеріледі.
+      await db.execute(sql`update app.payments set refund_failure = 'provider_no_answer',
+          meta = coalesce(meta, '{}'::jsonb) || ${JSON.stringify({ refundAttempts: (pay.meta?.refundAttempts ?? 0) + 1, refundAt: new Date(), refundUnknown: true })}::jsonb where id = ${pay.id}`);
+      return "unknown";
+    }
+  }
   await db.execute(sql`update app.payments set refund_status = ${res.ok ? "done" : "failed"}, refund_failure = ${res.ok ? null : res.reason ?? "provider_error"},
       meta = coalesce(meta, '{}'::jsonb) || ${JSON.stringify({ refundAttempts: (pay.meta?.refundAttempts ?? 0) + 1, refundAt: new Date() })}::jsonb where id = ${pay.id}`);
   return res.ok ? "done" : "failed";

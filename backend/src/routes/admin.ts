@@ -170,9 +170,9 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   r.get("/admin/attention", async (c) => c.json({ ok: true, attention: await attention() }));
   // Сәтсіз қайтарулар (провайдер қабылдамаған): тізім және «Қайта жіберу» (src/refund.ts)
   r.get("/admin/refunds/failed", async (c) => {
-    const list = await rows<Row>(sql`select p.id, p.amount, p.refunded, p.refund_failure, p.meta->>'lastRefund' as last, p.meta->>'refundAt' as at, u.first_name, u.last_name from app.payments p join app.users u on u.id = p.user_id
+    const list = await rows<Row>(sql`select p.id, p.amount, p.refunded, p.refund_status, p.refund_failure, p.meta->>'lastRefund' as last, p.meta->>'refundAt' as at, u.first_name, u.last_name from app.payments p join app.users u on u.id = p.user_id
       where p.refund_status = 'failed' or (p.refund_status = 'pending' and coalesce((p.meta->>'refundAt')::timestamptz, p.created_at) < now() - interval '15 minutes') order by p.created_at desc limit 100`);
-    return c.json({ ok: true, refunds: list.map((x) => ({ id: x.id, amount: Number(x.last ?? x.refunded), reason: x.refund_failure, at: x.at, customer: short(String(x.first_name), x.last_name as string | null) })) });
+    return c.json({ ok: true, refunds: list.map((x) => ({ id: x.id, amount: Number(x.last ?? x.refunded), status: x.refund_status, reason: x.refund_failure, at: x.at, customer: short(String(x.first_name), x.last_name as string | null) })) });
   });
   r.post("/admin/payments/:id/refund-retry", async (c) => {
     const body = await c.req.json().catch(() => ({})) as { pin?: unknown };

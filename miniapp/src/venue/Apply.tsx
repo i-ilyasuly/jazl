@@ -229,7 +229,7 @@ export function VApplyStep() {
           <div className={s.kv}><span>Шот иесі</span><b>{d.legalName ?? "—"}</b></div>
         </div>}
         <Check on={Boolean(d.ownAccount)} onChange={(v) => up({ ownAccount: v })}>Шот мекеме атына ашылған</Check>
-        <Note tone="warn">Шот иесі БИН-мен сәйкес келмесе, төлем жасалмайды. Ақша әр төлем сәтінде осы шотқа бірден түседі.</Note>
+        <Note tone="warn">Шот иесі БИН-мен сәйкес келмесе, ақша аударылмайды. Мекеменің үлесі клиент қызметті алған сәтте (бірлік қолданылғанда) есептеліп, осы шотқа аударылады.</Note>
       </>}
       {n === 7 && <>
         <h1 className={s.h1} style={{ fontSize: 22 }}>Құжаттарды жүкте</h1>

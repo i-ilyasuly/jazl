@@ -33,7 +33,9 @@ export type ChargeResult =
 export type FailReason = "3ds_required" | "declined" | "insufficient_funds" | "expired_card" | "3ds_failed" | "limit" | "fraud" | "provider_error";
 
 /** Вебхуктан алынған нәтиже: externalId не paymentId арқылы төлемді табамыз */
-export interface WebhookEvent { paymentId?: string; externalId: string; status: "paid" | "failed"; reason?: FailReason; card?: CardInfo }
+export interface WebhookEvent { paymentId?: string; externalId: string; status: "paid" | "failed"; reason?: FailReason; card?: CardInfo;
+  /** Провайдер растаған сома (теңге). Берілсе — біздегі сомамен сәйкес келуі міндетті, әйтпесе төлем қабылданбайды */
+  amount?: number }
 
 export interface PaymentProvider {
   /** payments.provider бағанына жазылады */
