@@ -69,7 +69,7 @@ export function ServerReceipt() {
   const seller = rc.seller ?? { name: "Medeo", address: null, bin: null };
   return (
     <div className={s.page}>
-      <TelegramChrome mode="back" onBack={back} onDark />
+      <TelegramChrome mode="back" onBack={back} />
       <header className={s.head}>
         <div className={s.brandRow}><b className={s.brand}><Brand /></b><span className={s.tag}>ЭЛЕКТРОНДЫҚ ЧЕК</span></div>
         <h1 className={s.venue}>{seller.name}</h1>

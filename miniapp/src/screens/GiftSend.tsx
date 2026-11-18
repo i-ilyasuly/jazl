@@ -4,7 +4,7 @@
 // Mini App контактілер тізімін өзі оқи алмайды: таңдау тек Telegram терезесінде. «Сілтеме» — төлеп, сілтемені көшіру.
 import { checkoutCard, type CheckoutCard } from "../pay/checkout";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
 import { giftLink, prepareGift, sendGift, sendGiftsBulk, waitGift } from "../store";
@@ -27,7 +27,12 @@ export async function shareGift(id: string, pack: string): Promise<boolean> {
 
 export function GiftSend() {
   const { id } = useParams();
-  const o = findOffer(id);
+  // Ұсыныс бетінде таңдалған дана нұсқасы (?units=8): сыйлық сол көлеммен есептеледі
+  const units = Number(new URLSearchParams(useLocation().search).get("units")) || 0;
+  const o0 = findOffer(id);
+  const z = units ? o0.sizes?.find((x) => x.units === units) : undefined;
+  const o = z ? { ...o0, ...z, title: o0.title.replace(/· \d+ /, `· ${z.units} `) } : o0;
+  const sized = z ? { units: z.units } : {};
   const go = useGo();
   const flow = usePayFlow();
   const [msg, setMsg] = useState("");
@@ -50,10 +55,10 @@ export function GiftSend() {
   const gift = { ...o, title: bulk ? `Сыйлық · ${o.title} × ${count}` : `Сыйлық · ${o.title}`, price: o.price * count, oldPrice: o.oldPrice * count };
   // Карта төлемі: сыйлық серверде төлеммен бірге жасалады (код жауапта келеді)
   const giftCharge = (toUsername?: string) => (card: CheckoutCard) =>
-    checkoutCard(o.id, card, { gift: { message: msg.trim() || undefined, anonymous: anon, toUsername, ...(bulk ? { count } : {}) }, methodLabel: flow.method?.title });
+    checkoutCard(o.id, card, { ...sized, gift: { message: msg.trim() || undefined, anonymous: anon, toUsername, ...(bulk ? { count } : {}) }, methodLabel: flow.method?.title });
   // Көп сыйлық: төлем → барлық сілтеме бір тізімде (көшіру, тарату)
   const payBulk = useCallback(() => flow.pay(gift, async (r) => {
-    const list = await sendGiftsBulk(o.id, count, msg.trim(), anon, r?.gifts?.map((x) => x.code), flow.method?.title);
+    const list = await sendGiftsBulk(o.id, count, msg.trim(), anon, r?.gifts?.map((x) => x.code), flow.method?.title, z?.units);
     if (!list.length) { haptic.error(); setSnack("Сыйлықтар жасалмады. Қайталап көр."); return; }
     haptic.success(); setLinks(list);
   }, giftCharge()), [flow, gift, o.id, count, msg, anon]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -63,7 +68,7 @@ export function GiftSend() {
     if (bulk) { payBulk(); return; }
     if (to.trim() && !userOk) { haptic.error(); setSnack("Username дұрыс емес: латын әріп, сан, _ (4–32)"); return; }
     flow.pay(gift, async (r) => {
-      const gid = sendGift(o.id, msg.trim(), anon, userOk ? user : undefined, r?.gift?.code);
+      const gid = sendGift(o.id, msg.trim(), anon, userOk ? user : undefined, r?.gift?.code, 7, z?.units);
       await waitGift(gid); // сервердегі код дайын болсын — сілтеме сонымен жіберіледі
       if (userOk) {
         // Алушының чаты ашылады, хабарлама дайын тұрады (сілтеме көшіріледі де — қажет болса қоюға)
@@ -77,7 +82,7 @@ export function GiftSend() {
   }, [flow, gift, o.id, o.title, msg, anon, go, to, user, userOk, bulk, payBulk]); // eslint-disable-line react-hooks/exhaustive-deps
   // «Сілтеме»: төлем → сілтеме көшіріледі (кез келген мессенджерге жіберуге болады)
   const byLink = useCallback(() => flow.pay(gift, async (r) => {
-    const gid = sendGift(o.id, msg.trim(), anon, undefined, r?.gift?.code);
+    const gid = sendGift(o.id, msg.trim(), anon, undefined, r?.gift?.code, 7, z?.units);
     await waitGift(gid);
     try { await navigator.clipboard.writeText(giftLink(gid)); haptic.success(); setSnack("Сілтеме көшірілді"); } catch { await shareGift(gid, o.title); }
     window.setTimeout(() => go("/profile/gift/" + gid, "fade", { replace: true }), 900);
