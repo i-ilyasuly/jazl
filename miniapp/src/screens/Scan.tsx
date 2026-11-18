@@ -35,7 +35,8 @@ export function Scan() {
   const info = qrInfo && "venue" in qrInfo ? qrInfo : null;
   const qrVenue = info?.venue.name ?? (qrLocal.branchId ? catalogState.branches.find((b) => b.branchId === qrLocal.branchId)?.venue : undefined);
   const wanted = getPack(params.get("pack") ?? undefined);
-  const venueAll = qrVenue ? packs.filter((p) => p.left > 0 && !p.expired && offerOf(p).venue === qrVenue) : [];
+  // «Тек жоспар бойынша» пакеттер кассада QR-мен қолданылмайды
+  const venueAll = qrVenue ? packs.filter((p) => p.left > 0 && !p.expired && offerOf(p).venue === qrVenue && !offerOf(p).planOnly) : [];
   // Кассир QR-ы нақты пакетке (ұсынысқа) шығарылса (Figma «Клиенттің пакетін таңда») — тек сол ұсыныстың пакеті
   const venuePacks = info?.offer ? venueAll.filter((p) => p.offerId === info.offer!.slug) : venueAll;
   const pack = qrVenue ? (wanted && offerOf(wanted).venue === qrVenue && wanted.left > 0 ? wanted : venuePacks[0]) : (wanted ?? packs.find((p) => p.left > 0 && !p.expired));
@@ -70,7 +71,7 @@ export function Scan() {
     if (!pack) return [];
     const venue = offerOf(pack).venue;
     const emoji = { food: "🍔", coffee: "☕", hair: "✂️" };
-    const list = packs.filter((p) => p.left > 0 && !p.expired && offerOf(p).venue === venue)
+    const list = packs.filter((p) => p.left > 0 && !p.expired && offerOf(p).venue === venue && !offerOf(p).planOnly)
       .sort((a, b) => (wanted && a.id === wanted.id ? -1 : wanted && b.id === wanted.id ? 1 : a.daysLeft - b.daysLeft))
       .map((p) => { const po = offerOf(p); return { id: p.id, emoji: emoji[po.kind], title: po.title, sub: `Қалды: ${p.left} ${po.unitWord} • ${p.daysLeft} күн`, price: unitPrice(po), word: po.unitWord, ok: true, left: p.left, total: p.total }; });
     if (demo === "multi" && list.length < 2) list.push({ id: "demo-1", emoji: "🌯", title: "Донер комбо · 8 дана", sub: "Қалды: 5 комбо • 24 күн", price: amount, word: "комбо", ok: true, left: 5, total: 8 });
@@ -148,7 +149,7 @@ export function Scan() {
         if (r.ok) { srvLeft = r.left; finish(); return; }
         if (r.error === "units_mismatch") { finish("amount"); return; }
         if (r.error === "other_venue") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/othervenue?v=${encodeURIComponent(r.venue ?? "")}`, "up", { replace: true }); return; }
-        const map: Record<string, ScanKind> = { branch_closed: "closed", other_offer: "nopack", qr_used: "expired", qr_cancelled: "expired", not_medeo_qr: "notqr", not_jazl_qr: "notqr", /* ескі сервер (Medeo.-ға дейінгі) */ bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
+        const map: Record<string, ScanKind> = { branch_closed: "closed", other_offer: "nopack", qr_used: "expired", qr_cancelled: "expired", not_medeo_qr: "notqr", not_jazl_qr: "notqr", /* ескі сервер (Medeo.-ға дейінгі) */ bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", plan_only: "planonly", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
         finish(map[r.error] ?? "fail");
       });
     },

@@ -1,4 +1,5 @@
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
+import { Rich } from "../ui/Rich";
 import { Photo } from "../ui/Photo";
 import { kindPic } from "../ui/Emo";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -40,14 +41,16 @@ function Lines({ list }: { list: OfferDetails["about"] }) {
 }
 
 /** Сипаттама: мәтін блоктың ішінде екі жағынан бірдей шегініспен тұрады; 4 жолдан ұзын болса ғана жиылады. */
-function About({ list, open, onToggle }: { list: OfferDetails["about"]; open: boolean; onToggle: () => void }) {
+function About({ list, text, open, onToggle }: { list: OfferDetails["about"]; text?: string; open: boolean; onToggle: () => void }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [long, setLong] = useState(true);
-  useLayoutEffect(() => { const el = ref.current; if (el) setLong(el.scrollHeight > 90); }, [list]);
-  if (!long) return <div className={`${s.quote} ${s.quoteShort} infoBox`}><span ref={ref} className={s.quoteText}><Lines list={list} /></span></div>;
+  useLayoutEffect(() => { const el = ref.current; if (el) setLong(el.scrollHeight > 90); }, [list, text]);
+  // Мекеме өзі жазған сипаттама бар болса — сол (клиент тілінде), әйтпесе санат үлгісі
+  const body = text ? <Rich text={text} /> : <Lines list={list} />;
+  if (!long) return <div className={`${s.quote} ${s.quoteShort} infoBox`}><span ref={ref} className={s.quoteText}>{body}</span></div>;
   return (
     <button className={`${s.quote} infoBox ${open ? s.quoteOpen : ""}`} onClick={onToggle} aria-expanded={open}>
-      <span ref={ref} className={s.quoteText}><Lines list={list} /></span>
+      <span ref={ref} className={s.quoteText}>{body}</span>
       {!open && <span className={s.fade} />}
       <img src={expand} className={s.expand} width={22} height={22} alt="" />
     </button>
@@ -206,7 +209,7 @@ function OfferView({ id }: { id?: string }) {
           <div><dt>Мерзімі</dt><dd>{`${d.days ?? 30} күн, сатып алған сәттен`}</dd></div>
           {d.duration && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
           {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
-          <div><dt>Қолдану тәсілі</dt><dd>{d.use}</dd></div>
+          <div><dt>Қолдану тәсілі</dt><dd>{base.planOnly ? "Тек алдын ала жоспар бойынша: әр келуге күн мен уақыт таңдайсың" : d.use}</dd></div>
         </dl>
         </section>
 
@@ -217,7 +220,7 @@ function OfferView({ id }: { id?: string }) {
 
         <section className={`${s.block} ${s.blk}`} style={{ position: "relative" }}>
           <h2 className={s.blockTitle}>Сипаттама</h2>
-          <About list={d.about} open={open} onToggle={() => { haptic.tap(); setOpen(!open); }} />
+          <About list={d.about} text={base.about} open={open} onToggle={() => { haptic.tap(); setOpen(!open); }} />
         </section>
 
         <section className={`${s.blk} ${s.rules}`}>

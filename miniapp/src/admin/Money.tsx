@@ -79,8 +79,8 @@ export function ARefunds() {
   );
 }
 
-/** CSV-ті токенмен жүктеп алу (веб: файл ретінде сақталады) */
-async function download(period: string, parts: string[]) {
+/** CSV-ті токенмен жүктеп алу (веб: файл ретінде сақталады). pdf — сол деректен басып шығаруға дайын бет ашылады (браузерде «PDF ретінде сақтау») */
+async function download(period: string, parts: string[], pdf = false) {
   try {
     const { hasToken } = await import("./api");
     if (!hasToken()) return;
@@ -92,6 +92,7 @@ async function download(period: string, parts: string[]) {
     else { headers.Authorization = "tma " + (window.Telegram?.WebApp?.initData || (import.meta.env.DEV ? localStorage.getItem("medeo_dev_init") ?? "" : "")); headers["X-Admin-Token"] = tok; }
     const res = await apiFetch(`/v1/admin/export?period=${period}&parts=${parts.join(",")}`, { headers });
     if (!res.ok) throw new Error("http_" + res.status);
+    if (pdf) { openPdf(await res.text(), period); haptic.success(); return; }
     const blob = await res.blob();
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `medeo-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
@@ -99,10 +100,32 @@ async function download(period: string, parts: string[]) {
   } catch { haptic.error(); nativeAlert("Жүктелмеді. Қайталап көріңіз."); }
 }
 
+/** PDF есеп: CSV-тен кесте жасап, жаңа бетте басып шығару терезесін ашады (Басқару — тек веб, компьютерде «PDF ретінде сақтау») */
+function openPdf(csv: string, period: string) {
+  const rows = csv.replace(/^\uFEFF/, "").split(/\r?\n/).map((l) => (l.match(/("([^"]|"")*"|[^;]*)(;|$)/g) ?? []).map((c) => c.replace(/;$/, "").replace(/^"|"$/g, "").replace(/""/g, '"')).filter((_, i, a) => i < a.length - 1 || a[i] !== ""));
+  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  let html = "", open = false;
+  for (const r of rows) {
+    if (!r.length || r.every((c) => !c)) { if (open) { html += "</table>"; open = false; } continue; }
+    if (r.length === 1) { if (open) { html += "</table>"; open = false; } html += `<h2>${esc(r[0])}</h2>`; continue; }
+    if (!open) { html += `<table><tr>${r.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>`; open = true; continue; }
+    html += `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`;
+  }
+  if (open) html += "</table>";
+  const w = window.open("", "_blank"); if (!w) { nativeAlert("Жаңа бет ашылмады: браузерде қалқымалы терезеге рұқсат беріңіз."); return; }
+  const label = ({ today: "Бүгін", "7": "Соңғы 7 күн", "30": "Соңғы 30 күн", all: "Барлық уақыт" } as Record<string, string>)[period] ?? period;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Medeo есеп</title><style>
+    body{font:13px/1.4 system-ui,sans-serif;color:#111;margin:24px}h1{font-size:20px;margin:0 0 4px}p{color:#666;margin:0 0 16px}
+    h2{font-size:15px;margin:20px 0 6px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:4px 6px;text-align:left}th{background:#f3f6f9}
+    @media print{body{margin:0}}</style></head><body><h1>Medeo · есеп</h1><p>${esc(label)} · ${new Date().toLocaleString("ru-RU", { timeZone: "Asia/Almaty" })}</p>${html}</body></html>`);
+  w.document.close(); setTimeout(() => w.print(), 300);
+}
+
 /** Figma «Экспорт»: кезең, не қосылады, пішім */
 export function ExportSheet({ onClose }: { onClose: () => void }) {
   const [period, setPeriod] = useState("30");
   const [parts, setParts] = useState({ payments: true, settlements: true, refunds: false });
+  const [fmt, setFmt] = useState<"csv" | "pdf">("csv");
   return (
     <Sheet title="Экспорт" onClose={onClose}>
       <h2 className={v.blueHead}>Кезең</h2>
@@ -111,8 +134,10 @@ export function ExportSheet({ onClose }: { onClose: () => void }) {
       <div className={v.card}>{([["payments", "Төлемдер"], ["settlements", "Мекемелермен есеп"], ["refunds", "Қайтарулар"]] as const).map(([k, t]) => (
         <div key={k} className={v.row} style={{ ["--inset" as string]: "16px" }}><span className={v.rowText}><span className={v.rowTitle}>{t}</span></span><Switch on={parts[k]} onChange={(x) => setParts({ ...parts, [k]: x })} /></div>
       ))}</div>
-      <Note>Пішімі: Excel (CSV, кириллицамен). PDF кейінгі кезеңде.</Note>
-      <Buttons main={{ text: "Жүктеу", onClick: () => { const p = Object.entries(parts).filter(([, x]) => x).map(([k]) => k); if (!p.length) return; void download(period, p).then(onClose); } }} second={{ text: "Бас тарту", onClick: onClose }} />
+      <h2 className={v.blueHead}>Пішімі</h2>
+      <div className={s.chipsWrap}>{([["csv", "Excel (CSV)"], ["pdf", "PDF"]] as const).map(([k, t]) => <button key={k} className={`${v.chip} ${fmt === k ? v.chipOn : ""}`} onClick={() => { haptic.select(); setFmt(k); }}>{t}</button>)}</div>
+      <Note>{fmt === "pdf" ? "Есеп жаңа бетте ашылады: басып шығару терезесінде «PDF ретінде сақтау» таңдаңыз." : "Excel ашады (CSV, кириллицамен)."}</Note>
+      <Buttons main={{ text: "Жүктеу", onClick: () => { const p = Object.entries(parts).filter(([, x]) => x).map(([k]) => k); if (!p.length) return; void download(period, p, fmt === "pdf").then(onClose); } }} second={{ text: "Бас тарту", onClick: onClose }} />
     </Sheet>
   );
 }

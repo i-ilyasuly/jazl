@@ -11,7 +11,7 @@ import { useDesk } from "./Desk";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
-export interface Attention { apps: number; oldest: string | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number }
+export interface Attention { apps: number; oldest: string | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold?: number; tickAt?: string | null }
 interface Pulse { sales: number; salesGrowth: number | null; fee: number; feeGrowth: number | null; packs: number; packsDelta: number; units: number; unitsGrowth: number | null; clients: number; clientsDelta: number;
   venuesActive: number; venuesTotal: number; venuesPaused: number; week: { d: string; sales: number }[]; weekTotal: number; feed: { kind: string; at: string; who: string; title: string; venue: string; amount: number; units: number }[] }
 const PERIODS = [["today", "Бүгін"], ["7", "7 күн"], ["30", "30 күн"], ["all", "Барлығы"]] as const;
@@ -22,6 +22,9 @@ const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мам
 export function attentionRows(a: Attention) {
   return {
     urgent: [
+      // Жоспарлы тапсырма 40 минуттан бері жұмыс істемесе: бонус, мерзім ескертуі, күндік қорытынды жіберілмейді
+      ...(!a.tickAt || Date.now() - new Date(a.tickAt).getTime() > 40 * 60_000
+        ? [{ e: "a:maint", t: "Жоспарлы тапсырма тоқтап тұр", sub: a.tickAt ? `Соңғы рет ${ago(a.tickAt)} бұрын жұмыс істеді: бонус пен ескертулер жіберілмейді` : "Әлі бір рет те іске қосылмаған: бонус пен ескертулер жіберілмейді", n: 1, tone: "red" as const, to: "/a/rules" }] : []),
       { e: "a:complaints", t: "Ашық шағымдар", sub: a.due_today ? `${a.due_today} шағымның мерзімі бүгін бітеді` : "Мерзімі әлі бар", n: a.complaints, tone: "red" as const, to: "/a/complaints" },
       { e: "a:payfail", t: "Сәтсіз төлемдер", sub: "Соңғы 24 сағатта", n: a.failed, tone: "orange" as const, to: "/a/money" },
     ],
@@ -29,7 +32,9 @@ export function attentionRows(a: Attention) {
       { e: "a:apps", t: "Мекеме өтінімдері", sub: a.oldest ? `Ең ескісі ${ago(a.oldest)} бұрын түсті` : "Жаңа өтінім жоқ", n: a.apps, to: "/a/apps" },
       { e: "a:offers", t: "Модерациядағы ұсыныстар", sub: `${a.offers_new} жаңа, ${a.offers_changed} өзгертілген`, n: a.offers_new + a.offers_changed, to: "/a/offers" },
     ],
-    soon: [{ e: "a:grace", t: "Күту кезеңі бітетін пакеттер", sub: `Ертең ${a.grace} пакеттің қалдығы клиентке бонус болып қайтады`, n: 0, to: "/a/packs?tab=grace" }],
+    soon: [
+      // Патша (2026-11-18): мобильді қосымшаны 100 сатылымнан кейін бастаймыз
+      ...(a.sold !== undefined ? [{ e: "a:packs", t: "Мобильді қосымшаға дейін", sub: a.sold >= 100 ? "100 сатылым болды — қосымшаны бастауға болады" : `${a.sold} / 100 сатылым`, n: 0, to: "/a/packs" }] : []),{ e: "a:grace", t: "Күту кезеңі бітетін пакеттер", sub: `Ертең ${a.grace} пакеттің қалдығы клиентке бонус болып қайтады`, n: 0, to: "/a/packs?tab=grace" }],
   };
 }
 function Row({ r }: { r: { e: string; t: string; sub: string; n: number; tone?: "red" | "orange"; to: string } }) {

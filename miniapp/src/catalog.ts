@@ -8,7 +8,7 @@ import { categoryOffers, endedOffers, moreOffers, offers, type Offer, type Offer
 import { venues } from "./mocks/venues";
 
 interface SrvVenue { slug: string; name: string; kind: OfferKind; rating: number | null; reviewsCount: number; branches: { id: string; address: string }[] }
-interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null } | null }
+interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown } | null; rules?: { planOnly?: boolean } | null }
 
 export const catalogState: { source: "mock" | "server"; venues: number; offers: number; error?: string; ms?: number; branches: { venue: string; slug: string; branchId: string; address: string }[] } = { source: "mock", venues: 0, offers: 0, branches: [] };
 
@@ -23,6 +23,10 @@ export async function loadCatalog() {
       const patch: Partial<Offer> = { // Орысша: мекеме жазған орысша атау (жоқ болса — өнім сөздігінен, i18n/products.ts) + сервердің «· 4 дана» бөлігі орысшаланады («Куриный донер · 4 шт.»)
         title: locTitle(getLang() === "ru" && (o.titleRu ?? ruOf(o.title.split(" · ")[0])) ? (o.titleRu ?? ruOf(o.title.split(" · ")[0])) + (/ · \d+ \S+$/.exec(o.title)?.[0] ?? "") : o.title), unitWord: locUnit(o.unitName), units: o.units, price: o.price, oldPrice: o.regularUnitPrice * o.units, kind: o.kind, venue: vName.get(o.venueSlug) ?? "", photo: o.photos[0] };
       if (o.details?.buyers !== undefined) patch.buyers = o.details.buyers;
+      // Мекеменің өз сипаттамасы клиенттің тілінде (орысшасы жоқ ескі ұсыныста — қазақшасы)
+      const about = getLang() === "ru" && typeof o.details?.aboutRu === "string" && o.details.aboutRu.trim() ? o.details.aboutRu : o.details?.about;
+      if (typeof about === "string" && about.trim()) patch.about = about; // ескі (seed) ұсыныстарда сипаттама мәтін емес — онда санат үлгісі қалады
+      if (o.rules?.planOnly) patch.planOnly = true;
       const found = lists.flatMap((l) => l).find((x) => x.id === o.slug);
       if (found) Object.assign(found, patch);
       else (o.status === "ended" ? endedOffers : moreOffers).push({ id: o.slug, distance: "", favorite: false, rating: 0, ratingCount: 0, address: "", hours: "", buyers: 0, ...patch } as Offer);

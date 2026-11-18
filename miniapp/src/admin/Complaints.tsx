@@ -19,6 +19,7 @@ export function AComplaints() {
   const [sp] = useSearchParams();
   const venue = sp.get("venue") ?? "";
   const [tab, setTab] = useState<Tab>((sp.get("tab") as Tab) || "new");
+  const [tpl, setTpl] = useState(false);
   const [d] = useCached<{ counts: { new: number; review: number; avgMin: number | null; repeat: number }; complaints: CRow[] }>(`a:compl:${tab}:${venue}`, () => A(`/complaints?tab=${tab}&venue=${venue}`));
   useEffect(() => { if (d) setComplaintDot(d.counts.new > 0); }, [d]);
   const avg = d?.counts.avgMin ? `${Math.floor(d.counts.avgMin / 60)} сағ ${d.counts.avgMin % 60} мин` : "—";
@@ -46,10 +47,11 @@ export function AComplaints() {
       {!venue && <>
         <Note>Шағымға 24 сағат ішінде шешім шығару ұсынылады. Мерзімі жақындағандар жоғарыда тұрады.</Note>
         <div className={v.card}>
-          <button className={v.row} onClick={() => nativeAlert("Жауап үлгілері келесі кезеңде қосылады.")}><Tile e="a:templates" size={36} /><span className={v.rowText}><span className={v.rowTitle}>Жауап үлгілері</span></span><i className={v.arrow} /></button>
+          <button className={v.row} onClick={() => { haptic.tap(); setTpl(true); }}><Tile e="a:templates" size={36} /><span className={v.rowText}><span className={v.rowTitle}>Жауап үлгілері</span></span><i className={v.arrow} /></button>
           <button className={v.row} onClick={() => go("/a/venues")}><Tile e="a:repeat" size={36} /><span className={v.rowText}><span className={v.rowTitle}>Қайталанатын шағымдар</span><span className={v.rowSub}>Шағым үлесі 5%-дан асқан мекемелер</span></span><b className={v.lead} style={{ fontSize: 16 }}>{d?.counts.repeat ?? "–"}</b><i className={v.arrow} /></button>
         </div>
       </>}
+      {tpl && <TemplatesSheet onClose={() => setTpl(false)} />}
     </VPage>
   );
 }
@@ -84,6 +86,26 @@ export function AComplaint() {
   );
 }
 
+/** Жауап үлгілері: шешім парағында бір басумен қойылады (кейін өзгертуге болады). Клиент пен мекемеге бірдей кетеді. */
+const TEMPLATES: Record<"client" | "venue" | "partial", string[]> = {
+  client: ["Қолдану екі рет тіркелген, бір бірлік пакетке қайтарылды.", "Мекеме қызметті көрсетпегені расталды, бірлік қайтарылды.", "Кассир қате пакеттен шегерген, бірлік орнына қайтарылды."],
+  venue: ["Тексердік: қолдану дұрыс тіркелген, бірлік мекемеде берілген.", "Кассадағы жазба мен чек сәйкес келеді, өзгеріс енгізілмейді.", "Шағым ұсыныс шарттарына сай емес (шарттар ұсыныс бетінде көрсетілген)."],
+  partial: ["Нақты дерек табылмады. Клиентке бірлік қайтарылды, шығынды Medeo көтереді.", "Екі жақтың да түсініктемесі қабылданды: бірлік қайтарылды, мекемеден ұсталмайды."],
+};
+export function TemplatesSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <Sheet title="Жауап үлгілері" onClose={onClose}>
+      <Note>Шешім парағында түсініктеме өрісінің астында тұрады: біреуін бассаңыз, мәтін қойылады, қаласаңыз өзгертесіз.</Note>
+      {([["client", "Клиент пайдасына"], ["venue", "Мекеме пайдасына"], ["partial", "Жартылай"]] as const).map(([k, t]) => (
+        <div key={k} style={{ display: "contents" }}>
+          <h2 className={v.blueHead}>{t}</h2>
+          <div className={v.card}>{TEMPLATES[k].map((x) => <div key={x} className={v.row}><span className={v.rowText}><span className={v.rowSub} style={{ whiteSpace: "normal", fontSize: 15 }}>{x}</span></span></div>)}</div>
+        </div>
+      ))}
+    </Sheet>
+  );
+}
+
 /** Figma «Шешім»: клиент пайдасына / мекеме пайдасына / жартылай + екі жаққа түсініктеме */
 function DecideSheet({ c, onClose, done }: { c: CFull; onClose: () => void; done: (side: string) => void }) {
   const [side, setSide] = useState<"client" | "venue" | "partial">("client");
@@ -103,6 +125,7 @@ function DecideSheet({ c, onClose, done }: { c: CFull; onClose: () => void; done
         <RadioRow on={side === "partial"} title="Жартылай" sub="Бірлік оралады, шығынды платформа көтереді" onClick={() => setSide("partial")} />
       </div>
       <Field label="Екі жаққа түсініктеме" value={reply} onChange={setReply} rows={2} placeholder="Қолдану екі рет тіркелген, бір бірлік қайтарылды" />
+      <div className={s.chipsWrap}>{TEMPLATES[side].map((x) => <button key={x} className={v.chip} style={{ whiteSpace: "normal", textAlign: "left", height: "auto", padding: "8px 12px" }} onClick={() => { haptic.select(); setReply(x); }}>{x}</button>)}</div>
       <Buttons main={{ text: busy ? "…" : "Шешімді жіберу", onClick: () => void send(), disabled: busy }} second={{ text: "Бас тарту", onClick: onClose }} />
     </Sheet>
   );

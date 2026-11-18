@@ -17,7 +17,7 @@ import { applyRoutes } from "./routes/apply.js";
 import { complaintRoutes } from "./routes/complaints.js";
 import { paymentRoutes, paymentWebhookRoutes } from "./routes/payments.js";
 import { adminFileRoutes, adminRoutes, adminSig, adminWebRoutes } from "./routes/admin.js";
-import { getSettings, refreshFees } from "./settings.js";
+import { getSettings, refreshFees, setSetting } from "./settings.js";
 import { localMediaRoutes } from "./media.js";
 import { makeNotifier, noopSender, telegramSender, type Sender } from "./notify.js";
 
@@ -55,7 +55,9 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   // Жоспарлы жұмыс: Cloud Scheduler 15 минут сайын шақырады (өтінім нәтижелері, 22:00 қорытынды, мерзім ескертуі)
   app.post("/cron/tick", async (c) => {
     if (!cfg.CRON_KEY || c.req.header("X-Cron-Key") !== cfg.CRON_KEY) return c.json({ ok: false, error: "not_found" }, 404);
-    return c.json({ ok: true, sent: await notify.tick() });
+    const sent = await notify.tick();
+    await setSetting(db, "lastTick", new Date().toISOString()).catch(() => null);
+    return c.json({ ok: true, sent });
   });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db));

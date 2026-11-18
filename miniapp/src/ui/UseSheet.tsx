@@ -22,7 +22,10 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   // Патша (2026-11-16): тамақ пен кофеге де жоспарлау — күнтізбеден күн мен уақыт; үш жол: Жоспарлау · Тапсырыс · Сканер.
-  const opts: { id: Way; icon: string; title: string; sub: string }[] = hair
+  // «Тек жоспар бойынша» ұсыныс: жалғыз жол — жоспарлау/жазылу (мекеме солай қойған)
+  const opts: { id: Way; icon: string; title: string; sub: string }[] = o.planOnly
+    ? [{ id: "plan", icon: "📅", title: hair ? "Жазылу" : "Жоспарлау", sub: "Бұл ұсыныс тек алдын ала жоспар бойынша: күн мен уақытты таңда" }]
+    : hair
     ? [{ id: "plan", icon: "📅", title: "Жазылу", sub: "Күн мен уақытты күнтізбеден таңда" },
        { id: "scan", icon: "▦", title: "Сканер", sub: "Мекемеге келдің: кассирдің QR-ын сканерле" }]
     : [{ id: "plan", icon: "📅", title: "Жоспарлау", sub: "Күн мен уақытты таңда — мекеме дәл сол уақытқа дайындайды" },
@@ -53,7 +56,7 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
             </button>
           ))}
         </div>
-        <p className={s.note}>{`${hair ? "Екі" : "Үш"} жағдайда да ақша төленбейді: пакеттен бір бірлік шегеріледі.`}</p>
+        <p className={s.note}>{o.planOnly ? "Ақша төленбейді: таңдалған уақытқа пакеттен бір бірлік шегеріледі. Уақытты 2 сағат бұрын тегін ауыстыруға болады." : `${hair ? "Екі" : "Үш"} жағдайда да ақша төленбейді: пакеттен бір бірлік шегеріледі.`}</p>
         {!inTelegram && (
           <div className={s.bar}>
             <button className={`${s.btn} ${s.second}`} onClick={cancel.onClick}>{cancel.text}</button>
