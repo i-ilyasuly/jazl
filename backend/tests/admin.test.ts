@@ -161,6 +161,11 @@ d("Medeo Басқару", () => {
     const before = new Date(p.validUntil).getTime();
     expect((await post(`/v1/admin/packs/${id}/extend`, { days: 7, pin: "5821" })).status).toBe(200);
     expect(new Date((await json(get(`/v1/admin/packs/${id}`))).pack.validUntil).getTime() - before).toBe(7 * 86400_000);
+    // Бонус беру: PIN қате — 403/409; дұрыс — клиенттің бонусына қосылады, журналда
+    expect((await post(`/v1/admin/packs/${id}/bonus`, { amount: 1000, reason: "сынақ", pin: "0000" })).status).not.toBe(200);
+    expect((await post(`/v1/admin/packs/${id}/bonus`, { amount: 1000, reason: "сынақ", pin: "5821" })).status).toBe(200);
+    const owner = (await dbh.pool.query("select user_id from app.packs where id = $1", [id])).rows[0].user_id;
+    expect((await dbh.pool.query("select kind, amount, \"left\" from app.bonuses where user_id = $1 and kind = 'manual'", [owner])).rows).toEqual([{ kind: "manual", amount: 1000, left: 1000 }]);
     expect((await post(`/v1/admin/packs/${id}/refund-use`, { reason: "Қате қолдану", pin: "1234" })).status).toBe(403);
     const left = p.left;
     expect((await json(post(`/v1/admin/packs/${id}/refund-use`, { reason: "Қате қолдану", pin: "5821" }))).returned).toBe(1);
