@@ -67,11 +67,13 @@ d("Medeo Басқару", () => {
   it("өтінім: тізім → түзетуге жіберу (мекемеге хабар) → қайта жіберсе бекіту → мекеме ашылды, журналда", async () => {
     const uid = (await dbh.pool.query("insert into app.users (telegram_id, first_name) values (905, 'Нан') returning id")).rows[0].id;
     const appId = (await dbh.pool.query(`insert into app.venue_applications (user_id, status, data, submitted_at) values ($1, 'review', $2, now()) returning id`,
-      [uid, JSON.stringify({ kind: "food", name: "Naan House", legalName: "ЖК «Naan House»", bin: "910412300518", iban: "KZ12722S000012345678", branches: [{ address: "Ерубаев 12", open: "09:00", close: "22:00" }] })])).rows[0].id;
+      [uid, JSON.stringify({ kind: "food", name: "Naan House", legalName: "ЖК «Naan House»", bin: "910412300518", iban: "KZ12722S000012345678", branches: [{ address: "Ерубаев 12", open: "09:00", close: "22:00" }], pos: "other", posOther: "Kaspi Kassa" })])).rows[0].id;
     const list = await json(get("/v1/admin/applications?status=review"));
     expect(list.counts.review).toBe(1); expect(list.applications[0]).toMatchObject({ name: "Naan House", kindName: "Тағамдар", form: "ЖК" });
     const one = (await json(get(`/v1/admin/applications/${appId}`))).application;
     expect(one.data.bank).toBe("Kaspi Bank");
+    expect(one.data.posName).toBe("Kaspi Kassa"); // касса бағдарламасы (POS-ты қайсысынан бастау)
+    expect((await json(get("/v1/admin/pos-stats"))).items).toEqual(expect.arrayContaining([{ pos: "other", name: "Kaspi Kassa", n: 1 }]));
     expect((await post(`/v1/admin/applications/${appId}/return`, { status: "need_info", reason: "Құжат жетіспейді", note: "Санитарлық қорытындыны жүктеңіз" })).status).toBe(200);
     expect(sent.at(-1)?.text).toBe("✏️ Өтінімге түзету керек: Құжат жетіспейді. Санитарлық қорытындыны жүктеңіз");
     expect((await post(`/v1/admin/applications/${appId}/approve`, {})).status).toBe(409); // қайта жіберілмейінше

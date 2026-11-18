@@ -19,7 +19,12 @@ export interface AppData {
   kind?: Kind; name?: string; about?: string; link?: string; bin?: string; legalName?: string; director?: string; regDate?: string; authorized?: boolean;
   contactName?: string; phone?: string; email?: string; branches?: Branch[]; logoUrl?: string | null; coverUrl?: string | null; gallery?: string[];
   iban?: string; ownAccount?: boolean; agreeTerms?: boolean; agreePrivacy?: boolean;
+  /** Касса бағдарламасы (Патша, 2026-11-18): POS интеграциясын қайсысынан бастауды мекемелердің өздері көрсетеді */
+  pos?: Pos; posOther?: string;
 }
+type Pos = "iiko" | "r_keeper" | "poster" | "syrve" | "paloma" | "other" | "none";
+const POS: [Pos, string][] = [["iiko", "iiko"], ["r_keeper", "r_keeper"], ["poster", "Poster"], ["syrve", "Syrve"], ["paloma", "Paloma365"], ["other", "Басқа"], ["none", "Жоқ"]];
+const posLabel = (d: AppData) => d.pos === "other" ? d.posOther || "Басқа" : d.pos === "none" ? "Касса бағдарламасы жоқ" : POS.find((x) => x[0] === d.pos)?.[1] ?? "—";
 interface Doc { kind: string; fileName: string; size: number; mime: string }
 interface Application { id: string; status: "draft" | "review" | "need_info" | "rejected" | "approved"; data: AppData; note: string | null; submittedAt: string | null; decidedAt: string | null; venueId: string | null; docs: Doc[]; missing: string[] }
 
@@ -95,7 +100,7 @@ export function VApplyStep() {
     if (n === 1) return !d.kind ? "Мекеме түрін таңдаңыз" : !d.name || d.name.trim().length < 2 ? "Мекеме атауын жазыңыз" : !d.about || d.about.trim().length < 20 ? "Сипаттама кемінде 20 таңба" : null;
     if (n === 2) return !binOk ? "БСН/ЖСН дұрыс емес (12 сан)" : !d.legalName ? "Заңды тұлғаның атауын жазыңыз" : !d.authorized ? "Өкілеттікті растаңыз" : null;
     if (n === 3) return !d.contactName ? "Байланыс тұлғасын жазыңыз" : !d.phone || !/^\+?\d[\d\s()-]{9,}$/.test(d.phone) ? "Телефон дұрыс емес" : !d.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email) ? "E-mail дұрыс емес" : null;
-    if (n === 4) return d.branches?.length ? null : "Кемінде бір филиал қосыңыз";
+    if (n === 4) return !d.branches?.length ? "Кемінде бір филиал қосыңыз" : !d.pos ? "Касса бағдарламасын таңдаңыз" : d.pos === "other" && !d.posOther?.trim() ? "Касса бағдарламасының атауын жазыңыз" : null;
     if (n === 5) return !d.logoUrl ? "Логотип жүктеңіз" : !d.coverUrl ? "Мұқаба жүктеңіз" : (d.gallery?.length ?? 0) < 3 ? "Галереяға кемінде 3 фото қосыңыз" : null;
     if (n === 6) return !bank?.valid ? "IBAN дұрыс емес (KZ-пен басталатын 20 таңба)" : !d.ownAccount ? "Шот мекеме атына ашылғанын растаңыз" : null;
     if (n === 7) { const k = (a?.docs ?? []).map((x) => x.kind); return !k.includes("bin") ? "БИН анықтамасын жүктеңіз" : !k.includes("id") ? "Басшының жеке куәлігін жүктеңіз" : d.kind === "food" && !k.includes("halal") ? "Тамақ мекемесіне халал сертификаты керек" : null; }
@@ -198,6 +203,10 @@ export function VApplyStep() {
           </div>
         ) : <button className={s.card} style={{ height: 56, border: "1.5px dashed #229af0", background: "none", color: "var(--link)", fontSize: 17, fontWeight: 600 }} onClick={() => setAddBranch({ address: "", open: "09:00", close: "22:00" })}>+ Филиал қосу</button>}
         <Note>Пакет мекеменің барлық филиалында жұмыс істейді, тапсырыс беру кезінде филиал таңдалады.</Note>
+        <h2 className={s.blueHead}>Қандай касса бағдарламасын қолданасыз?</h2>
+        <div className={s.chips} style={{ flexWrap: "wrap", overflow: "visible" }}>{POS.map(([k, t]) => <button key={k} className={`${s.chip} ${d.pos === k ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ pos: k }); }}>{t}</button>)}</div>
+        {d.pos === "other" && <Field label="Бағдарлама атауы" value={d.posOther ?? ""} max={40} onChange={(v) => up({ posOther: v })} placeholder="Мысалы: Kaspi Kassa, 1C" />}
+        <Note>Medeo кассамен QR арқылы қазірдің өзінде жұмыс істейді. Жауабыңыз келесі қадамға көмектеседі: Medeo-ны касса бағдарламаңыздың ішіне қосамыз.</Note>
       </>}
       {n === 5 && <>
         <h1 className={s.h1} style={{ fontSize: 22 }}>Суреттер</h1>
@@ -235,7 +244,7 @@ export function VApplyStep() {
         <div className={s.sectionHead}><h2 className={s.blueHead}>Мекеме</h2><button className={s.link} onClick={() => go("/v/apply/1")}>Өзгерту</button></div>
         <div className={s.card}><div className={s.kv}><span>Атауы</span><b>{d.name}</b></div><div className={s.kv}><span>БИН</span><b>{d.bin}</b></div><div className={s.kv}><span>Санат</span><b>{KINDS.find((k) => k[0] === d.kind)?.[2]}</b></div></div>
         <div className={s.sectionHead}><h2 className={s.blueHead}>{`Филиалдар · ${d.branches?.length ?? 0}`}</h2><button className={s.link} onClick={() => go("/v/apply/4")}>Өзгерту</button></div>
-        <div className={s.card}>{(d.branches ?? []).map((b, i) => <div key={i} className={s.kv}><span>{b.address}</span><b>{b.open}–{b.close}</b></div>)}</div>
+        <div className={s.card}>{(d.branches ?? []).map((b, i) => <div key={i} className={s.kv}><span>{b.address}</span><b>{b.open}–{b.close}</b></div>)}<div className={s.kv}><span>Касса бағдарламасы</span><b>{posLabel(d)}</b></div></div>
         <div className={s.sectionHead}><h2 className={s.blueHead}>Банк және құжаттар</h2><button className={s.link} onClick={() => go("/v/apply/6")}>Өзгерту</button></div>
         <div className={s.card}><div className={s.kv}><span>IBAN</span><b>{d.iban?.slice(0, 4)} •••• {d.iban?.slice(-4)}</b></div><div className={s.kv}><span>Құжаттар</span><b>{`${a.docs.length} / ${d.kind === "food" ? 3 : 2}+ жүктелді`}</b></div></div>
       </>}
