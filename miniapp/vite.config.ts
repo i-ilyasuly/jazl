@@ -17,4 +17,10 @@ function medeoMainPreload(): Plugin {
   };
 }
 
-export default defineConfig({ plugins: [medeoI18n(), react(), medeoMainPreload()], base: "./" });
+export default defineConfig({
+  plugins: [medeoI18n(), react(), medeoMainPreload()],
+  base: "./",
+  // Кіші суреттер (webp/png) JS ішіне base64 болып кірмейді: олар сығылмайды және негізгі файлды ~75 КБ (gzip) ауырлататын.
+  // Бөлек файл болып, JS-пен қатар жүктеледі және бір жылға кэштеледі. SVG иконкалар бұрынғыдай ішінде қалады (жақсы сығылады).
+  build: { assetsInlineLimit: (file: string) => (/\.(webp|png|jpe?g)$/i.test(file) ? false : undefined) },
+});
