@@ -9,7 +9,7 @@ import { branches, offers, venues } from "./schema.js";
 
 type Kind = "food" | "coffee" | "hair";
 interface SeedVenue { slug: string; name: string; kind: Kind; city: string; rating: number; reviewsCount: number; acceptsPreorder: boolean; branches: { address: string; lat: number; lng: number; hours: unknown; allowsCourier: boolean }[] }
-interface SeedOffer { slug: string; venueSlug: string; title: string; kind: Kind; unitName: string; units: number; price: number; regularUnitPrice: number; validDays: number; sizes: unknown; details: unknown; photos: string[]; promoted: boolean; status: "active" | "ended" }
+interface SeedOffer { slug: string; venueSlug: string; title: string; titleRu?: string; kind: Kind; unitName: string; units: number; price: number; regularUnitPrice: number; validDays: number; sizes: unknown; details: unknown; photos: string[]; promoted: boolean; status: "active" | "ended" }
 
 export async function seedCatalog(db: Db, file = fileURLToPath(new URL("../../seed/catalog.json", import.meta.url))) {
   const data = JSON.parse(readFileSync(file, "utf8")) as { venues: SeedVenue[]; offers: SeedOffer[] };

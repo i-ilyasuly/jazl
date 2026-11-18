@@ -148,6 +148,13 @@
       "when": 1794957786930,
       "tag": "0020_bonus",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794963878453,
+      "tag": "0021_title_ru",
+      "breakpoints": true
     }
   ]
 }

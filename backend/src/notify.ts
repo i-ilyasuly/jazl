@@ -245,7 +245,7 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
         if (b.amount <= 0 || !(await once(`bonus:${b.packId}`))) continue;
         const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${b.userId}`);
         if (u) await send({ chatId: Number(u.tg), text: L(`🎁 «${head(b.title)}» пакетінің ${b.units} бірлігі пайдаланылмай қалды. Ақшаң күйген жоқ: ${money(b.amount)} Medeo бонусы болып қайтты. Бонус 12 ай жарамды, кез келген мекемеде келесі сатып алуға жұмсалады.`,
-          `🎁 В пакете «${head(b.title)}» осталось неиспользованных единиц: ${b.units}. Деньги не сгорели: ${money(b.amount)} вернулись бонусом Medeo. Бонус действует 12 месяцев, его можно потратить на следующую покупку в любом заведении.`), button: { text: L("Бонусты көру", "Посмотреть бонус"), start: "p_bonus" } }).catch(() => null);
+          `🎁 В пакете «${b.titleRu ?? head(b.title)}» осталось неиспользованных единиц: ${b.units}. Деньги не сгорели: ${money(b.amount)} вернулись бонусом Medeo. Бонус действует 12 месяцев, его можно потратить на следующую покупку в любом заведении.`), button: { text: L("Бонусты көру", "Посмотреть бонус"), start: "p_bonus" } }).catch(() => null);
         out.bonus++;
       }
       // Өтінім күйі қолмен (дерекқорда) өзгерсе де хабар кетеді
@@ -289,13 +289,13 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
       }
       if (h >= 10 && h < 21) {
         // ⏰ Пакет мерзімі 3 күннен кейін бітеді → клиент («Мерзім ескертулері» баптауы)
-        const soon = await rows<{ id: string; tg: string; title: string; left: number; unit_name: string; notify: Partial<typeof clientPrefDefaults> | null }>(sql`
-          select p.id, u.telegram_id as tg, f.title, p.units_left as left, f.unit_name, u.notify from app.packs p join app.offers f on f.id = p.offer_id join app.users u on u.id = p.user_id
+        const soon = await rows<{ id: string; tg: string; title: string; title_ru: string | null; left: number; unit_name: string; notify: Partial<typeof clientPrefDefaults> | null }>(sql`
+          select p.id, u.telegram_id as tg, f.title, f.title_ru, p.units_left as left, f.unit_name, u.notify from app.packs p join app.offers f on f.id = p.offer_id join app.users u on u.id = p.user_id
           where p.status = 'active' and p.units_left > 0 and p.valid_until between now() + interval '2 days' and now() + interval '3 days'
             and not exists (select 1 from app.notify_log l where l.key = 'exp:' || p.id) limit 500`);
         for (const p of soon) {
           if (!({ ...clientPrefDefaults, ...(p.notify ?? {}) }).expiry || !(await once(`exp:${p.id}`))) continue;
-          await send({ chatId: Number(p.tg), text: L(`⏰ «${head(p.title)}» пакетінің мерзімі 3 күннен кейін бітеді. ${p.left} ${p.unit_name || "дана"} қалды.`, `⏰ Срок пакета «${head(p.title)}» истекает через 3 дня. Осталось ${p.left} ед.`), button: { text: L("Пакеттерім", "Мои пакеты"), start: `pk_${p.id}` } }).catch(() => null);
+          await send({ chatId: Number(p.tg), text: L(`⏰ «${head(p.title)}» пакетінің мерзімі 3 күннен кейін бітеді. ${p.left} ${p.unit_name || "дана"} қалды.`, `⏰ Срок пакета «${p.title_ru ?? head(p.title)}» истекает через 3 дня. Осталось ${p.left} ед.`), button: { text: L("Пакеттерім", "Мои пакеты"), start: `pk_${p.id}` } }).catch(() => null);
           out.expiry++;
         }
       }

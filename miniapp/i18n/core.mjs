@@ -69,8 +69,8 @@ export function rewrite(code, items) {
       const inner = list.filter((y) => y !== x && y.start >= x.start && y.end <= x.end);
       res += code.slice(pos, x.start);
       const k = JSON.stringify(x.key);
-      if (x.kind === "tpl") res += `__tt(${k}, [${x.exprs.map(([a, b]) => emit(a, b, inner)).join(", ")}])`;
-      else res += x.kind === "str" ? `__t(${k})` : `{__t(${k})}`;
+      if (x.kind === "tpl") res += `__mtt(${k}, [${x.exprs.map(([a, b]) => emit(a, b, inner)).join(", ")}])`;
+      else res += x.kind === "str" ? `__mt(${k})` : `{__mt(${k})}`;
       pos = x.end;
     }
     return res + code.slice(pos, to);

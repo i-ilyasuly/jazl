@@ -13,13 +13,13 @@ export default function medeoI18n() {
     configResolved(c) { root = c.root; },
     transform(code, id) {
       const file = id.split("?")[0];
-      if (!/\/src\/.*\.(tsx?|mjs)$/.test(file) || /\/src\/i18n\/(index|ru)\.ts$/.test(file) || file.includes("node_modules") || !CYR.test(code)) return null;
+      if (!/\/src\/.*\.(tsx?|mjs)$/.test(file) || /\/src\/i18n\/(index|ru|products)\.ts$/.test(file) || file.includes("node_modules") || !CYR.test(code)) return null;
       const items = scan(code, file);
       if (!items.length) return null;
       const out = rewrite(code, items);
       let rel = path.relative(path.dirname(file), path.join(root, "src/i18n/index.ts")).replace(/\\/g, "/").replace(/\.ts$/, "");
       if (!rel.startsWith(".")) rel = "./" + rel;
-      return { code: `import { __t, __tt } from ${JSON.stringify(rel)};\n` + out, map: null };
+      return { code: `import { __t as __mt, __tt as __mtt } from ${JSON.stringify(rel)};\n` + out, map: null };
     },
   };
 }
