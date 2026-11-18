@@ -16,10 +16,10 @@ import { Sticker, type StickerName } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import s from "./PayResult.module.css";
 
-export const scanStates = ["fail", "pending", "limit", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "othervenue", "closed", "planonly"] as const;
+export const scanStates = ["fail", "pending", "limit", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "othervenue", "closed", "planonly", "otherbranch"] as const;
 export type ScanKind = (typeof scanStates)[number];
 /** QR оқылған бойда белгілі болатын күйлер (төлемге дейін). Қалғаны төлемнен кейін шығады. */
-export const scanEarly: ScanKind[] = ["closed", "othervenue", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc"];
+export const scanEarly: ScanKind[] = ["closed", "othervenue", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "otherbranch"];
 
 interface Copy { sticker: StickerName; title: string; text: string; note?: string; left?: string; main: string }
 const copy: Record<ScanKind, Copy> = {
@@ -40,6 +40,7 @@ const copy: Record<ScanKind, Copy> = {
   // Figma «07 · Филиалдар»: жұмыс уақытынан тыс не уақытша жабық филиалда QR төлем қабылданбайды
   closed: { sticker: "sleep", title: "Мекеме қазір жабық", text: "Бұл филиал қазір төлем қабылдамайды. Бірлік жұмсалған жоқ — жұмыс уақытында қайта сканерле.", main: "Түсінікті" },
   planonly: { sticker: "clock", title: "Бұл пакет тек жоспар бойынша", text: "Мекеме бұл ұсынысты тек алдын ала жоспар бойынша қабылдайды. Пакет бетінде «Қолдану» → күн мен уақытты таңда.", main: "Пакеттерге өту" },
+  otherbranch: { sticker: "stop", title: "Бұл пакет осы филиалда жүрмейді", text: "Мекеме бұл ұсынысты тек мына филиалдарда қабылдайды. Бірлік жұмсалған жоқ.", main: "Түсінікті" },
   othervenue: { sticker: "stop", title: "Бұл QR басқа мекеменікі", text: "Бұл мекемеде белсенді пакетің жоқ. Пакет таңдаған мекеменің кассасындағы QR-ды сканерле.", main: "Түсінікті" },
   kyc: { sticker: "lock", title: "Төлеу үшін жеке басыңды растау керек", text: "Банк талабы бойынша бір рет. Деректер банкте сақталады.", note: "Бұл қадам тек банк-серіктес талап етсе көрсетіледі.", left: "Кейін", main: "Растау" },
 };
@@ -63,7 +64,7 @@ export function ScanState() {
     else if (k === "nopack") home();
     else if (k === "pinintro") go("/profile/pin/create", "forward", { replace: true });
     else if (k === "kyc") go("/kyc", "forward");
-    else if (k === "limit" || k === "notpartner" || k === "paidbefore" || k === "desktop") close();
+    else if (k === "limit" || k === "notpartner" || k === "paidbefore" || k === "desktop" || k === "otherbranch") close();
     else rescan();
   } }), [c.main, k, go, home, close, rescan]);
   const left = useMemo(() => c.left ? ({ text: c.left, position: "left" as const, onClick: () => {
@@ -86,6 +87,11 @@ export function ScanState() {
         <Sticker name={c.sticker} size={120} className={s.sticker} />
         <h1 className={s.title}>{c.title}</h1>
         <p className={s.text}>{text}</p>
+        {k === "otherbranch" && params.get("b") && (
+          <div className={s.kvBox}>
+            {params.get("b")!.split("\n").filter(Boolean).map((a) => <p key={a}><b>{a}</b></p>)}
+          </div>
+        )}
         {k === "amount" && (
           <div className={s.kvBox}>
             <p><span>QR сомасы:</span><b>{fmt(price - 300)}</b></p>

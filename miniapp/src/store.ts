@@ -169,10 +169,10 @@ export async function syncServerPacks() {
 const newKey = () => (crypto.randomUUID?.() ?? String(Math.random()).slice(2) + Date.now());
 const srvError = (e: unknown) => ((e as { body?: { error?: string } }).body?.error ?? "network");
 /** Кассадағы QR арқылы бір бірлік (серверде). Қате болса — себебі (other_venue, no_units, not_medeo_qr, …). */
-export async function redeemOnServer(packId: string, qr: string, units = 1): Promise<{ ok: true; receiptId?: string; left?: number } | { ok: false; error: string; expectedUnits?: number; venue?: string } | null> {
+export async function redeemOnServer(packId: string, qr: string, units = 1): Promise<{ ok: true; receiptId?: string; left?: number } | { ok: false; error: string; expectedUnits?: number; venue?: string; branches?: string[] } | null> {
   const p = getPack(packId); if (!p?.serverId || !qr) return null;
   try { const j = await api<{ receipt?: { id: string }; left?: number }>("/v1/redeem", { method: "POST", body: JSON.stringify({ packId: p.serverId, qr, units, idempotencyKey: newKey() }) }, 12000); return { ok: true, receiptId: j.receipt?.id, left: j.left }; }
-  catch (e) { const b = (e as { body?: { error?: string; expectedUnits?: number; venue?: string } }).body; return { ok: false, error: b?.error ?? "network", expectedUnits: b?.expectedUnits, venue: b?.venue }; }
+  catch (e) { const b = (e as { body?: { error?: string; expectedUnits?: number; venue?: string; branches?: string[] } }).body; return { ok: false, error: b?.error ?? "network", expectedUnits: b?.expectedUnits, venue: b?.venue, branches: b?.branches }; }
 }
 /** QR-ды тану (сервер): мекеме, кассир енгізген дана, банк сомасы, мерзімі. Сервер жоқ болса — null. */
 export interface QrInfo { kind: "dynamic" | "amount" | "static"; venue: { slug: string; name: string }; offer?: { slug: string; title: string } | null; branch: { id: string; address: string }; units: number | null; amount: number | null; valid: boolean; expired: boolean }

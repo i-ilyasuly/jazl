@@ -44,7 +44,8 @@ export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
         </span>
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
       </div>
-      <p className={s.price}>{fmt(offer.price)}</p>
+      {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
+      <p className={s.price}>{offer.sizes && offer.sizes.length > 1 ? `${fmt(Math.min(...offer.sizes.map((x) => x.price)))}-дан` : fmt(offer.price)}</p>
       {ended ? <>
         <span className={`t-cap1 ${s.over}`}>Аяқталды</span>
         <button className={`t-sub2 w-600 ${s.notify} ${waiting ? s.waiting : ""}`} onClick={(e) => { e.preventDefault(); void notify(); }}>
