@@ -20,6 +20,8 @@ export const SETTING_DEFAULTS = {
   refusedPauseAt: 5,
   /** Күйген бірліктен берілген бонустың мерзімі, ай (Патша, 2026-11-17: 12 ай) */
   bonusMonths: 12,
+  /** Жоспарлы тапсырма (/cron/tick) соңғы рет қашан жұмыс істеді (ISO). Басқару «Пульсте» тоқтап қалса ескертеді — бонус, ескертулер, қорытынды осыған тәуелді */
+  lastTick: "",
 };
 export type Settings = typeof SETTING_DEFAULTS;
 

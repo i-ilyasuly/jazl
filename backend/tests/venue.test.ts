@@ -123,7 +123,7 @@ d("C мекеме бөлімі", () => {
     expect(prof.today.count).toBe(1);
   });
   it("ұсыныс құру: жоба → жариялау (жеңілдік ≥10%), ұсыныс беті, бағаны өзгерту (50%+ түсіру — растау), өшіру", async () => {
-    const body = { title: "Тауық бургер", titleRu: "Куриный бургер", category: "Бургер", about: "Тауық еті, *соус*", sizes: [{ units: 4, price: 7600 }], regularUnitPrice: 2000, validDays: 30,
+    const body = { title: "Тауық бургер", titleRu: "Куриный бургер", category: "Бургер", about: "Тауық еті, *соус*", aboutRu: "Описание на русском языке для клиентов", sizes: [{ units: 4, price: 7600 }], regularUnitPrice: 2000, validDays: 30,
       rules: { carry: true, extend: true, preorder: false, branches: null }, publish: false };
     expect((await post(`/v1/venue/${venueId}/offers`, body, 702)).status).toBe(403); // кассир құра алмайды
     const d = await json(post(`/v1/venue/${venueId}/offers`, body, 701));

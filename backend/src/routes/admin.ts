@@ -125,7 +125,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       + (select count(*) from app.orders where status not in ('cancelled','failed') and created_at >= ${from} and created_at < ${to}))::int as units`))[0].units;
   const attention = async () => {
     const s = await getSettings(db);
-    const [x] = await rows<{ apps: number; oldest: Date | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number }>(sql`select
+    const [x] = await rows<{ apps: number; oldest: Date | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold: number }>(sql`select
       (select count(*) from app.venue_applications where status = 'review')::int as apps,
       (select min(submitted_at) from app.venue_applications where status = 'review') as oldest,
       (select count(*) from app.offers o where o.status = 'review' and not exists (select 1 from app.packs p where p.offer_id = o.id))::int as offers_new,
@@ -133,8 +133,9 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       (select count(*) from app.complaints where status = 'new')::int as complaints,
       (select count(*) from app.complaints where status = 'new' and created_at + make_interval(hours => ${s.complaintHours}) < now() + interval '1 day')::int as due_today,
       (select count(*) from app.payments where status = 'failed' and created_at > now() - interval '1 day')::int as failed,
-      (select count(*) from app.packs where units_left > 0 and valid_until < now() and valid_until > now() - make_interval(days => ${s.graceDays}) and valid_until + make_interval(days => ${s.graceDays}) < now() + interval '1 day')::int as grace`);
-    return x;
+      (select count(*) from app.packs where units_left > 0 and valid_until < now() and valid_until > now() - make_interval(days => ${s.graceDays}) and valid_until + make_interval(days => ${s.graceDays}) < now() + interval '1 day')::int as grace,
+      (select count(*) from app.packs where status <> 'pending_payment' and source <> 'carry')::int as sold`);
+    return { ...x, tickAt: s.lastTick || null };
   };
   r.get("/admin/pulse", async (c) => {
     const p = periodOf(c.req.query("period") ?? "today");

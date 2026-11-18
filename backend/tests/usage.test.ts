@@ -142,4 +142,18 @@ d("B3 қолдану", () => {
     const rc = (await dbh.pool.query("select internal from app.receipts where internal->>'orderId' = $1", [o.order.id])).rows[0].internal;
     expect(rc.status.current).toBe("done");
   });
+  it("«Тек жоспар бойынша» ұсыныс: QR мен «қазір» тапсырыс жабық (plan_only), жоспармен — болады; каталогта rules.planOnly", async () => {
+    await dbh.pool.query(`update app.offers set rules = coalesce(rules, '{}'::jsonb) || '{"planOnly": true, "preorder": true}'::jsonb where slug = 'doner'`);
+    const p = await buy(611);
+    const scan = await post("/v1/redeem", { packId: p, qr: "JZB1:" + damdiBranch, idempotencyKey: key() }, 611);
+    expect(scan.status).toBe(409); expect((await scan.json()).error).toBe("plan_only");
+    const now = await post("/v1/orders", { packId: p, type: "now", idempotencyKey: key() }, 611);
+    expect(now.status).toBe(409); expect((await now.json()).error).toBe("plan_only");
+    const at = new Date(Date.now() + 26 * 3600_000).toISOString();
+    const plan = await post("/v1/orders", { packId: p, type: "plan", scheduledAt: at, idempotencyKey: key() }, 611);
+    expect(plan.status).toBe(200);
+    const cat = await (await app.request("/v1/catalog")).json();
+    expect(cat.offers.find((o: { slug: string }) => o.slug === "doner").rules).toEqual({ planOnly: true });
+    await dbh.pool.query(`update app.offers set rules = rules - 'planOnly' where slug = 'doner'`);
+  });
 });

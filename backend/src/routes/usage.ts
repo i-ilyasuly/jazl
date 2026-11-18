@@ -23,14 +23,14 @@ export const branchQr = (cfg: Config, branchId: string) => `https://t.me/${cfg.M
 class UseError extends Error { constructor(public code: string, public status: 400 | 404 | 409 = 409, public extra: Record<string, unknown> = {}) { super(code); } }
 
 /** Пакеттен n бірлік алады (жолды бұғаттап). Қате болса UseError. check — бұғаттан кейінгі қосымша тексеру (мекеме, сома). */
-async function takeUnit(tx: Tx, packId: string, userId: string, n = 1, check?: (p: { venueId: string; offerId: string; unitPrice: number; units_left: number }) => void) {
-  const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${packId} and p.user_id = ${userId} for update of p`);
-  const p = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; price_paid: number; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string } | undefined;
+async function takeUnit(tx: Tx, packId: string, userId: string, n = 1, check?: (p: { venueId: string; offerId: string; unitPrice: number; units_left: number; planOnly: boolean }) => void) {
+  const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug, coalesce((o.rules->>'planOnly')::boolean, false) as "planOnly" from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${packId} and p.user_id = ${userId} for update of p`);
+  const p = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; price_paid: number; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string; planOnly: boolean } | undefined;
   if (!p) throw new UseError("pack_not_found", 404);
   if (p.status !== "active") throw new UseError("pack_" + p.status);
   if (new Date(p.valid_until).getTime() < Date.now()) throw new UseError("pack_expired");
   const unitPrice = Math.round(p.price_paid / p.units_total);
-  check?.({ venueId: p.venueId, offerId: p.offer_id, unitPrice, units_left: p.units_left });
+  check?.({ venueId: p.venueId, offerId: p.offer_id, unitPrice, units_left: p.units_left, planOnly: p.planOnly });
   if (p.units_left < n) throw new UseError("no_units", 409, { left: p.units_left });
   const left = p.units_left - n;
   await tx.update(packs).set({ unitsLeft: left, status: left === 0 ? "used" : "active" }).where(eq(packs.id, packId));
@@ -121,6 +121,8 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
         }
         const p = await takeUnit(tx, b.data.packId, user.id, units, (x) => {
           if (x.venueId !== br.v.id) throw new UseError("other_venue", 409, { venue: br.v.name });
+          // «Тек жоспар бойынша» ұсыныс: кассада QR-мен қолданылмайды — алдын ала жазылу/жоспар арқылы ғана
+          if (x.planOnly) throw new UseError("plan_only", 409);
           if (ss?.o && x.offerId !== ss.o.id) throw new UseError("other_offer", 409, { offer: ss.o.title });
           if (q.kind === "amount") {
             // Банк терминалы: сома = дана × 1 бірлік бағасы болуы керек
@@ -158,7 +160,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (d.type === "plan" && (!at || isNaN(at.getTime()) || at.getTime() < Date.now() + 15 * 60_000)) return c.json({ ok: false, error: "bad_slot" }, 400);
     try {
       const out = await db.transaction(async (tx) => {
-        const p = await takeUnit(tx, d.packId, user.id);
+        const p = await takeUnit(tx, d.packId, user.id, 1, (x) => { if (x.planOnly && d.type === "now") throw new UseError("plan_only", 409); });
         if (at && at.getTime() > new Date(p.valid_until).getTime()) throw new UseError("slot_after_expiry", 400);
         const [v] = await tx.select().from(venues).where(eq(venues.id, p.venueId));
         if (d.type === "now" && !v.acceptsPreorder) throw new UseError("no_preorder");

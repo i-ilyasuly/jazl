@@ -2,6 +2,7 @@
 // Ұсыныс беті (14008:7998), Бағаны өзгерту (14008:8135), Ұсынысты тоқтату (14008:8304), Баға қатты түсірілді (14018:8391).
 // Фото — Google Cloud Storage (venue/media.ts). Біздің жолмен келіспейтін жерлері: «Алдын ала тапсырыс» ескертуі POS емес,
 // біздің тапсырыс бөлімі туралы; сипаттамадағы «дәйексөз» — дәйексөз белгісіз ақпарат блогы (04/38).
+import { Rich } from "../ui/Rich";
 import { __t, getLang, kk } from "../i18n";
 import { kkOf, ruOf, suggest } from "../i18n/products";
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -17,8 +18,8 @@ import { pickImage, uploadImage } from "./media";
 import s from "./V.module.css";
 
 type Size = { units: number; price: number };
-interface Draft { title: string; titleRu: string; category: string; about: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; branches: string[] | null } }
-interface OfferFull extends Omit<Draft, "titleRu"> { titleRu?: string | null; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
+interface Draft { title: string; titleRu: string; category: string; about: string; aboutRu: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; branches: string[] | null } }
+interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu"> { titleRu?: string | null; aboutRu?: string | null; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 // Санат серверге қазақша сақталады (тілге тәуелсіз мән), ал экранда таңдалған тілде көрінеді: __t(c)
 const cats = { food: [kk("Донер"), kk("Бургер"), kk("Шаурма"), kk("Кофе"), kk("Басқа")], coffee: [kk("Кофе"), kk("Шай"), kk("Десерт"), kk("Басқа")], hair: [kk("Шаш қию"), kk("Сақал"), kk("Балалар"), kk("Басқа")] };
@@ -29,14 +30,6 @@ const saving = (x: Size, reg: number) => Math.max(0, Math.round((1 - x.price / (
 /** Жеңілдік шегі (Medeo ережесі, әдепкі 30%): тым арзан пакет мекемеге де, клиентке де зиян */
 const bigText = (e: unknown) => `Жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 30}%-дан аспауы керек. Тым арзан пакетте әр клиентке қызмет көрсету мекемеге шығын болады. Бағаны сәл көтеріңіз.`;
 
-export function Rich({ text }: { text: string }) {
-  const inline = (t: string) => t.split(/(\*[^*]+\*|_[^_]+_)/g).map((p, i) =>
-    p.startsWith("*") && p.endsWith("*") && p.length > 2 ? <b key={i} className="hl hl-green" style={{ background: "var(--hl-green-bg)", color: "var(--hl-green-text)", fontWeight: 400 }}>{p.slice(1, -1)}</b>
-      : p.startsWith("_") && p.endsWith("_") && p.length > 2 ? <b key={i} className="hl" style={{ background: "var(--hl-blue-bg)", color: "var(--hl-blue-text)", fontWeight: 400 }}>{p.slice(1, -1)}</b> : <Fragment key={i}>{p}</Fragment>);
-  return <>{text.split("\n").filter((l) => l.trim()).map((l, i) => l.startsWith("> ")
-    ? <p key={i} className="t-sub2 infoBox" style={{ margin: "8px 0 0" }}>{inline(l.slice(2))}</p>
-    : <p key={i} style={{ margin: i ? "6px 0 0" : 0, fontSize: 17, lineHeight: "24px" }}>{inline(l)}</p>)}</>;
-}
 
 function Steps({ n, label }: { n: number; label: string }) {
   return (
@@ -53,13 +46,13 @@ export function VOfferWizard() {
   const me = useCurrent();
   const { id } = useParams();
   const [step, setStep] = useState(1);
-  const [editAbout, setEditAbout] = useState(false);
+  const [editAbout, setEditAbout] = useState<false | "kk" | "ru">(false);
   const [sizeEdit, setSizeEdit] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("draft");
   const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
-  const [d, setD] = useState<Draft>({ title: "", titleRu: "", category: "", about: "", photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
-  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", category: o.category ?? "", about: o.about, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [d, setD] = useState<Draft>({ title: "", titleRu: "", category: "", about: "", aboutRu: "", photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
   // Бір тілде жазса, екіншісі сөздіктен өзі толады (бос не бұрын өзі толтырылған болса ғана — мекеме жазғанын баспаймыз)
   const setTitle = (v: string) => setD((x) => { const auto = !x.titleRu || x.titleRu === ruOf(x.title); return { ...x, title: v, titleRu: auto ? ruOf(v) ?? (auto && x.titleRu ? "" : x.titleRu) : x.titleRu }; });
@@ -80,22 +73,23 @@ export function VOfferWizard() {
     if (!me || busy) return;
     if (publish && status === "draft" && !accepted && !(await kv.get("medeo_offer_terms"))) { setTerms(true); return; }
     setBusy(true); haptic.medium();
-    const body = { ...d, titleRu: d.titleRu.trim() || undefined, category: d.category || undefined, publish };
+    const body = { ...d, titleRu: d.titleRu.trim() || undefined, aboutRu: d.aboutRu.trim() || undefined, category: d.category || undefined, publish };
     try {
       const st = id ? (await api<{ status: string }>(`/v1/venue/${me.venue.id}/offers/${id}`, { method: "PUT", body: JSON.stringify(body) })).status
         : (await api<{ offer: { status: string } }>(`/v1/venue/${me.venue.id}/offers`, { method: "POST", body: JSON.stringify(body) })).offer.status;
       haptic.success();
       // «Ұсыныс тексеруде» — тек Medeo тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
-    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : "Сақталмады. Қайталап көріңіз."); }
+    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
   }, [me, busy, d, id, status, go]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const next = useCallback(() => {
-    // Қазақша атау жазылмаса — орысшасы қолданылады (орыс тілді мекеме үшін); орысша атау міндетті
-    if (step === 1 && d.title.trim().length < 2 && d.titleRu.trim().length >= 2) { up({ title: d.titleRu.trim() }); }
-    else if (step === 1 && d.title.trim().length < 2) { haptic.error(); return nativeAlert("Ұсыныс атауын жазыңыз."); }
+    // Атау да, сипаттама да екі тілде міндетті (Патша, 2026-11-18): әр клиент өз тілінде оқиды, бір тіл екіншісін алмастырмайды
+    if (step === 1 && d.title.trim().length < 2) { haptic.error(); return nativeAlert("Атауын қазақша жазыңыз."); }
     if (step === 1 && d.titleRu.trim().length < 2) { haptic.error(); return nativeAlert("Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді."); }
+    if (step === 1 && d.about.trim() && !d.aboutRu.trim()) { haptic.error(); return nativeAlert("Сипаттаманы орысша да жазыңыз."); }
+    if (step === 1 && d.aboutRu.trim() && !d.about.trim()) { haptic.error(); return nativeAlert("Сипаттаманы қазақша да жазыңыз."); }
     if (step === 2 && low && !locked) { haptic.error(); return nativeAlert(`Жеңілдік 10%-дан аз: ${low.units} бірлік. Бағаны азайтыңыз не қалыпты бағаны тексеріңіз.`); }
     haptic.tap(); setStep((x) => Math.min(4, x + 1));
   }, [step, d, low, locked]);
@@ -103,7 +97,7 @@ export function VOfferWizard() {
 
   if (!me) return <VPage back><Sk h={200} /></VPage>;
   if (terms) return <OfferTerms onBack={() => setTerms(false)} onAccept={() => { kv.set("medeo_offer_terms", "1"); setTerms(false); void save(true, true); }} />;
-  if (editAbout) return <AboutEditor value={d.about} onDone={(v) => { up({ about: v }); setEditAbout(false); }} />;
+  if (editAbout) return <AboutEditor ru={editAbout === "ru"} value={editAbout === "ru" ? d.aboutRu : d.about} onDone={(v) => { up(editAbout === "ru" ? { aboutRu: v } : { about: v }); setEditAbout(false); }} />;
   const label = ["Негізгі", "Көлем және баға", "Мерзім және ережелер", "Алдын ала қарау"][step - 1];
   const branches = me.branches;
   return (
@@ -128,9 +122,14 @@ export function VOfferWizard() {
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
           {cats[me.venue.kind].map((c) => <button key={c} className={`${s.chip} ${d.category === c ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ category: c }); }}>{__t(c)}</button>)}
         </div>
+        {/* Сипаттама екі тілде (Патша, 2026-11-18): клиент өз тілінде оқиды */}
         <div className={s.card} style={{ padding: "12px 16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span className={`t-cap1 ${s.muted}`}>Сипаттама</span><button className={s.link} onClick={() => setEditAbout(true)}>Өңдеу</button></div>
-          {d.about ? <Rich text={d.about} /> : <button className={s.muted} style={{ textAlign: "left" }} onClick={() => setEditAbout(true)}>Пакетке не кіреді, қалай беріледі — қысқаша жазыңыз</button>}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span className={`t-cap1 ${s.muted}`}>Сипаттама (қазақша)</span><button className={s.link} onClick={() => setEditAbout("kk")}>Өңдеу</button></div>
+          {d.about ? <Rich text={d.about} /> : <button className={s.muted} style={{ textAlign: "left" }} onClick={() => setEditAbout("kk")}>Пакетке не кіреді, қалай беріледі — қысқаша жазыңыз</button>}
+        </div>
+        <div className={s.card} style={{ padding: "12px 16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span className={`t-cap1 ${s.muted}`}>Сипаттама (орысша)</span><button className={s.link} onClick={() => setEditAbout("ru")}>Өңдеу</button></div>
+          {d.aboutRu ? <Rich text={d.aboutRu} /> : <button className={s.muted} style={{ textAlign: "left" }} onClick={() => setEditAbout("ru")}>Сол сипаттаманы орысша жазыңыз</button>}
         </div>
         {d.photos[0] ? (
           <div className={s.card} style={{ padding: 8 }}>
@@ -187,9 +186,15 @@ export function VOfferWizard() {
             <div key={k} className={s.row}>
               <Tile e={e} size={36} />
               <span className={s.rowText}><span className={s.rowTitle}>{t}</span><span className={s.rowSub}>{sub}</span></span>
-              <Switch on={d.rules[k]} onChange={(v) => up({ rules: { ...d.rules, [k]: v } })} />
+              <Switch on={Boolean(d.rules[k])} onChange={(v) => up({ rules: { ...d.rules, [k]: v, ...(k === "preorder" && !v ? { planOnly: false } : {}) } })} />
             </div>
           ))}
+          {/* «Тек жоспар бойынша» (Патша, 2026-11-18): клиент әр қолдануды күн мен уақытқа алдын ала жоспарлайды; QR мен «қазір» тапсырыс жабық */}
+          <div className={s.row}>
+            <Tile e="v:clock" size={36} />
+            <span className={s.rowText}><span className={s.rowTitle}>Тек жоспар бойынша</span><span className={s.rowSub} style={{ whiteSpace: "normal" }}>Клиент әр келуін күн мен уақытқа алдын ала жоспарлайды. Кассада QR-мен және «қазір» тапсырыспен қолданылмайды.</span></span>
+            <Switch on={Boolean(d.rules.planOnly)} onChange={(v) => up({ rules: { ...d.rules, planOnly: v, ...(v ? { preorder: true } : {}) } })} />
+          </div>
         </div>
         <h2 className={s.blueHead}>Қай филиалдарда</h2>
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
@@ -218,7 +223,7 @@ export function VOfferWizard() {
         </div>
         <h2 className={s.blueHead}>Тексеру тізімі</h2>
         <div className={s.card}>
-          <Check ok={d.title.length > 1 && Boolean(d.about) && Boolean(d.photos[0])} t="Атауы, сипаттама, фото" sub={!d.about ? "Сипаттама жазылмаған" : !d.photos[0] ? "Фото қосылмаған" : undefined} />
+          <Check ok={d.title.length > 1 && d.titleRu.length > 1 && Boolean(d.about) && Boolean(d.aboutRu) && Boolean(d.photos[0])} t="Атауы, сипаттама, фото" sub={!d.about ? "Сипаттама жазылмаған" : !d.aboutRu ? "Орысша сипаттама жазылмаған" : !d.photos[0] ? "Фото қосылмаған" : undefined} />
           <Check ok={!low} t="Көлем мен бағалар" sub={low ? "Жеңілдік 10%-дан аз" : undefined} />
           <Check ok t="Мерзім және ережелер" />
           {d.rules.preorder && <Check warn t="Алдын ала тапсырыс" sub="Тапсырыстар «Мәзір → Алдын ала тапсырыстар» бөлімінде" tag="Ескерту" />}
@@ -268,7 +273,7 @@ function SizeSheet({ size, reg, canDelete, onClose, onSave, onDelete }: { size: 
 }
 
 /** Figma «Сипаттама» (14018:8116): құралдар жолағы — жасыл (артықшылық), көк (маңызды), ақпарат блогы, тізім; 500 таңба */
-function AboutEditor({ value, onDone }: { value: string; onDone: (v: string) => void }) {
+function AboutEditor({ value, onDone, ru }: { value: string; onDone: (v: string) => void; ru?: boolean }) {
   const [v, setV] = useState(value);
   const [el, setEl] = useState<HTMLTextAreaElement | null>(null);
   const wrap = (a: string, b = a) => {
@@ -279,7 +284,7 @@ function AboutEditor({ value, onDone }: { value: string; onDone: (v: string) => 
   const line = (p: string) => { if (!el) return; const x = el.selectionStart; const st = v.lastIndexOf("\n", x - 1) + 1; setV(v.slice(0, st) + (v.startsWith(p, st) ? v.slice(st + p.length) : p + v.slice(st))); haptic.select(); };
   const tool = (key: string, label: ReactNode, on: () => void) => <button key={key} onClick={on} style={{ width: 44, height: 40, borderRadius: 10, background: "var(--surface-white)", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 17 }}>{label}</button>;
   return (
-    <VPage title="Сипаттама" back>
+    <VPage title={ru ? "Сипаттама (орысша)" : "Сипаттама (қазақша)"} back>
       <div style={{ display: "flex", gap: 8 }}>
         {tool("g", <i style={{ width: 18, height: 18, borderRadius: 9, background: "#31d158" }} />, () => wrap("*"))}
         {tool("b", <i style={{ width: 18, height: 18, borderRadius: 9, background: "#229af0" }} />, () => wrap("_"))}
@@ -287,7 +292,7 @@ function AboutEditor({ value, onDone }: { value: string; onDone: (v: string) => 
         {tool("l", "☰", () => line("• "))}
       </div>
       <div className={s.card} style={{ padding: "12px 16px" }}>
-        <textarea ref={setEl} value={v} maxLength={500} rows={5} onChange={(e) => setV(e.target.value)} placeholder="Лаваш, тауық еті және фирмалық соус…"
+        <textarea ref={setEl} value={v} maxLength={500} rows={5} onChange={(e) => setV(e.target.value)} placeholder={ru ? kk("Лаваш, курица и фирменный соус…") : "Лаваш, тауық еті және фирмалық соус…"} lang={ru ? "ru" : "kk"}
           style={{ width: "100%", border: 0, outline: 0, resize: "none", background: "none", font: "inherit", fontSize: 17, lineHeight: "24px", color: "var(--text-strong)" }} />
         <p className={`t-cap1 ${s.muted}`} style={{ textAlign: "right" }}>{v.length} / 500</p>
       </div>
