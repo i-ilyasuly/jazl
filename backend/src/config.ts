@@ -30,6 +30,8 @@ const Env = z.object({
   PUBLIC_URL: z.string().url().optional(),
   MINIAPP_BOT_USERNAME: z.string().default("Mmedeo_bot"),
   /** /support батырмасы апаратын жеке чат (Telegram username, @-сыз). Жоқ болса — мини апптағы «Мәселе туралы жазу» беті */
+  /** Пакет картасы (Bot API 10.4 HTML widget) клиенттің жеке чатында: 1 — қосулы, 0 — өшірулі */
+  PACK_CARDS: z.enum(["0", "1"]).default("1"),
   SUPPORT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{4,32}$/).optional(),
   DB_SSL: z.enum(["require", "disable"]).default("require"),
   /** Суреттер бакеті (Google Cloud Storage, жария оқу). Жоқ болса — MEDIA_DIR (жергілікті) не сурет жүктеу өшірулі */

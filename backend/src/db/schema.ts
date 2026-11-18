@@ -165,6 +165,9 @@ export const packs = app.table("packs", {
   autoRenewAt: timestamp("auto_renew_at", { withTimezone: true }),
   /** Автожаңарту жасаған жаңа пакет (екінші рет жаңармауы үшін) */
   renewedTo: uuid("renewed_to"),
+  /** Пакет картасы — клиенттің жеке чатындағы виджет (0024): хабарлама ID (-1 — жіберу мүмкін болмады) және соңғы күйі */
+  widgetMsgId: integer("widget_msg_id"),
+  widgetState: text("widget_state"),
   createdAt: created(),
 }, (t) => [index("packs_user").on(t.userId)]);
 

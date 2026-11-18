@@ -14,6 +14,7 @@ import { branches, gifts, offers, packEvents, packs, paymentCards, payments, rec
 import { hostedProviders, paymentProvider, providerByName, type CardInfo, type PaymentProvider } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
 import { leftValue } from "../value.js";
+import { onPackChanged } from "../bot/packCard.js";
 import { getSettings } from "../settings.js";
 import { offPeakPrice, type OffPeakT } from "../offpeak.js";
 
@@ -401,5 +402,6 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
       if (i === 0) firstReceipt = rc.id;
     }
     return { packId: ids[0], receiptId: firstReceipt, gift: gifts_[0] ?? null, gifts: gifts_, carried };
-  }).catch((e) => { if (e instanceof PurchaseError) return { error: e.code }; throw e; });
+  }).then((out) => { if (!("error" in out)) void onPackChanged(out.packId); return out; }) // пакет картасы (сыйлық пакеті gifted — карта қабылданғанда)
+    .catch((e) => { if (e instanceof PurchaseError) return { error: e.code }; throw e; });
 }

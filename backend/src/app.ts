@@ -1,4 +1,6 @@
 // HTTP API (Hono). Маршруттар: /health — тексеру; /v1/* — тек дұрыс Telegram initData-мен.
+import { packCards, setPackCards } from "./bot/packCard.js";
+import { tgApi, type TgCall } from "./bot/api.js";
 import { botRoutes } from "./bot/handler.js";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -27,8 +29,11 @@ import { makeNotifier, noopSender, telegramSender, type Sender } from "./notify.
 type User = typeof users.$inferSelect;
 export type Env = { Variables: { user: User; auth: { authDate: number; startParam?: string } } };
 
-export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
+export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: TgCall } = {}) {
   const app = new Hono<Env>();
+  // Пакет картасы (Bot API 10.4 виджеті): тестте — тек тест өз жасанды Bot API-ін берсе
+  const cards = opts.botCall ? packCards(cfg, db, opts.botCall) : cfg.NODE_ENV === "test" ? null : packCards(cfg, db, tgApi(cfg));
+  setPackCards(cards);
   // Бот хабарламалары: тестте — ештеңе жібермейді (не тест өз жинағышын береді)
   const notify = makeNotifier(db, opts.send ?? (cfg.NODE_ENV === "test" ? noopSender : telegramSender(cfg)), { adminIds: cfg.ADMIN_IDS, adminUrl: cfg.ADMIN_WEB_URL, feePct: cfg.MEDEO_FEE_PCT });
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
@@ -62,8 +67,9 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
     const sent = await notify.tick();
     await refreshVenueScores(db, cfg, notify).catch((e) => console.error("venueScore", e)); // сенімділік, комиссия деңгейі
     const renewed = await autoRenewTick(db, cfg, notify).catch((e) => { console.error("autoRenew", e); return 0; }); // автожаңарту
+    const cardsDone = await cards?.sweep().catch((e) => { console.error("packCards", e); return null; }); // пакет карталары: жаңалары және өзгерген күйлер
     await setSetting(db, "lastTick", new Date().toISOString()).catch(() => null);
-    return c.json({ ok: true, sent, renewed });
+    return c.json({ ok: true, sent, renewed, cards: cardsDone ?? null });
   });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db));
