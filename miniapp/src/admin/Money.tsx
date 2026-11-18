@@ -65,7 +65,8 @@ export function ARefunds() {
   const [d] = useCached<{ refunds: { id: string; units: number; at: string; customer: string; title: string; venue: string; amount: number; why: string; platform: boolean }[] }>("a:refunds", () => A("/refunds"));
   return (
     <VPage title="Қайтарулар" back>
-      <Note tone="warn">Қазір тек бірлік қайтарылады: ол клиенттің пакетіне оралады, сомасы мекемеден ұсталады. Ақшалай қайтару әдепкіде өшірулі.</Note>
+      <FailedRefunds />
+      <Note>Шағым бойынша бірлік клиенттің пакетіне оралады, сомасы мекемеден ұсталады. Қолданылмаған пакетті клиент 14 күн ішінде қайтарса — карта бөлігі картасына провайдер арқылы, бонус бөлігі Medeo бонусына оралады.</Note>
       {!d ? <Sk h={200} /> : d.refunds.length === 0 ? <div className={v.result}><VSticker name="love" size={96} /><p className={v.stateText}>Қайтару болған жоқ.</p></div>
         : <div className={v.card}>{d.refunds.map((x) => (
           <div key={x.id} className={v.row} style={{ minHeight: 64, alignItems: "flex-start", paddingTop: 12, paddingBottom: 12 }}>
@@ -74,8 +75,32 @@ export function ARefunds() {
             <span className={s.right}><b>−{money(x.amount)}</b><span>{x.platform ? "платформадан" : "мекемеден"}</span></span>
           </div>
         ))}</div>}
-      <div className={v.card}><div className={v.row}><Tile e="v:pin" size={36} /><span className={v.rowText}><span className={v.rowTitle}>Ақшалай қайтару</span><span className={v.rowSub}>Заңгермен нақтыланғанша өшірулі</span></span><Switch on={false} onChange={() => nativeAlert("Ақшалай қайтару заңгермен нақтыланғанша өшірулі.")} /></div></div>
     </VPage>
+  );
+}
+
+/** Провайдер қабылдамаған ақшалай қайтарулар (2026-11-18): клиент ақшасын әлі алмаған — «Қайта жіберу» */
+function FailedRefunds() {
+  const [d, , reload] = useCached<{ refunds: { id: string; amount: number; reason: string | null; at: string | null; customer: string }[] }>("a:refunds-failed", () => A("/refunds/failed"));
+  const [busy, setBusy] = useState("");
+  if (!d || d.refunds.length === 0) return null;
+  const retry = async (id: string) => {
+    setBusy(id); haptic.medium();
+    try { const r = await A<{ ok: boolean }>(`/payments/${id}/refund-retry`, { method: "POST" }); if (r.ok) haptic.success(); else { haptic.error(); nativeAlert("Провайдер тағы қабылдамады. Себебін тексеріңіз."); } }
+    catch { haptic.error(); nativeAlert("Провайдер тағы қабылдамады. Себебін тексеріңіз."); }
+    setBusy(""); void reload();
+  };
+  return (
+    <>
+      <Note tone="warn">{`Картаға қайтарылмаған ақша: ${d.refunds.length}. Клиент ақшасын күтіп отыр — қайта жіберіңіз.`}</Note>
+      <div className={v.card}>{d.refunds.map((x) => (
+        <div key={x.id} className={v.row} style={{ minHeight: 64 }}>
+          <Tile e="a:payfail" size={36} />
+          <span className={v.rowText}><span className={v.rowTitle}>{`${money(x.amount)} · ${x.customer}`}</span><span className={v.rowSub}>{[x.reason ?? "provider_error", x.at ? when(x.at, false) : ""].filter(Boolean).join(" · ")}</span></span>
+          <button className={`${v.chip} ${v.chipOn}`} disabled={busy === x.id} onClick={() => void retry(x.id)}>{busy === x.id ? "…" : "Қайта жіберу"}</button>
+        </div>
+      ))}</div>
+    </>
   );
 }
 

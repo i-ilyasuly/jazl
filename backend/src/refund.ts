@@ -31,12 +31,16 @@ export async function refundPack(db: Db, cfg: Config, userId: string, packId: st
     if (!p) throw new RefundError("not_found", 404);
     const gift = await one<{ id: string; status: string; from_user_id: string }>(tx, sql`select id, status, from_user_id from app.gifts where pack_id = ${p.id} for update`);
     // Кім қайтара алады
-    if (gift && gift.from_user_id === userId) {
-      if (p.status !== "gifted" || gift.status !== "sent") throw new RefundError("gift_accepted");
+    const giverWaiting = gift && gift.from_user_id === userId && gift.status === "sent";
+    if (giverWaiting) {
+      if (p.status !== "gifted") throw new RefundError("pack_" + p.status);
     } else if (p.user_id === userId) {
-      if (gift) throw new RefundError("gift_refund_giver"); // алушы қабылдаған сыйлық — тек беруші қайтара алатын еді
+      // Алушы қабылдаған сыйлық: ақша берушінің картасынан төленген — алушы қайтара алмайды.
+      // (Беруші сыйлықты болдырмаса не 7 күнде қабылданбаса — пакет берушіге оралады, сонда ол өзі қайтара алады.)
+      if (gift && gift.status === "accepted" && gift.from_user_id !== userId) throw new RefundError("gift_refund_giver");
       if (p.status !== "active") throw new RefundError("pack_" + p.status);
-    } else throw new RefundError("not_found", 404);
+    } else if (gift && gift.from_user_id === userId) throw new RefundError("gift_accepted");
+    else throw new RefundError("not_found", 404);
     if (p.units_left !== p.units_total) throw new RefundError("units_used");
     if (Date.now() - new Date(p.created_at).getTime() > REFUND_DAYS * 86400_000) throw new RefundError("too_late");
 
@@ -72,7 +76,7 @@ export async function refundPack(db: Db, cfg: Config, userId: string, packId: st
     }
 
     await tx.execute(sql`update app.packs set status = 'refunded', units_left = 0, auto_renew = false where id = ${p.id}`);
-    if (gift) await tx.execute(sql`update app.gifts set status = 'cancelled' where id = ${gift.id}`);
+    if (giverWaiting) await tx.execute(sql`update app.gifts set status = 'cancelled' where id = ${gift!.id}`);
     if (pay) {
       const refundedAll = Number(pay.refunded) + cash;
       await tx.execute(sql`update app.payments set refunded = ${refundedAll}, refund_status = ${cash > 0 ? "pending" : pay.status === "refunded" ? "done" : null},

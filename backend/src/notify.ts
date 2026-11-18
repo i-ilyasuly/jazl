@@ -180,6 +180,23 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
     }),
 
     /** Medeo Басқару «Хабарлама жазу»: мекеме иесіне (иелеріне) не нақты пайдаланушыға */
+    /** Автожаңарту (Патша, 2026-11-18): жаңа пакет алынды не тоқтады (себебі) → клиентке */
+    autoRenew: (userId: string, title: string, titleRu: string | null, r: { ok: true; amount: number; packId: string } | { ok: false; why: "card" | "price" | "unavailable" | "payment" }) => safe("autoRenew", async () => {
+      const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${userId}`);
+      if (!u) return;
+      const t = head(title), tr = titleRu ?? head(title);
+      if (r.ok) { await send({ chatId: Number(u.tg), text: L(`🔁 «${t}» пакеті автоматты жаңарды: картаңыздан ${money(r.amount)} алынды. Қалған бірліктер жаңа пакетке көшті. Автожаңартуды пакет бетінде өшіруге болады.`, `🔁 Пакет «${tr}» продлён автоматически: с карты списано ${money(r.amount)}. Оставшиеся единицы перенесены в новый пакет. Автопродление можно отключить на странице пакета.`), button: { text: L("Пакетті ашу", "Открыть пакет"), start: `pk_${r.packId}` } }); return; }
+      const why = { card: { kk: "сақталған карта өшірілген", ru: "сохранённая карта удалена" }, price: { kk: "мекеме бағаны көтерген", ru: "заведение повысило цену" }, unavailable: { kk: "ұсыныс қазір сатылмайды", ru: "предложение сейчас не продаётся" }, payment: { kk: "банк төлемді өткізбеді (растау не қаражат керек)", ru: "банк не провёл платёж (нужно подтверждение или средства)" } }[r.why];
+      await send({ chatId: Number(u.tg), text: L(`⏸ «${t}» пакетінің автожаңартуы тоқтады: ${why.kk}. Ақша алынған жоқ. Қаласаңыз, пакетті қолмен қайта алыңыз.`, `⏸ Автопродление пакета «${tr}» остановлено: ${why.ru}. Деньги не списаны. При желании купите пакет заново вручную.`), button: { text: L("Қайта алу", "Купить снова"), start: "packs" } });
+    }),
+    /** Комиссия деңгейі өзгерді (рейтинг өсті не түсті) → иесіне (Патша, 2026-11-18) */
+    feeTier: (venueId: string, pct: number, prev: number, rating: number) => safe("feeTier", async () => {
+      const r = rating.toFixed(1);
+      const text = pct < prev
+        ? L(`🎉 Құттықтаймыз! Рейтингіңіз ${r} — Medeo комиссиясы ${prev}%-дан ${pct}%-ға түсті. Жаңа қолданулар осы комиссиямен есептеледі.`, `🎉 Поздравляем! Ваш рейтинг ${r} — комиссия Medeo снижена с ${prev}% до ${pct}%. Новые использования считаются по этой ставке.`)
+        : L(`ℹ️ Рейтингіңіз ${r} — комиссия ${pct}%-ға оралды. Рейтинг қайта өссе, комиссия қайта азаяды.`, `ℹ️ Ваш рейтинг ${r} — комиссия вернулась к ${pct}%. Когда рейтинг снова вырастет, комиссия снова снизится.`);
+      await sendAll(await staff(venueId, ["owner"]), { text, button: { text: L("Ашу", "Открыть"), start: "v_home" } });
+    }),
     toVenue: async (venueId: string, text: string) => { const to = await staff(venueId, ["owner"]); await sendAll(to, { text: `✉️ Medeo: ${text}`, button: { text: L("Ашу", "Открыть"), start: "v_home" } }); return to.length; },
     toUser: async (userId: string, text: string, start?: string) => {
       const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${userId}`);

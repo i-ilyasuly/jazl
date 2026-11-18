@@ -129,6 +129,10 @@ d("Ақша есебі", () => {
     const x = await pj(`/v1/packs/${g2.pack.id}/refund`, {}, 804);
     expect(x).toMatchObject({ ok: true, cash: 6000 });
     expect((await post(`/v1/gifts/${g2.gift.code}/accept`, {}, 805)).status).toBe(409);
+    // Беруші сыйлықты болдырмаса — пакет өзіне оралады, сонда өзі қайтара алады
+    const g3 = await buy({ gift: { anonymous: false } }, 804);
+    expect((await post(`/v1/gifts/${g3.gift.code}/cancel`, {}, 804)).status).toBe(200);
+    expect((await pj(`/v1/packs/${g3.pack.id}/refund`, {}, 804))).toMatchObject({ ok: true, cash: 6000 });
   });
 
   it("бағалау: қолданбай тұрып — 409; бір пакетке бір баға (қайта бағаласа ауысады)", async () => {

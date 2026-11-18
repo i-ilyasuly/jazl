@@ -13,6 +13,7 @@ import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
 import { venuePrefDefaults } from "../notify.js";
 import { feeFor, getSettings } from "../settings.js";
+import { OffPeak, offPeakPrice } from "../offpeak.js";
 import { branches, offers, packs, qrSessions, redemptions, staffInvites, users, venueStaff, venues } from "../db/schema.js";
 import { makeSessionQr } from "../qr.js";
 import { branchStatus } from "../hours.js";
@@ -68,12 +69,23 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
       canCancel: x.kind === "scan" && !x.cancelled_at && Date.now() - new Date(x.at).getTime() < CANCEL_MS };
   };
 
+  /** Комиссия деңгейі (Патша, 2026-11-18): қазіргі %, Басқару қойғаны ма, келесі деңгейге не жетпейді */
+  const feeInfo = (v: { feePct: number | null; autoFeePct: number | null; rating: number | null; reviewsCount: number }, st: { feeTiers: { rating: number; reviews: number; minus: number }[] }) => {
+    const base = cfg.MEDEO_FEE_PCT;
+    const pct = v.feePct ?? v.autoFeePct ?? base;
+    const next = v.feePct != null ? null : [...st.feeTiers].sort((a, b) => a.minus - b.minus).find((t) => base - t.minus < pct) ?? null;
+    return { pct, base, custom: v.feePct != null, tiers: st.feeTiers.map((t) => ({ rating: t.rating, reviews: t.reviews, pct: base - t.minus })),
+      next: next ? { rating: next.rating, reviews: next.reviews, pct: base - next.minus } : null };
+  };
+
   // ── 01 · Кіру ────────────────────────────────────────────────
   r.get("/venue/me", async (c) => {
     const rows = await db.select({ s: venueStaff, v: venues }).from(venueStaff).innerJoin(venues, eq(venueStaff.venueId, venues.id)).where(eq(venueStaff.userId, c.get("user").id));
+    const st = await getSettings(db);
     const out = await Promise.all(rows.map(async (x) => {
       const brs = await db.select({ id: branches.id, address: branches.address }).from(branches).where(and(eq(branches.venueId, x.v.id), eq(branches.active, true))).orderBy(asc(branches.createdAt));
-      return { venue: { id: x.v.id, slug: x.v.slug, name: x.v.name, kind: x.v.kind, city: x.v.city, status: x.v.status, statusNote: x.v.statusNote, logoUrl: x.v.logoUrl, coverUrl: x.v.coverUrl, rating: x.v.rating, reviews: x.v.reviewsCount, branchesTotal: brs.length },
+      return { venue: { id: x.v.id, slug: x.v.slug, name: x.v.name, kind: x.v.kind, city: x.v.city, status: x.v.status, statusNote: x.v.statusNote, logoUrl: x.v.logoUrl, coverUrl: x.v.coverUrl, rating: x.v.rating, reviews: x.v.reviewsCount, branchesTotal: brs.length,
+        fee: feeInfo(x.v, st), reliability: x.v.reliabilityN >= st.reliabilityMinN ? x.v.reliability : null, reliabilityN: x.v.reliabilityN },
         role: x.s.role, status: x.s.status, branchId: x.s.branchId, branches: x.s.branchId ? brs.filter((b) => b.id === x.s.branchId) : brs };
     }));
     return c.json({ ok: true, staff: out });
@@ -252,7 +264,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     sizes: z.array(Size).min(1).max(5), regularUnitPrice: z.number().int().min(50).max(1_000_000), validDays: z.number().int().min(7).max(365),
     rules: z.object({ carry: z.boolean(), extend: z.boolean(), preorder: z.boolean(), branches: z.array(z.string().uuid()).nullable(),
       /** «Тек жоспар бойынша» (Патша, 2026-11-18): клиент тек алдын ала жазылу/жоспар арқылы қолданады; QR мен «қазір» тапсырыс жабық */
-      planOnly: z.boolean().optional() }).transform((r) => (r.planOnly ? { ...r, preorder: true } : r)),
+      planOnly: z.boolean().optional(),
+      /** Бос сағат жеңілдігі (Патша, 2026-11-18): тек «Тек жоспар бойынша» ұсыныста — әйтпесе алынып тасталады */
+      offPeak: OffPeak.nullable().optional() }).transform((r) => {
+      const x = r.planOnly ? { ...r, preorder: true } : r;
+      return x.planOnly && x.offPeak ? x : { ...x, offPeak: undefined };
+    }),
     publish: z.boolean().default(false),
     photos: z.array(z.string().url().max(500)).max(5).default([]),
   }).strict();
@@ -264,6 +281,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return sizes.some((x) => x.price < Math.ceil((x.units * regular * (100 - max)) / 100)) ? max : 0;
   };
   const bigErr = (c: Context<Env>, max: number) => c.json({ ok: false, error: "big_discount", max }, 409);
+  /** Бос сағат бағасымен бірге жалпы жеңілдік offPeakMaxDiscount-тан (әдепкі 40%) аспауы керек */
+  const bigOffPeak = async (sizes: { units: number; price: number }[], regular: number, w?: { pct: number } | null) => {
+    if (!w) return 0;
+    const max = (await getSettings(db)).offPeakMaxDiscount;
+    return sizes.some((x) => offPeakPrice(x.price, w.pct) < Math.ceil((x.units * regular * (100 - max)) / 100)) ? max : 0;
+  };
   const slugOf = (t: string) => {
     const map: Record<string, string> = { а: "a", ә: "a", б: "b", в: "v", г: "g", ғ: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i", й: "i", к: "k", қ: "q", л: "l", м: "m", н: "n", ң: "n", о: "o", ө: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ұ: "u", ү: "u", ф: "f", х: "h", һ: "h", ц: "c", ч: "ch", ш: "sh", щ: "sh", ъ: "", ы: "y", і: "i", ь: "", э: "e", ю: "yu", я: "ya" };
     const base = [...t.toLowerCase()].map((ch) => map[ch] ?? ch).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "offer";
@@ -280,6 +303,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const d = b.data; const sizes = [...d.sizes].sort((a, z) => a.units - z.units);
     if (d.publish && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
     { const max = d.publish ? await bigDiscount(sizes, d.regularUnitPrice) : 0; if (max) return bigErr(c, max); }
+    { const max = d.publish ? await bigOffPeak(sizes, d.regularUnitPrice, d.rules.offPeak) : 0; if (max) return c.json({ ok: false, error: "big_off_peak", max }, 409); }
     if (d.publish && !d.titleRu) return c.json({ ok: false, error: "title_ru_required" }, 400); // клиент орысша да көреді
     if (d.publish && d.about && !d.aboutRu) return c.json({ ok: false, error: "about_ru_required" }, 400);
     const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
@@ -303,6 +327,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const keepSizes = !draft;
     if (d.publish && draft && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
     { const max = d.publish && draft ? await bigDiscount(sizes, d.regularUnitPrice) : 0; if (max) return bigErr(c, max); }
+    { const max = d.publish ? await bigOffPeak(sizes, d.regularUnitPrice, d.rules.offPeak) : 0; if (max) return c.json({ ok: false, error: "big_off_peak", max }, 409); }
     if (d.publish && draft && !(d.titleRu ?? cur.titleRu)) return c.json({ ok: false, error: "title_ru_required" }, 400);
     if (d.publish && draft && d.about && !(d.aboutRu ?? (cur.details as { aboutRu?: string } | null)?.aboutRu)) return c.json({ ok: false, error: "about_ru_required" }, 400);
     const next = d.publish && draft ? await statusAfterPublish() : cur.status;

@@ -63,6 +63,7 @@ export function feeFor(db: Db, venueId: string, def: number) {
 }
 export async function refreshFees(db: Db) {
   const x = st(db);
-  const rows = (await db.execute(sql`select id, fee_pct from app.venues where fee_pct is not null`)).rows as { id: string; fee_pct: number }[];
+  // Басқару қойған комиссия басым, әйтпесе рейтинг деңгейі (venueScore.ts), әйтпесе әдепкі
+  const rows = (await db.execute(sql`select id, coalesce(fee_pct, auto_fee_pct) as fee_pct from app.venues where fee_pct is not null or auto_fee_pct is not null`)).rows as { id: string; fee_pct: number }[];
   x.fees = new Map(rows.map((r) => [r.id, Number(r.fee_pct)])); x.feesAt = Date.now();
 }

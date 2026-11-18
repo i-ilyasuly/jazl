@@ -120,12 +120,12 @@ export function PackPage() {
           {usable && <button className={s.cell} onClick={() => { haptic.tap(); go(`/complaint/${pack.id}?why=refused`); }}><span className={`${s.rowTitle} ${s.linkText}`}>Мекеме қабылдамады ма?</span></button>}
           <button className={s.cell} onClick={() => { haptic.tap(); go("/complaint/" + pack.id); }}><span className={`${s.rowTitle} ${s.linkText}`}>Мәселе туралы жазу</span></button>
           {/* B4: бірде-бір бірлік жұмсалмаса — 14 күн ішінде ақшаны толық қайтаруға болады (сервер тексереді) */}
-          {pack.serverId && pack.left === pack.total && !pack.expired && <button className={s.cell} onClick={() => { haptic.tap(); setAskRefund(true); }}><span className={`${s.rowTitle} ${s.linkText}`}>Ақшаны қайтару</span></button>}
+          {pack.serverId && pack.left === pack.total && !pack.expired && !pack.gifted && <button className={s.cell} onClick={() => { haptic.tap(); setAskRefund(true); }}><span className={`${s.rowTitle} ${s.linkText}`}>Ақшаны қайтару</span></button>}
         </section>
       </div>
 
-      {askRefund && <Confirm title="Ақшаны қайтару?" text="Пакеттен бірде-бір бірлік жұмсалмаған — ақша толық қайтарылады, пакет жабылады." cancel="Жоқ" ok="Қайтару" danger onClose={() => setAskRefund(false)}
-        onOk={() => { setAskRefund(false); void refundPack(pack.id).then((r) => { if (r.ok) { haptic.success(); go("/packs", "fade", { replace: true }); } else { haptic.error(); setToast(r.error === "too_late" ? "14 күн өтіп кеткен — қайтару мүмкін емес" : "Қайтару мүмкін болмады"); } }); }} />}
+      {askRefund && <Confirm title="Ақшаны қайтару?" text="Пакеттен бірде-бір бірлік жұмсалмаған — ақша толық қайтарылады, пакет жабылады. Картадан төленген бөлігі картаңа, Medeo бонусымен төленген бөлігі бонусыңа оралады." cancel="Жоқ" ok="Қайтару" danger onClose={() => setAskRefund(false)}
+        onOk={() => { setAskRefund(false); void refundPack(pack.id).then((r) => { if (r.ok) { haptic.success(); go("/packs", "fade", { replace: true }); } else { haptic.error(); setToast(r.error === "too_late" ? "14 күн өтіп кеткен — қайтару мүмкін емес" : r.error === "gift_refund_giver" ? "Сыйлықты тек сыйлаған адам қайтара алады" : r.error === "units_used" ? "Пакеттен бірлік жұмсалған — қайтару мүмкін емес" : "Қайтару мүмкін болмады"); } }); }} />}
       {extending && <ExtendSheet pack={pack} onClose={() => setExtending(false)} onDone={onExtended} />}
       {rating && <RateSheet act={rating} onClose={() => setRating(null)} />}
       {toast && <div className={s.toast} role="status"><Tile e="📅" size={28} />{toast}</div>}

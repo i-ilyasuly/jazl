@@ -123,6 +123,29 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
     } catch (e) { return fail(c, e); }
   });
 
+  // ── Автожаңарту (src/autoRenew.ts): клиент өзі қосады/өшіреді; қосу үшін сақталған карта керек. Келісім уақыты жазылады. ──
+  const Renew = z.object({ on: z.boolean(), cardId: z.string().uuid().optional() }).strict();
+  r.post("/packs/:id/auto-renew", async (c) => {
+    const b = Renew.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const user = c.get("user");
+    const [p] = await db.select().from(packs).where(and(eq(packs.id, c.req.param("id")), eq(packs.userId, user.id))).limit(1);
+    if (!p) return c.json({ ok: false, error: "not_found" }, 404);
+    if (!b.data.on) {
+      await db.update(packs).set({ autoRenew: false }).where(eq(packs.id, p.id));
+      await db.insert(packEvents).values({ packId: p.id, type: "auto_renew_off", meta: {} });
+      return c.json({ ok: true, autoRenew: false });
+    }
+    if (!["active", "used", "expired"].includes(p.status) || p.renewedTo) return c.json({ ok: false, error: "pack_" + p.status }, 409);
+    if (!b.data.cardId) return c.json({ ok: false, error: "card_required" }, 400);
+    const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, b.data.cardId), eq(paymentCards.userId, user.id), isNull(paymentCards.removedAt))).limit(1);
+    if (!pc) return c.json({ ok: false, error: "card_not_found" }, 404);
+    const at = new Date();
+    await db.update(packs).set({ autoRenew: true, autoRenewCard: pc.id, autoRenewAt: at }).where(eq(packs.id, p.id));
+    await db.insert(packEvents).values({ packId: p.id, type: "auto_renew_on", meta: { cardId: pc.id, at, ua: c.req.header("user-agent") ?? null } });
+    return c.json({ ok: true, autoRenew: true, card: `${pc.brand} •• ${pc.last4}` });
+  });
+
   // ── Қайтару (толық, қолданылмаған пакет): карта бөлігі — провайдер арқылы, бонус бөлігі — бонусқа (src/refund.ts) ──
   r.post("/packs/:id/refund", async (c) => {
     try { return c.json({ ok: true, ...(await refundPack(db, cfg, c.get("user").id, c.req.param("id"))) }); }

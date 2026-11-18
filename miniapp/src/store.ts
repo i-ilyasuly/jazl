@@ -29,6 +29,14 @@ export interface Pack {
   noExtend?: boolean;
   /** Қайта алғанда бұрынғы пакеттен көшкен бірлік саны. */
   carried?: number;
+  /** Ұзарту шегінен қалған күн (сервер: жалпы 60 күн, Басқару баптауы) */
+  extendLeft?: number;
+  /** Сыйлыққа алынған пакет (алушыда): ақшаны тек сыйлаған адам қайтара алады */
+  gifted?: boolean;
+  /** Автожаңарту қосулы ма (пакет біткенде сақталған картадан сол көлем қайта алынады) */
+  autoRenew?: boolean;
+  /** Бос сағат жеңілдігімен алынған: келу уақыты тек осы терезеде */
+  offPeak?: OffPeak | null;
   history: HistoryItem[];
   /** B2: сервердегі пакет пен чек (бэкендпен сатып алынса) */
   serverId?: string;
@@ -113,7 +121,9 @@ export function buyPack(offerId: string, methodLabel = "Kaspi Pay"): string {
   return id;
 }
 
-export interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null }
+export interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null; extendLeft?: number; source?: string; autoRenew?: boolean; offPeak?: OffPeak | null }
+/** Бос сағат терезесі (сервер: offpeak.ts): days 1 — дүйсенбі … 7 — жексенбі */
+export interface OffPeak { days: number[]; from: string; to: string; pct: number }
 async function buyOnServer(localId: string, offerSlug: string, methodLabel: string) {
   if (!(window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData) return; // браузерде — тек жергілікті
   try {
@@ -134,11 +144,17 @@ export async function syncServerPacks() {
     const known = new Set(packs.map((p) => p.serverId).filter(Boolean));
     // Бұрыннан бар пакеттердің санын сервермен теңестіреміз (басқа құрылғыда не кассада өзгерсе)
     let changed = false;
-    packs = packs.map((p) => { const x = j.packs.find((y) => y.id === p.serverId); if (!x || (x.unitsLeft === p.left && x.unitsTotal === p.total)) return p; changed = true; return { ...p, left: x.unitsLeft, total: x.unitsTotal, expired: x.status === "expired" }; });
+    packs = packs.map((p) => {
+      const x = j.packs.find((y) => y.id === p.serverId);
+      if (!x || (x.unitsLeft === p.left && x.unitsTotal === p.total && x.extendLeft === p.extendLeft && Boolean(x.autoRenew) === Boolean(p.autoRenew) && (x.source === "gift") === Boolean(p.gifted))) return p;
+      changed = true;
+      return { ...p, left: x.unitsLeft, total: x.unitsTotal, expired: x.status === "expired", extendLeft: x.extendLeft, gifted: x.source === "gift", autoRenew: Boolean(x.autoRenew), offPeak: x.offPeak ?? null };
+    });
     if (changed) emit();
     const add: Pack[] = j.packs.filter((x) => !known.has(x.id)).map((x) => {
       const days = Math.max(0, Math.ceil((new Date(x.validUntil).getTime() - Date.now()) / 86400000));
       return { id: "s" + x.id.slice(0, 8), offerId: x.offerSlug, total: x.unitsTotal, left: x.unitsLeft, daysLeft: days, until: inDays(days), expired: x.status === "expired",
+        extendLeft: x.extendLeft, gifted: x.source === "gift", autoRenew: Boolean(x.autoRenew), offPeak: x.offPeak ?? null,
         serverId: x.id, receiptId: x.receipt?.id, receiptNo: x.receipt?.no, history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: "сервер", right: `${x.unitsTotal} бірлік` }] };
     });
     if (add.length) { packs = [...add, ...packs]; emit(); }
@@ -224,7 +240,7 @@ export function extendPack(packId: string, days: number, price: number, paidOnSe
   const p = getPack(packId);
   if (!p || p.noExtend) return null;
   const until = shiftUntil(p.until, days);
-  packs = packs.map((x) => x.id !== packId ? x : { ...x, until, extendedTo: until, daysLeft: x.daysLeft + days, freeExtendUsed: x.freeExtendUsed || price === 0,
+  packs = packs.map((x) => x.id !== packId ? x : { ...x, until, extendedTo: until, daysLeft: x.daysLeft + days, freeExtendUsed: x.freeExtendUsed || price === 0, extendLeft: x.extendLeft != null ? Math.max(0, x.extendLeft - days) : x.extendLeft,
     history: [{ emoji: "📅", title: "Мерзімі ұзартылды", sub: `бүгін • ${price ? fmt(price) : "тегін"}`, right: `+${days} күн` }, ...x.history] });
   emit();
   if (!paidOnServer && p.serverId && [7, 14, 30].includes(days)) void api("/v1/packs/" + p.serverId + "/extend", { method: "POST", body: JSON.stringify({ days, idempotencyKey: newKey() }) }).catch(() => undefined);
@@ -583,10 +599,14 @@ export function cancelBooking(id: string): boolean {
   return free;
 }
 
-/** B4: қолданылмаған пакетті қайтару (сервер: бірлік жұмсалмаса, 14 күн ішінде). Сәтті болса — пакет тізімнен алынады. */
-export async function refundPack(packId: string): Promise<{ ok: boolean; error?: string }> {
+/** B4: қолданылмаған пакетті қайтару (сервер: бірлік жұмсалмаса, 14 күн ішінде). Сәтті болса — пакет тізімнен алынады.
+ *  cash — картаға/Kaspi-ге қайтатын ақша, bonus — Medeo бонусына оралатын бөлігі (бонуспен төленсе). */
+export async function refundPack(packId: string): Promise<{ ok: boolean; error?: string; cash?: number; bonus?: number }> {
   const p = getPack(packId); if (!p?.serverId) return { ok: false, error: "local" };
-  try { await api(`/v1/packs/${p.serverId}/refund`, { method: "POST" }, 12000); packs = packs.filter((x) => x.id !== packId); emit(); return { ok: true }; }
+  try {
+    const r = await api<{ cash: number; bonus: number }>(`/v1/packs/${p.serverId}/refund`, { method: "POST" }, 12000);
+    packs = packs.filter((x) => x.id !== packId); emit(); return { ok: true, cash: r.cash, bonus: r.bonus };
+  }
   catch (e) { return { ok: false, error: srvError(e) }; }
 }
 

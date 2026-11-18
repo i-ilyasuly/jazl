@@ -11,7 +11,7 @@ import { useDesk } from "./Desk";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
-export interface Attention { apps: number; oldest: string | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold?: number; tickAt?: string | null }
+export interface Attention { apps: number; oldest: string | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold?: number; tickAt?: string | null; refund_failed?: number }
 interface Pulse { sales: number; salesGrowth: number | null; fee: number; feeGrowth: number | null; packs: number; packsDelta: number; units: number; unitsGrowth: number | null; clients: number; clientsDelta: number;
   venuesActive: number; venuesTotal: number; venuesPaused: number; week: { d: string; sales: number }[]; weekTotal: number; feed: { kind: string; at: string; who: string; title: string; venue: string; amount: number; units: number }[] }
 const PERIODS = [["today", "Бүгін"], ["7", "7 күн"], ["30", "30 күн"], ["all", "Барлығы"]] as const;
@@ -27,6 +27,8 @@ export function attentionRows(a: Attention) {
         ? [{ e: "a:maint", t: "Жоспарлы тапсырма тоқтап тұр", sub: a.tickAt ? `Соңғы рет ${ago(a.tickAt)} бұрын жұмыс істеді: бонус пен ескертулер жіберілмейді` : "Әлі бір рет те іске қосылмаған: бонус пен ескертулер жіберілмейді", n: 1, tone: "red" as const, to: "/a/rules" }] : []),
       { e: "a:complaints", t: "Ашық шағымдар", sub: a.due_today ? `${a.due_today} шағымның мерзімі бүгін бітеді` : "Мерзімі әлі бар", n: a.complaints, tone: "red" as const, to: "/a/complaints" },
       { e: "a:payfail", t: "Сәтсіз төлемдер", sub: "Соңғы 24 сағатта", n: a.failed, tone: "orange" as const, to: "/a/money" },
+      // Провайдер ақшаны қайтаруды қабылдамады — клиент ақшасын күтіп отыр
+      ...(a.refund_failed ? [{ e: "a:refunds", t: "Картаға қайтарылмаған ақша", sub: "Провайдер қабылдамады — «Қайта жіберу»", n: a.refund_failed, tone: "red" as const, to: "/a/money/refunds" }] : []),
     ],
     waiting: [
       { e: "a:apps", t: "Мекеме өтінімдері", sub: a.oldest ? `Ең ескісі ${ago(a.oldest)} бұрын түсті` : "Жаңа өтінім жоқ", n: a.apps, to: "/a/apps" },

@@ -18,6 +18,8 @@ import { complaintRoutes } from "./routes/complaints.js";
 import { paymentRoutes, paymentWebhookRoutes } from "./routes/payments.js";
 import { adminFileRoutes, adminRoutes, adminSig, adminWebRoutes } from "./routes/admin.js";
 import { getSettings, refreshFees, setSetting } from "./settings.js";
+import { refreshVenueScores } from "./venueScore.js";
+import { autoRenewTick } from "./autoRenew.js";
 import { localMediaRoutes } from "./media.js";
 import { makeNotifier, noopSender, telegramSender, type Sender } from "./notify.js";
 
@@ -56,8 +58,10 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   app.post("/cron/tick", async (c) => {
     if (!cfg.CRON_KEY || c.req.header("X-Cron-Key") !== cfg.CRON_KEY) return c.json({ ok: false, error: "not_found" }, 404);
     const sent = await notify.tick();
+    await refreshVenueScores(db, cfg, notify).catch((e) => console.error("venueScore", e)); // сенімділік, комиссия деңгейі
+    const renewed = await autoRenewTick(db, cfg, notify).catch((e) => { console.error("autoRenew", e); return 0; }); // автожаңарту
     await setSetting(db, "lastTick", new Date().toISOString()).catch(() => null);
-    return c.json({ ok: true, sent });
+    return c.json({ ok: true, sent, renewed });
   });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db));

@@ -30,7 +30,7 @@ export type ChargeResult =
   /** Өтпеді: себебі клиентке түсінікті мәтінге айналдырылады */
   | { status: "failed"; externalId?: string; reason: FailReason };
 
-export type FailReason = "declined" | "insufficient_funds" | "expired_card" | "3ds_failed" | "limit" | "fraud" | "provider_error";
+export type FailReason = "3ds_required" | "declined" | "insufficient_funds" | "expired_card" | "3ds_failed" | "limit" | "fraud" | "provider_error";
 
 /** Вебхуктан алынған нәтиже: externalId не paymentId арқылы төлемді табамыз */
 export interface WebhookEvent { paymentId?: string; externalId: string; status: "paid" | "failed"; reason?: FailReason; card?: CardInfo }
