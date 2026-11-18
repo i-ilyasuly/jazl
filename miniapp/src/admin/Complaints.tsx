@@ -69,12 +69,12 @@ export function AComplaint() {
     <VPage title={`Шағым №${c.no}`} back>
       <div className={v.card}><button className={v.row} onClick={() => go(`/a/packs/${c.packId}`)}>
         <Person name={c.customer} size={40} />
-        <span className={v.rowText}><span className={v.rowTitle}>{c.customer}</span><span className={v.rowSub}>Клиент · {c.clientPacks} пакет алған · {c.firstComplaint ? "алғашқы шағымы" : "бұрын да шағымданған"}</span></span><i className={v.arrow} />
+        <span className={v.rowText}><span className={v.rowTitle}>{c.customer}</span><span className={v.rowSub}>{`Клиент · ${c.clientPacks} пакет алған · ${c.firstComplaint ? "алғашқы шағымы" : "бұрын да шағымданған"}`}</span></span><i className={v.arrow} />
       </button></div>
       <p className={s.quoteYellow}>«{c.text}»</p>
       <h2 className={v.blueHead}>Дерек</h2>
       <div className={v.card} style={{ padding: "4px 16px" }}>
-        {kv("Мекеме", c.venue)}{kv("Ұсыныс", c.offer)}{kv("Қолдану", c.usedAt ? when(c.usedAt) : "—")}{kv("Кассир", c.cashier ?? "—")}{kv("Шегерілгені", <span className={s.red}>{c.units} бірлік · {money(c.amount)}</span>)}{kv("Түсті", when(c.at))}
+        {kv("Мекеме", c.venue)}{kv("Ұсыныс", c.offer)}{kv("Қолданылған уақыты", c.usedAt ? when(c.usedAt) : "—")}{kv("Кассир", c.cashier ?? "—")}{kv("Шегерілгені", <span className={s.red}>{`${c.units} бірлік · ${money(c.amount)}`}</span>)}{kv("Түсті", when(c.at))}
       </div>
       {c.reply && <><h2 className={v.blueHead}>{c.byAdmin ? "Medeo шешімі" : "Мекеме жауабы"}</h2><p className={s.quoteBlue}>«{c.reply}»</p></>}
       {!open && <Note tone="ok">{c.status === "refunded" ? "Шешілді: бірлік клиентке қайтарылды." : "Шешілді: шағым жабылды."}</Note>}

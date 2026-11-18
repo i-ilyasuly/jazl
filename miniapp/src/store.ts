@@ -1,5 +1,6 @@
 // Қосымшаның жергілікті күйі (бэкендсіз): сатып алынған пакеттер және қолдану тарихы.
 // Бэкенд қосылғанда осы файлдың ішкі жағы API шақыруларына ауысады, экрандар өзгермейді.
+import { applyLangPref, getLang, getPref } from "./i18n";
 import { loadBonus, takeBonusNext } from "./pay/bonus";
 import { kv } from "./telegram";
 import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
@@ -288,7 +289,7 @@ let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true,
 export const useSettings = () => useSyncExternalStore(subscribe, () => settings);
 export const getSettings = () => settings;
 export function setSettings(patch: Partial<Settings>) { settings = { ...settings, ...patch }; emit(); kv.set("medeo_settings", JSON.stringify(settings)); }
-void kv.get("medeo_settings").then((v) => { if (v) { try { settings = { ...settings, ...JSON.parse(v) }; emit(); } catch { /* бұзылған мән */ } } });
+void kv.get("medeo_settings").then((v) => { if (v) { try { settings = { ...settings, ...JSON.parse(v) }; emit(); if (settings.lang !== getPref()) applyLangPref(settings.lang); } catch { /* бұзылған мән */ } } });
 
 // ── Таңдаулы ────────────────────────────────────────────────────────────────
 let favs: string[] = ["doner", "burger", "cappuccino"];
@@ -587,4 +588,12 @@ export async function refundPack(packId: string): Promise<{ ok: boolean; error?:
   const p = getPack(packId); if (!p?.serverId) return { ok: false, error: "local" };
   try { await api(`/v1/packs/${p.serverId}/refund`, { method: "POST" }, 12000); packs = packs.filter((x) => x.id !== packId); emit(); return { ok: true }; }
   catch (e) { return { ok: false, error: srvError(e) }; }
+}
+
+/** Бот хабарламалары клиент таңдаған тілде келуі үшін — серверге тілді айтамыз (сессияда бір рет, өзгерсе ғана) */
+export function syncServerLang() {
+  if (!(window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData && !(import.meta.env.DEV && localStorage.getItem("medeo_dev_init"))) return;
+  const l = getLang();
+  try { if (localStorage.getItem("medeo_lang_srv") === l) return; } catch { /* жеке терезе */ }
+  void api("/v1/me", { method: "PATCH", body: JSON.stringify({ lang: l }) }).then(() => { try { localStorage.setItem("medeo_lang_srv", l); } catch { /* жеке терезе */ } }).catch(() => undefined);
 }

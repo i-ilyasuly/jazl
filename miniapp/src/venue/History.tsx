@@ -38,7 +38,7 @@ export function VHistory() {
         {me && me.branches.length > 1 && <button className={`${s.chip} ${branch ? s.chipOn : ""}`} onClick={() => void pickBranch()}>{branch ? me.branches.find((b) => b.id === branch)?.address.split(",")[0] : "Филиал"} ▾</button>}
       </div>
       <div className={s.card} style={{ background: "var(--hl-blue-bg)", display: "grid", gridTemplateColumns: "1fr 1.4fr 0.8fr", padding: "12px 16px", gap: 4 }}>
-        <span className={s.stat} style={{ padding: 0, background: "none" }}><span className={s.statLabel}>Қолдану</span><b className={s.lead} style={{ fontSize: 20 }}>{data ? data.summary.count : "–"}</b></span>
+        <span className={s.stat} style={{ padding: 0, background: "none" }}><span className={s.statLabel}>Қолданулар</span><b className={s.lead} style={{ fontSize: 20 }}>{data ? data.summary.count : "–"}</b></span>
         <span className={s.stat} style={{ padding: 0, background: "none" }}><span className={s.statLabel}>Түскен сома</span><b className={s.lead} style={{ fontSize: 20 }}>{data ? money(data.summary.amount) : "–"}</b></span>
         <span className={s.stat} style={{ padding: 0, background: "none", textAlign: "right" }}><span className={s.statLabel}>Қайтару</span><b className={s.lead} style={{ fontSize: 20 }}>{data ? data.summary.refunds : "–"}</b></span>
       </div>
@@ -85,7 +85,7 @@ export function VRefunded() {
   const { n = "1" } = useParams();
   return (
     <VPage>
-      <div className={s.state} style={{ top: "calc(362px + var(--top-shift))" }}><VSticker name="party" size={120} /><h2 className={s.stateTitle}>Қайтарылды</h2><p className={s.stateText}>Клиентке {n} дана қайтарылды. Түзету «Есеп» бөлімінде көрінеді.</p></div>
+      <div className={s.state} style={{ top: "calc(362px + var(--top-shift))" }}><VSticker name="party" size={120} /><h2 className={s.stateTitle}>Қайтарылды</h2><p className={s.stateText}>{`Клиентке ${n} дана қайтарылды. Түзету «Есеп» бөлімінде көрінеді.`}</p></div>
       <Buttons main={{ text: "Түсінікті", onClick: () => go(-1, "back") }} />
     </VPage>
   );
@@ -119,7 +119,7 @@ export function VOrders() {
               <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                 <b className={s.lead} style={{ fontSize: 18 }}>№{o.no} • {o.title.split(" · ")[0]}</b><span className={`${s.tag} ${s[c]}`}>{t}</span>
               </span>
-              <span className={s.rowSub}>{o.type === "plan" ? (isToday(at) ? "" : dayMonth(at) + ", ") + hm(at) : "Қазір " + hm(o.createdAt)} • {o.branch} • код {o.code}{o.courier ? " • курьер" : ""}</span>
+              <span className={s.rowSub}>{`${o.type === "plan" ? (isToday(at) ? "" : dayMonth(at) + ", ") + hm(at) : "Қазір " + hm(o.createdAt)} • ${o.branch} • код ${o.code}${o.courier ? " • курьер" : ""}`}</span>
             </button>
           );
         })}
@@ -173,7 +173,7 @@ export function VOrder() {
         ))}
       </div>
       <div className={s.card}>
-        <div className={s.kv}><span>Тауар</span><b>{o.title.split(" · ")[0]} • 1 бірлік</b></div>
+        <div className={s.kv}><span>Тауар</span><b>{`${o.title.split(" · ")[0]} • 1 бірлік`}</b></div>
         <div className={s.kv}><span>Алу уақыты</span><b>{o.type === "plan" ? (isToday(at) ? "" : dayMonth(at) + ", ") + hm(at) : "Қазір"}{o.courier ? " • курьер" : ""}</b></div>
         <div className={s.kv}><span>Филиал</span><b>{o.branch}</b></div>
         <div className={s.kv}><span>Код (клиент айтады)</span><b style={{ color: "var(--link)" }}>{o.code}</b></div>

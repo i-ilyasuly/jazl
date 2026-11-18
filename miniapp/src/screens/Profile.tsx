@@ -1,4 +1,5 @@
 // Figma: «Профиль / Негізгі (1)» және «(2)» (13886:35519, 13886:35845)
+import { getLang } from "../i18n";
 import { useCallback, useState } from "react";
 import { useMock } from "../mocks/useMock";
 import { useSettings, useUnread } from "../store";
@@ -76,7 +77,7 @@ export function Profile() {
   const bonus = useBonus();
   const withBonus = groups.map((g, i) => (i !== 1 || !hasServer() ? g : { ...g, rows: [...g.rows.slice(0, 2), { icon: "", tile: "💰", title: "Medeo бонусы", sub: "Пайдаланылмаған бірліктен қайтқан ақша", value: bonus ? fmt(bonus.balance) : undefined, to: "/profile/bonus" }, ...g.rows.slice(2)] }));
   const all: typeof groups = top.length ? [{ rows: top }, ...withBonus] : withBonus;
-  const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (st.lang === "ru" ? "Русский" : "Қазақша") : r.sub);
+  const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (getLang() === "ru" ? "Русский" : "Қазақша") : r.sub);
   const [how, setHow] = useState(false);
   const [ask, setAsk] = useState(false);
   // Figma «Сұрақ қою / Ескерту диалогы» 13886:39249: алдымен ЖҚС ұсынылады

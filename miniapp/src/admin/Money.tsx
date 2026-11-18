@@ -51,7 +51,7 @@ export function ASettlements() {
       {!d ? <Sk h={220} /> : <div className={v.card}>{d.venues.map((x) => (
         <div key={x.id} className={v.row} style={{ minHeight: 62 }}>
           <Person name={x.name} size={40} />
-          <span className={v.rowText}><span className={v.rowTitle}>{x.name}</span><span className={v.rowSub}>{x.status === "paused" ? "Тоқтатылған · " : ""}{x.uses} қолдану · комиссия {x.fee}%</span></span>
+          <span className={v.rowText}><span className={v.rowTitle}>{x.name}</span><span className={v.rowSub}>{`${x.status === "paused" ? "Тоқтатылған · " : ""}${x.uses} қолдану · комиссия ${x.fee}%`}</span></span>
           <span className={s.right}><b>{money(x.amount)}</b>{x.amount > 0 && <span>өтті</span>}</span>
         </div>
       ))}</div>}
@@ -70,7 +70,7 @@ export function ARefunds() {
         : <div className={v.card}>{d.refunds.map((x) => (
           <div key={x.id} className={v.row} style={{ minHeight: 64, alignItems: "flex-start", paddingTop: 12, paddingBottom: 12 }}>
             <Tile e="a:refunds" size={36} />
-            <span className={v.rowText}><span className={v.rowTitle}>{x.units} бірлік · {x.title}</span><span className={v.rowSub} style={{ whiteSpace: "normal" }}>{x.customer} · {x.venue} · {when(x.at, false)} · {x.why}</span></span>
+            <span className={v.rowText}><span className={v.rowTitle}>{`${x.units} бірлік · ${x.title}`}</span><span className={v.rowSub} style={{ whiteSpace: "normal" }}>{x.customer} · {x.venue} · {when(x.at, false)} · {x.why}</span></span>
             <span className={s.right}><b>−{money(x.amount)}</b><span>{x.platform ? "платформадан" : "мекемеден"}</span></span>
           </div>
         ))}</div>}

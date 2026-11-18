@@ -71,7 +71,7 @@ function AWelcome({ name }: { name: string }) {
     <VPage>
       <div className={v.state} style={{ top: "calc(300px + var(--top-shift))" }}>
         <VSticker name="hello" size={120} />
-        <h2 className={v.stateTitle}>Қош келдіңіз, {name}</h2>
+        <h2 className={v.stateTitle}>{`Қош келдіңіз, ${name}`}</h2>
         <p className={v.stateText}>Medeo Басқару тек рұқсат тізіміндегі Telegram аккаунттарына ашылады. Аккаунтыңыз расталды.</p>
       </div>
       <Buttons main={{ text: "Жалғастыру", onClick: () => go("/a/pin", "fade") }} />

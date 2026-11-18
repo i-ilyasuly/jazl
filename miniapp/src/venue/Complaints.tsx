@@ -53,9 +53,9 @@ export function VComplaint() {
   const hoursLeft = Math.max(0, Math.round((new Date(c.dueAt).getTime() - Date.now()) / 3600_000));
   return (
     <VPage title="Шағым" back>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span className={`${s.tag} ${s[k]}`}>{t}</span>{c.status === "new" && <span className={`t-cap1 ${s.muted}`}>{hoursLeft} сағат ішінде жауап бер</span>}</div>
-      <div className={s.card}><div className={s.row}><Person name={c.customer} size={40} /><span className={s.rowText}><span className={s.rowTitle}>{c.customer}</span><span className={s.rowSub}>{c.offer} • {c.usedAt ? when(c.usedAt) : when(c.at)} • {c.units} бірлік • {money(c.amount)}</span></span></div></div>
-      <h2 className={s.blueHead}>Клиент жазған{c.reason ? ` · ${c.reason}` : ""}</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span className={`${s.tag} ${s[k]}`}>{t}</span>{c.status === "new" && <span className={`t-cap1 ${s.muted}`}>{`${hoursLeft} сағат ішінде жауап бер`}</span>}</div>
+      <div className={s.card}><div className={s.row}><Person name={c.customer} size={40} /><span className={s.rowText}><span className={s.rowTitle}>{c.customer}</span><span className={s.rowSub}>{`${c.offer} • ${c.usedAt ? when(c.usedAt) : when(c.at)} • ${c.units} бірлік • ${money(c.amount)}`}</span></span></div></div>
+      <h2 className={s.blueHead}>{`Клиент жазған${c.reason ? ` · ${c.reason}` : ""}`}</h2>
       <p className="t-sub2 infoBox" style={{ margin: 0 }}>{c.text}</p>
       {c.status === "new" ? (
         <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
@@ -80,14 +80,14 @@ export function VExpired() {
     <VPage title="Мерзімі өткен пакеттер" back>
       <Note>Пакеттің мерзімі өткен соң 3 күн күтеміз. Клиент осы уақытта қайта алса, қалған бірліктер жаңа пакетке көшеді. Алмаса, қалдық сомасы клиентке Medeo бонусы болып қайтады. Мекемеге ақша тек көрсеткен қызмет үшін түседі.</Note>
       <div className={s.stats}>
-        <div className={s.stat}><span className={s.statLabel}>Күту кезеңінде</span><span className={s.statNum}>{d ? `${d.summary.waitingPacks} пакет` : "–"}</span>{d && <span className={`${s.tag} ${s.tagYellow}`} style={{ alignSelf: "flex-start" }}>{d.summary.waitingUnits} бірлік</span>}</div>
-        <div className={s.stat}><span className={s.statLabel}>Клиентке қайтты</span><span className={s.statNum}>{d ? money(d.summary.bonusMonth) : "–"}</span>{d && <span className={`${s.tag} ${s.tagGray}`} style={{ alignSelf: "flex-start" }}>{d.summary.bonusUnits} бірлік</span>}</div>
+        <div className={s.stat}><span className={s.statLabel}>Күту кезеңінде</span><span className={s.statNum}>{d ? `${d.summary.waitingPacks} пакет` : "–"}</span>{d && <span className={`${s.tag} ${s.tagYellow}`} style={{ alignSelf: "flex-start" }}>{`${d.summary.waitingUnits} бірлік`}</span>}</div>
+        <div className={s.stat}><span className={s.statLabel}>Клиентке қайтты</span><span className={s.statNum}>{d ? money(d.summary.bonusMonth) : "–"}</span>{d && <span className={`${s.tag} ${s.tagGray}`} style={{ alignSelf: "flex-start" }}>{`${d.summary.bonusUnits} бірлік`}</span>}</div>
       </div>
       {d === null ? <Sk h={150} /> : d.items.length === 0 ? <div className={s.card}><div className={s.row}><span className={s.rowSub}>Мерзімі өткен пакет жоқ</span></div></div>
         : <div className={s.card}>{d.items.map((x) => (
           <div key={x.id} className={s.row}>
             <span style={{ width: 36, height: 36, borderRadius: 9, background: icon[x.state][0], color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }}>{icon[x.state][1]}</span>
-            <span className={s.rowText}><span className={s.rowTitle}>{x.title} · {x.units} бірлік</span>
+            <span className={s.rowText}><span className={s.rowTitle}>{`${x.title} · ${x.units} бірлік`}</span>
               <span className={s.rowSub} style={{ whiteSpace: "normal" }}>{x.state === "waiting" ? `${x.customer} • ${isToday(x.expiredAt) ? "бүгін" : dayMonth(x.expiredAt)} бітті • ${x.daysLeft} күн қалды` : x.state === "bonus" ? `${x.customer} • ${dayMonth(x.expiredAt)} • клиентке бонус болып қайтты` : `${dayMonth(x.expiredAt)} • клиент қайта алды, бірліктер көшті`}</span></span>
             <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
               {x.state === "carried" ? <b className={s.lead} style={{ fontSize: 15 }}>көшті</b> : <b className={s.lead} style={{ fontSize: 15 }}>{money(x.amount)}</b>}

@@ -114,7 +114,7 @@ export function PinSheet({ text, run, onClose }: { text: string; run: (pin: stri
   const [msg, setMsg] = useState<string | null>(null);
   return (
     <Sheet title="Әрекетті растаңыз" onClose={onClose}>
-      <p className={s.pinText} style={{ textAlign: "left" }}>{text} PIN-кодты енгізіңіз.</p>
+      <p className={s.pinText} style={{ textAlign: "left" }}>{`${text} PIN-кодты енгізіңіз.`}</p>
       {msg && <p className={`${s.pinText} ${s.pinErr}`} style={{ textAlign: "left", marginTop: 6 }}>{msg}</p>}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 12 }}>
         <PinPad onDone={async (pin) => { try { await run(pin); haptic.success(); onClose(); return null; } catch (e) { const m = pinError(e); setMsg(m); return m; } }} />
@@ -143,5 +143,5 @@ export function Field({ label, value, onChange, placeholder, rows = 1, max = 300
 
 export const Badge = ({ n, tone }: { n: number; tone?: "red" | "orange" }) => (n > 0 ? <span className={`${s.badge} ${tone === "red" ? s.badgeRed : tone === "orange" ? s.badgeOrange : ""}`}>{n}</span> : null);
 export const Growth = ({ v: g, white }: { v: number | null | undefined; white?: boolean }) => (g === null || g === undefined ? null
-  : white ? <span className={s.pillWhite}>{g >= 0 ? "▲" : "▼"} {Math.abs(g)}% кешеден</span> : <span className={g >= 0 ? s.pillUp : s.pillDown}>{g >= 0 ? "▲" : "▼"} {Math.abs(g)}%</span>);
+  : white ? <span className={s.pillWhite}>{`${g >= 0 ? "▲" : "▼"} ${Math.abs(g)}% кешеден`}</span> : <span className={g >= 0 ? s.pillUp : s.pillDown}>{g >= 0 ? "▲" : "▼"} {Math.abs(g)}%</span>);
 export const Empty = ({ children }: { children: ReactNode }) => <div className={v.card}><div className={v.row}><span className={v.rowSub} style={{ whiteSpace: "normal" }}>{children}</span></div></div>;

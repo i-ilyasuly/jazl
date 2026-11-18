@@ -60,7 +60,7 @@ export function VPickVenue() {
         {act.map((x, k) => (
           <button key={x.venue.id} className={s.row} onClick={() => { haptic.select(); setI(k); }}>
             <Tile e={tiles[k % 3]} size={36} />
-            <span className={s.rowText}><span className={s.rowTitle}>{x.venue.name}</span><span className={s.rowSub}>{roleName[x.role]} • {x.venue.city === "karaganda" ? "Қарағанды" : x.venue.city} • {x.venue.branchesTotal} филиал</span></span>
+            <span className={s.rowText}><span className={s.rowTitle}>{x.venue.name}</span><span className={s.rowSub}>{`${roleName[x.role]} • ${x.venue.city === "karaganda" ? "Қарағанды" : x.venue.city} • ${x.venue.branchesTotal} филиал`}</span></span>
             <span className={`${s.check} ${i === k ? s.checkOn : ""}`} style={i === k ? undefined : { boxShadow: "inset 0 0 0 2px #b0b5ba" }} />
           </button>
         ))}

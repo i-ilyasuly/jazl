@@ -37,7 +37,7 @@ export function AMoney() {
         <div className={v.stat}><span className={v.statLabel}>Платформа комиссиясы</span><span className={v.statNum}>{m ? money(m.fee) : "–"}</span>{m && <Growth v={m.feeGrowth} />}</div>
       </div>
       <div className={v.stats}>
-        <div className={v.stat}><span className={v.statLabel}>Мекемелерге өтті</span><span className={v.statNum}>{m ? money(m.venue) : "–"}</span>{m && <span className={`${v.tag} ${v.tagGray}`} style={{ alignSelf: "flex-start" }}>{m.uses} қолдану</span>}</div>
+        <div className={v.stat}><span className={v.statLabel}>Мекемелерге өтті</span><span className={v.statNum}>{m ? money(m.venue) : "–"}</span>{m && <span className={`${v.tag} ${v.tagGray}`} style={{ alignSelf: "flex-start" }}>{`${m.uses} қолдану`}</span>}</div>
         <div className={v.stat}><span className={v.statLabel}>Клиенттердегі қалдық</span><span className={v.statNum}>{m ? money(m.balance) : "–"}</span><span className={`${v.tag} ${v.tagGray}`} style={{ alignSelf: "flex-start" }}>әлі қолданылмаған</span></div>
       </div>
       {m?.testMode && <Note tone="warn">Сынақ режимі: ақша нақты жүрмейді. Сандар сынақ сатылымдарынан есептелген.</Note>}

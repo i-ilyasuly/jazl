@@ -33,12 +33,12 @@ export function ExtendSheet({ pack, onClose, onDone }: { pack: Pack; onClose: ()
       <div className={s.sheet} role="dialog" aria-label="Мерзімін ұзарту">
         <span className={s.grabber} />
         <h2 className="t-title3 w-700">Мерзімін ұзарту</h2>
-        <p className={`t-sub2 ${s.muted}`}>Қазіргі мерзім: {pack.until}</p>
+        <p className={`t-sub2 ${s.muted}`}>{`Қазіргі мерзім: ${pack.until}`}</p>
         <div className={s.list}>
           {opts.map((x) => (
             <button key={x.days} className={`${s.opt} ${pick === x ? s.on : ""}`} onClick={() => { if (pick !== x) { haptic.select(); setPick(x); } }}>
               <span className={s.optText}>
-                <span className="t-text">+{x.days} күн</span>
+                <span className="t-text">{`+${x.days} күн`}</span>
                 {x.price === 0 && <span className={`t-cap1 ${s.muted}`}>Бір реттік, мекеме берген мүмкіндік</span>}
               </span>
               {x.price === 0 ? <span className={s.free}>Тегін</span> : <span className="t-text w-600">{fmt(x.price)}</span>}

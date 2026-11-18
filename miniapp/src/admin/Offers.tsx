@@ -64,14 +64,14 @@ export function AOffer() {
       <div className={v.card} style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <span className={v.ic} style={{ width: 48, height: 48 }}><OfferPic kind={o.kind} size={30} /></span>
-          <span className={v.rowText}><b className={v.rowTitle} style={{ fontSize: 19 }}>{o.title} · {o.units} {o.unitName}</b><span className={v.rowSub}>{o.venue} · {o.kindName} · {o.validDays} күн</span></span>
+          <span className={v.rowText}><b className={v.rowTitle} style={{ fontSize: 19 }}>{o.title} · {o.units} {o.unitName}</b><span className={v.rowSub}>{`${o.venue} · ${o.kindName} · ${o.validDays} күн`}</span></span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <b style={{ fontSize: 26, color: "var(--text-strong)" }}>{money(o.price)}</b>
           <span className={s.pillUp}>▼ {o.discount}%</span>
           <span className={`${v.tag} ${v.tagYellow}`}>{money(o.unitPrice)} / {o.unitName}</span>
         </div>
-        <span className={v.rowSub}>Бөлек баға: {money(o.regular)} · үнем {money(o.regular - o.price)}</span>
+        <span className={v.rowSub}>{`Бөлек баға: ${money(o.regular)} · үнем ${money(o.regular - o.price)}`}</span>
       </div>
       {o.reviewNote?.text && <Note tone="warn">{o.reviewNote.field === "stopped" ? "Тоқтату себебі" : "Сұралған түзету"}: {o.reviewNote.text}</Note>}
       <h2 className={v.blueHead}>Тексеру парағы</h2>

@@ -79,7 +79,7 @@ export function NewVenueHome({ d }: { d: Dashboard & { offers: number; cashiers:
           </button>
         ))}
       </div>
-      <span className={`${s.tag} ${s.tagGray}`} style={{ alignSelf: "flex-start" }}>{done} / 3 орындалды</span>
+      <span className={`${s.tag} ${s.tagGray}`} style={{ alignSelf: "flex-start" }}>{`${done} / 3 орындалды`}</span>
     </VPage>
   );
 }
@@ -92,7 +92,7 @@ export function Suspended({ note }: { note: string | null }) {
       <div className={s.state} style={{ top: "calc(340px + var(--top-shift))" }}>
         <VSticker name="stop" size={120} />
         <h2 className={s.stateTitle}>Мекеме уақытша тоқтатылды</h2>
-        <p className={s.stateText}>{note ? `Себебі: ${note}. ` : ""}Жаңа пакеттер сатылмайды, бірақ сатылған пакеттер мерзімі біткенше қолданылады: клиенттерге қызмет көрсету міндетті.</p>
+        <p className={s.stateText}>{`${note ? `Себебі: ${note}. ` : ""}Жаңа пакеттер сатылмайды, бірақ сатылған пакеттер мерзімі біткенше қолданылады: клиенттерге қызмет көрсету міндетті.`}</p>
       </div>
       <Buttons main={{ text: "Қолдауға жазу", onClick: () => openChat(SUPPORT_BOT) }} second={{ text: "Кассир режимі", onClick: () => go("/v/cashier") }} />
     </VPage>
@@ -154,7 +154,7 @@ export function NewOrderBanner() {
   return (
     <button className={s.banner} onClick={() => { setO(null); go(`/v/orders/${o.id}`); }}>
       <VSticker name="chef" size={36} />
-      <span className={s.rowText} style={{ textAlign: "left" }}><b style={{ color: "#fff", fontSize: 16 }}>Жаңа тапсырыс №{o.no}</b><span style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{o.title.split(" · ")[0]} • {o.scheduledAt ? hm(o.scheduledAt) : "қазір"}</span></span>
+      <span className={s.rowText} style={{ textAlign: "left" }}><b style={{ color: "#fff", fontSize: 16 }}>{`Жаңа тапсырыс №${o.no}`}</b><span style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{o.title.split(" · ")[0]} • {o.scheduledAt ? hm(o.scheduledAt) : "қазір"}</span></span>
       <span style={{ color: "#5cb4f4", fontWeight: 600 }}>Ашу</span>
     </button>
   );

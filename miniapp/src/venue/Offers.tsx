@@ -39,7 +39,7 @@ function Steps({ n, label }: { n: number; label: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: -4 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>{[1, 2, 3, 4].map((i) => <i key={i} style={{ height: 4, borderRadius: 2, background: i <= n ? "#229af0" : "var(--separator)" }} />)}</div>
-      <span className={`t-cap1 ${s.muted}`}>Қадам {n} / 4 · {label}</span>
+      <span className={`t-cap1 ${s.muted}`}>{`Қадам ${n} / 4 · ${label}`}</span>
     </div>
   );
 }
@@ -135,10 +135,10 @@ export function VOfferWizard() {
         {d.sizes.map((x, i) => (
           <button key={i} className={s.card} style={{ textAlign: "left", padding: "14px 16px", background: i === 0 ? "var(--hl-blue-bg)" : undefined }} onClick={() => { if (!locked) setSizeEdit(i); }}>
             <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <b className={s.lead} style={{ fontSize: 19 }}>{x.units} бірлік</b><span className={`${s.tag} ${s.tagGreen}`}>Үнем {saving(x, d.regularUnitPrice)}%</span>
+              <b className={s.lead} style={{ fontSize: 19 }}>{`${x.units} бірлік`}</b><span className={`${s.tag} ${s.tagGreen}`}>{`Үнем ${saving(x, d.regularUnitPrice)}%`}</span>
               <b className={s.lead} style={{ marginLeft: "auto", fontSize: 19 }}>{money(x.price)}</b>
             </span>
-            <span className={s.rowSub} style={{ display: "block", marginTop: 8 }}>Бірлікке {money(Math.round(x.price / x.units))}   <span style={{ color: "var(--link)" }}>Сізге төленеді: {money(Math.round((x.price / x.units) * 0.9))} / бірлік</span></span>
+            <span className={s.rowSub} style={{ display: "block", marginTop: 8 }}>Бірлікке {money(Math.round(x.price / x.units))}   <span style={{ color: "var(--link)" }}>{`Сізге төленеді: ${money(Math.round((x.price / x.units) * 0.9))} / бірлік`}</span></span>
           </button>
         ))}
         {!locked && d.sizes.length < 5 && <button className={s.card} style={{ height: 56, border: "1.5px dashed #229af0", background: "none", color: "var(--link)", fontSize: 17, fontWeight: 600 }}
@@ -149,7 +149,7 @@ export function VOfferWizard() {
             style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, paddingTop: 4, color: "var(--text-strong)" }} />
         </label>
         <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Клиент «үнем» осы бағамен салыстырады</p>
-        {low && !locked ? <Note tone="warn">Жеңілдік 10%-дан аз ({low.units} бірлік). Medeo ұсыныстарында жеңілдік кемінде 10% болуы керек.</Note>
+        {low && !locked ? <Note tone="warn">{`Жеңілдік 10%-дан аз (${low.units} бірлік). Medeo ұсыныстарында жеңілдік кемінде 10% болуы керек.`}</Note>
           : <Note tone="warn">{locked ? "Жарияланған ұсыныстың бағасы «Бағаны өзгерту» арқылы ғана өзгереді (тек иесі)." : "Бірлік бағасы кассирдің пакет тізімінде көрінеді, ол QR-ды бірлікпен шығарады."}</Note>}
       </>}
 
@@ -160,7 +160,7 @@ export function VOfferWizard() {
             <span className={s.rowText}><span className={s.rowTitle}>Пакет мерзімі</span><span className={s.rowSub}>Сатып алған сәттен</span></span>
             <div className={s.stepper}>
               <button className={s.stepBtn} disabled={d.validDays <= DAYS[0]} onClick={() => { haptic.select(); up({ validDays: [...DAYS].reverse().find((x) => x < d.validDays) ?? DAYS[0] }); }}>−</button>
-              <span className={s.stepVal} style={{ width: 64, fontSize: 16 }}>{d.validDays} күн</span>
+              <span className={s.stepVal} style={{ width: 64, fontSize: 16 }}>{`${d.validDays} күн`}</span>
               <button className={s.stepBtn} disabled={d.validDays >= DAYS[DAYS.length - 1]} onClick={() => { haptic.select(); up({ validDays: DAYS.find((x) => x > d.validDays) ?? d.validDays }); }}>+</button>
             </div>
           </div>
@@ -186,14 +186,14 @@ export function VOfferWizard() {
       {step === 4 && <>
         <h2 className={s.blueHead}>Клиент осылай көреді</h2>
         <div className={s.card} style={{ padding: 16 }}>
-          <b className={s.lead} style={{ fontSize: 19 }}>{d.title || "Атауы"} · {d.sizes[0].units} дана</b>
+          <b className={s.lead} style={{ fontSize: 19 }}>{`${d.title || "Атауы"} · ${d.sizes[0].units} дана`}</b>
           <p className={`t-cap1 ${s.muted}`} style={{ marginTop: 2 }}>{me.venue.name}</p>
           <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
             <span style={{ width: 170, height: 110, borderRadius: 14, background: "var(--thumb-bg)", display: "grid", placeItems: "center", overflow: "hidden" }}>{d.photos[0] ? <img src={d.photos[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <OfferPic kind={me.venue.kind} size={40} />}</span>
             <span style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, justifyContent: "center" }}>
               <b style={{ fontSize: 24, fontWeight: 700 }}>{money(d.sizes[0].price)}</b>
-              <span className={`${s.tag} ${s.tagYellow}`}>{money(Math.round(d.sizes[0].price / d.sizes[0].units))} / дана</span>
-              <span className={`${s.tag} ${s.tagGreen}`}>{money(d.sizes[0].units * d.regularUnitPrice - d.sizes[0].price)} үнем</span>
+              <span className={`${s.tag} ${s.tagYellow}`}>{`${money(Math.round(d.sizes[0].price / d.sizes[0].units))} / дана`}</span>
+              <span className={`${s.tag} ${s.tagGreen}`}>{`${money(d.sizes[0].units * d.regularUnitPrice - d.sizes[0].price)} үнем`}</span>
             </span>
           </div>
         </div>
@@ -241,7 +241,7 @@ function SizeSheet({ size, reg, canDelete, onClose, onSave, onDelete }: { size: 
     <Sheet title="Көлем" onClose={onClose}>
       <NumField label="Бірлік саны" value={x.units} suffix=" бірлік" onChange={(units) => setX({ ...x, units })} />
       <NumField label="Пакет бағасы" value={x.price} suffix=" ₸" onChange={(price) => setX({ ...x, price })} />
-      {x.units > 0 && x.price > 0 && <div style={{ display: "flex", gap: 8 }}><span className={`${s.tag} ${s.tagGreen}`}>Үнем {saving(x, reg)}%</span><span className={s.tag}>Бірлікке {money(Math.round(x.price / x.units))}</span></div>}
+      {x.units > 0 && x.price > 0 && <div style={{ display: "flex", gap: 8 }}><span className={`${s.tag} ${s.tagGreen}`}>{`Үнем ${saving(x, reg)}%`}</span><span className={s.tag}>{`Бірлікке ${money(Math.round(x.price / x.units))}`}</span></div>}
       {canDelete && <button className={`${s.textBtn} ${s.redText}`} style={{ alignSelf: "flex-start" }} onClick={onDelete}>Көлемді өшіру</button>}
       <Buttons main={{ text: "Сақтау", onClick: () => onSave(x), disabled: !x.units || !x.price }} second={{ text: "Бас тарту", onClick: onClose }} />
     </Sheet>
@@ -324,18 +324,18 @@ export function VOfferPage() {
   return (
     <VPage title={o.title} back tab="offers">
       {o.reviewNote?.text && <>
-        <p className="t-sub2 infoBox infoWarn" style={{ margin: 0 }}>Medeo түзету сұрады: «{o.reviewNote.text}». Түзеткен соң ұсыныс қайта тексеріледі.</p>
+        <p className="t-sub2 infoBox infoWarn" style={{ margin: 0 }}>{`Medeo түзету сұрады: «${o.reviewNote.text}». Түзеткен соң ұсыныс қайта тексеріледі.`}</p>
         <button className={s.btn} style={{ flex: "none" }} onClick={() => go(`/v/offers/${o.id}/edit`)}>Түзету</button>
       </>}
       <div className={s.head}>
         <span className={s.ocPic} style={{ width: 64, height: 64, borderRadius: 16, overflow: "hidden" }}>{o.photos?.[0] ? <img src={o.photos[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <OfferPic kind={o.kind} size={38} />}</span>
         <span className={s.headText}>
           <span className={s.headName} style={{ fontSize: 22 }}>{o.title}</span>
-          <span style={{ display: "flex", gap: 6, marginTop: 6 }}><span className={`${s.tag} ${s[tc]}`}>{tt}</span><span className={`${s.tag} ${s.tagGray}`}>{o.sizes.length} көлем</span></span>
+          <span style={{ display: "flex", gap: 6, marginTop: 6 }}><span className={`${s.tag} ${s[tc]}`}>{tt}</span><span className={`${s.tag} ${s.tagGray}`}>{`${o.sizes.length} көлем`}</span></span>
         </span>
       </div>
       <div className={s.stats}>
-        <div className={s.stat}><span className={s.statLabel}>Сатылды</span><span className={s.statNum} style={{ fontSize: 22 }}>{o.stats.sold} пакет</span></div>
+        <div className={s.stat}><span className={s.statLabel}>Сатылды</span><span className={s.statNum} style={{ fontSize: 22 }}>{`${o.stats.sold} пакет`}</span></div>
         <div className={s.stat}><span className={s.statLabel}>Белсенді пакет</span><span className={s.statNum} style={{ fontSize: 22 }}>{o.stats.active}</span></div>
         <div className={s.stat}><span className={s.statLabel}>Қолданылған бірлік</span><span className={s.statNum} style={{ fontSize: 22 }}>{o.stats.used}</span></div>
         <div className={s.stat}><span className={s.statLabel}>Табыс</span><span className={s.statNum} style={{ fontSize: 22, color: "#1f8a3b" }}>{money(o.stats.revenue)}</span></div>
@@ -349,7 +349,7 @@ export function VOfferPage() {
       <div className={s.card}>
         {o.sizes.map((x) => (
           <button key={x.units} className={s.row} style={{ ["--inset" as string]: "16px" }} onClick={() => owner && setPrice(true)}>
-            <span className={s.rowText}><span className={s.rowTitle} style={{ fontWeight: 600 }}>{x.units} бірлік · {money(x.price)}</span><span className={s.rowSub}>{x.sold} сатылды</span></span>
+            <span className={s.rowText}><span className={s.rowTitle} style={{ fontWeight: 600 }}>{`${x.units} бірлік · ${money(x.price)}`}</span><span className={s.rowSub}>{`${x.sold} сатылды`}</span></span>
             <i className={s.arrow} />
           </button>
         ))}
@@ -390,10 +390,10 @@ function PriceSheet({ o, onClose, onDone }: { o: OfferFull; onClose: () => void;
   const diff = p - cur.price;
   return (
     <Sheet title="Бағаны өзгерту" onClose={onClose}>
-      <div className={s.chips}>{o.sizes.map((x) => <button key={x.units} className={`${s.chip} ${u === x.units ? s.chipOn : ""}`} onClick={() => { haptic.select(); setU(x.units); }}>{x.units} бірлік</button>)}</div>
+      <div className={s.chips}>{o.sizes.map((x) => <button key={x.units} className={`${s.chip} ${u === x.units ? s.chipOn : ""}`} onClick={() => { haptic.select(); setU(x.units); }}>{`${x.units} бірлік`}</button>)}</div>
       <NumField label={`Жаңа баға (${u} бірлік)`} value={p} suffix=" ₸" onChange={setP} />
-      <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Қазіргі баға {money(cur.price)}</p>
-      {p > 0 && <div style={{ display: "flex", gap: 8 }}>{diff !== 0 && <span className={`${s.tag} ${diff > 0 ? s.tagYellow : s.tagGreen}`}>{diff > 0 ? "+" : "−"}{money(Math.abs(diff))}</span>}<span className={s.tag}>Бірлікке {money(Math.round(p / u))}</span></div>}
+      <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>{`Қазіргі баға ${money(cur.price)}`}</p>
+      {p > 0 && <div style={{ display: "flex", gap: 8 }}>{diff !== 0 && <span className={`${s.tag} ${diff > 0 ? s.tagYellow : s.tagGreen}`}>{diff > 0 ? "+" : "−"}{money(Math.abs(diff))}</span>}<span className={s.tag}>{`Бірлікке ${money(Math.round(p / u))}`}</span></div>}
       <Note tone="warn">Жаңа баға тек жаңа пакеттерге қолданылады. Бар пакеттер ескі бағамен жүре береді, ал қайта алғанда клиентке баға өзгергені көрсетіледі.</Note>
       <Buttons main={{ text: "Сақтау", onClick: () => void save(), disabled: !p || p === cur.price }} second={{ text: "Бас тарту", onClick: onClose }} />
     </Sheet>
@@ -406,7 +406,7 @@ function OfferTerms({ onBack, onAccept }: { onBack: () => void; onAccept: () => 
   const blocks: [string, string][] = [
     ["Баға бойынша міндеттеме", "Пакетті сатып алған клиентке көрсетілген бағамен қызмет көрсетуге міндеттенесіз. Баға кейін өзгерсе, бұрын сатылған пакетке әсер етпейді."],
     ["Комиссия", "Әр сатылымнан 10%. Рейтингі жоғары болса — 8%. Бұл тек мекемеге көрінеді, клиентке көрсетілмейді."],
-    ["Мерзімі өткен пакет", "Жарамдылық және жеңілдік кезеңінен кейін қолданылмаған дананың сомасы мекемеге есептеледі."],
+    ["Мерзімі өткен пакет", "Мерзім мен күту кезеңі біткен соң қолданылмаған дананың сомасы клиентке Medeo бонусы болып қайтады, мекемеге есептелмейді."],
     ["Қайтару және шағым", "Қате қолдану расталса, дана клиентке қайтарылады, төлем есепте түзетіледі."],
   ];
   return (

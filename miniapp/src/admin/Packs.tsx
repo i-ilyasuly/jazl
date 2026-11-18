@@ -40,15 +40,15 @@ export function APacks() {
           <thead><tr><th>Пакет</th><th>Ұсыныс</th><th>Клиент</th><th>Қалдық</th><th className={s.num}>Мерзімі</th></tr></thead>
           <tbody>{d.packs.map((p) => (
             <tr key={p.id} className={sel === p.id ? s.sel : ""} onClick={() => go(`/a/packs/${p.id}`)}>
-              <td>{p.ref}</td><td><b>{p.title} · {p.total} дана</b><small>{p.venue}</small></td><td>{p.customer}</td><td><b>{p.left} / {p.total}</b></td>
-              <td className={s.num}>{p.left === 0 ? <span className={`${v.tag} ${v.tagGray}`}>Жабылды</span> : p.daysLeft < 0 ? <span className={`${v.tag} ${v.tagYellow}`}>Күтуде</span> : <span style={{ color: p.daysLeft <= 3 ? "#b07a00" : undefined }}>{p.daysLeft} күн</span>}</td>
+              <td>{p.ref}</td><td><b>{`${p.title} · ${p.total} дана`}</b><small>{p.venue}</small></td><td>{p.customer}</td><td><b>{p.left} / {p.total}</b></td>
+              <td className={s.num}>{p.left === 0 ? <span className={`${v.tag} ${v.tagGray}`}>Жабылды</span> : p.daysLeft < 0 ? <span className={`${v.tag} ${v.tagYellow}`}>Күтуде</span> : <span style={{ color: p.daysLeft <= 3 ? "#b07a00" : undefined }}>{`${p.daysLeft} күн`}</span>}</td>
             </tr>
           ))}</tbody>
         </table>
       ) : <div className={v.card}>{d.packs.map((p) => (
         <button key={p.id} className={v.row} style={{ minHeight: 64 }} onClick={() => go(`/a/packs/${p.id}`)}>
           <span className={v.ic} style={p.left === 0 || p.daysLeft < 0 ? { opacity: 0.5 } : undefined}><OfferPic kind={p.kind} size={26} /></span>
-          <span className={v.rowText}><span className={v.rowTitle}>{p.title} · {p.total} дана</span><span className={v.rowSub}>{p.ref} · {p.customer} · {p.venue}</span></span>
+          <span className={v.rowText}><span className={v.rowTitle}>{`${p.title} · ${p.total} дана`}</span><span className={v.rowSub}>{p.ref} · {p.customer} · {p.venue}</span></span>
           <span className={s.right}><b>{p.left} / {p.total}</b><span>{p.daysLeft < 0 ? "күтуде" : `${p.daysLeft} күн`}</span></span>
         </button>
       ))}</div>}

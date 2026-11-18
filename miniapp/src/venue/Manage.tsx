@@ -49,7 +49,7 @@ export function VOffers() {
                 </span>
                 {(o.status === "active" || o.status === "paused") && me?.role !== "cashier" && <Switch on={on} onChange={(v) => void toggle(o, v)} />}
               </div>
-              <div className={s.ocBottom}><span className={s.ocPrice}>{money(o.fromPrice)}-дан</span><span className={s.rowSub}>{o.sold} пакет сатылды</span></div>
+              <div className={s.ocBottom}><span className={s.ocPrice}>{`${money(o.fromPrice)}-дан`}</span><span className={s.rowSub}>{`${o.sold} пакет сатылды`}</span></div>
             </div>
           );
         })}
@@ -94,7 +94,7 @@ export function VReport() {
         {r === null ? <div className={s.row}><Sk h={40} /></div> : r.days.length === 0 ? <div className={s.row}><span className={s.rowSub}>Әзірге төлем жоқ</span></div>
           : r.days.map((d) => (
             <div key={d.date} className={s.row} style={{ ["--inset" as string]: "16px" }}>
-              <span className={s.rowText}><span className={s.rowTitle}>{dayMonth(d.date)}</span><span className={s.rowSub}>{d.count} қолдану</span></span>
+              <span className={s.rowText}><span className={s.rowTitle}>{dayMonth(d.date)}</span><span className={s.rowSub}>{`${d.count} қолдану`}</span></span>
               <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}><b className={s.lead}>{money(d.amount)}</b><span className={`${s.tag} ${s.tagGreen}`}>Түсті</span></span>
             </div>
           ))}
@@ -132,7 +132,7 @@ export function VMenu() {
       </div>
       <h1 className={s.h1}>{me.venue.name}</h1>
       <div className={s.pills}>
-        {me.venue.rating && <span className={s.rating}>★ {me.venue.rating.toFixed(1).replace(".", ",")} • {me.venue.reviews} пікір</span>}
+        {me.venue.rating && <span className={s.rating}>{`★ ${me.venue.rating.toFixed(1).replace(".", ",")} • ${me.venue.reviews} пікір`}</span>}
         <span className={s.tag}>{roleName[me.role]}</span>
       </div>
       {rows.map((g, i) => (

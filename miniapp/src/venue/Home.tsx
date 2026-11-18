@@ -90,9 +90,9 @@ export function VHome() {
 
       <VSticker name="chart" size={96} at={[292, 142]} />
       <button className={s.hero} onClick={() => go("/v/history")}>
-        <span className={s.heroLabel}>Бүгін, {now.getDate()} {MON[now.getMonth()]}</span>
+        <span className={s.heroLabel}>{`Бүгін, ${now.getDate()} ${MON[now.getMonth()]}`}</span>
         <span className={s.heroBig}>{d ? d.today : "–"}<small>қолдану</small></span>
-        {d && <span className={s.heroPill}>{diff >= 0 ? "▲" : "▼"} кешегіден {Math.abs(diff)} {diff >= 0 ? "артық" : "кем"}</span>}
+        {d && <span className={s.heroPill}>{diff >= 0 ? `▲ кешегіден ${diff} артық` : `▼ кешегіден ${-diff} кем`}</span>}
         <span style={{ height: 10 }} />
         {d && <Spark data={d.series} />}
         <span className={s.sparkLabel}>7 күн</span>
@@ -107,7 +107,7 @@ export function VHome() {
         <div className={s.stat}>
           <span className={s.statLabel}>Белсенді пакет</span>
           <span className={s.statNum}>{d ? d.activePacks : <Sk w={60} h={28} />}</span>
-          {d && <span className={s.statSub}>{d.unitsLeft} бірлік қалды</span>}
+          {d && <span className={s.statSub}>{`${d.unitsLeft} бірлік қалды`}</span>}
         </div>
       </div>
 
@@ -118,7 +118,7 @@ export function VHome() {
         <button className={s.qa} onClick={() => go(me.role === "owner" ? "/v/report" : "/v/history")}><Tile e="v:report" size={40} />Есеп</button>
       </div>
 
-      {complaintsN > 0 && <button className="t-sub2 infoBox infoWarn" style={{ textAlign: "left" }} onClick={() => go("/v/complaints")}>{complaintsN} жаңа шағым: 24 сағат ішінде жауап беріңіз →</button>}
+      {complaintsN > 0 && <button className="t-sub2 infoBox infoWarn" style={{ textAlign: "left" }} onClick={() => go("/v/complaints")}>{`${complaintsN} жаңа шағым: 24 сағат ішінде жауап беріңіз →`}</button>}
       <div className={s.sectionHead}><h2 className={s.sectionTitle}>Соңғы қолданулар</h2><button className={s.link} onClick={() => go("/v/history")}>Барлығы</button></div>
       <div className={s.card}>
         {d === null ? <div className={s.row}><Sk h={40} /></div> : d.recent.length === 0 ? <div className={s.row}><span className={s.rowSub}>Бүгін әзірге қолдану жоқ</span></div>

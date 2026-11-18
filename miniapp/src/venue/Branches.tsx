@@ -64,7 +64,7 @@ export function VBranches() {
               <span className={s.rowText}><b className={s.lead} style={{ fontSize: 18 }}>{b.address}</b><span className={`${s.tag} ${s[c]}`} style={{ alignSelf: "flex-start", marginTop: 4 }}>{t}</span></span>
               <Switch on={b.status.kind !== "temp"} onChange={(v) => void toggle(b, v)} />
             </div>
-            <div className={s.ocBottom}><span className={s.rowSub}>Бүгін {b.today} қолдану • {b.cashiers} кассир</span><button className={s.textBtn} onClick={() => go(`/v/branches/${b.id}`)}>Өңдеу</button></div>
+            <div className={s.ocBottom}><span className={s.rowSub}>{`Бүгін ${b.today} қолдану • ${b.cashiers} кассир`}</span><button className={s.textBtn} onClick={() => go(`/v/branches/${b.id}`)}>Өңдеу</button></div>
           </div>
         );
       })}

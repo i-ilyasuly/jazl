@@ -2,6 +2,7 @@
 // көк бас (бренд, мекеме, нөмір) → тесікті қағаз → сома мен мәртебе → нүктелі жолдар → жасыл үнем жолағы →
 // «билет» кесігі → тексеру QR-ы. Төменде «Чекті жүктеу (PDF)». Ішкі бөлік (комиссия т.б.) мұнда келмейді.
 // Маршруттар: /receipt/srv/:id және /receipt/no/:no (чектегі QR → t.me/<бот>?startapp=rc_<нөмір>).
+import { locTitle, locUnit, trs } from "../i18n";
 import { Brand } from "../ui/Brand";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -73,24 +74,24 @@ export function ServerReceipt() {
       </header>
       <article className={s.paper}>
         <span className={s.perf} aria-hidden />
-        <p className={s.title}>{rc.title}</p>
-        <p className={s.total}>{buy ? fmt(rc.total) : `${i.units} ${i.unitName}`}</p>
-        <span className={s.status}>{rc.status}</span>
+        <p className={s.title}>{trs(rc.title)}</p>
+        <p className={s.total}>{buy ? fmt(rc.total) : `${i.units} ${locUnit(i.unitName, i.units)}`}</p>
+        <span className={s.status}>{trs(rc.status)}</span>
 
         {buy ? <>
           <h2 className={s.sec}>Сатып алынды</h2>
-          <Row k="Пакет" v={i.title} />
-          <Row k="Көлемі" v={`${i.units} ${i.unitName}`} />
+          <Row k="Пакет" v={locTitle(i.title)} />
+          <Row k="Көлемі" v={`${i.units} ${locUnit(i.unitName, i.units)}`} />
           <Row k="1 бірлік бағасы" v={fmt(i.pricePerUnit)} />
-          <Row k="Бөлек алғанда" v={`${fmt(i.regularPricePerUnit ?? 0)} / ${i.unitName}`} />
+          <Row k="Бөлек алғанда" v={`${fmt(i.regularPricePerUnit ?? 0)} / ${locUnit(i.unitName)}`} />
           <Row k="Бөлек алғандағы сомасы" v={fmt(i.regularTotal ?? 0)} />
           <div className={s.save}><span>Сіздің үнеміңіз</span><b>{fmt(i.saving ?? 0)} · {i.discountPct ?? 0}%</b></div>
         </> : <>
           <h2 className={s.sec}>Қолданылды</h2>
-          <Row k="Пакет" v={i.title} />
-          <Row k="Көлемі" v={`${i.units} ${i.unitName}`} />
-          {rc.left != null && <Row k="Пакетте қалды" v={`${rc.left} ${i.unitName}`} />}
-          {rc.via && <Row k="Тәсілі" v={rc.via} />}
+          <Row k="Пакет" v={locTitle(i.title)} />
+          <Row k="Көлемі" v={`${i.units} ${locUnit(i.unitName, i.units)}`} />
+          {rc.left != null && <Row k="Пакетте қалды" v={`${rc.left} ${locUnit(i.unitName, rc.left)}`} />}
+          {rc.via && <Row k="Тәсілі" v={trs(rc.via)} />}
           {rc.extra?.amount ? <Row k="Қосымша" v={`${fmt(rc.extra.amount)} · кассада бөлек`} /> : null}
           <Row k="Уақыты" v={rc.dateLocal} />
           <Row k="Чек №" v={rc.no} copy />
@@ -103,7 +104,7 @@ export function ServerReceipt() {
 
         {rc.payment && rc.pack && <>
           <h2 className={s.sec}>Төлем</h2>
-          <Row k="Тәсілі" v={rc.payment.label} />
+          <Row k="Тәсілі" v={trs(rc.payment.label)} />
           <Row k="Уақыты" v={rc.dateLocal} />
           <Row k="Чек №" v={rc.no} copy />
           <Row k="Транзакция" v={rc.payment.ref.slice(0, 18)} copy />
@@ -120,7 +121,7 @@ export function ServerReceipt() {
           <span className={s.vText}><b>Чекті тексеру</b><small>QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Medeo ботында ашылады.</small><em className="mono">{rc.no}</em></span>
         </div>
         {rc.payment?.mode === "test" && <p className={s.test}>Сынақ төлемі — ақша алынған жоқ</p>}
-        <p className={s.legal}>{rc.pack ? rc.pack.howToUse + ". " : ""}Medeo — агент: пакет мекемеден Medeo сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.</p>
+        <p className={s.legal}>{`${rc.pack ? trs(rc.pack.howToUse) + ". " : ""}Medeo — агент: пакет мекемеден Medeo сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.`}</p>
       </article>
       {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={() => void download()}>{main.text}</button></div>}
     </div>

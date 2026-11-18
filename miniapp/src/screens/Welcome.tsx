@@ -1,5 +1,7 @@
 // Figma, «01 · Кіру және таныстыру»: «Жүктелу / Бастапқы экран» 13886:14677, «Бірінші ашу / Onboarding» 13886:14713,
 // «Тіл таңдау» 13940:7998, «Қала таңдау» 13940:8029, «Шарттармен келісу» 13940:8073
+import { applyLangPref, getLang } from "../i18n";
+import { RichWords } from "../ui/RichWords";
 import { Brand } from "../ui/Brand";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useGo } from "../nav";
@@ -50,9 +52,7 @@ export function Welcome() {
       <Sticker name="egg" size={150} className={s.sticker} />
       <h1 className={s.h1}>Күнделікті шығыныңды үнемге айналдыр</h1>
       <p className={`t-sub2 ${s.lead}`}>
-        <span>Кофе,</span><span>тағам,</span><span>шаштараз:</span>
-        <span className={s.nogap}><b className={s.blue}>пакетті алдын ала ал</b>,</span><span>мекемеде</span>
-        <b className={s.green}>сканерлеп</b><span>қолдан</span>
+        <RichWords cls={s} text="Кофе, тағам, шаштараз: [blue:пакетті алдын ала ал], мекемеде [green:сканерлеп] қолдан" />
       </p>
       <div className={s.perks}>
         {perks.map(([bg, t, sub], i) => (
@@ -103,9 +103,9 @@ export function WelcomeLang() {
   return (
     <Step title="Тілді таңда" sub="Кейін профильде өзгертуге болады" button="Жалғастыру" onNext={next}>
       <div className={`${s.group} rise`} style={{ ["--i" as string]: 1 }}>
-        <Choice title="Қазақша" on={st.lang !== "ru"} onClick={() => { haptic.select(); setSettings({ lang: "kk" }); }} />
-        {/* Орыс тілі кейін қосылады */}
-        <Choice title="Русский" on={false} onClick={() => { haptic.tap(); nativeAlert("Орыс тілі жуырда қосылады."); }} />
+        {/* Таңдағанда бет қайта жүктеледі (тіл басқа болса), сосын осы қадамға қайта оралады */}
+        <Choice title="Қазақша" on={getLang() === "kk"} onClick={() => { haptic.select(); setSettings({ lang: "kk" }); applyLangPref("kk"); }} />
+        <Choice title="Русский" on={getLang() === "ru"} onClick={() => { haptic.select(); setSettings({ lang: "ru" }); applyLangPref("ru"); }} />
       </div>
     </Step>
   );

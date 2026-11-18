@@ -51,7 +51,7 @@ function StepBar({ n }: { n: number }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: -4 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 4 }}>{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ height: 4, borderRadius: 2, background: i < n ? "#229af0" : "var(--separator)" }} />)}</div>
-      <span className={`t-cap1 ${s.muted}`}>Қадам {n} / 8 · {STEPS[n]}</span>
+      <span className={`t-cap1 ${s.muted}`}>{`Қадам ${n} / 8 · ${STEPS[n]}`}</span>
     </div>
   );
 }
@@ -134,7 +134,7 @@ export function VApplyStep() {
         <h2 className={s.blueHead}>{title}</h2>
         <div className={s.card}>
           {busy === kind ? <div className={s.row}><span className={s.sk} style={{ width: 40, height: 40 }} /><span className={s.rowText}><span className={s.rowTitle}>Жүктелуде…</span></span></div>
-            : x ? <div className={s.row}><Tile e="v:file" size={40} /><span className={s.rowText}><span className={s.rowTitle}>{x.fileName}</span><span className={s.rowSub}>{x.mime === "application/pdf" ? "PDF" : "Сурет"} · {(x.size / 1024 / 1024).toFixed(1)} МБ</span></span>
+            : x ? <div className={s.row}><Tile e="v:file" size={40} /><span className={s.rowText}><span className={s.rowTitle}>{x.fileName}</span><span className={s.rowSub}>{`${x.mime === "application/pdf" ? "PDF" : "Сурет"} · ${(x.size / 1024 / 1024).toFixed(1)} МБ`}</span></span>
               <button style={{ fontSize: 22, color: "#b0b5ba", padding: 6 }} onClick={async () => { await api(`/v1/venue/application/docs/${kind}/remove`, { method: "POST" }).catch(() => null); setA((v) => v ? { ...v, docs: v.docs.filter((y) => y.kind !== kind) } : v); }}>×</button></div>
             : <button className={s.row} onClick={() => void doc(kind)}><span style={{ width: 40, textAlign: "center", fontSize: 20, color: "var(--link)" }}>📎</span><span className={s.rowText}><span className={s.rowTitle} style={{ color: "var(--link)" }}>Файл қосу</span></span></button>}
         </div>
@@ -183,7 +183,7 @@ export function VApplyStep() {
         {(d.branches ?? []).map((b, i) => (
           <div key={i} className={s.card} style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ display: "flex", justifyContent: "space-between" }}><b className={s.lead}>{b.address}</b><button style={{ fontSize: 20, color: "#b0b5ba" }} onClick={() => up({ branches: d.branches!.filter((_, k) => k !== i) })}>×</button></span>
-            <span className={s.rowSub}>Күн сайын {b.open}–{b.close}</span>
+            <span className={s.rowSub}>{`Күн сайын ${b.open}–${b.close}`}</span>
             {i === 0 && <span className={s.tag} style={{ alignSelf: "flex-start" }}>Негізгі</span>}
           </div>
         ))}
@@ -204,7 +204,7 @@ export function VApplyStep() {
         <p className={s.muted} style={{ marginTop: -6 }}>Клиенттер осы суреттерді карточкаларда көреді</p>
         {img("Логотип", d.logoUrl, "logo", "Шаршы, кемінде 512×512")}
         {img("Мұқаба", d.coverUrl, "cover", "4:3, JPG немесе PNG, 5 МБ дейін")}
-        <h2 className={s.blueHead}>Галерея · {(d.gallery ?? []).length} / 3+</h2>
+        <h2 className={s.blueHead}>{`Галерея · ${(d.gallery ?? []).length} / 3+`}</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
           {(d.gallery ?? []).map((g, i) => <button key={g} onClick={() => up({ gallery: d.gallery!.filter((_, k) => k !== i) })} style={{ aspectRatio: "1", borderRadius: 14, overflow: "hidden" }}><img src={g} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></button>)}
           {(d.gallery?.length ?? 0) < 9 && <button onClick={() => void photo("gallery")} style={{ aspectRatio: "1", borderRadius: 14, border: `1.5px dashed ${(d.gallery?.length ?? 0) < 3 ? "#e53935" : "#229af0"}`, color: "var(--link)", fontSize: 24 }}>{busy === "gallery" ? "…" : "+"}</button>}
@@ -228,16 +228,16 @@ export function VApplyStep() {
         {docRow("id", "Басшының жеке куәлігі")}
         {docRow("charter", "Жарғы (ТОО үшін)")}
         {docRow("halal", "Халал сертификаты")}
-        <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -4 }}>{d.kind === "food" ? "Тамақ мекемелері үшін міндетті. " : ""}PDF, JPG немесе PNG</p>
+        <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -4 }}>{`${d.kind === "food" ? "Тамақ мекемелері үшін міндетті. " : ""}PDF, JPG немесе PNG`}</p>
         <Note>Құжаттар тек тексеру үшін қолданылады және клиенттерге көрсетілмейді.</Note>
       </>}
       {n === 8 && a && <>
         <div className={s.sectionHead}><h2 className={s.blueHead}>Мекеме</h2><button className={s.link} onClick={() => go("/v/apply/1")}>Өзгерту</button></div>
         <div className={s.card}><div className={s.kv}><span>Атауы</span><b>{d.name}</b></div><div className={s.kv}><span>БИН</span><b>{d.bin}</b></div><div className={s.kv}><span>Санат</span><b>{KINDS.find((k) => k[0] === d.kind)?.[2]}</b></div></div>
-        <div className={s.sectionHead}><h2 className={s.blueHead}>Филиалдар · {d.branches?.length ?? 0}</h2><button className={s.link} onClick={() => go("/v/apply/4")}>Өзгерту</button></div>
+        <div className={s.sectionHead}><h2 className={s.blueHead}>{`Филиалдар · ${d.branches?.length ?? 0}`}</h2><button className={s.link} onClick={() => go("/v/apply/4")}>Өзгерту</button></div>
         <div className={s.card}>{(d.branches ?? []).map((b, i) => <div key={i} className={s.kv}><span>{b.address}</span><b>{b.open}–{b.close}</b></div>)}</div>
         <div className={s.sectionHead}><h2 className={s.blueHead}>Банк және құжаттар</h2><button className={s.link} onClick={() => go("/v/apply/6")}>Өзгерту</button></div>
-        <div className={s.card}><div className={s.kv}><span>IBAN</span><b>{d.iban?.slice(0, 4)} •••• {d.iban?.slice(-4)}</b></div><div className={s.kv}><span>Құжаттар</span><b>{a.docs.length} / {d.kind === "food" ? 3 : 2}+ жүктелді</b></div></div>
+        <div className={s.card}><div className={s.kv}><span>IBAN</span><b>{d.iban?.slice(0, 4)} •••• {d.iban?.slice(-4)}</b></div><div className={s.kv}><span>Құжаттар</span><b>{`${a.docs.length} / ${d.kind === "food" ? 3 : 2}+ жүктелді`}</b></div></div>
       </>}
       <Buttons main={{ text: busy === "save" ? "Сақталуда…" : "Жалғастыру", onClick: () => void next(), disabled: Boolean(busy) }} second={{ text: "Артқа", onClick: () => go(-1, "back") }} />
     </VPage>
@@ -292,7 +292,7 @@ export function VApplyStatus() {
       <div className={s.result} style={{ marginTop: 40 }}>
         <VSticker name="party" size={120} />
         <h1 className={s.resultTitle}>Мекеме тіркелді</h1>
-        <p className={s.stateText}>{a.data.name} енді Medeo қолданбасында. Келесі қадамдар:</p>
+        <p className={s.stateText}>{`${a.data.name} енді Medeo қолданбасында. Келесі қадамдар:`}</p>
       </div>
       <div className={s.card}>
         <button className={s.row} onClick={async () => { await loadStaff(); go("/v/offers/new"); }}><Tile e="v:file" size={36} /><span className={s.rowText}><span className={s.rowTitle}>Ұсыныс құру</span><span className={s.rowSub}>Пакет көлемі, бағасы, мерзімі</span></span><i className={s.arrow} /></button>

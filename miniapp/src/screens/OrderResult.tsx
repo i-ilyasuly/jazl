@@ -56,7 +56,7 @@ export function OrderDone() {
       <div className={s.doneBody}>
         <Sticker name="party" size={120} className={p.sticker} />
         <h1 className={p.title}>{o.title.startsWith("Шаш") ? "Жазылу расталды" : "Тапсырыс жіберілді"}</h1>
-        <p className={p.text}>№{o.no} • мекеменің тапсырыс жүйесіне түсті</p>
+        <p className={p.text}>{`№${o.no} • мекеменің тапсырыс жүйесіне түсті`}</p>
         <OrderCard id={id} />
         <p className={`${s.note} infoBox infoWarn`}>Мекемеге келгенде кассирге «Medeo, тапсырыс {o.no}» және кодты айт. Курьер жалдасаң, ол кодты айтады.<i>”</i></p>
       </div>

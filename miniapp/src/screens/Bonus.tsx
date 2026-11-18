@@ -16,7 +16,7 @@ export function Bonus() {
       <div className={`${s.hero} rise`}>
         <span className={s.label}>Қолжетімді</span>
         <b className={s.sum}>{b ? fmt(b.balance) : "–"}</b>
-        {b?.nextExpiry && b.balance > 0 && <span className={s.label}>Ең жақын мерзімі: {dm(b.nextExpiry)}</span>}
+        {b?.nextExpiry && b.balance > 0 && <span className={s.label}>{`Ең жақын мерзімі: ${dm(b.nextExpiry)}`}</span>}
       </div>
       <Note i={1}>Пакет мерзімі өтіп, бірліктер пайдаланылмай қалса, ақшаң күймейді: күту кезеңі (3 күн) біткен соң қалған бірліктің құны осында бонус болып түседі. Бонус 12 ай жарамды, кез келген мекемеде келесі сатып алуда бағадан шегеріледі.</Note>
       {b && b.items.length > 0 && <Group i={2}>

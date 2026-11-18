@@ -2,6 +2,7 @@
 // «Пікірлер» 13886:26155, «Ұсыныс жоқ» 13886:27031, «Жаңа мекеме: пікірлер» 13886:26881,
 // «Бағыт: 2ГИС» 13886:27429, «Қоңырау: растау» 13886:27703, «Бөлісу: Telegram чаттары» 13886:27961 (нативті чат таңдау),
 // «Хабарла: рұқсат диалогы» 13886:28289 (нативті requestWriteAccess), «Хабарла: қосылды» 13886:28547
+import { RichWords } from "../ui/RichWords";
 import { useTabSwipe } from "../ui/useTabSwipe";
 import { Photo } from "../ui/Photo";
 import { kindPic } from "../ui/Emo";
@@ -79,13 +80,13 @@ function VenueView({ id }: { id?: string }) {
       <header className={s.head}>
         <div className={s.id}>
           <span className={s.avatar}><Emo kind={v.kind} size={48} /></span>
-          <div><h1 className={s.name}>{v.name}</h1><p className={`t-sub2 ${s.gray}`} style={{ whiteSpace: "pre" }}>{kindLabel[v.kind]}  •  Қарағанды</p></div>
+          <div><h1 className={s.name}>{v.name}</h1><p className={`t-sub2 ${s.gray}`} style={{ whiteSpace: "pre" }}>{`${kindLabel[v.kind]}  •  Қарағанды`}</p></div>
         </div>
         {status === "new"
           ? <p className={s.meta}><span className={s.badgeNew}>Жаңа мекеме</span></p>
-          : <p className={s.meta} style={{ whiteSpace: "pre" }}>★ {String(v.rating).replace(".", ",")} ({v.reviews})  •  {v.km.toFixed(1).replace(".", ",")} км  •  48 клиент</p>}
+          : <p className={s.meta} style={{ whiteSpace: "pre" }}>{`★ ${String(v.rating).replace(".", ",")} (${v.reviews})  •  ${v.km.toFixed(1).replace(".", ",")} км  •  48 клиент`}</p>}
         {status === "closed"
-          ? <p className={`${s.meta} ${s.open} ${s.closed}`} style={{ whiteSpace: "pre" }}><i />Қазір жабық  •  {v.opensAt ?? v.hours.split("–")[0]}-де ашылады</p>
+          ? <p className={`${s.meta} ${s.open} ${s.closed}`} style={{ whiteSpace: "pre" }}><i />{`Қазір жабық  •  ${v.opensAt ?? v.hours.split("–")[0]}-де ашылады`}</p>
           : status === "247"
             ? <p className={`${s.meta} ${s.open}`}><span className={s.badge247}>24/7</span>Тәулік бойы ашық</p>
             : <p className={`${s.meta} ${s.open}`} style={{ whiteSpace: "pre" }}><i />Ашық  •  бүгін {v.hours}</p>}
@@ -111,8 +112,8 @@ function VenueView({ id }: { id?: string }) {
         {tab === 1 && <>
           <section className={s.card}>
             <div className={`${s.quote} infoBox`}><span className={s.qBar} />
-              {v.id === "damdi" ? <p className={`t-text ${s.rich}`}><b className={s.green}>Жаңа піскен лаваш</b><span>мен</span><span>үй</span><span>соусы.</span><span>Донерді</span><b className={s.blue}>5 жылдан бері</b><span>дайындаймыз,</span><span>ет</span><span>күн</span><span>сайын</span><span>жаңа</span><span>келеді.</span></p>
-                : <p className="t-text">{v.name} — Medeo серіктесі. Пакет сатып алып, мекемеде сканерлеп қолдан.</p>}
+              {v.id === "damdi" ? <p className={`t-text ${s.rich}`}><RichWords cls={s} text="[green:Жаңа піскен лаваш] мен үй соусы. Донерді [blue:5 жылдан бері] дайындаймыз, ет күн сайын жаңа келеді." /></p>
+                : <p className="t-text">{`${v.name} — Medeo серіктесі. Пакет сатып алып, мекемеде сканерлеп қолдан.`}</p>}
             </div>
           </section>
           <section className={s.card}>
@@ -121,8 +122,8 @@ function VenueView({ id }: { id?: string }) {
           </section>
           <section className={s.card}>
             <h2 className={`t-headline ${s.cardTitle}`}>Мекенжайы</h2>
-            <p className={s.addr}>Қарағанды, {v.address}</p>
-            {branches(v.name, v.address).length > 1 && <button className={`t-sub2 w-600 ${s.branchesBtn}`} onClick={() => { haptic.tap(); setSheet("branches"); }}>Барлық филиалдар · {branches(v.name, v.address).length}</button>}
+            <p className={s.addr}>{`Қарағанды, ${v.address}`}</p>
+            {branches(v.name, v.address).length > 1 && <button className={`t-sub2 w-600 ${s.branchesBtn}`} onClick={() => { haptic.tap(); setSheet("branches"); }}>{`Барлық филиалдар · ${branches(v.name, v.address).length}`}</button>}
             <button className={s.miniMap} onClick={() => go("/map")} aria-label="Картада"><span className={s.miniPin}><Emo kind={v.kind} size={28} /></span></button>
             <button className={`t-sub2 w-600 ${s.routeBtn}`} onClick={() => { haptic.tap(); setSheet("route"); }}><Emo e="🧭" size={20} />Бағыт</button>
           </section>
@@ -135,7 +136,7 @@ function VenueView({ id }: { id?: string }) {
           <div className={s.empty}><h2 className="t-headline">Пікірлер әлі жоқ</h2><p className={`t-sub2 ${s.gray}`}>Пікірлер 3 бағалаудан кейін көрінеді</p></div>
         ) : <>
           <section className={`${s.card} ${s.rating}`}>
-            <div className={s.score}><b>{String(v.rating).replace(".", ",")}</b><span className={s.stars}>★★★★★</span><small className="t-cap1">{v.reviews} бағалау</small></div>
+            <div className={s.score}><b>{String(v.rating).replace(".", ",")}</b><span className={s.stars}>★★★★★</span><small className="t-cap1">{`${v.reviews} бағалау`}</small></div>
             <div className={s.bars}>{bars.map((w, i) => <p key={i} className="t-cap1"><span>{5 - i}</span><i><u style={{ width: `${w}%`, ["--i" as string]: i }} /></i></p>)}</div>
           </section>
           <section className={`${s.card} ${s.reviews}`}>

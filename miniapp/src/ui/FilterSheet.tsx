@@ -53,7 +53,7 @@ export function FilterSheet({ value, count, onApply, onClose }: { value: Filters
           <div className={s.chips}>{saves.map(([v, t]) => <button key={v} className={`t-sub2 ${s.chip} ${f.save === v ? s.on : ""}`} onClick={() => set({ save: v })}>{t}</button>)}</div>
         </section>
         <div className={s.toggle}><span>Тек ашық мекемелер</span><Switch on={f.open} onChange={(v) => setF({ ...f, open: v })} /></div>
-        {!inTelegram && <div className={s.bar}><button className={`${s.btn} ${s.second}`} onClick={clear.onClick}>Тазалау</button><button className={`${s.btn} ${s.main}`} onClick={apply.onClick}><span key={n} className={s.swap}>Көрсету · {n}</span></button></div>}
+        {!inTelegram && <div className={s.bar}><button className={`${s.btn} ${s.second}`} onClick={clear.onClick}>Тазалау</button><button className={`${s.btn} ${s.main}`} onClick={apply.onClick}><span key={n} className={s.swap}>{`Көрсету · ${n}`}</span></button></div>}
       </div>
     </div>
   );

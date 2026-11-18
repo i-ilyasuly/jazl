@@ -59,7 +59,7 @@ export function Rebuy() {
       <div className={s.col}>
         {changed && (
           <div className={`${s.note} ${s.warn} infoBox infoWarn rise`}>
-            <p className={s.noteTitle}>Баға өзгерді: {fmt(o.price).replace(" ₸", "")} → {fmt(price)}</p>
+            <p className={s.noteTitle}>{`Баға өзгерді: ${fmt(o.price).replace(" ₸", "")} → ${fmt(price)}`}</p>
             <p className={s.noteSub}>Мекеме бағаны жаңартты. Төлемге дейін тексеріп ал.</p>
             <i aria-hidden>”</i>
           </div>
@@ -75,13 +75,13 @@ export function Rebuy() {
 
         {carry > 0 && (
           <div className={`${s.note} infoBox infoOk rise`} style={{ ["--i" as string]: 2 }}>
-            <p>Қалған <b>{carry} бірлік</b> жаңа пакетке <b>қосылады</b>, мерзімі де жаңарады.</p>
+            <p>Қалған <b>{`${carry} бірлік`}</b> жаңа пакетке <b>қосылады</b>, мерзімі де жаңарады.</p>
             <i aria-hidden>”</i>
           </div>
         )}
         {late && (
           <div className={`${s.note} ${s.warn} infoBox infoWarn rise`} style={{ ["--i" as string]: 2 }}>
-            <p>Бұрынғы пакеттің мерзімі өткеніне {CARRY_DAYS} күннен асты, сондықтан пайдаланылмаған {pack.left} бірлік жаңа пакетке көшпейді.</p>
+            <p>{`Бұрынғы пакеттің мерзімі өткеніне ${CARRY_DAYS} күннен асты, сондықтан пайдаланылмаған ${pack.left} бірлік жаңа пакетке көшпейді.`}</p>
             <button className={s.noteLink} onClick={() => go("/rules/carry")}>Көшіру ережесі туралы толығырақ</button>
             <i aria-hidden>”</i>
           </div>
@@ -160,8 +160,8 @@ export function CarryRules() {
         <section className={`${s.card} ${s.rules} rise`} style={{ ["--i" as string]: 1 }}>
           <h2 className="t-title3">Қашан көшпейді</h2>
           <ul>
-            <li>Мерзімі өткеннен кейін де {CARRY_DAYS} күн ішінде қайта алсаң, қалған бірліктер көшеді.</li>
-            <li>{CARRY_DAYS} күннен кейін бірліктер көшпейді, бірақ ақшаң күймейді: қалған бірліктің құны Medeo бонусы болып қайтады (12 ай жарамды).</li>
+            <li>{`Мерзімі өткеннен кейін де ${CARRY_DAYS} күн ішінде қайта алсаң, қалған бірліктер көшеді.`}</li>
+            <li>{`${CARRY_DAYS} күннен кейін бірліктер көшпейді, бірақ ақшаң күймейді: қалған бірліктің құны Medeo бонусы болып қайтады (12 ай жарамды).`}</li>
             <li>Мерзімін өткізбеу үшін тегін ұзартуды қолдануға болады, егер мекеме рұқсат етсе.</li>
           </ul>
         </section>
