@@ -273,7 +273,7 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
           with u as (select b.venue_id, sum(r.units)::int as uses, sum(r.amount)::int as amount from app.redemptions r
               join app.branches b on b.id = r.branch_id join app.packs p on p.id = r.pack_id where r.created_at >= ${from} and r.cancelled_at is null group by b.venue_id),
             o as (select b.venue_id, count(*)::int as orders, sum(o.amount)::int as amount from app.orders o join app.branches b on b.id = o.branch_id
-              join app.packs p on p.id = o.pack_id where o.created_at >= ${from} and o.status not in ('cancelled','failed') group by b.venue_id)
+              join app.packs p on p.id = o.pack_id where o.created_at >= ${from} and o.status in ('done','missed') group by b.venue_id)
           select coalesce(u.venue_id, o.venue_id) as venue_id, coalesce(u.uses, 0) as uses, coalesce(o.orders, 0) as orders, coalesce(u.amount, 0) + coalesce(o.amount, 0) as amount
           from u full join o on o.venue_id = u.venue_id`);
         for (const s of stats) {

@@ -226,6 +226,13 @@ d("Medeo Басқару", () => {
     const dd = st.venues.find((x: { id: string }) => x.id === venueId);
     expect(dd.uses).toBeGreaterThan(0); expect(dd.fee).toBe(8); // жоғарыда 8%-ға өзгертілген
     expect(Math.abs(dd.amount - dd.gross * 0.92)).toBeLessThan(dd.uses);
+    // Тапсырыс/жоспар арқылы көрсетілген қызмет те мекеме есебіне кіреді (орындалды не клиент келмеді)
+    const pk2 = (await json(post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT))).pack;
+    const od = await json(post("/v1/orders", { packId: pk2.id, type: "plan", scheduledAt: new Date(Date.now() + 26 * 3600_000).toISOString(), idempotencyKey: key() }, CLIENT));
+    const before = (await json(get("/v1/admin/settlements"))).venues.find((x: { id: string }) => x.id === venueId);
+    await dbh.pool.query("update app.orders set status = 'done' where id = $1", [od.order?.id ?? od.id]);
+    const after = (await json(get("/v1/admin/settlements"))).venues.find((x: { id: string }) => x.id === venueId);
+    expect(after.uses - before.uses).toBe(1); expect(after.gross - before.gross).toBe(1500);
     const rf = await json(get("/v1/admin/refunds"));
     expect(rf.refunds.map((x: { why: string }) => x.why)).toEqual(expect.arrayContaining(["шағым", "Басқару қайтарды"]));
     const csv = await get("/v1/admin/export?period=all&parts=payments,settlements,refunds");

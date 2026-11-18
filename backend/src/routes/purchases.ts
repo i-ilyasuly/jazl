@@ -189,6 +189,8 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   if (body.fromPackId) {
     const [old] = await db.select().from(packs).where(and(eq(packs.id, body.fromPackId), eq(packs.userId, user.id))).limit(1);
     if (!old || old.offerId !== o.id) return err("bad_from_pack");
+    // Бос сағат пакетін қайта алса — жаңасы да бос сағатпен (мекеме әлі ұсынса): арзан бірліктер шектеусіз пакетке өтіп кетпейді
+    if (old.offPeak && rules.offPeak && rules.planOnly && !offPeak) { offPeak = rules.offPeak; price = offPeakPrice(size.price, offPeak.pct); }
   }
   // Карта: сақталған карта (id) не жаңа картаның криптограммасы. Карта нөмірі серверге келмейді.
   const provider = paymentProvider(cfg);
@@ -346,7 +348,7 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
       }
       const share = bulk ? Math.round(pay.amount / ids.length) : pay.amount; // бұл пакетке картадан келген үлес
       const pub = {
-        title: body.gift ? (bulk ? `Сыйлық сатып алынды (${i + 1}/${ids.length})` : "Сыйлық сатып алынды") : body.fromPackId ? "Пакет қайта алынды" : "Пакет сатып алынды", status: "Төленді",
+        title: body.gift ? "Сыйлық сатып алынды" : body.fromPackId ? "Пакет қайта алынды" : "Пакет сатып алынды", status: "Төленді",
         dateLocal: almaty(paidAt), timezone: "Asia/Almaty",
         seller: { name: v.name, kind: v.kind, address: branch?.address ?? null, city: v.city, bin: null as string | null },
         agent: { name: "Medeo", note: "Пакетті Medeo сервисі арқылы сатып алдыңыз" },

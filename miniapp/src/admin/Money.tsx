@@ -7,6 +7,7 @@ import { Buttons, Note, Person, Sheet, Sk, VPage, VSticker } from "../venue/ui";
 import { API_URL, apiFetch } from "../api";
 import { A, dayMonth, hm, isWeb, money, when } from "./api";
 import { Tile } from "../ui/Tile";
+import { PinSheet } from "./ui";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
@@ -83,12 +84,15 @@ export function ARefunds() {
 function FailedRefunds() {
   const [d, , reload] = useCached<{ refunds: { id: string; amount: number; reason: string | null; at: string | null; customer: string }[] }>("a:refunds-failed", () => A("/refunds/failed"));
   const [busy, setBusy] = useState("");
+  const [ask, setAsk] = useState<{ id: string; amount: number } | null>(null);
   if (!d || d.refunds.length === 0) return null;
-  const retry = async (id: string) => {
-    setBusy(id); haptic.medium();
-    try { const r = await A<{ ok: boolean }>(`/payments/${id}/refund-retry`, { method: "POST" }); if (r.ok) haptic.success(); else { haptic.error(); nativeAlert("Провайдер тағы қабылдамады. Себебін тексеріңіз."); } }
-    catch { haptic.error(); nativeAlert("Провайдер тағы қабылдамады. Себебін тексеріңіз."); }
-    setBusy(""); void reload();
+  // Ақша әрекеті — PIN-мен (сервер де тексереді). PIN қате болса PinSheet өзі айтады; провайдер бас тартса — ескерту.
+  const retry = async (id: string, pin: string) => {
+    setBusy(id);
+    try {
+      const r = await A<{ ok: boolean }>(`/payments/${id}/refund-retry`, { method: "POST", body: JSON.stringify({ pin }) });
+      if (!r.ok) { haptic.error(); nativeAlert("Провайдер тағы қабылдамады. Себебін тексеріңіз."); }
+    } finally { setBusy(""); void reload(); }
   };
   return (
     <>
@@ -97,9 +101,10 @@ function FailedRefunds() {
         <div key={x.id} className={v.row} style={{ minHeight: 64 }}>
           <Tile e="a:payfail" size={36} />
           <span className={v.rowText}><span className={v.rowTitle}>{`${money(x.amount)} · ${x.customer}`}</span><span className={v.rowSub}>{[x.reason ?? "provider_error", x.at ? when(x.at, false) : ""].filter(Boolean).join(" · ")}</span></span>
-          <button className={`${v.chip} ${v.chipOn}`} disabled={busy === x.id} onClick={() => void retry(x.id)}>{busy === x.id ? "…" : "Қайта жіберу"}</button>
+          <button className={`${v.chip} ${v.chipOn}`} disabled={busy === x.id} onClick={() => { haptic.medium(); setAsk({ id: x.id, amount: x.amount }); }}>{busy === x.id ? "…" : "Қайта жіберу"}</button>
         </div>
       ))}</div>
+      {ask && <PinSheet text={`${money(ask.amount)} клиентке қайта жіберу.`} onClose={() => setAsk(null)} run={(pin) => retry(ask.id, pin)} />}
     </>
   );
 }

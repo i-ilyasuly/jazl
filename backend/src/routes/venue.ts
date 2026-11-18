@@ -327,7 +327,9 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const keepSizes = !draft;
     if (d.publish && draft && lowDiscount(sizes, d.regularUnitPrice)) return c.json({ ok: false, error: "low_discount" }, 409);
     { const max = d.publish && draft ? await bigDiscount(sizes, d.regularUnitPrice) : 0; if (max) return bigErr(c, max); }
-    { const max = d.publish ? await bigOffPeak(sizes, d.regularUnitPrice, d.rules.offPeak) : 0; if (max) return c.json({ ok: false, error: "big_off_peak", max }, 409); }
+    // Бос сағат шегі әрқашан (жарияланған ұсыныста да): бағасы сақталған көлемдермен тексеріледі
+    { const real = keepSizes ? ((cur.sizes as { units: number; price: number }[] | null) ?? [{ units: cur.units, price: cur.price }]) : sizes;
+      const max = d.publish || !draft ? await bigOffPeak(real, keepSizes ? cur.regularUnitPrice : d.regularUnitPrice, d.rules.offPeak) : 0; if (max) return c.json({ ok: false, error: "big_off_peak", max }, 409); }
     if (d.publish && draft && !(d.titleRu ?? cur.titleRu)) return c.json({ ok: false, error: "title_ru_required" }, 400);
     if (d.publish && draft && d.about && !(d.aboutRu ?? (cur.details as { aboutRu?: string } | null)?.aboutRu)) return c.json({ ok: false, error: "about_ru_required" }, 400);
     const next = d.publish && draft ? await statusAfterPublish() : cur.status;

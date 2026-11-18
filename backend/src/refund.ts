@@ -26,8 +26,10 @@ type PayMeta = { kind?: string; price?: number; count?: number; packIds?: string
 
 export async function refundPack(db: Db, cfg: Config, userId: string, packId: string) {
   const out = await db.transaction(async (tx) => {
-    const p = await one<{ id: string; user_id: string; status: string; source: string; units_left: number; units_total: number; price_paid: number; created_at: Date; venue_id: string; title: string }>(tx,
-      sql`select p.*, o.venue_id, o.title from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${packId} for update of p`);
+    const p = await one<{ id: string; user_id: string; status: string; source: string; units_left: number; units_total: number; price_paid: number; created_at: Date; venue_id: string; title: string; unit_name: string; venue_name: string; address: string | null }>(tx,
+      sql`select p.*, o.venue_id, o.title, o.unit_name, v.name as venue_name,
+            (select b.address from app.branches b where b.venue_id = v.id and b.active order by b.created_at limit 1) as address
+          from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where p.id = ${packId} for update of p`);
     if (!p) throw new RefundError("not_found", 404);
     const gift = await one<{ id: string; status: string; from_user_id: string }>(tx, sql`select id, status, from_user_id from app.gifts where pack_id = ${p.id} for update`);
     // Кім қайтара алады
@@ -87,7 +89,7 @@ export async function refundPack(db: Db, cfg: Config, userId: string, packId: st
     const now = new Date();
     const note = [cash ? `${fmt(cash)} төлем тәсіліңе 1–3 жұмыс күнінде түседі` : "", bonusBack ? `${fmt(bonusBack)} Medeo бонусыңа қайтты` : ""].filter(Boolean).join(". ");
     const rc = await one<{ id: string; no: number }>(tx, sql`insert into app.receipts (kind, user_id, pack_id, payment_id, venue_id, total, public, internal) values ('refund', ${userId}, ${p.id}, ${pay?.id ?? null}, ${p.venue_id}, ${-p.price_paid},
-      ${JSON.stringify({ title: "Ақша қайтарылды", status: "Қайтарылды", dateLocal: almaty(now), item: { title: p.title, units: p.units_total }, refund: { cash, bonus: bonusBack, carriedBack: carry?.units ?? 0 }, note })}::jsonb,
+      ${JSON.stringify({ title: "Ақша қайтарылды", status: "Қайтарылды", dateLocal: almaty(now), seller: { name: p.venue_name, address: p.address, bin: null }, item: { title: p.title, units: p.units_total, unitName: p.unit_name }, refund: { cash, bonus: bonusBack, carriedBack: carry?.units ?? 0 }, note })}::jsonb,
       ${JSON.stringify({ version: 1, amount: p.price_paid, cash, bonus: bonusBack, reason: "unused_within_" + REFUND_DAYS + "d", gift: gift ? gift.id : null, status: { current: "refunded", history: [{ status: "refunded", at: now }] } })}::jsonb) returning id, no`);
     return { paymentId: cash > 0 ? pay!.id : null, refunded: p.price_paid, cash, bonus: bonusBack, carriedBack: carry?.units ?? 0, receipt: { id: rc!.id, no: "MD-" + rc!.no } };
   });

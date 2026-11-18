@@ -137,6 +137,8 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
       return c.json({ ok: true, autoRenew: false });
     }
     if (!["active", "used", "expired"].includes(p.status) || p.renewedTo) return c.json({ ok: false, error: "pack_" + p.status }, 409);
+    // Біткен пакетте қосуға болмайды (бірден ақша алынып кетер еді) — оны «Қайта алу» арқылы аласыз
+    if (p.unitsLeft < 1 || p.validUntil.getTime() < Date.now()) return c.json({ ok: false, error: "pack_finished" }, 409);
     if (!b.data.cardId) return c.json({ ok: false, error: "card_required" }, 400);
     const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, b.data.cardId), eq(paymentCards.userId, user.id), isNull(paymentCards.removedAt))).limit(1);
     if (!pc) return c.json({ ok: false, error: "card_not_found" }, 404);

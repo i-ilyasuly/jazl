@@ -68,6 +68,10 @@ d("Жаңа мүмкіндіктер", () => {
     expect((await pj("/v1/redeem", { packId: r.pack.id, qr: makeDynamicQr(TOKEN, damdi, 1).payload, units: 1, idempotencyKey: key() })).error).toBe("plan_only");
     const cat = await (await app.request("/v1/catalog")).json();
     expect(cat.offers.find((o: { slug: string }) => o.slug === "doner").rules.offPeak).toMatchObject({ from: "10:00", to: "12:00", pct: 10 });
+    // Бос сағат пакетін қайта алса — жаңасы да бос сағатпен (арзан бірлік шектеусіз пакетке өтпейді)
+    await q("update app.packs set units_left = 2 where id=$1", [r.pack.id]);
+    const rb = await buy({ fromPackId: r.pack.id });
+    expect((await q("select price_paid, off_peak->>'pct' pct, units_total from app.packs where id=$1", [rb.pack.id]))[0]).toEqual({ price_paid: 5400, pct: "10", units_total: 6 });
     // Терезе жоқ ұсыныста бос сағатпен алу — 409
     expect((await buy({ offPeak: true }, 901, "latte")).error).toBe("no_off_peak");
     await q(`update app.offers set rules = rules - 'planOnly' - 'offPeak' where slug = 'doner'`);
@@ -93,16 +97,22 @@ d("Жаңа мүмкіндіктер", () => {
   it("автожаңарту: пакет біткенде сақталған картадан бір рет қана; қайта іске қосылса — екінші рет алынбайды", async () => {
     const p = (await buy({}, 903)).pack.id;
     expect((await post(`/v1/packs/${p}/auto-renew`, { on: true }, 903)).status).toBe(400); // картасыз — болмайды
+    // Соңғы бірлік жоспарға жазылған болса — қызмет көрсетілгенше ақша алынбайды
     const cid = await card("4242", 903);
     expect((await pj(`/v1/packs/${p}/auto-renew`, { on: true, cardId: cid }, 903))).toMatchObject({ ok: true, autoRenew: true });
     expect(await autoRenewTick(dbh.db, cfg)).toBe(0); // әлі біткен жоқ
+    const branch = (await q("select b.id from app.branches b join app.venues v on v.id=b.venue_id where v.slug='damdi'"))[0].id;
+    await q("update app.packs set units_left = 0 where id=$1", [p]);
+    const od = (await q("insert into app.orders (type, pack_id, user_id, branch_id, scheduled_at, code, status) select 'plan', id, user_id, $2, now() + interval '1 day', '1234', 'accepted' from app.packs where id=$1 returning id", [p, branch]))[0].id;
+    expect(await autoRenewTick(dbh.db, cfg)).toBe(0); // жазылған келу әлі орындалмады
+    await q("update app.orders set status = 'done' where id=$1", [od]);
     await q("update app.packs set units_left = 1, valid_until = now() - interval '1 day' where id=$1", [p]);
     expect(await autoRenewTick(dbh.db, cfg)).toBe(1);
     const old = (await q("select renewed_to, units_left from app.packs where id=$1", [p]))[0];
     expect(old.units_left).toBe(0);
     const np = (await q("select status, units_total, value_total, auto_renew, source from app.packs where id=$1", [old.renewed_to]))[0];
     expect(np).toEqual({ status: "active", units_total: 5, value_total: 6000 + 1500, auto_renew: true, source: "rebuy" });
-    expect((await q("select provider, amount from app.payments where idempotency_key=$1", ["renew_" + p]))[0]).toEqual({ provider: "test", amount: 6000 });
+    expect((await q("select provider, amount from app.payments where idempotency_key like $1", ["renew_" + p + "_%"]))[0]).toEqual({ provider: "test", amount: 6000 });
     expect(await autoRenewTick(dbh.db, cfg)).toBe(0); // екінші рет — жоқ
     expect((await q("select count(*)::int n from app.payments where idempotency_key like 'renew_%' and user_id = (select user_id from app.packs where id=$1)", [p]))[0].n).toBe(1);
   });
@@ -113,13 +123,20 @@ d("Жаңа мүмкіндіктер", () => {
     await q("update app.packs set units_left = 0, status = 'used' where id=$1", [a]);
     expect(await autoRenewTick(dbh.db, cfg)).toBe(0);
     expect((await q("select auto_renew, renewed_to from app.packs where id=$1", [a]))[0]).toEqual({ auto_renew: false, renewed_to: null });
+    // Біткен пакетте қосуға болмайды; белсенді пакетте басқа картамен қайта қосса — жаңа келісім, жаңа әрекет (бұрынғы сәтсіз кілт кедергі емес)
+    expect((await pj(`/v1/packs/${a}/auto-renew`, { on: true, cardId: await card("4242", 904) }, 904)).error).toBe("pack_finished");
+    await q("update app.packs set units_left = 1, status = 'active' where id=$1", [a]);
+    await new Promise((r) => setTimeout(r, 1100)); // келісім уақыты (секунд) өзгерсін
+    expect((await pj(`/v1/packs/${a}/auto-renew`, { on: true, cardId: await card("4242", 904) }, 904)).ok).toBe(true);
+    await q("update app.packs set units_left = 0, status = 'used' where id=$1", [a]);
+    expect(await autoRenewTick(dbh.db, cfg)).toBe(1);
     const b = (await buy({}, 905)).pack.id;
     await pj(`/v1/packs/${b}/auto-renew`, { on: true, cardId: await card("4242", 905) }, 905);
     await q("update app.packs set units_left = 0, status = 'used' where id=$1", [b]);
     await q("update app.offers set price = price + 500 where slug='doner'");
     expect(await autoRenewTick(dbh.db, cfg)).toBe(0);
     expect((await q("select auto_renew from app.packs where id=$1", [b]))[0].auto_renew).toBe(false);
-    expect((await q("select count(*)::int n from app.payments where idempotency_key=$1", ["renew_" + b]))[0].n).toBe(0);
+    expect((await q("select count(*)::int n from app.payments where idempotency_key like $1", ["renew_" + b + "_%"]))[0].n).toBe(0);
     await q("update app.offers set price = price - 500 where slug='doner'");
   });
 
