@@ -48,15 +48,13 @@ d("API", () => {
     const res = await createApp(cfg2, dbh.db).request("/v1/me", { headers: { Authorization: "tma " + raw } });
     expect(res.status).toBe(200);
   });
-  it("Medeo. атауына ауысу: ескі ботпен (LEGACY_MINIAPP_BOT_TOKEN) ашылған мини апп та өтеді; JAZL_FEE_PCT ескі айнымалысы оқылады", async () => {
-    const cfg3 = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, MINIAPP_BOT_TOKEN: "888:NEW", LEGACY_MINIAPP_BOT_TOKEN: "777:OLD", DB_SSL: "disable", NODE_ENV: "test", JAZL_FEE_PCT: "8" });
+  it("ескі бот өшірілді: тек Medeo ботымен қол қойылған мини апп өтеді, ескі бот токені өтпейді; JAZL_FEE_PCT ескі айнымалысы оқылады", async () => {
+    const cfg3 = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, MINIAPP_BOT_TOKEN: "888:NEW", DB_SSL: "disable", NODE_ENV: "test", JAZL_FEE_PCT: "8" });
     expect(cfg3.MEDEO_FEE_PCT).toBe(8);
     const app3 = createApp(cfg3, dbh.db);
-    for (const t of ["888:NEW", "777:OLD"]) {
-      const raw = signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: 78, first_name: "Бот" }) }, t);
-      expect((await app3.request("/v1/me", { headers: { Authorization: "tma " + raw } })).status).toBe(200);
-    }
-    const bad = signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: 78, first_name: "Бот" }) }, "999:OTHER");
+    const ok = signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: 78, first_name: "Бот" }) }, "888:NEW");
+    expect((await app3.request("/v1/me", { headers: { Authorization: "tma " + ok } })).status).toBe(200);
+    const bad = signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: 78, first_name: "Бот" }) }, "777:OLD");
     expect((await app3.request("/v1/me", { headers: { Authorization: "tma " + bad } })).status).toBe(401);
   });
   it("кіру: пайдаланушы бір рет жазылады, аты жаңарады", async () => {

@@ -627,7 +627,7 @@ export function adminWebRoutes(cfg: Config, db: Db) {
   r.post("/login", async (c) => {
     const b = Body.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
-    const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.LEGACY_MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));
+    const tokens = [cfg.MINIAPP_BOT_TOKEN, cfg.BOT_TOKEN].filter((t): t is string => Boolean(t));
     let v = validateLoginWidget(b.data.auth, tokens[0], 24 * 3600);
     for (const t of tokens.slice(1)) { if (v.ok || v.reason !== "bad_hash") break; v = validateLoginWidget(b.data.auth, t, 24 * 3600); }
     if (!v.ok) return c.json({ ok: false, error: "unauthorized", reason: v.reason }, 401);
