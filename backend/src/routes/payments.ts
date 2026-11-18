@@ -1,13 +1,13 @@
 // Карта төлемі (src/payments): сақталған карталар, төлем күйі, 3-D Secure (сынақта — мини апптағы банк растауының үлгісі), провайдер вебхугы.
 import { releaseBonus } from "../bonus.js";
 import { Hono } from "hono";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import { paymentCards, payments } from "../db/schema.js";
-import { paymentProvider } from "../payments/index.js";
+import { paymentProvider, providerByName } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
 import { finalizePurchase, paymentReply, saveCard } from "./purchases.js";
 import { finalizeExtend } from "./b4.js";
@@ -69,8 +69,9 @@ export function paymentRoutes(cfg: Config, db: Db) {
 export function paymentWebhookRoutes(cfg: Config, db: Db) {
   const r = new Hono();
   r.post("/:provider", async (c) => {
-    const p = paymentProvider(cfg);
-    if (c.req.param("provider") !== p.name) return c.json({ ok: false, error: "not_found" }, 404);
+    // Вебхук өз провайдеріне: жаңа банкке ауысқаннан кейін де ескі төлемдердің хабары қабылданады
+    const p = providerByName(cfg, c.req.param("provider"));
+    if (!p) return c.json({ ok: false, error: "not_found" }, 404);
     const raw = await c.req.text();
     const headers: Record<string, string> = {}; c.req.raw.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
     const ev = await p.webhook({ headers, body: raw });
@@ -79,6 +80,12 @@ export function paymentWebhookRoutes(cfg: Config, db: Db) {
       ? await db.select().from(payments).where(and(eq(payments.id, ev.paymentId), eq(payments.provider, p.name))).limit(1)
       : await db.select().from(payments).where(and(eq(payments.externalId, ev.externalId), eq(payments.provider, p.name))).limit(1);
     if (!pay) return c.json({ ok: true, ignored: true }); // бізде жоқ төлем — 200, провайдер қайта жібермесін
+    // Сома сәйкес келмесе — төлемді растамаймыз (қате не алаяқтық): Басқару қолмен қарайды
+    if (ev.status === "paid" && ev.amount !== undefined && Number(ev.amount) !== Number(pay.amount)) {
+      console.error("webhook amount mismatch", pay.id, ev.amount, pay.amount);
+      await db.update(payments).set({ meta: sql`coalesce(${payments.meta}, '{}'::jsonb) || ${JSON.stringify({ amountMismatch: ev.amount })}::jsonb` }).where(eq(payments.id, pay.id));
+      return c.json({ ok: false, error: "amount_mismatch" }, 409);
+    }
     if (ev.status === "paid") {
       if (ev.card && pay.userId) await saveCard(db, p.name, pay.userId, ev.card);
       const out = await finalizePayment(db, cfg, pay);

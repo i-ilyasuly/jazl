@@ -80,9 +80,10 @@ export function ARefunds() {
   );
 }
 
+const REFUND_WHY: Record<string, string> = { declined: "Банк қабылдамады", provider_unavailable: "Төлем провайдері бапталмаған", refund_not_supported: "Провайдер қайтаруды қолдамайды", no_external_id: "Төлем нөмірі жоқ", provider_error: "Провайдер қатесі" };
 /** Провайдер қабылдамаған ақшалай қайтарулар (2026-11-18): клиент ақшасын әлі алмаған — «Қайта жіберу» */
 function FailedRefunds() {
-  const [d, , reload] = useCached<{ refunds: { id: string; amount: number; reason: string | null; at: string | null; customer: string }[] }>("a:refunds-failed", () => A("/refunds/failed"));
+  const [d, , reload] = useCached<{ refunds: { id: string; amount: number; status: string | null; reason: string | null; at: string | null; customer: string }[] }>("a:refunds-failed", () => A("/refunds/failed"));
   const [busy, setBusy] = useState("");
   const [ask, setAsk] = useState<{ id: string; amount: number } | null>(null);
   if (!d || d.refunds.length === 0) return null;
@@ -100,8 +101,9 @@ function FailedRefunds() {
       <div className={v.card}>{d.refunds.map((x) => (
         <div key={x.id} className={v.row} style={{ minHeight: 64 }}>
           <Tile e="a:payfail" size={36} />
-          <span className={v.rowText}><span className={v.rowTitle}>{`${money(x.amount)} · ${x.customer}`}</span><span className={v.rowSub}>{[x.reason ?? "provider_error", x.at ? when(x.at, false) : ""].filter(Boolean).join(" · ")}</span></span>
-          <button className={`${v.chip} ${v.chipOn}`} disabled={busy === x.id} onClick={() => { haptic.medium(); setAsk({ id: x.id, amount: x.amount }); }}>{busy === x.id ? "…" : "Қайта жіберу"}</button>
+          <span className={v.rowText}><span className={v.rowTitle}>{`${money(x.amount)} · ${x.customer}`}</span><span className={v.rowSub} style={{ whiteSpace: "normal" }}>{[x.status === "pending" ? "Провайдерден жауап келмеді: ақша қайтты ма — кабинеттен тексеріңіз" : REFUND_WHY[x.reason ?? ""] ?? x.reason ?? "Провайдер қатесі", x.at ? when(x.at, false) : ""].filter(Boolean).join(" · ")}</span></span>
+          {/* Жауабы белгісіз қайтаруды қайта жібермейміз — ақша екі рет қайтуы мүмкін */}
+          {x.status === "failed" && <button className={`${v.chip} ${v.chipOn}`} disabled={busy === x.id} onClick={() => { haptic.medium(); setAsk({ id: x.id, amount: x.amount }); }}>{busy === x.id ? "…" : "Қайта жіберу"}</button>}
         </div>
       ))}</div>
       {ask && <PinSheet text={`${money(ask.amount)} клиентке қайта жіберу.`} onClose={() => setAsk(null)} run={(pin) => retry(ask.id, pin)} />}

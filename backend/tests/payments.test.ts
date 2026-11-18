@@ -93,6 +93,26 @@ d("Карта төлемі", () => {
     expect((await dbh.pool.query("select count(*)::int as n from app.receipts where payment_id = $1", [j.paymentId])).rows[0].n).toBe(1);
   });
 
+  it("вебхук: сома сәйкес келмесе — 409, төлем расталмайды; белгісіз провайдер — 404", async () => {
+    const j = await (await buy({ cryptogram: makeTestCryptogram("5556") })).json();
+    const ext = (await dbh.pool.query("select external_id from app.payments where id = $1", [j.paymentId])).rows[0].external_id;
+    const body = JSON.stringify({ externalId: ext, status: "paid", amount: 1 });
+    const sig = (paymentProvider(cfg) as unknown as { sign: (b: string) => string }).sign(body);
+    expect((await app.request("/payments/webhook/test", { method: "POST", body, headers: { "x-test-signature": sig } })).status).toBe(409);
+    expect((await (await get(`/v1/payments/${j.paymentId}`)).json()).status).not.toBe("paid");
+    expect((await app.request("/payments/webhook/nobank", { method: "POST", body, headers: {} })).status).toBe(404);
+  });
+
+  it("қайтару: провайдерден жауап келмесе — «белгісіз» (pending), «сәтсіз» емес: Басқару қайта жібере алмайды", async () => {
+    const { pushRefund } = await import("../src/refund.js");
+    const p = paymentProvider(cfg); const orig = p.refund;
+    const pid = (await dbh.pool.query("select id from app.payments where status = 'paid' and provider = 'test' order by created_at desc limit 1")).rows[0].id;
+    await dbh.pool.query("update app.payments set refund_status = 'pending', refunded = 100, meta = coalesce(meta, '{}'::jsonb) || '{\"lastRefund\": 100}'::jsonb where id = $1", [pid]);
+    p.refund = async () => { throw new Error("timeout"); };
+    try { expect(await pushRefund(dbh.db, cfg, pid)).toBe("unknown"); } finally { p.refund = orig; }
+    expect((await dbh.pool.query("select refund_status, refund_failure from app.payments where id = $1", [pid])).rows[0]).toEqual({ refund_status: "pending", refund_failure: "provider_no_answer" });
+  });
+
   it("карта өшіру; басқа адамның төлемі мен картасы көрінбейді", async () => {
     const card = (await (await get("/v1/cards")).json()).cards[0];
     expect((await get("/v1/cards", 1102).then((r) => r.json())).cards).toEqual([]);
