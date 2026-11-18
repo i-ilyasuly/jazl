@@ -148,6 +148,8 @@ export function Scan() {
         if (!r) { setTimeout(() => finish(), 1200); return; }
         if (r.ok) { srvLeft = r.left; finish(); return; }
         if (r.error === "units_mismatch") { finish("amount"); return; }
+        // Көп филиал: пакет мекеменің тек кейбір филиалдарында жүреді — жарамды мекенжайларды көрсетеміз
+        if (r.error === "other_branch") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/otherbranch?b=${encodeURIComponent((r.branches ?? []).join("\n"))}`, "up", { replace: true }); return; }
         if (r.error === "other_venue") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/othervenue?v=${encodeURIComponent(r.venue ?? "")}`, "up", { replace: true }); return; }
         const map: Record<string, ScanKind> = { branch_closed: "closed", other_offer: "nopack", qr_used: "expired", qr_cancelled: "expired", not_medeo_qr: "notqr", not_jazl_qr: "notqr", /* ескі сервер (Medeo.-ға дейінгі) */ bad_qr: "notqr", qr_expired: "expired", amount_mismatch: "amount", plan_only: "planonly", branch_not_found: "notpartner", no_units: "nopack", pack_expired: "nopack", pack_used: "nopack", network: "fail" };
         finish(map[r.error] ?? "fail");

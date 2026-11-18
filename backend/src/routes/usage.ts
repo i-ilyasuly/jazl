@@ -27,10 +27,10 @@ class UseError extends Error { constructor(public code: string, public status: 4
 /** Пакеттен n бірлік алады (жолды бұғаттап). Қате болса UseError. check — бұғаттан кейінгі қосымша тексеру (мекеме, сома).
  *  amount — осы бірліктердің құны (value.ts: көшірілген құн ескеріледі, қалдық тиын соңғы бірлікке), feePct — сол сәттегі Medeo комиссиясы. */
 async function takeUnit(tx: Tx, packId: string, userId: string, n: number, defFee: number, check?: (p: { venueId: string; offerId: string; unitPrice: number; units_left: number; planOnly: boolean; offPeak: OffPeakT | null }) => void) {
-  const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug, coalesce((o.rules->>'planOnly')::boolean, false) as "planOnly",
+  const res = await tx.execute(sql`select p.*, o.venue_id as "venueId", o.title, o.unit_name as "unitName", o.slug, coalesce((o.rules->>'planOnly')::boolean, false) as "planOnly", o.rules->'branches' as "onlyBranches",
       coalesce(v.fee_pct, v.auto_fee_pct, ${defFee})::int as "feePct"
     from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where p.id = ${packId} and p.user_id = ${userId} for update of p`);
-  const p = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; price_paid: number; value_total: number; off_peak: OffPeakT | null; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string; planOnly: boolean; feePct: number } | undefined;
+  const p = res.rows[0] as { id: string; offer_id: string; units_left: number; units_total: number; price_paid: number; value_total: number; off_peak: OffPeakT | null; valid_until: Date; status: string; venueId: string; title: string; unitName: string; slug: string; planOnly: boolean; feePct: number; onlyBranches: string[] | null } | undefined;
   if (!p) throw new UseError("pack_not_found", 404);
   if (p.status !== "active") throw new UseError("pack_" + p.status);
   if (new Date(p.valid_until).getTime() < Date.now()) throw new UseError("pack_expired");
@@ -42,6 +42,14 @@ async function takeUnit(tx: Tx, packId: string, userId: string, n: number, defFe
   const amount = takeValue(p.value_total, p.units_total, p.units_left, n);
   await tx.update(packs).set({ unitsLeft: left, status: left === 0 ? "used" : "active" }).where(eq(packs.id, packId));
   return { ...p, left, unitPrice, amount };
+}
+
+/** Көп филиал (2026-11-18, Тұран шешімі): ұсыныс тек таңдалған филиалдарда жүрсе (rules.branches), басқа филиалда қолданылмайды.
+ *  Қате ішінде клиентке жарамды филиалдардың мекенжайлары беріледі. Транзакция ішінде шақырылады — қате болса бірлік қайтады. */
+async function assertBranch(tx: Tx, only: string[] | null, branchId: string) {
+  if (!Array.isArray(only) || !only.length || only.includes(branchId)) return;
+  const rows = await tx.select({ address: branches.address }).from(branches).where(and(inArray(branches.id, only), eq(branches.active, true))).orderBy(branches.createdAt);
+  throw new UseError("other_branch", 409, { branches: rows.map((r) => r.address) });
 }
 
 function meta(c: Context<Env>, user: User) {
@@ -138,6 +146,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
             if (k !== units) throw new UseError("units_mismatch", 409, { expectedUnits: k, amount: q.amount, unitPrice: x.unitPrice });
           }
         });
+        await assertBranch(tx, p.onlyBranches, branchId);
         const [rd] = await tx.insert(redemptions).values({ packId: p.id, branchId, units, idempotencyKey: b.data.idempotencyKey, cashierId: ss?.s.createdBy ?? null, amount: p.amount, feePct: p.feePct }).returning();
         if (ss) await tx.update(qrSessions).set({ redemptionId: rd.id }).where(eq(qrSessions.id, ss.s.id));
         await tx.insert(packEvents).values({ packId: p.id, type: "use", unitsDelta: -units, meta: { via: "scan", qr: q.kind, branchId, redemptionId: rd.id } });
@@ -175,8 +184,11 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
         if (at && at.getTime() > new Date(p.valid_until).getTime()) throw new UseError("slot_after_expiry", 400);
         const [v] = await tx.select().from(venues).where(eq(venues.id, p.venueId));
         if (d.type === "now" && !v.acceptsPreorder) throw new UseError("no_preorder");
-        const [br] = d.branchId ? await tx.select().from(branches).where(and(eq(branches.id, d.branchId), eq(branches.venueId, v.id))) : await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true))).limit(1);
+        const only = Array.isArray(p.onlyBranches) && p.onlyBranches.length ? p.onlyBranches : null;
+        const [br] = d.branchId ? await tx.select().from(branches).where(and(eq(branches.id, d.branchId), eq(branches.venueId, v.id)))
+          : await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true), only ? inArray(branches.id, only) : undefined)).orderBy(branches.createdAt).limit(1);
         if (!br) throw new UseError("branch_not_found", 404);
+        await assertBranch(tx, only, br.id);
         const code = String(randomInt(1000, 10000));
         const [o] = await tx.insert(orders).values({ type: d.type, packId: p.id, userId: user.id, branchId: br.id, scheduledAt: at, code, courier: d.courier ?? false, idempotencyKey: d.idempotencyKey, amount: p.amount, feePct: p.feePct }).returning();
         await tx.insert(packEvents).values({ packId: p.id, type: d.type === "plan" ? "plan" : "order", unitsDelta: -1, meta: { orderId: o.id, orderNo: o.no, scheduledAt: at } });

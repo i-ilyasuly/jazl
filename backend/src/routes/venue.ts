@@ -287,6 +287,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const max = (await getSettings(db)).offPeakMaxDiscount;
     return sizes.some((x) => offPeakPrice(x.price, w.pct) < Math.ceil((x.units * regular * (100 - max)) / 100)) ? max : 0;
   };
+  /** Көп филиал: ұсыныстың «тек осы филиалдарда» тізімінде тек осы мекеменің белсенді филиалдары қалады; бос болса — барлық филиал (null) */
+  const ownBranches = async (venueId: string, ids: string[] | null) => {
+    if (!ids?.length) return null;
+    const ok = (await db.select({ id: branches.id }).from(branches).where(and(eq(branches.venueId, venueId), eq(branches.active, true), inArray(branches.id, ids)))).map((x) => x.id);
+    return ok.length ? ok : null;
+  };
   const slugOf = (t: string) => {
     const map: Record<string, string> = { а: "a", ә: "a", б: "b", в: "v", г: "g", ғ: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i", й: "i", к: "k", қ: "q", л: "l", м: "m", н: "n", ң: "n", о: "o", ө: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ұ: "u", ү: "u", ф: "f", х: "h", һ: "h", ц: "c", ч: "ch", ш: "sh", щ: "sh", ъ: "", ы: "y", і: "i", ь: "", э: "e", ю: "yu", я: "ya" };
     const base = [...t.toLowerCase()].map((ch) => map[ch] ?? ch).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "offer";
@@ -308,7 +314,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (d.publish && d.about && !d.aboutRu) return c.json({ ok: false, error: "about_ru_required" }, 400);
     const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
     const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, titleRu: d.titleRu ?? null, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
-      regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about, aboutRu: d.aboutRu ?? null }, photos: d.photos, category: d.category ?? null, rules: d.rules,
+      regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about, aboutRu: d.aboutRu ?? null }, photos: d.photos, category: d.category ?? null, rules: { ...d.rules, branches: await ownBranches(venueId, d.rules.branches) },
       status: d.publish ? await statusAfterPublish() : "draft" }).returning();
     if (o.status === "review") await notify?.adminModeration(o.id);
     return c.json({ ok: true, offer: { id: o.id, status: o.status } });
@@ -334,7 +340,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (d.publish && draft && d.about && !(d.aboutRu ?? (cur.details as { aboutRu?: string } | null)?.aboutRu)) return c.json({ ok: false, error: "about_ru_required" }, 400);
     const next = d.publish && draft ? await statusAfterPublish() : cur.status;
     await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, titleRu: d.titleRu ?? cur.titleRu, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about, ...(d.aboutRu !== undefined ? { aboutRu: d.aboutRu } : {}) },
-      category: d.category ?? null, rules: d.rules, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
+      category: d.category ?? null, rules: { ...d.rules, branches: await ownBranches(venueId, d.rules.branches) }, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
       ...(keepSizes ? {} : { units: sizes[0].units, price: sizes[0].price, sizes: sizes.length > 1 ? sizes : null }),
       ...(d.publish && draft ? { status: next, reviewNote: null } : {}) }).where(eq(offers.id, cur.id)); // түзетіп қайта жіберсе — ескерту өшеді
     if (d.publish && draft && next === "review") await notify?.adminModeration(cur.id);
