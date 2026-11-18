@@ -31,10 +31,11 @@ d("Пакет картасы", () => {
   const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test" });
   let dbh: ReturnType<typeof createDb>; let app: ReturnType<typeof createApp>; let damdi = "";
   const calls: { method: string; body: Record<string, unknown> }[] = [];
-  let failSend = false; let mid = 500;
+  let failSend = false; let refuse = false; let mid = 500;
   const call: TgCall = async (method, body) => {
     calls.push({ method, body: body as Record<string, unknown> });
-    if (method === "sendWidget") return failSend ? { ok: false, description: "Bad Request: method not found" } : { ok: true, result: { message_id: ++mid } };
+    if (method === "sendWidget") return refuse ? { ok: false, description: "Bad Request: INPUT_MEDIA_WIDGET_NOT_ALLOWED" } : failSend ? { ok: false, description: "Forbidden: bot was blocked by the user" } : { ok: true, result: { message_id: ++mid } };
+    if (method === "sendMessage") return { ok: true, result: { message_id: ++mid } };
     return { ok: true, result: true };
   };
   const h = (id = 9101) => ({ Authorization: "tma " + signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id, first_name: "К" }) }, TOKEN), "Content-Type": "application/json" });
@@ -83,10 +84,32 @@ d("Пакет картасы", () => {
     failSend = true;
     const pack2 = (await pj("/v1/purchases", { offerSlug: "doner", method: "test", idempotencyKey: key() }, 9102)).pack.id;
     await tick();
-    expect((await dbh.pool.query("select widget_msg_id from app.packs where id = $1", [pack2])).rows[0].widget_msg_id).toBe(-1);
+    expect((await dbh.pool.query("select widget_msg_id from app.packs where id = $1", [pack2])).rows[0].widget_msg_id).toBe(-2);
     const before = of("sendWidget").length;
     await app2.request("/cron/tick", { method: "POST", headers: { "X-Cron-Key": "cron-key-1234567890" } });
     expect(of("sendWidget").length).toBe(before);
     failSend = false;
+  });
+
+  it("Telegram виджетті жапса (INPUT_MEDIA_WIDGET_NOT_ALLOWED) — мәтіндік карта, қолданғанда editMessageText (батырмасымен), келесісі бірден мәтінмен", async () => {
+    const { _resetWidgetRefusal } = await import("../src/bot/packCard.js");
+    _resetWidgetRefusal(); refuse = true;
+    const pack = (await pj("/v1/purchases", { offerSlug: "doner", method: "test", idempotencyKey: key() }, 9103)).pack.id;
+    await tick();
+    const msg = of("sendMessage").at(-1)!;
+    expect(msg.body.chat_id).toBe(9103);
+    expect(String(msg.body.text)).toContain("<b>4</b> / 4 қалды");
+    expect(String(msg.body.text)).toContain("▰▰▰▰");
+    expect((await dbh.pool.query("select widget_msg_id, widget_state from app.packs where id = $1", [pack])).rows[0].widget_state).toMatch(/^T\|/);
+    expect((await pj("/v1/redeem", { packId: pack, qr: makeDynamicQr(TOKEN, damdi, 1).payload, units: 1, idempotencyKey: key() }, 9103)).ok).toBe(true);
+    await tick();
+    const ed = of("editMessageText").at(-1)!;
+    expect(String(ed.body.text)).toContain("<b>3</b> / 4 қалды");
+    expect(JSON.stringify(ed.body.reply_markup)).toContain(`pk_${pack}`);
+    const widgetsBefore = of("sendWidget").length;
+    await pj("/v1/purchases", { offerSlug: "doner", method: "test", idempotencyKey: key() }, 9103);
+    await tick();
+    expect(of("sendWidget").length).toBe(widgetsBefore); // бас тартқан соң виджетті қайта сұрамаймыз
+    refuse = false; _resetWidgetRefusal();
   });
 });

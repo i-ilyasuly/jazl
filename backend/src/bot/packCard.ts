@@ -51,6 +51,21 @@ export function cardState(p: PackRow) {
   return JSON.stringify({ id: p.id, t: title, v: p.venue.slice(0, 60), l: p.units_left, n: p.units_total, d: untilText(new Date(p.valid_until), l), s });
 }
 
+const escH = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+/** Мәтіндік карта (виджет жабық болса — 2026-11-13-тен Telegram виджеттерді тек ақ тізімдегі боттарға береді): кәдімгі хабарлама, өзгергенде editMessageText */
+export function packCardText(state: string, lang: BotLang) {
+  const d = JSON.parse(state) as { t: string; v: string; l: number; n: number; d: string; s: string };
+  const ru = lang === "ru";
+  const k = Math.min(d.n, 10), on = d.n ? Math.round((d.l * k) / d.n) : 0;
+  const bar = "▰".repeat(on) + "▱".repeat(k - on);
+  const st = d.s === "a" ? d.d : d.s === "u" ? (ru ? "Пакет полностью использован" : "Пакет толық қолданылды") : d.s === "e" ? (ru ? "⏳ Срок истёк" : "⏳ Мерзімі бітті") : (ru ? "↩️ Возвращён" : "↩️ Қайтарылды");
+  return `🎟 <b>${escH(d.t)}</b>\n${escH(d.v)}\n\n<b>${d.l}</b> / ${d.n} ${ru ? "осталось" : "қалды"}   ${bar}\n${escH(st)}`;
+}
+/** Telegram виджетті қайтарса (NOT_ALLOWED) — осы процесс бойы бірден мәтіндік картамен жібереміз (әр сатып алуда бос сұрау жасамау үшін) */
+let widgetsRefused = false;
+export const _resetWidgetRefusal = () => { widgetsRefused = false; };
+const TEXT = "T|"; // widget_state басындағы белгі: бұл карта — мәтіндік хабарлама
+
 export function packCards(cfg: Config, db: Db, call: TgCall) {
   const bot = cfg.MINIAPP_BOT_USERNAME;
   const q = (where: ReturnType<typeof sql>) => db.execute(sql`select p.id, u.telegram_id as tg, u.lang, o.title, o.title_ru, v.name as venue, p.units_left, p.units_total, p.valid_until, p.status, p.widget_msg_id, p.widget_state
@@ -61,19 +76,35 @@ export function packCards(cfg: Config, db: Db, call: TgCall) {
     const state = cardState(p);
     const title = (l === "ru" && p.title_ru ? p.title_ru : p.title);
     // Бірінші болып иелік алады (екі қатар шақыру екі карта жібермесін): 0 — «жіберілуде»
-    const claimed = (await db.execute(sql`update app.packs set widget_msg_id = 0 where id = ${p.id} and widget_msg_id is null returning id`)).rows.length;
+    const claimed = (await db.execute(sql`update app.packs set widget_msg_id = 0 where id = ${p.id} and (widget_msg_id is null or widget_msg_id = -1) returning id`)).rows.length;
     if (!claimed) return;
-    const r = await call("sendWidget", { chat_id: Number(p.tg), html: packCardHtml(l, bot), chat_data: state, height: 0,
-      caption: `${L[l].cap}: ${title} — ${p.venue}`, reply_markup: { inline_keyboard: [[{ text: L[l].open, url: `https://t.me/${bot}?startapp=pk_${p.id}`, style: "primary" }]] }, disable_notification: true });
+    const markup = { inline_keyboard: [[{ text: L[l].open, url: `https://t.me/${bot}?startapp=pk_${p.id}`, style: "primary" }]] };
+    let r = widgetsRefused ? { ok: false, description: "INPUT_MEDIA_WIDGET_NOT_ALLOWED" } : await call("sendWidget", { chat_id: Number(p.tg), html: packCardHtml(l, bot), chat_data: state, height: 0,
+      caption: `${L[l].cap}: ${title} — ${p.venue}`, reply_markup: markup, disable_notification: true });
+    let saved = state;
+    if (!r.ok && /WIDGET_NOT_ALLOWED/i.test(r.description ?? "")) {
+      // Виджет жабық — сол картаның мәтіндік нұсқасы (санағы бәрібір жаңарып тұрады)
+      if (!widgetsRefused) console.warn("packCard: виджет жабық, мәтіндік карта");
+      widgetsRefused = true;
+      r = await call("sendMessage", { chat_id: Number(p.tg), text: packCardText(state, l), parse_mode: "HTML", reply_markup: markup, disable_notification: true });
+      saved = TEXT + state;
+    }
     const msgId = (r.result as { message_id?: number } | undefined)?.message_id;
-    await db.execute(sql`update app.packs set widget_msg_id = ${r.ok && msgId ? msgId : -1}, widget_state = ${r.ok ? state : null} where id = ${p.id}`);
+    // -2 — жіберілмеді (бот бұғатталған т.б.), қайта сұралмайды
+    await db.execute(sql`update app.packs set widget_msg_id = ${r.ok && msgId ? msgId : -2}, widget_state = ${r.ok ? saved : null} where id = ${p.id}`);
     if (!r.ok) console.warn("packCard send:", r.description);
   }
+  const changed = (p: PackRow) => { const st = cardState(p); return st !== (p.widget_state ?? "").replace(/^T\|/, ""); };
   async function updateCard(p: PackRow) {
     const state = cardState(p);
-    if (state === p.widget_state || !p.widget_msg_id || p.widget_msg_id <= 0) return;
-    const r = await call("editMessageWidgetData", { chat_id: Number(p.tg), message_id: p.widget_msg_id, chat_data: state });
-    if (r.ok || /not modified/i.test(r.description ?? "")) await db.execute(sql`update app.packs set widget_state = ${state} where id = ${p.id}`);
+    if (!changed(p) || !p.widget_msg_id || p.widget_msg_id <= 0) return;
+    const text = (p.widget_state ?? "").startsWith(TEXT);
+    const l: BotLang = p.lang === "ru" ? "ru" : "kk";
+    const r = text
+      ? await call("editMessageText", { chat_id: Number(p.tg), message_id: p.widget_msg_id, text: packCardText(state, l), parse_mode: "HTML",
+        reply_markup: { inline_keyboard: [[{ text: L[l].open, url: `https://t.me/${bot}?startapp=pk_${p.id}`, style: "primary" }]] } }) // батырма сақталсын
+      : await call("editMessageWidgetData", { chat_id: Number(p.tg), message_id: p.widget_msg_id, chat_data: state });
+    if (r.ok || /not modified/i.test(r.description ?? "")) await db.execute(sql`update app.packs set widget_state = ${(text ? TEXT : "") + state} where id = ${p.id}`);
     else console.warn("packCard edit:", r.description);
   }
   return {
@@ -83,7 +114,7 @@ export function packCards(cfg: Config, db: Db, call: TgCall) {
       try {
         const [p] = await q(sql`p.id = ${packId}`);
         if (!p) return;
-        if (p.widget_msg_id == null) { if (p.status === "active" && p.units_left > 0) await sendCard(p); }
+        if (p.widget_msg_id == null || p.widget_msg_id === -1) { if (p.status === "active" && p.units_left > 0) await sendCard(p); }
         else await updateCard(p);
       } catch (e) { console.warn("packCard:", (e as Error).message); }
     },
@@ -91,9 +122,10 @@ export function packCards(cfg: Config, db: Db, call: TgCall) {
     sweep: async () => {
       if (cfg.PACK_CARDS !== "1") return { sent: 0, updated: 0 };
       let sent = 0, updated = 0;
-      for (const p of await q(sql`p.widget_msg_id is null and p.status = 'active' and p.units_left > 0 and p.created_at > now() - interval '3 days' limit 50`)) { await sendCard(p); sent++; }
+      // -1 — виджет жабылған кезде (2026-11-18) сәтсіз болғандар: мәтіндік картамен бір рет қайта
+      for (const p of await q(sql`(p.widget_msg_id is null or p.widget_msg_id = -1) and p.status = 'active' and p.units_left > 0 and p.created_at > now() - interval '3 days' limit 50`)) { await sendCard(p); sent++; }
       for (const p of await q(sql`p.widget_msg_id > 0 and (p.status = 'active' or p.created_at > now() - interval '120 days') limit 500`)) {
-        if (cardState(p) !== p.widget_state) { await updateCard(p); updated++; }
+        if (changed(p)) { await updateCard(p); updated++; }
       }
       return { sent, updated };
     },
