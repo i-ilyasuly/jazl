@@ -42,7 +42,7 @@ export function Payment() {
       <Note i={1}>{hasCard ? "Карта деректері төлем провайдеріне қауіпсіз жіберіледі." : "Карта қосылмаған. Kaspi Pay арқылы төлей аласың."}</Note>
       {!hasCard && <MainBar text="Карта қосу" onClick={addCard} />}
       {sheet && <ActionSheet title={sheet.title} onClose={() => setSheet(null)} onPick={pick}
-        actions={[...(sheet.id !== def ? [{ id: "default", text: "Әдепкі ету" }] : []), ...(sheet.card ? [{ id: "delete", text: "Жою", danger: true }] : [])]} />}
+        actions={[...(sheet.id !== def ? [{ id: "default", text: "Әдепкі ету" }] : []), ...(sheet.card && !sheet.hosted ? [{ id: "delete", text: "Жою", danger: true }] : [])]} />}
       {ask && <Confirm title="Картаны жою?" text={`${ask.title} төлем тәсілдерінен жойылады.`} cancel="Бас тарту" ok="Жою" danger onClose={() => setAsk(null)} onOk={() => remove(ask.id)} />}
     </SubPage>
   );

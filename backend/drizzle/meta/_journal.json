@@ -162,6 +162,13 @@
       "when": 1794991721376,
       "tag": "0022_money",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795020000000,
+      "tag": "0023_pay_no",
+      "breakpoints": true
     }
   ]
 }

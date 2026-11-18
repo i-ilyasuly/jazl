@@ -5,7 +5,7 @@ import type { Offer } from "../mocks/offers";
 import { useDefaultMethod, useKaspiPhone, useMethods } from "../store";
 import { haptic, nativeAlert, openExternal, tg } from "../telegram";
 import { useGo } from "../nav";
-import { failText, hasServer, pendingPay, type CheckoutCard, type CheckoutResult } from "../pay/checkout";
+import { cardOf, failText, hasServer, pendingPay, type CheckoutCard, type CheckoutResult } from "../pay/checkout";
 type Paid = Extract<CheckoutResult, { status: "paid" }>;
 import { BuySheet, type BuyStep } from "./BuySheet";
 
@@ -26,9 +26,10 @@ export function usePayFlow() {
     if (busy) return;
     haptic.medium();
     if (method?.id === "kaspi") { setSheet({ offer, start: saved ? "wait" : "kaspi", done }); return; }
-    if (charge && method?.card && hasServer() && (method.cardId || method.cryptogram)) {
+    const cardBody = charge && method?.card && hasServer() ? cardOf(method) : null;
+    if (charge && cardBody) {
       setBusy(true); tg?.MainButton?.showProgress?.(false);
-      void charge(method.cardId ? { id: method.cardId } : { cryptogram: method.cryptogram!, save: false }).then((r) => {
+      void charge(cardBody).then((r) => {
         tg?.MainButton?.hideProgress?.(); setBusy(false);
         if (r.status === "paid") { haptic.success(); done(r); return; }
         if (r.status === "action_required") {

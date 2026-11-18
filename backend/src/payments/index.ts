@@ -5,6 +5,7 @@
 import type { Config } from "../config.js";
 import type { PaymentProvider } from "./types.js";
 import { testProvider } from "./test.js";
+import { halykProvider } from "./halyk.js";
 
 const cache = new WeakMap<Config, Map<string, PaymentProvider>>();
 /** Аты бойынша провайдер (жоқ не бапталмаған болса — null). Ескі төлемнің қайтаруы мен вебхугы — СОЛ төлемнің провайдері арқылы:
@@ -13,12 +14,17 @@ export function providerByName(cfg: Config, name: string): PaymentProvider | nul
   let m = cache.get(cfg);
   if (!m) { m = new Map(); cache.set(cfg, m); }
   if (!m.has(name)) {
-    const p = name === "test" ? testProvider(cfg.BOT_TOKEN) : null;
+    const p = name === "test" ? testProvider(cfg.BOT_TOKEN)
+      : name === "halyk" && cfg.HALYK_CLIENT_ID && cfg.HALYK_CLIENT_SECRET && cfg.HALYK_TERMINAL_ID
+        ? halykProvider({ env: cfg.HALYK_ENV, clientId: cfg.HALYK_CLIENT_ID, clientSecret: cfg.HALYK_CLIENT_SECRET, terminalId: cfg.HALYK_TERMINAL_ID, publicUrl: cfg.PUBLIC_URL, hashKey: cfg.BOT_TOKEN })
+        : null;
     if (!p) return null;
     m.set(name, p);
   }
   return m.get(name)!;
 }
+/** Банк бетіндегі (hosted) қосымша провайдерлер: кілттері берілгені мини аппта «Банк картасы · …» болып шығады */
+export const hostedProviders = (cfg: Config) => ["halyk"].map((n) => providerByName(cfg, n)).filter((p): p is PaymentProvider => Boolean(p?.hosted));
 /** Жаңа төлемдерге қолданылатын провайдер (PAYMENTS_PROVIDER) */
 export function paymentProvider(cfg: Config): PaymentProvider {
   const p = providerByName(cfg, cfg.PAYMENTS_PROVIDER);

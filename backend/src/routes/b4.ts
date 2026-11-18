@@ -11,7 +11,7 @@ import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
 import { gifts, offers, packEvents, packs, paymentCards, payments, ratings, receipts, users, venues } from "../db/schema.js";
-import { GIFT_DAYS, paymentReply, saveCard } from "./purchases.js";
+import { CardBody, GIFT_DAYS, paymentReply, resolveCard, saveCard } from "./purchases.js";
 import { paymentProvider } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
 import { refundPack, RefundError } from "../refund.js";
@@ -59,7 +59,7 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
   // ── Мерзімді ұзарту ──
   // Карта (сақталған id не жаңа картаның криптограммасы) — ақылы ұзарту нақты төлем ағынымен (3-D Secure, вебхук); картасыз — сынақ режимі
   const Extend = z.object({ days: z.union([z.literal(7), z.literal(14), z.literal(30)]), idempotencyKey: z.string().min(8).max(64),
-    card: z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional() }).strict().optional() }).strict();
+    card: CardBody.optional() }).strict();
   r.post("/packs/:id/extend", async (c) => {
     const b = Extend.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
@@ -77,20 +77,15 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
       if (!p) return c.json({ ok: false, error: "not_found" }, 404);
       if (p.p.status !== "active" && p.p.status !== "expired") return c.json({ ok: false, error: "pack_" + p.p.status }, 409);
       if (p.p.unitsLeft < 1) return c.json({ ok: false, error: "no_units" }, 409);
-      const provider = paymentProvider(cfg);
-      let card: { token?: string; cryptogram?: string; save?: boolean; id?: string; label?: string };
-      if (b.data.card.id) {
-        const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, b.data.card.id), eq(paymentCards.userId, user.id), isNull(paymentCards.removedAt))).limit(1);
-        if (!pc) return c.json({ ok: false, error: "card_not_found" }, 404);
-        card = { token: pc.token, id: pc.id, label: `${pc.brand} •• ${pc.last4}` };
-      } else if (b.data.card.cryptogram) card = { cryptogram: b.data.card.cryptogram, save: b.data.card.save ?? false };
-      else return c.json({ ok: false, error: "bad_request" }, 400);
+      const rc = await resolveCard(db, cfg, user.id, b.data.card);
+      if ("error" in rc) return c.json({ ok: false, error: rc.error }, rc.status);
+      const { provider, card } = rc;
       const [pay] = await db.insert(payments).values({ userId: user.id, packId, provider: provider.name, method: "card", amount: opt.price, status: "created", idempotencyKey: b.data.idempotencyKey,
         meta: { kind: "extend", days: opt.days, price: opt.price, methodLabel: card.label ?? "Банк картасы" }, cardId: card.id ?? null }).returning();
       let res: Awaited<ReturnType<typeof provider.charge>>;
       try {
-        res = await provider.charge({ paymentId: pay.id, amount: opt.price, description: `Medeo · мерзімді ұзарту +${opt.days} күн`, user: { id: user.id, telegramId: user.telegramId },
-          card: { token: card.token, cryptogram: card.cryptogram, save: card.save }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${pay.id}` });
+        res = await provider.charge({ paymentId: pay.id, orderNo: pay.no, amount: opt.price, description: `Medeo · мерзімді ұзарту +${opt.days} күн`, user: { id: user.id, telegramId: user.telegramId },
+          card: { token: card.token, cryptogram: card.cryptogram, save: card.save, hosted: card.hosted }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${pay.id}` });
       } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
       if (res.status === "failed") {
         await db.update(payments).set({ status: "failed", failure: res.reason, externalId: res.externalId ?? null }).where(eq(payments.id, pay.id));

@@ -17,6 +17,12 @@ const Env = z.object({
   PAYMENTS_MODE: z.enum(["test"]).default("test"),
   /** Карта төлемінің провайдері (src/payments): test — сынақ (ақша жүрмейді). Кейін: halyk | freedom | tiptop (шарт пен кілттер келгенде). */
   PAYMENTS_PROVIDER: z.enum(["test"]).default("test"),
+  /** Halyk ePay (src/payments/halyk.ts): кілттер берілсе — «Банк картасы · Halyk» төлем тәсілі қосылады (банктің қорғалған беті).
+   *  HALYK_ENV=test — банктің ашық сынақ ортасы (тек сынақ карталары, ақша жүрмейді). Кілттер — Secret Manager/орта айнымалысы, репоға емес. */
+  HALYK_ENV: z.enum(["test", "prod"]).default("test"),
+  HALYK_CLIENT_ID: z.string().optional(),
+  HALYK_CLIENT_SECRET: z.string().optional(),
+  HALYK_TERMINAL_ID: z.string().optional(),
   /** Medeo комиссиясы, % (ішкі есеп: мекемеге төленетін соманы есептеу) */
   MEDEO_FEE_PCT: z.coerce.number().default(10),
   /** Мини апп ашылатын бот (чектегі тексеру QR-ы: t.me/<бот>?startapp=rc_<нөмір>) */

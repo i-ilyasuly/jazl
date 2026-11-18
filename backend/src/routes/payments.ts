@@ -7,7 +7,7 @@ import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import { paymentCards, payments } from "../db/schema.js";
-import { paymentProvider, providerByName } from "../payments/index.js";
+import { hostedProviders, paymentProvider, providerByName, type PaymentProvider, type WebhookEvent } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
 import { finalizePurchase, paymentReply, saveCard } from "./purchases.js";
 import { finalizeExtend } from "./b4.js";
@@ -16,7 +16,27 @@ import { finalizeExtend } from "./b4.js";
 const finalizePayment = async (db: Db, cfg: Config, pay: typeof payments.$inferSelect) =>
   (pay.meta as { kind?: string } | null)?.kind === "extend" ? finalizeExtend(db, cfg, pay.id) : finalizePurchase(db, cfg, pay.id);
 
-const cardDto = (x: typeof paymentCards.$inferSelect) => ({ id: x.id, brand: x.brand, last4: x.last4, exp: `${String(x.expMonth).padStart(2, "0")}/${String(x.expYear % 100).padStart(2, "0")}`, holder: x.holder });
+// Мерзімі белгісіз карта (банк беті айтпайды, мысалы Halyk) — expMonth = 0: мини апп мерзімді көрсетпейді
+const cardDto = (x: typeof paymentCards.$inferSelect) => ({ id: x.id, brand: x.brand, last4: x.last4, exp: x.expMonth ? `${String(x.expMonth).padStart(2, "0")}/${String(x.expYear % 100).padStart(2, "0")}` : "", holder: x.holder });
+
+/** Провайдер оқиғасын төлемге қолдану (вебхук та, күту бетіндегі тексеру де осы арқылы): сома тексеріледі, карта сақталады, пакет беріледі. */
+async function applyEvent(db: Db, cfg: Config, p: PaymentProvider, pay: typeof payments.$inferSelect, ev: WebhookEvent): Promise<{ ok: true } | { ok: false; error: string; status: 409 }> {
+  if (ev.status === "pending") return { ok: true };
+  // Банктегі транзакция басқа клиенттікі (нөмір сәйкес келіп қалса) — бұл төлемге қолданбаймыз
+  if (ev.accountId && pay.userId && ev.accountId !== pay.userId) { console.error("payment account mismatch", pay.id); return { ok: false, error: "account_mismatch", status: 409 }; }
+  // Сома сәйкес келмесе — төлемді растамаймыз (қате не алаяқтық): Басқару қолмен қарайды
+  if (ev.status === "paid" && ev.amount !== undefined && Number(ev.amount) !== Number(pay.amount)) {
+    console.error("payment amount mismatch", pay.id, ev.amount, pay.amount);
+    await db.update(payments).set({ meta: sql`coalesce(${payments.meta}, '{}'::jsonb) || ${JSON.stringify({ amountMismatch: ev.amount })}::jsonb` }).where(eq(payments.id, pay.id));
+    return { ok: false, error: "amount_mismatch", status: 409 };
+  }
+  if (ev.status === "paid") {
+    if (ev.card && pay.userId) await saveCard(db, p.name, pay.userId, ev.card);
+    const out = await finalizePayment(db, cfg, pay);
+    if ("error" in out) { console.error("payment finalize", pay.id, out.error); return { ok: false, error: out.error, status: 409 }; }
+  } else if (pay.status !== "paid") { await db.update(payments).set({ status: "failed", failure: ev.reason ?? "declined" }).where(eq(payments.id, pay.id)); await releaseBonus(db, pay.id); }
+  return { ok: true };
+}
 
 export function paymentRoutes(cfg: Config, db: Db) {
   const r = new Hono<Env>();
@@ -41,10 +61,21 @@ export function paymentRoutes(cfg: Config, db: Db) {
     return c.json({ ok: true });
   });
 
-  // Төлем күйі: 3-D Secure-ден оралғанда мини апп осыны сұрайды
+  // Банк бетіндегі төлем тәсілдері (кілттері бапталған провайдерлер): мини апп «Банк картасы · Halyk» тәсілін осыдан біледі
+  r.get("/payments/config", (c) => c.json({ ok: true, hosted: hostedProviders(cfg).map((p) => ({ id: p.name, test: Boolean(p.testMode) })) }));
+
+  // Төлем күйі: 3-D Secure-ден / банк бетінен оралғанда мини апп осыны сұрайды.
+  // Төлем әлі «күтуде» болса және провайдер күйін айта алса — банктен өзіміз сұраймыз (хабарлама келмей қалса да төлем жоғалмайды)
   r.get("/payments/:id", async (c) => {
-    const [pay] = await db.select().from(payments).where(and(eq(payments.id, c.req.param("id")), eq(payments.userId, c.get("user").id))).limit(1);
+    let [pay] = await db.select().from(payments).where(and(eq(payments.id, c.req.param("id")), eq(payments.userId, c.get("user").id))).limit(1);
     if (!pay) return c.json({ ok: false, error: "not_found" }, 404);
+    const p = providerByName(cfg, pay.provider);
+    if (pay.status === "pending" && pay.externalId && p?.check) {
+      try {
+        const ev = await p.check(pay.externalId);
+        if (ev && ev.status !== "pending") { await applyEvent(db, cfg, p, pay, ev); [pay] = await db.select().from(payments).where(eq(payments.id, pay.id)); }
+      } catch (e) { console.error("payment check", pay.id, (e as Error).message); } // банк жауап бермесе — келесі сұрауда қайта
+    }
     return c.json(...(await paymentReply(db, c.get("user").id, pay)));
   });
 
@@ -80,18 +111,8 @@ export function paymentWebhookRoutes(cfg: Config, db: Db) {
       ? await db.select().from(payments).where(and(eq(payments.id, ev.paymentId), eq(payments.provider, p.name))).limit(1)
       : await db.select().from(payments).where(and(eq(payments.externalId, ev.externalId), eq(payments.provider, p.name))).limit(1);
     if (!pay) return c.json({ ok: true, ignored: true }); // бізде жоқ төлем — 200, провайдер қайта жібермесін
-    // Сома сәйкес келмесе — төлемді растамаймыз (қате не алаяқтық): Басқару қолмен қарайды
-    if (ev.status === "paid" && ev.amount !== undefined && Number(ev.amount) !== Number(pay.amount)) {
-      console.error("webhook amount mismatch", pay.id, ev.amount, pay.amount);
-      await db.update(payments).set({ meta: sql`coalesce(${payments.meta}, '{}'::jsonb) || ${JSON.stringify({ amountMismatch: ev.amount })}::jsonb` }).where(eq(payments.id, pay.id));
-      return c.json({ ok: false, error: "amount_mismatch" }, 409);
-    }
-    if (ev.status === "paid") {
-      if (ev.card && pay.userId) await saveCard(db, p.name, pay.userId, ev.card);
-      const out = await finalizePayment(db, cfg, pay);
-      if ("error" in out) { console.error("webhook finalize", pay.id, out.error); return c.json({ ok: false, error: out.error }, 409); }
-    } else if (pay.status !== "paid") { await db.update(payments).set({ status: "failed", failure: ev.reason ?? "declined" }).where(eq(payments.id, pay.id)); await releaseBonus(db, pay.id); }
-    return c.json({ ok: true });
+    const res = await applyEvent(db, cfg, p, pay, ev);
+    return res.ok ? c.json({ ok: true }) : c.json({ ok: false, error: res.error }, res.status);
   });
   return r;
 }

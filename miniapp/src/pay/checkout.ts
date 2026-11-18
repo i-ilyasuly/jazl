@@ -1,7 +1,10 @@
 // Карта арқылы сатып алу (бэкенд: POST /v1/purchases, method=card). Нәтиже: төленді / банк растауы (3-D Secure) керек / өтпеді.
 import { api } from "../api";
 
-export type CheckoutCard = { id: string } | { cryptogram: string; save?: boolean };
+export type CheckoutCard = { id: string } | { cryptogram: string; save?: boolean } | { hosted: true; provider: string; save?: boolean };
+/** Төлем тәсілінен серверге жіберілетін карта: сақталған / бір реттік криптограмма / банк беті (картаны сақтаймыз — келесіде бір басумен) */
+export const cardOf = (m: { cardId?: string; cryptogram?: string; hosted?: string }): CheckoutCard | null =>
+  m.cardId ? { id: m.cardId } : m.hosted ? { hosted: true, provider: m.hosted, save: true } : m.cryptogram ? { cryptogram: m.cryptogram, save: false } : null;
 export interface SrvPurchase { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null }
 export type CheckoutResult =
   | { status: "paid"; paymentId: string; pack: SrvPurchase; gift?: { code: string } | null; gifts?: { code: string }[]; carried?: number }
