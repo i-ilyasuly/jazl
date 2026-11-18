@@ -5,7 +5,7 @@
 import { Rich } from "../ui/Rich";
 import { __t, getLang, kk } from "../i18n";
 import { kkOf, ruOf, suggest } from "../i18n/products";
-import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { haptic, kv, nativeAlert, nativePick } from "../telegram";
@@ -19,8 +19,10 @@ import { offPeakPrice, winLabel, WEEK_SHORT, type OffPeak } from "../offpeak";
 import s from "./V.module.css";
 
 type Size = { units: number; price: number };
-interface Draft { title: string; titleRu: string; category: string; about: string; aboutRu: string; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number; rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; branches: string[] | null } }
-interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu"> { titleRu?: string | null; aboutRu?: string | null; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
+type PortionUnit = "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min";
+interface Draft { title: string; titleRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
+  rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; branches: string[] | null; monthlyLimit?: number | null; perUserLimit?: number | null } }
+interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu" | "composition" | "compositionRu" | "portion"> { titleRu?: string | null; aboutRu?: string | null; composition?: string; compositionRu?: string; portion?: Draft["portion"]; soldMonth?: number; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 // Санат серверге қазақша сақталады (тілге тәуелсіз мән), ал экранда таңдалған тілде көрінеді: __t(c)
 const cats = { food: [kk("Донер"), kk("Бургер"), kk("Шаурма"), kk("Кофе"), kk("Басқа")], coffee: [kk("Кофе"), kk("Шай"), kk("Десерт"), kk("Басқа")], hair: [kk("Шаш қию"), kk("Сақал"), kk("Балалар"), kk("Басқа")] };
@@ -96,8 +98,9 @@ export function VOfferWizard() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("draft");
   const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
-  const [d, setD] = useState<Draft>({ title: "", titleRu: "", category: "", about: "", aboutRu: "", photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
-  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [d, setD] = useState<Draft>({ title: "", titleRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  const hadExtra = useRef(false);
+  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); hadExtra.current = Boolean(o.composition || o.compositionRu || o.portion); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
   // Бір тілде жазса, екіншісі сөздіктен өзі толады (бос не бұрын өзі толтырылған болса ғана — мекеме жазғанын баспаймыз)
   const setTitle = (v: string) => setD((x) => { const auto = !x.titleRu || x.titleRu === ruOf(x.title); return { ...x, title: v, titleRu: auto ? ruOf(v) ?? (auto && x.titleRu ? "" : x.titleRu) : x.titleRu }; });
@@ -118,14 +121,18 @@ export function VOfferWizard() {
     if (!me || busy) return;
     if (publish && status === "draft" && !accepted && !(await kv.get("medeo_offer_terms"))) { setTerms(true); return; }
     setBusy(true); haptic.medium();
-    const body = { ...d, titleRu: d.titleRu.trim() || undefined, aboutRu: d.aboutRu.trim() || undefined, category: d.category || undefined, publish };
+    // Құрамы/порция тек толтырылса не бұрын сақталған болса жіберіледі (бос болса — кілт жоқ: ескі сервер нұсқасы да қабылдайды)
+    const { composition, compositionRu, portion, ...rest } = d;
+    const extra = composition.trim() || compositionRu.trim() || portion || hadExtra.current
+      ? { composition: composition.trim(), compositionRu: compositionRu.trim(), portion: portion && portion.value > 0 ? portion : null } : {};
+    const body = { ...rest, ...extra, titleRu: d.titleRu.trim() || undefined, aboutRu: d.aboutRu.trim() || undefined, category: d.category || undefined, publish };
     try {
       const st = id ? (await api<{ status: string }>(`/v1/venue/${me.venue.id}/offers/${id}`, { method: "PUT", body: JSON.stringify(body) })).status
         : (await api<{ offer: { status: string } }>(`/v1/venue/${me.venue.id}/offers`, { method: "POST", body: JSON.stringify(body) })).offer.status;
       haptic.success();
       // «Ұсыныс тексеруде» — тек Medeo тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
-    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : err(e) === "big_off_peak" ? `Бос сағат бағасымен жалпы жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 40}%-дан аспауы керек. Бос сағат жеңілдігін азайтыңыз.` : "Сақталмады. Қайталап көріңіз."); }
+    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : err(e) === "composition_ru_required" ? "Құрамын орысша да жазыңыз." : err(e) === "big_off_peak" ? `Бос сағат бағасымен жалпы жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 40}%-дан аспауы керек. Бос сағат жеңілдігін азайтыңыз.` : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
   }, [me, busy, d, id, status, go]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -135,6 +142,8 @@ export function VOfferWizard() {
     if (step === 1 && d.titleRu.trim().length < 2) { haptic.error(); return nativeAlert("Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді."); }
     if (step === 1 && d.about.trim() && !d.aboutRu.trim()) { haptic.error(); return nativeAlert("Сипаттаманы орысша да жазыңыз."); }
     if (step === 1 && d.aboutRu.trim() && !d.about.trim()) { haptic.error(); return nativeAlert("Сипаттаманы қазақша да жазыңыз."); }
+    if (step === 1 && d.composition.trim() && !d.compositionRu.trim()) { haptic.error(); return nativeAlert("Құрамын орысша да жазыңыз."); }
+    if (step === 1 && d.compositionRu.trim() && !d.composition.trim()) { haptic.error(); return nativeAlert("Құрамын қазақша да жазыңыз."); }
     if (step === 2 && low && !locked) { haptic.error(); return nativeAlert(`Жеңілдік 10%-дан аз: ${low.units} бірлік. Бағаны азайтыңыз не қалыпты бағаны тексеріңіз.`); }
     haptic.tap(); setStep((x) => Math.min(4, x + 1));
   }, [step, d, low, locked]);
@@ -176,6 +185,12 @@ export function VOfferWizard() {
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span className={`t-cap1 ${s.muted}`}>Сипаттама (орысша)</span><button className={s.link} onClick={() => setEditAbout("ru")}>Өңдеу</button></div>
           {d.aboutRu ? <Rich text={d.aboutRu} /> : <button className={s.muted} style={{ textAlign: "left" }} onClick={() => setEditAbout("ru")}>Сол сипаттаманы орысша жазыңыз</button>}
         </div>
+        {/* Құрамы мен порциясы (Патша, 2026-11-18): клиент өнім бетінде «Құрамы» мен «Порция» деп көреді */}
+        <TextBox label={me.venue.kind === "hair" ? "Қызметке не кіреді (қазақша)" : "Құрамы (қазақша)"} value={d.composition} onChange={(v) => up({ composition: v })}
+          placeholder={me.venue.kind === "hair" ? "Мысалы: шаш қию, жуу, сәндеу" : me.venue.kind === "coffee" ? "Мысалы: эспрессо, сүт, көбік" : "Мысалы: лаваш, тауық еті, қияр, қызанақ, үй соусы"} />
+        <TextBox ru label={me.venue.kind === "hair" ? "Қызметке не кіреді (орысша)" : "Құрамы (орысша)"} value={d.compositionRu} onChange={(v) => up({ compositionRu: v })}
+          placeholder={me.venue.kind === "hair" ? "Например: стрижка, мытьё, укладка" : me.venue.kind === "coffee" ? "Например: эспрессо, молоко, пенка" : "Например: лаваш, курица, огурец, помидор, домашний соус"} />
+        <PortionField kind={me.venue.kind} value={d.portion} onChange={(v) => up({ portion: v })} />
         {d.photos[0] ? (
           <div className={s.card} style={{ padding: 8 }}>
             <img src={d.photos[0]} alt="" style={{ display: "block", width: "100%", aspectRatio: "4 / 3", objectFit: "cover", borderRadius: 14 }} />
@@ -252,6 +267,15 @@ export function VOfferWizard() {
           })}
         </div>
         <Note>Алдын ала тапсырыс қосулы болса, клиент «Тапсырыс» және «Жоспарлау» арқылы алдын ала тапсырыс бере алады.</Note>
+        {/* Сату лимиті (Патша, 2026-11-18): айына неше пакет сатылады (1-інде қайта ашылады) және бір адам айына неше пакет ала алады */}
+        <h2 className={s.blueHead}>Сату лимиті</h2>
+        <div className={s.card}>
+          <LimitRow title="Айлық лимит" sub="Айына осынша пакет сатылады. Таусылса — «Таусылды» деп тұрады, әр айдың 1-інде қайта ашылады." def={50} min={1} max={100000} unit="Айына неше пакет"
+            value={d.rules.monthlyLimit ?? null} onChange={(v) => up({ rules: { ...d.rules, monthlyLimit: v } })} />
+          <LimitRow title="Бір адамға шек" sub="Бір клиент айына осыдан артық пакет ала алмайды (өзіне де, сыйлыққа да)." def={1} min={1} max={100} unit="Бір адам айына неше пакет"
+            value={d.rules.perUserLimit ?? null} onChange={(v) => up({ rules: { ...d.rules, perUserLimit: v } })} />
+        </div>
+        {d.rules.monthlyLimit ? <Note>{`Клиент карточкада «Қалды ${d.rules.monthlyLimit} / ${d.rules.monthlyLimit}» деп көреді. Лимитті кез келген уақытта көбейте аласыз — күтіп тұрғандарға бот хабарлайды.`}</Note> : null}
       </>}
 
       {step === 4 && <>
@@ -272,6 +296,8 @@ export function VOfferWizard() {
         <div className={s.card}>
           <Check ok={d.title.length > 1 && d.titleRu.length > 1 && Boolean(d.about) && Boolean(d.aboutRu) && Boolean(d.photos[0])} t="Атауы, сипаттама, фото" sub={!d.about ? "Сипаттама жазылмаған" : !d.aboutRu ? "Орысша сипаттама жазылмаған" : !d.photos[0] ? "Фото қосылмаған" : undefined} />
           <Check ok={!low} t="Көлем мен бағалар" sub={low ? "Жеңілдік 10%-дан аз" : undefined} />
+          {d.composition.trim() && d.portion ? <Check ok t="Құрамы мен порциясы" /> : <Check warn t="Құрамы мен порциясы" sub={!d.composition.trim() ? "Құрамы жазылмаған — клиент не алатынын білмейді" : "Порциясы көрсетілмеген"} tag="Ұсыныс" />}
+          {(d.rules.monthlyLimit || d.rules.perUserLimit) && <Check ok t="Сату лимиті" sub={[d.rules.monthlyLimit ? `айына ${d.rules.monthlyLimit} пакет` : "", d.rules.perUserLimit ? `бір адамға ${d.rules.perUserLimit}` : ""].filter(Boolean).join(" · ")} />}
           <Check ok t="Мерзім және ережелер" />
           {d.rules.preorder && <Check warn t="Алдын ала тапсырыс" sub="Тапсырыстар «Мәзір → Алдын ала тапсырыстар» бөлімінде" tag="Ескерту" />}
         </div>
@@ -283,6 +309,65 @@ export function VOfferWizard() {
         onClose={() => setSizeEdit(null)} onSave={(x) => { up({ sizes: d.sizes.map((y, i) => (i === sizeEdit ? x : y)).sort((a, b) => a.units - b.units) }); setSizeEdit(null); }}
         onDelete={() => { up({ sizes: d.sizes.filter((_, i) => i !== sizeEdit) }); setSizeEdit(null); }} />}
     </VPage>
+  );
+}
+
+/** Көп жолды мәтін өрісі (құрамы): атау өрістерімен бір стильде */
+function TextBox({ label, value, onChange, placeholder, ru }: { label: string; value: string; onChange: (v: string) => void; placeholder: string; ru?: boolean }) {
+  return (
+    <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
+      <span className="t-cap1" style={{ color: "var(--link)" }}>{label}</span>
+      <textarea value={value} maxLength={300} rows={2} lang={ru ? "ru" : undefined} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, lineHeight: "22px", padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0", resize: "none", fieldSizing: "content", minHeight: 52 } as React.CSSProperties} />
+    </label>
+  );
+}
+
+const UNITS: Record<"food" | "coffee" | "hair", [PortionUnit, string][]> = {
+  food: [["g", "г"], ["kg", "кг"], ["ml", "мл"], ["l", "л"], ["cm", "см"], ["pcs", "дана"]],
+  coffee: [["ml", "мл"], ["l", "л"], ["g", "г"]],
+  hair: [["min", "мин"]],
+};
+/** Порция: сан + өлшем (донер — 350 г, кофе — 350 мл, пицца — 30 см, шаш қию — 45 мин) */
+function PortionField({ kind, value, onChange }: { kind: "food" | "coffee" | "hair"; value: Draft["portion"]; onChange: (v: Draft["portion"]) => void }) {
+  const units = UNITS[kind] ?? UNITS.food;
+  const unit = value?.unit ?? units[0][0];
+  return (
+    <div className={s.card} style={{ padding: "10px 16px 12px" }}>
+      <span className="t-cap1" style={{ color: "var(--link)" }}>{kind === "hair" ? "Ұзақтығы (бір келу)" : "Порция (бір бірлік)"}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+        <input inputMode="decimal" value={value ? String(value.value).replace(".", ",") : ""} placeholder={kind === "hair" ? "45" : kind === "coffee" ? "350" : "350"}
+          onChange={(e) => { const n = Number(e.target.value.replace(",", ".").replace(/[^\d.]/g, "")); onChange(n > 0 ? { value: Math.min(100000, n), unit } : null); }}
+          style={{ width: 96, border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 6px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />
+        <div className={s.chips} style={{ flexWrap: "wrap", margin: 0 }}>
+          {units.map(([u, t]) => <button key={u} className={`${s.chip} ${unit === u ? s.chipOn : ""}`} onClick={() => { haptic.select(); onChange({ value: value?.value ?? 0, unit: u }); }}>{t}</button>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Лимит жолы: қосқыш, қосулы болса астында сан (− / +) */
+function LimitRow({ title, sub, value, onChange, def, min, max, unit }: { title: string; sub: string; value: number | null; onChange: (v: number | null) => void; def: number; min: number; max: number; unit: string }) {
+  const step = (v: number) => (v >= 100 ? 10 : 1);
+  return (
+    <>
+      <div className={s.row}>
+        <span className={s.rowText}><span className={s.rowTitle}>{title}</span><span className={s.rowSub} style={{ whiteSpace: "normal" }}>{sub}</span></span>
+        <Switch on={value != null} onChange={(on) => { haptic.select(); onChange(on ? def : null); }} />
+      </div>
+      {value != null && (
+        <div className={s.row} style={{ paddingTop: 0 }}>
+          <span className={s.rowText}><span className={s.rowSub}>{unit}</span></span>
+          <div className={s.stepper}>
+            <button className={s.stepBtn} disabled={value <= min} onClick={() => { haptic.select(); onChange(Math.max(min, value - step(value - 1))); }}>−</button>
+            <input inputMode="numeric" className={s.stepVal} value={value} onChange={(e) => { const n = Number(e.target.value.replace(/\D/g, "")); onChange(Math.min(max, Math.max(min, n || min))); }}
+              style={{ width: 72, fontSize: 16, border: 0, outline: 0, background: "none", textAlign: "center", color: "var(--text-strong)", font: "inherit" }} />
+            <button className={s.stepBtn} disabled={value >= max} onClick={() => { haptic.select(); onChange(Math.min(max, value + step(value))); }}>+</button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -407,6 +492,7 @@ export function VOfferPage() {
       </div>
       <div className={s.stats}>
         <div className={s.stat}><span className={s.statLabel}>Сатылды</span><span className={s.statNum} style={{ fontSize: 22 }}>{`${o.stats.sold} пакет`}</span></div>
+        {o.rules.monthlyLimit ? <div className={s.stat}><span className={s.statLabel}>Осы айдың лимиті</span><span className={s.statNum} style={{ fontSize: 22, color: (o.soldMonth ?? 0) >= o.rules.monthlyLimit ? "#e53935" : undefined }}>{`${o.soldMonth ?? 0} / ${o.rules.monthlyLimit}`}</span></div> : null}
         <div className={s.stat}><span className={s.statLabel}>Белсенді пакет</span><span className={s.statNum} style={{ fontSize: 22 }}>{o.stats.active}</span></div>
         <div className={s.stat}><span className={s.statLabel}>Қолданылған бірлік</span><span className={s.statNum} style={{ fontSize: 22 }}>{o.stats.used}</span></div>
         <div className={s.stat}><span className={s.statLabel}>Табыс</span><span className={s.statNum} style={{ fontSize: 22, color: "#1f8a3b" }}>{money(o.stats.revenue)}</span></div>

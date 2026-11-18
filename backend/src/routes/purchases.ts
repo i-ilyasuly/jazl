@@ -10,13 +10,14 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
-import { branches, gifts, offers, packEvents, packs, paymentCards, payments, receipts, users, venues } from "../db/schema.js";
+import { branches, gifts, offerWaits, offers, packEvents, packs, paymentCards, payments, receipts, users, venues } from "../db/schema.js";
 import { hostedProviders, paymentProvider, providerByName, type CardInfo, type PaymentProvider } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
 import { leftValue } from "../value.js";
 import { onPackChanged } from "../bot/packCard.js";
 import { getSettings } from "../settings.js";
 import { offPeakPrice, type OffPeakT } from "../offpeak.js";
+import { checkLimits } from "../limits.js";
 
 /** Карта: сақталған (id), жаңа картаның криптограммасы (сынақ провайдері) не банктің қорғалған беті (hosted — Halyk т.б.). save — картаны сақтау */
 export const CardBody = z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional(),
@@ -98,6 +99,22 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     if (r.type === "failed") return c.json({ ok: false, error: "payment_failed", reason: r.reason, paymentId: r.paymentId }, 402);
     if (r.type === "action") return c.json({ ok: true, status: "action_required", paymentId: r.paymentId, confirmUrl: r.confirmUrl }, 202);
     return c.json({ ok: true, repeated: false, status: "paid", paymentId: r.paymentId, carried: r.out.carried, gift: r.out.gift, gifts: r.out.gifts, ...(await packAndReceipt(db, user.id, r.out.packId)) });
+  });
+
+  // «Қайта шыққанда хабарла»: ұсыныс аяқталса не айлық лимиті таусылса (notify.tick қайта ашылғанда хабарлайды)
+  r.get("/waits", async (c) => {
+    const rows = await db.select({ slug: offers.slug }).from(offerWaits).innerJoin(offers, eq(offerWaits.offerId, offers.id)).where(eq(offerWaits.userId, c.get("user").id));
+    return c.json({ ok: true, slugs: rows.map((x) => x.slug) });
+  });
+  r.post("/offers/:slug/wait", async (c) => {
+    const b = z.object({ on: z.boolean() }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [o] = await db.select({ id: offers.id }).from(offers).where(eq(offers.slug, c.req.param("slug"))).limit(1);
+    if (!o) return c.json({ ok: false, error: "not_found" }, 404);
+    const userId = c.get("user").id;
+    if (b.data.on) await db.insert(offerWaits).values({ userId, offerId: o.id }).onConflictDoNothing();
+    else await db.delete(offerWaits).where(and(eq(offerWaits.userId, userId), eq(offerWaits.offerId, o.id)));
+    return c.json({ ok: true, on: b.data.on });
   });
 
   r.get("/bonus", async (c) => c.json({ ok: true, ...(await bonusOf(db, c.get("user").id)) }));
@@ -230,6 +247,10 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   const meta = { body, units, price, count, offPeak, methodLabel, card: card?.id ? { id: card.id, label: card.label } : null, client, ...(opts.background ? { kind: "purchase", auto: true } : {}) };
 
   const created = await db.transaction(async (tx) => {
+    // Сату лимиті (айлық және бір адамға): ұсыныс жолы құлыпталады — соңғы орынды екі адам бір мезетте ала алмайды
+    await tx.execute(sql`select id from app.offers where id = ${o.id} for update`);
+    const lim = await checkLimits(tx, o, user.id, count);
+    if (lim) return { limit: lim } as const;
     // Бонус бірден ұсталады (екі рет жұмсалмауы үшін); төлем өтпесе releaseBonus қайтарады
     const bonus = body.useBonus ? await holdBonus(tx, user.id, total) : { used: 0, from: [] };
     const cash = total - bonus.used;
@@ -246,6 +267,7 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
     return { ...pay, packId: ids[0], viaProvider };
   });
 
+  if ("limit" in created && created.limit) return err(created.limit.code, 409, created.limit.extra);
   // Сынақ режимі (Kaspi, сынақ, картасыз) не толық бонуспен: бірден «төленді»
   if (!created.viaProvider) {
     const out = await finalizePurchase(db, cfg, created.id);

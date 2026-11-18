@@ -36,3 +36,6 @@
 .top { background: #deebfc; }
 :global(:root[data-theme="dark"]) .hot { background: #3a3a2c; }
 :global(:root[data-theme="dark"]) .top { background: #263850; }
+/* Сату лимиті: «Қалды 12 / 50» фотоның сол жақ жоғарғы бұрышында — 10-нан көп қалса сабырлы (қара), аз қалса сары */
+.left { position: absolute; left: 8px; top: 8px; height: 24px; padding: 4px 8px; border-radius: 6px; background: var(--orange-bg); color: var(--orange-text); font-weight: 600; white-space: nowrap; }
+.leftCalm { background: rgba(0, 0, 0, 0.36); color: #fff; }

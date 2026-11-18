@@ -8,7 +8,7 @@ import { categoryOffers, endedOffers, moreOffers, offers, type Offer, type Offer
 import { venues } from "./mocks/venues";
 
 interface SrvVenue { slug: string; name: string; kind: OfferKind; rating: number | null; reviewsCount: number; trust?: number | null; branches: { id: string; address: string }[] }
-interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown } | null; rules?: { planOnly?: boolean; offPeak?: { days: number[]; from: string; to: string; pct: number } } | null; sizes?: { units: number; price: number }[] | null }
+interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown; composition?: string | null; compositionRu?: string | null; portion?: Offer["portion"] | null } | null; limit?: Offer["limit"]; rules?: { planOnly?: boolean; offPeak?: { days: number[]; from: string; to: string; pct: number } } | null; sizes?: { units: number; price: number }[] | null }
 
 export const catalogState: { source: "mock" | "server"; venues: number; offers: number; error?: string; ms?: number; branches: { venue: string; slug: string; branchId: string; address: string }[] } = { source: "mock", venues: 0, offers: 0, branches: [] };
 
@@ -28,6 +28,11 @@ export async function loadCatalog() {
       if (typeof about === "string" && about.trim()) patch.about = about; // ескі (seed) ұсыныстарда сипаттама мәтін емес — онда санат үлгісі қалады
       // Бірнеше көлем (4 / 8 / 12 дана): карточкада «6 000 ₸-дан», ұсыныс бетінде таңдау
       if (o.sizes && o.sizes.length > 1) patch.sizes = o.sizes.map((x) => ({ units: x.units, price: x.price, oldPrice: o.regularUnitPrice * x.units }));
+      // Құрамы (клиент тілінде; орысшасы жоқ болса — қазақшасы) және порциясы
+      const comp = getLang() === "ru" && o.details?.compositionRu?.trim() ? o.details.compositionRu : o.details?.composition;
+      if (comp?.trim()) patch.composition = comp;
+      if (o.details?.portion) patch.portion = o.details.portion;
+      patch.limit = o.limit ?? null;
       if (o.rules?.planOnly) patch.planOnly = true;
       if (o.rules?.offPeak) patch.offPeak = o.rules.offPeak;
       const found = lists.flatMap((l) => l).find((x) => x.id === o.slug);

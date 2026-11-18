@@ -5,7 +5,7 @@ import { Link, useViewTransitionState } from "react-router-dom";
 import { setDir } from "../nav";
 import { toggleFav, toggleRestock, useFavs, useRestock } from "../store";
 import bell from "../assets/icons/favBell.svg";
-import { discount, fmt, saving, unitPrice, type Offer } from "../mocks/offers";
+import { discount, fmt, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";
 import heart from "../assets/icons/heart.svg";
@@ -17,8 +17,12 @@ import s from "./OfferCard.module.css";
 
 const kindIcon = { food: burger, coffee: cup, hair: scissors };
 
-export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
+export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: boolean }) {
   const [broken, setBroken] = useState(false);
+  // Айлық лимит таусылса — аяқталған сияқты көрінеді, бірақ «Таусылды» деп (келесі айда не лимит көбейсе қайта ашылады)
+  const soldOut = !endedProp && isSoldOut(offer);
+  const ended = endedProp || soldOut;
+  const left = !ended && offer.limit?.monthly != null ? offer.limit.left ?? 0 : null;
   const fav = useFavs().includes(offer.id);
   const waiting = useRestock().includes(offer.id);
   const notify = async () => { if (waiting) return toggleRestock(offer.id); if (await askWriteAccess()) { haptic.success(); toggleRestock(offer.id); } };
@@ -42,12 +46,13 @@ export function OfferCard({ offer, ended }: { offer: Offer; ended?: boolean }) {
           <img src={group} width={14} height={14} alt="" />
           <span className="t-cap1 w-700">{offer.buyers}</span>
         </span>
+        {left != null && <span className={`t-cap1 ${s.left} ${left > 10 ? s.leftCalm : ""}`}>{`Қалды ${left} / ${offer.limit!.monthly}`}</span>}
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
       </div>
       {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
       <p className={s.price}>{offer.sizes && offer.sizes.length > 1 ? `${fmt(Math.min(...offer.sizes.map((x) => x.price)))}-дан` : fmt(offer.price)}</p>
       {ended ? <>
-        <span className={`t-cap1 ${s.over}`}>Аяқталды</span>
+        <span className={`t-cap1 ${s.over}`}>{soldOut ? "Таусылды" : "Аяқталды"}</span>
         <button className={`t-sub2 w-600 ${s.notify} ${waiting ? s.waiting : ""}`} onClick={(e) => { e.preventDefault(); void notify(); }}>
           <img src={bell} width={20} height={20} alt="" className={waiting ? s.ring : undefined} />{waiting ? "Қосылды" : "Хабарла"}
         </button>

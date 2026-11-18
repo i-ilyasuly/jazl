@@ -3,7 +3,7 @@
 import type { OffPeak } from "./offpeak";
 import { applyLangPref, getLang, getPref, kk } from "./i18n";
 import { loadBonus, takeBonusNext } from "./pay/bonus";
-import { kv } from "./telegram";
+import { kv, nativeAlert } from "./telegram";
 import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
 import { venues } from "./mocks/venues";
 import { useSyncExternalStore } from "react";
@@ -130,6 +130,20 @@ export function buyPack(offerId: string, methodLabel = "Kaspi Pay"): string {
   return id;
 }
 
+/** Сату лимиті (сервер 409 қайтарады): жергілікті алдын ала қосылған пакет алынады, клиентке себебі айтылады. Ақша алынбаған. */
+export const limitText = (code?: string) => code === "sold_out" ? "Осы айдың пакеттері таусылып қалды. Келесі айдың 1-інде қайта ашылады — «Хабарла» басып қойсаң, бот хабарлайды. Ақша алынған жоқ."
+  : code === "user_limit" ? "Бұл ұсыныстан осы айға шегіңе жеттің: мекеме бір адамға айына шектеулі пакет береді. Ақша алынған жоқ." : null;
+function limitRefused(localId: string, e: unknown) {
+  const t = limitText((e as { body?: { error?: string } }).body?.error);
+  if (!t) return false;
+  const offerId = packs.find((p) => p.id === localId)?.offerId;
+  packs = packs.filter((p) => p.id !== localId); emit();
+  void nativeAlert(t);
+  // «Пакет сатып алынды» беті ашық тұрса — ұсыныс бетіне қайтамыз (онда «Таусылды» / шек көрінеді)
+  if (offerId && location.hash.startsWith("#/success/")) location.replace("#/offer/" + offerId);
+  return true;
+}
+
 export interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null; extendLeft?: number; source?: string; autoRenew?: boolean; offPeak?: OffPeak | null }
 async function buyOnServer(localId: string, offerSlug: string, methodLabel: string) {
   if (!(window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData) return; // браузерде — тек жергілікті
@@ -144,7 +158,7 @@ async function buyOnServer(localId: string, offerSlug: string, methodLabel: stri
     packs = packs.some((p) => p.serverId === j.pack.id && p.id !== localId) ? packs.filter((p) => p.id !== localId)
       : packs.map((p) => (p.id === localId ? { ...p, serverId: j.pack.id, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : p));
     emit();
-  } catch { /* сервер жауап бермесе — пакет жергілікті күйде қалады */ }
+  } catch (e) { limitRefused(localId, e); /* басқа қатеде (сервер жауап бермесе) — пакет жергілікті күйде қалады */ }
 }
 
 /** Сервердегі пакеттерді алып, жергілікті тізімде жоқтарын қосады (басқа құрылғыдан сатып алынғандар). */
@@ -244,7 +258,7 @@ export function rebuyPack(packId: string, paid: number, method = "Kaspi Pay", sr
   // B4: серверде қайта алу — ескі пакеттің қалғаны (3 күн ережесі) серверде есептеліп көшеді
   if (srv) { packs = packs.map((x) => (x.id === id ? { ...x, serverId: srv.id, total: srv.unitsTotal, left: srv.unitsLeft, receiptId: srv.receipt?.id, receiptNo: srv.receipt?.no } : x)); emit(); }
   else if (old.serverId) void api<{ pack: SrvPack }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: o.id, fromPackId: old.serverId, method: /kaspi/i.test(method) ? "kaspi" : "card", methodLabel: method, idempotencyKey: newKey() }) }, 12000)
-    .then((j) => { packs = packs.map((x) => (x.id === id ? { ...x, serverId: j.pack.id, total: j.pack.unitsTotal, left: j.pack.unitsLeft, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : x)); emit(); }).catch(() => undefined);
+    .then((j) => { packs = packs.map((x) => (x.id === id ? { ...x, serverId: j.pack.id, total: j.pack.unitsTotal, left: j.pack.unitsLeft, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : x)); emit(); }).catch((e) => { limitRefused(id, e); });
   return id;
 }
 
@@ -327,7 +341,13 @@ let restock: string[] = [];
 export const useFavs = () => useSyncExternalStore(subscribe, () => favs);
 export const useRestock = () => useSyncExternalStore(subscribe, () => restock);
 export function toggleFav(id: string) { favs = favs.includes(id) ? favs.filter((x) => x !== id) : [id, ...favs]; emit(); kv.set("medeo_favs", favs.join(",")); }
-export function toggleRestock(id: string) { restock = restock.includes(id) ? restock.filter((x) => x !== id) : [...restock, id]; emit(); }
+/** «Қайта шыққанда хабарла»: серверге жазылады (ұсыныс қайта сатылымға шыққанда бот хабарлайды). Сервер жоқ болса — тек осы құрылғыда. */
+export function toggleRestock(id: string) {
+  const on = !restock.includes(id);
+  restock = on ? [...restock, id] : restock.filter((x) => x !== id); emit();
+  api(`/v1/offers/${encodeURIComponent(id)}/wait`, { method: "POST", body: JSON.stringify({ on }) }).catch(() => null);
+}
+export async function loadWaits() { try { const j = await api<{ slugs: string[] }>("/v1/waits"); restock = j.slugs; emit(); } catch { /* бэкенд жоқ */ } }
 void kv.get("medeo_favs").then((v) => { if (v !== null) { favs = v ? v.split(",") : []; emit(); } });
 
 // ── Төлем тәсілдері ─────────────────────────────────────────────────────────
@@ -442,7 +462,12 @@ export function sendGift(offerId: string, msg: string, anon: boolean, toUsername
   const hasTg = Boolean((window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData);
   if (srvCode) { gifts = gifts.map((g) => (g.id === id ? { ...g, code: srvCode } : g)); emit(); giftReady.set(id, Promise.resolve(srvCode)); }
   else if (hasTg) giftReady.set(id, api<{ gift: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, ...(z ? { units: z.units } : {}), gift: { message: msg || undefined, anonymous: anon, toUsername: toUsername || undefined }, idempotencyKey: newKey() }) }, 12000)
-    .then((j) => { gifts = gifts.map((g) => (g.id === id ? { ...g, code: j.gift.code } : g)); emit(); return j.gift.code; }).catch(() => null));
+    .then((j) => { gifts = gifts.map((g) => (g.id === id ? { ...g, code: j.gift.code } : g)); emit(); return j.gift.code; })
+    .catch((e) => { // сату лимиті: сыйлық жасалмады — тізімнен алынады, себебі айтылады (ақша алынбаған)
+      const t = limitText((e as { body?: { error?: string } }).body?.error);
+      if (t) { gifts = gifts.filter((g) => g.id !== id); emit(); void nativeAlert(t); }
+      return null;
+    }));
   return id;
 }
 
@@ -455,7 +480,12 @@ export async function sendGiftsBulk(offerId: string, count: number, msg: string,
       const j = await api<{ gifts?: { code: string }[]; gift?: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, ...(units ? { units } : {}), method: /kaspi/i.test(methodLabel) ? "kaspi" : "test", methodLabel,
         gift: { message: msg || undefined, anonymous: anon, count }, idempotencyKey: newKey() }) }, 20000);
       list = (j.gifts ?? (j.gift ? [j.gift] : [])).map((x) => x.code);
-    } catch { return []; }
+    } catch (e) {
+      const b = (e as { body?: { error?: string; left?: number } }).body;
+      const t = limitText(b?.error);
+      if (t) void nativeAlert(b?.error === "sold_out" && b.left ? `Осы айға тек ${b.left} пакет қалды — сыйлық санын азайтыңыз. Ақша алынған жоқ.` : t);
+      return [];
+    }
   }
   for (const code of list) sendGift(offerId, msg, anon, undefined, code, 30, units);
   return list.map((c) => appLink("gift", c));
