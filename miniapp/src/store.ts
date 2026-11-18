@@ -117,7 +117,11 @@ export function buyPack(offerId: string, methodLabel = "Kaspi Pay"): string {
   const offPeak = buyExtra.offPeak && o.offPeak ? o.offPeak : null;
   const id = "p" + (Date.now() % 100000);
   const pre = adopted.get(offerId); adopted.delete(offerId);
-  packs = [{ id, offerId, total: o.units, left: o.units, daysLeft: 30, until: inDays(30), offPeak, ...(pre ? { serverId: pre.serverId, receiptId: pre.receiptId, receiptNo: pre.receiptNo } : {}),
+  // Банк бетінен оралғанда пакет серверден бұрын қосылып қойған болуы мүмкін (мини апп қайта ашылады) — екінші рет қоспаймыз
+  if (pre) { const same = packs.find((p) => p.serverId === pre.serverId); if (same) { buyExtra = {}; return same.id; } }
+  // Мерзім — сервердегідей (ұсыныстың өз мерзімі: 30, 60 күн…), бұрын әрқашан 30 деп жазылатын
+  const days = pre?.validUntil ? Math.max(0, Math.ceil((new Date(pre.validUntil).getTime() - Date.now()) / 86400000)) : 30;
+  packs = [{ id, offerId, total: o.units, left: o.units, daysLeft: days, until: inDays(days), offPeak, ...(pre ? { serverId: pre.serverId, receiptId: pre.receiptId, receiptNo: pre.receiptNo } : {}),
     history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: `бүгін • ${pre?.label ?? methodLabel}`, right: `${o.units} бірлік` }] }, ...packs];
   emit();
   if (pre) { buyExtra = {}; return id; } // карта арқылы серверде төленіп қойған — қайта сатып алмаймыз
@@ -136,7 +140,9 @@ async function buyOnServer(localId: string, offerSlug: string, methodLabel: stri
     const extra = buyExtra; buyExtra = {};
     const j = await api<{ pack: SrvPack }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug, method, methodLabel, idempotencyKey: key, ...(useBonus ? { useBonus } : {}), ...(extra.offPeak ? { offPeak: true } : {}) }) }, 12000);
     if (useBonus) void loadBonus(true);
-    packs = packs.map((p) => (p.id === localId ? { ...p, serverId: j.pack.id, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : p));
+    // Сервер пакетін синхрондау бұрын қосып қойса — жергілікті көшірмені алып тастаймыз (қосарланбасын)
+    packs = packs.some((p) => p.serverId === j.pack.id && p.id !== localId) ? packs.filter((p) => p.id !== localId)
+      : packs.map((p) => (p.id === localId ? { ...p, serverId: j.pack.id, receiptId: j.pack.receipt?.id, receiptNo: j.pack.receipt?.no } : p));
     emit();
   } catch { /* сервер жауап бермесе — пакет жергілікті күйде қалады */ }
 }
@@ -162,6 +168,10 @@ export async function syncServerPacks() {
         serverId: x.id, receiptId: x.receipt?.id, receiptNo: x.receipt?.no, history: [{ emoji: "🛒", title: "Пакет сатып алынды", sub: "сервер", right: `${x.unitsTotal} бірлік` }] };
     });
     if (add.length) { packs = [...add, ...packs]; emit(); }
+    // Бір сервер пакеті тізімде екі рет тұрса (қосарланған) — біреуін қалдырамыз
+    const seen = new Set<string>();
+    const uniq = packs.filter((p) => !p.serverId || (seen.has(p.serverId) ? false : (seen.add(p.serverId), true)));
+    if (uniq.length !== packs.length) { packs = uniq; emit(); }
   } catch { /* кірусіз не сервер жоқ */ }
 }
 
@@ -358,8 +368,8 @@ export async function loadCards() {
   } catch { /* сервер жоқ — үлгі карталар қалады */ }
 }
 /** Карта арқылы серверде сатып алынған пакет: Success беті buyPack-та екінші рет сатып алмай, осыны қолданады */
-const adopted = new Map<string, { serverId: string; receiptId?: string; receiptNo?: string; label: string }>();
-export function adoptPurchase(offerId: string, p: { id: string; receipt: { id: string; no: string } | null }, label: string) { adopted.set(offerId, { serverId: p.id, receiptId: p.receipt?.id, receiptNo: p.receipt?.no, label }); }
+const adopted = new Map<string, { serverId: string; receiptId?: string; receiptNo?: string; label: string; validUntil?: string }>();
+export function adoptPurchase(offerId: string, p: { id: string; receipt: { id: string; no: string } | null; validUntil?: string }, label: string) { adopted.set(offerId, { serverId: p.id, receiptId: p.receipt?.id, receiptNo: p.receipt?.no, label, validUntil: p.validUntil }); }
 
 // ── PIN ─────────────────────────────────────────────────────────────────────
 // Ескерту: нағыз жүйеде PIN серверде тексеріледі. Бэкенд қосылғанша құрылғыда тек хэші сақталады (кодтың өзі емес).
