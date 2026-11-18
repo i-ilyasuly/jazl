@@ -499,7 +499,7 @@ void kv.get("medeo_recent").then((v) => { if (v) { try { recent = JSON.parse(v);
 
 // ── Алғашқы кіру ────────────────────────────────────────────────────────────
 // null — әлі оқылып жатыр (бастапқы экран көрсетіледі), false — таныстыру керек, true — өткен.
-let onboarded: boolean | null = null;
+let onboarded: boolean | null = null; // null — әлі белгісіз (бос фон)
 export const useOnboarded = () => useSyncExternalStore(subscribe, () => onboarded);
 /** «Деректерді жою» (Figma 18): құрылғыдағы барлық Medeo деректерін тазартып, онбордингке қайтарады.
  *  Бэкенд қосылғанда: DELETE /me (аккаунт пен пакеттер серверде жойылады). */
@@ -510,7 +510,18 @@ export function resetAll() {
   setTimeout(() => window.location.reload(), 50);
 }
 export function finishOnboarding() { onboarded = true; emit(); kv.set("medeo_onboarded", "1"); }
-void Promise.all([kv.get("medeo_onboarded"), new Promise((r) => setTimeout(r, 500))]).then(([v]) => { onboarded = v === "1"; emit(); });
+// Ашылу жылдамдығы (2026-11-18): бұрын әр ашқанда кемінде 500 мс + Telegram бұлтының (CloudStorage) жауабы күтілетін — экран бос тұратын.
+// Енді белгі құрылғы жадында да сақталады (kv.set көшірмесі): тіркелген клиент бірден басты бетті көреді, бұлт жауабы фонда тексеріледі.
+{
+  let local = false;
+  try { local = localStorage.getItem("medeo_onboarded") === "1"; } catch { /* жеке режим */ }
+  if (local) onboarded = true;
+  void kv.get("medeo_onboarded").then((v) => {
+    if (v === "1") { try { localStorage.setItem("medeo_onboarded", "1"); } catch { /* жеке режим */ } }
+    const next = v === "1" || local;
+    if (next !== onboarded) { onboarded = next; emit(); }
+  });
+}
 
 // ── «Жуырда» санаттарына жазылу ─────────────────────────────────────────────
 let venueSubs: string[] = [];

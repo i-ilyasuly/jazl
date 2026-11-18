@@ -182,7 +182,10 @@ export const kv = {
   },
   set(key: string, value: string) {
     if (inTelegram && at("6.9") && wa?.CloudStorage) wa.CloudStorage.setItem(key, value);
-    else { try { localStorage.setItem(key, value); } catch { /* жеке режим */ } }
+    // Тіркелу белгісінің көшірмесі құрылғы жадында да тұрады — ашылғанда бұлтты күтпей оқу үшін (store.ts).
+    // Тек осы белгі: PIN, телефон т.б. құпия мәндер жергілікті жадқа көшірілмейді.
+    else { try { localStorage.setItem(key, value); } catch { /* жеке режим */ } return; }
+    if (key === "medeo_onboarded") { try { if (value) localStorage.setItem(key, value); else localStorage.removeItem(key); } catch { /* жеке режим */ } }
   },
 };
 
