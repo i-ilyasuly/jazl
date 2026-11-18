@@ -29,6 +29,8 @@ const Env = z.object({
   /** API-дің ашық мекенжайы (жүктеу сілтемелері үшін); жоқ болса — сұраудың host-ы */
   PUBLIC_URL: z.string().url().optional(),
   MINIAPP_BOT_USERNAME: z.string().default("Mmedeo_bot"),
+  /** /support батырмасы апаратын жеке чат (Telegram username, @-сыз). Жоқ болса — мини апптағы «Мәселе туралы жазу» беті */
+  SUPPORT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{4,32}$/).optional(),
   DB_SSL: z.enum(["require", "disable"]).default("require"),
   /** Суреттер бакеті (Google Cloud Storage, жария оқу). Жоқ болса — MEDIA_DIR (жергілікті) не сурет жүктеу өшірулі */
   MEDIA_BUCKET: z.string().optional(),

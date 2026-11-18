@@ -17,7 +17,8 @@ export function telegramSender(cfg: Config): Sender {
   return async (m) => {
     const body = {
       chat_id: m.chatId, text: m.text, link_preview_options: { is_disabled: true },
-      ...(m.button ? { reply_markup: { inline_keyboard: [[{ text: m.button.text, url: m.button.url ?? `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=${m.button.start}` }]] } } : {}),
+      // style: батырма түсі (Bot API 9.4, «primary» — көк); ескі клиенттер елемейді. Мәтін кәдімгі (parse_mode жоқ): атауларды экрандау қажет емес
+      ...(m.button ? { reply_markup: { inline_keyboard: [[{ text: m.button.text, url: m.button.url ?? `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=${m.button.start}`, style: "primary" }]] } } : {}),
     };
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(4000) });
     if (!r.ok) console.warn(`notify: telegram ${r.status} ${(await r.text().catch(() => "")).slice(0, 160)}`);
