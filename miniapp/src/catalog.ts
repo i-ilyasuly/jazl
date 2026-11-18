@@ -7,8 +7,8 @@ import { api } from "./api";
 import { categoryOffers, endedOffers, moreOffers, offers, type Offer, type OfferKind } from "./mocks/offers";
 import { venues } from "./mocks/venues";
 
-interface SrvVenue { slug: string; name: string; kind: OfferKind; rating: number | null; reviewsCount: number; branches: { id: string; address: string }[] }
-interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown } | null; rules?: { planOnly?: boolean } | null }
+interface SrvVenue { slug: string; name: string; kind: OfferKind; rating: number | null; reviewsCount: number; trust?: number | null; branches: { id: string; address: string }[] }
+interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown } | null; rules?: { planOnly?: boolean; offPeak?: { days: number[]; from: string; to: string; pct: number } } | null }
 
 export const catalogState: { source: "mock" | "server"; venues: number; offers: number; error?: string; ms?: number; branches: { venue: string; slug: string; branchId: string; address: string }[] } = { source: "mock", venues: 0, offers: 0, branches: [] };
 
@@ -17,7 +17,7 @@ export async function loadCatalog() {
   try {
     const j = await api<{ venues: SrvVenue[]; offers: SrvOffer[] }>("/v1/catalog", {}, 4000);
     const vName = new Map(j.venues.map((v) => [v.slug, v.name]));
-    for (const v of j.venues) { const m = venues.find((x) => x.id === v.slug); if (m) { m.name = v.name; m.rating = v.rating ?? m.rating; m.reviews = v.reviewsCount; m.address = v.branches[0]?.address ?? m.address; } }
+    for (const v of j.venues) { const m = venues.find((x) => x.id === v.slug); if (m) { m.name = v.name; m.rating = v.rating ?? m.rating; m.reviews = v.reviewsCount; m.trust = v.trust ?? null; m.address = v.branches[0]?.address ?? m.address; } }
     const lists = [offers, moreOffers, categoryOffers, endedOffers];
     for (const o of j.offers) {
       const patch: Partial<Offer> = { // Орысша: мекеме жазған орысша атау (жоқ болса — өнім сөздігінен, i18n/products.ts) + сервердің «· 4 дана» бөлігі орысшаланады («Куриный донер · 4 шт.»)
@@ -27,6 +27,7 @@ export async function loadCatalog() {
       const about = getLang() === "ru" && typeof o.details?.aboutRu === "string" && o.details.aboutRu.trim() ? o.details.aboutRu : o.details?.about;
       if (typeof about === "string" && about.trim()) patch.about = about; // ескі (seed) ұсыныстарда сипаттама мәтін емес — онда санат үлгісі қалады
       if (o.rules?.planOnly) patch.planOnly = true;
+      if (o.rules?.offPeak) patch.offPeak = o.rules.offPeak;
       const found = lists.flatMap((l) => l).find((x) => x.id === o.slug);
       if (found) Object.assign(found, patch);
       else (o.status === "ended" ? endedOffers : moreOffers).push({ id: o.slug, distance: "", favorite: false, rating: 0, ratingCount: 0, address: "", hours: "", buyers: 0, ...patch } as Offer);

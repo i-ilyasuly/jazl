@@ -7,7 +7,10 @@ import type { OfferKind } from "../mocks/offers";
 
 export type Role = "owner" | "manager" | "cashier";
 export interface StaffOf {
-  venue: { id: string; slug: string; name: string; kind: OfferKind; status?: string; statusNote?: string | null; city: string; logoUrl: string | null; coverUrl: string | null; rating: number | null; reviews: number; branchesTotal: number };
+  venue: { id: string; slug: string; name: string; kind: OfferKind; status?: string; statusNote?: string | null; city: string; logoUrl: string | null; coverUrl: string | null; rating: number | null; reviews: number; branchesTotal: number;
+    /** Комиссия деңгейі (сервер: venueScore.ts) және сенімділік (90 күн, % — жеткілікті дерек болса) */
+    fee?: { pct: number; base: number; custom: boolean; tiers: { rating: number; reviews: number; pct: number }[]; next: { rating: number; reviews: number; pct: number } | null };
+    reliability?: number | null; reliabilityN?: number };
   role: Role; status: "active" | "pending"; branchId: string | null; branches: { id: string; address: string }[];
 }
 export interface Use { id: string; kind: "scan" | "order"; at: string; units: number; title: string; slug: string; customer: string; branch: string; branchId: string; orderNo: number | null; amount: number; venueAmount: number; cancelled: boolean; canCancel: boolean }

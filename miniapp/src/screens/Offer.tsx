@@ -1,3 +1,4 @@
+import { winLabel } from "../offpeak";
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
 import { Rich } from "../ui/Rich";
 import { Photo } from "../ui/Photo";
@@ -180,6 +181,7 @@ function OfferView({ id }: { id?: string }) {
             <button className={`${s.link} ${s.venueLink}`} onClick={toVenue}>{offer.venue}<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
             <span className={s.muted}>{`·  ★ ${String(offer.rating).replace(".", ",")} (${offer.ratingCount})  ·  ${offer.distance}`}</span>
           </p>
+          {venue?.trust != null && <p className={s.trust}><span aria-hidden>✓</span>{`Сенімді мекеме · ${venue.trust}% қызмет шағымсыз`}</p>}
           <div className={s.priceRow}>
             <div>
               <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}>{fmt(offer.price)}</span><span className={s.discount}>▼ {discount(offer)}%</span></p>
@@ -210,6 +212,7 @@ function OfferView({ id }: { id?: string }) {
           {d.duration && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
           {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
           <div><dt>Қолдану тәсілі</dt><dd>{base.planOnly ? "Тек алдын ала жоспар бойынша: әр келуге күн мен уақыт таңдайсың" : d.use}</dd></div>
+          {base.offPeak && <div><dt>Бос сағат</dt><dd>{`Мекеменің бос уақытында келсең — тағы −${base.offPeak.pct}%: ${winLabel(base.offPeak)}. Сатып алғанда таңдайсың.`}</dd></div>}
         </dl>
         </section>
 
