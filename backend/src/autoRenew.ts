@@ -29,7 +29,7 @@ export async function autoRenewTick(db: Db, cfg: Config, notify?: Notifier): Pro
     order by p.valid_until limit 50`)).rows as Due[];
   let renewed = 0;
   for (const p of due) {
-    const stop = async (why: "card" | "price" | "unavailable" | "payment") => {
+    const stop = async (why: "card" | "price" | "unavailable" | "payment" | "limit") => {
       await db.execute(sql`update app.packs set auto_renew = false where id = ${p.id}`);
       await notify?.autoRenew(p.user_id, p.title, p.title_ru, { ok: false, why });
     };
@@ -54,6 +54,8 @@ export async function autoRenewTick(db: Db, cfg: Config, notify?: Notifier): Pro
       if (r.type === "paid") { renewed++; await notify?.autoRenew(p.user_id, p.title, p.title_ru, { ok: true, amount: price, packId: paidPack }); }
       continue;
     }
+    // Сату лимиті (айлық таусылды не бір адамға шек): ақша алынбайды, автожаңарту тоқтайды — клиент кейін қолмен ала алады
+    if (r.type === "error" && (r.code === "sold_out" || r.code === "user_limit")) { await stop("limit"); continue; }
     await stop("payment");
   }
   return renewed;

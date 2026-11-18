@@ -83,6 +83,13 @@ d("Сату лимиті", () => {
     await tick();
     expect(sent.filter((m) => m.chatId === 707)).toHaveLength(1); // екінші рет жоқ
   });
+  it("соңғы бір орынға екі адам бір мезетте — тек біреуі алады", async () => {
+    const r = await dbh.pool.query(`select count(*)::int n from app.packs p join app.offers o on o.id = p.offer_id where o.slug = 'latte' and p.status <> 'refunded' and p.created_at > now() - interval '1 day'`);
+    await setRules({ monthlyLimit: r.rows[0].n + 1, perUserLimit: null });
+    const res = await Promise.all([buy(801), buy(802), buy(803)]);
+    expect(res.map((x) => x.status).sort()).toEqual([200, 409, 409]);
+    expect((await catalogLatte()).limit.left).toBe(0);
+  });
   it("лимитсіз ұсыныс бұрынғыдай", async () => {
     await setRules({ monthlyLimit: null, perUserLimit: null });
     expect((await catalogLatte()).limit).toBeNull();

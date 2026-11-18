@@ -136,8 +136,11 @@ export const limitText = (code?: string) => code === "sold_out" ? "Осы айд
 function limitRefused(localId: string, e: unknown) {
   const t = limitText((e as { body?: { error?: string } }).body?.error);
   if (!t) return false;
+  const offerId = packs.find((p) => p.id === localId)?.offerId;
   packs = packs.filter((p) => p.id !== localId); emit();
   void nativeAlert(t);
+  // «Пакет сатып алынды» беті ашық тұрса — ұсыныс бетіне қайтамыз (онда «Таусылды» / шек көрінеді)
+  if (offerId && location.hash.startsWith("#/success/")) location.replace("#/offer/" + offerId);
   return true;
 }
 
@@ -459,7 +462,12 @@ export function sendGift(offerId: string, msg: string, anon: boolean, toUsername
   const hasTg = Boolean((window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData);
   if (srvCode) { gifts = gifts.map((g) => (g.id === id ? { ...g, code: srvCode } : g)); emit(); giftReady.set(id, Promise.resolve(srvCode)); }
   else if (hasTg) giftReady.set(id, api<{ gift: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, ...(z ? { units: z.units } : {}), gift: { message: msg || undefined, anonymous: anon, toUsername: toUsername || undefined }, idempotencyKey: newKey() }) }, 12000)
-    .then((j) => { gifts = gifts.map((g) => (g.id === id ? { ...g, code: j.gift.code } : g)); emit(); return j.gift.code; }).catch(() => null));
+    .then((j) => { gifts = gifts.map((g) => (g.id === id ? { ...g, code: j.gift.code } : g)); emit(); return j.gift.code; })
+    .catch((e) => { // сату лимиті: сыйлық жасалмады — тізімнен алынады, себебі айтылады (ақша алынбаған)
+      const t = limitText((e as { body?: { error?: string } }).body?.error);
+      if (t) { gifts = gifts.filter((g) => g.id !== id); emit(); void nativeAlert(t); }
+      return null;
+    }));
   return id;
 }
 
@@ -472,7 +480,12 @@ export async function sendGiftsBulk(offerId: string, count: number, msg: string,
       const j = await api<{ gifts?: { code: string }[]; gift?: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, ...(units ? { units } : {}), method: /kaspi/i.test(methodLabel) ? "kaspi" : "test", methodLabel,
         gift: { message: msg || undefined, anonymous: anon, count }, idempotencyKey: newKey() }) }, 20000);
       list = (j.gifts ?? (j.gift ? [j.gift] : [])).map((x) => x.code);
-    } catch { return []; }
+    } catch (e) {
+      const b = (e as { body?: { error?: string; left?: number } }).body;
+      const t = limitText(b?.error);
+      if (t) void nativeAlert(b?.error === "sold_out" && b.left ? `Осы айға тек ${b.left} пакет қалды — сыйлық санын азайтыңыз. Ақша алынған жоқ.` : t);
+      return [];
+    }
   }
   for (const code of list) sendGift(offerId, msg, anon, undefined, code, 30, units);
   return list.map((c) => appLink("gift", c));

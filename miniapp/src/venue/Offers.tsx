@@ -5,7 +5,7 @@
 import { Rich } from "../ui/Rich";
 import { __t, getLang, kk } from "../i18n";
 import { kkOf, ruOf, suggest } from "../i18n/products";
-import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { haptic, kv, nativeAlert, nativePick } from "../telegram";
@@ -99,7 +99,8 @@ export function VOfferWizard() {
   const [status, setStatus] = useState("draft");
   const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
   const [d, setD] = useState<Draft>({ title: "", titleRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
-  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hadExtra = useRef(false);
+  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); hadExtra.current = Boolean(o.composition || o.compositionRu || o.portion); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
   // Бір тілде жазса, екіншісі сөздіктен өзі толады (бос не бұрын өзі толтырылған болса ғана — мекеме жазғанын баспаймыз)
   const setTitle = (v: string) => setD((x) => { const auto = !x.titleRu || x.titleRu === ruOf(x.title); return { ...x, title: v, titleRu: auto ? ruOf(v) ?? (auto && x.titleRu ? "" : x.titleRu) : x.titleRu }; });
@@ -120,8 +121,11 @@ export function VOfferWizard() {
     if (!me || busy) return;
     if (publish && status === "draft" && !accepted && !(await kv.get("medeo_offer_terms"))) { setTerms(true); return; }
     setBusy(true); haptic.medium();
-    const body = { ...d, titleRu: d.titleRu.trim() || undefined, aboutRu: d.aboutRu.trim() || undefined, category: d.category || undefined, composition: d.composition.trim(), compositionRu: d.compositionRu.trim(),
-      portion: d.portion && d.portion.value > 0 ? d.portion : null, publish };
+    // Құрамы/порция тек толтырылса не бұрын сақталған болса жіберіледі (бос болса — кілт жоқ: ескі сервер нұсқасы да қабылдайды)
+    const { composition, compositionRu, portion, ...rest } = d;
+    const extra = composition.trim() || compositionRu.trim() || portion || hadExtra.current
+      ? { composition: composition.trim(), compositionRu: compositionRu.trim(), portion: portion && portion.value > 0 ? portion : null } : {};
+    const body = { ...rest, ...extra, titleRu: d.titleRu.trim() || undefined, aboutRu: d.aboutRu.trim() || undefined, category: d.category || undefined, publish };
     try {
       const st = id ? (await api<{ status: string }>(`/v1/venue/${me.venue.id}/offers/${id}`, { method: "PUT", body: JSON.stringify(body) })).status
         : (await api<{ offer: { status: string } }>(`/v1/venue/${me.venue.id}/offers`, { method: "POST", body: JSON.stringify(body) })).offer.status;

@@ -224,7 +224,7 @@ function OfferView({ id }: { id?: string }) {
           <div><dt>Бірлік</dt><dd>{`${offer.units} ${offer.unitWord}, әрқайсысы бөлек`}</dd></div>
           {base.portion && <div><dt>{base.kind === "hair" ? "Ұзақтығы" : "Порция"}</dt><dd>{base.kind === "hair" ? portionText(base.portion) : `${portionText(base.portion)}, бір ${offer.unitWord}`}</dd></div>}
           <div><dt>Мерзімі</dt><dd>{`${d.days ?? 30} күн, сатып алған сәттен`}</dd></div>
-          {d.duration && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
+          {d.duration && !(base.kind === "hair" && base.portion) && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
           {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
           <div><dt>Қолдану тәсілі</dt><dd>{base.planOnly ? "Тек алдын ала жоспар бойынша: әр келуге күн мен уақыт таңдайсың" : d.use}</dd></div>
           {base.offPeak && <div><dt>Бос сағат</dt><dd>{`Мекеменің бос уақытында келсең — тағы −${base.offPeak.pct}%: ${winLabel(base.offPeak)}. Сатып алғанда таңдайсың.`}</dd></div>}
