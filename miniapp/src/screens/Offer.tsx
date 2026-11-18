@@ -130,7 +130,9 @@ function OfferView({ id }: { id?: string }) {
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back, !buying && !using);
   const pay = useMemo(() => ({ text: "Төлеу", shine: true, onClick: () => { haptic.medium(); setBuying(true); } }), []);
-  const gift = useMemo(() => ({ text: "Сыйлау", onClick: () => go("/gift/" + offer.id, "up") }), [go, offer.id]);
+  // Сыйлау: таңдалған дана нұсқасымен (Патша, 2026-11-18). Пакеті бар адамда таңдау жасырын — негізгі көлем.
+  const giftTo = `/gift/${offer.id}${!pack && offer.units !== base.units ? `?units=${offer.units}` : ""}`;
+  const gift = useMemo(() => ({ text: "Сыйлау", onClick: () => go(giftTo, "up") }), [go, giftTo]);
   const closeSheet = useCallback(() => setBuying(false), []);
   const paid = useCallback(() => go("/success/" + offer.id, "up", { replace: true }), [go, offer.id]);
   // Сатып алынған пакетте: «Тағы алу» → нативті таңдау: өзіме қайта алу немесе досыма сыйлау
@@ -138,7 +140,7 @@ function OfferView({ id }: { id?: string }) {
     haptic.tap();
     const id = await nativePick("Тағы алу", "Пакетті өзіңе қайта аласың ба, әлде досыңа сыйлайсың ба?", [{ id: "buy", text: "Қайта алу" }, { id: "gift", text: "Сыйлау" }, { id: "", text: "Бас тарту" }], "ask");
     if (id === "buy") { haptic.medium(); setBuying(true); }
-    else if (id === "gift") { haptic.medium(); go("/gift/" + offer.id, "up"); }
+    else if (id === "gift") { haptic.medium(); go(giftTo, "up"); }
     else if (id === "ask") setChoose(true);
   } }), [go, offer.id]);
   const use = useMemo(() => ({ text: "Қолдану", shine: true, onClick: () => { haptic.medium(); setUsing(true); } }), []);
@@ -192,7 +194,8 @@ function OfferView({ id }: { id?: string }) {
               <span className={`${s.badge} ${s.green}`}>{`${fmt(saving(offer))} үнем`}</span>
             </div>
           </div>
-          {base.sizes && (
+          {/* Дана нұсқасы тек әлі сатып алмаған адамға (Патша, 2026-11-18): пакеті барда — көрсетілмейді */}
+          {base.sizes && !pack && (
             <div className={`${s.sizeRow} ${s.sizesIn}`} role="radiogroup" aria-label="Пакет көлемі">
               {base.sizes.map((z, i) => (
                 <button key={z.units} role="radio" aria-checked={size === i} className={`${s.size} ${size === i ? s.sizeOn : ""}`} onClick={() => { if (size !== i) { haptic.select(); setSize(i); } }}>

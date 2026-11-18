@@ -1,16 +1,16 @@
 /* Чек беті: PDF нұсқасымен бір дизайн. Өлшемдер UI-kit шкаласында (34/41, 24/30, 17/22, 15/20, 13/16, 11/13), 4/8 тор. */
 .page { min-height: 100vh; padding-bottom: calc(96px + var(--safe-b, 0px)); background: var(--surface-page); }
 .state { padding: 160px 16px 0; text-align: center; color: var(--text-secondary); }
-.head { padding: calc(108px + var(--top-shift)) 24px 40px; background: linear-gradient(135deg, #229af0, #1f73c2); color: #fff; }
+.head { padding: calc(108px + var(--top-shift)) 24px 40px; background: var(--surface-white); color: var(--text-strong); } /* Патша, 2026-11-18: аппақ фон, тек Medeo. нүктесі көк */
 .brandRow { display: flex; align-items: center; justify-content: space-between; }
-.brand { font-size: 24px; line-height: 30px; font-weight: 700; color: #fff; }
-.tag { font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: 1px; color: rgba(255, 255, 255, 0.85); }
-.venue { margin-top: 16px; font-size: 24px; line-height: 30px; font-weight: 700; color: #fff; }
-.addr { margin-top: 4px; font-size: 15px; line-height: 20px; color: rgba(255, 255, 255, 0.85); }
-.meta { margin-top: 8px; font-size: 13px; line-height: 16px; color: rgba(255, 255, 255, 0.85); }
+.brand { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
+.tag { font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: 1px; color: var(--text-secondary); }
+.venue { margin-top: 16px; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
+.addr { margin-top: 4px; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.meta { margin-top: 8px; font-size: 13px; line-height: 16px; color: var(--text-secondary); }
 .paper { position: relative; margin: -16px 12px 0; padding: 32px 16px 20px; border-radius: 16px; background: var(--surface-white); box-shadow: 0 8px 24px rgba(17, 26, 38, 0.08); }
 /* Қағаздың жоғарғы жиегіндегі тесіктер — артындағы көк бас көрініп тұрады */
-.perf { position: absolute; left: 8px; right: 8px; top: -4px; height: 8px; background: radial-gradient(circle at 4px 4px, #1f73c2 3.5px, transparent 4px) 0 0 / 14px 8px repeat-x; }
+.perf { position: absolute; left: 8px; right: 8px; top: -4px; height: 8px; background: radial-gradient(circle at 4px 4px, var(--surface-page) 3.5px, transparent 4px) 0 0 / 14px 8px repeat-x; }
 .title { text-align: center; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--text-secondary); }
 .total { margin-top: 4px; text-align: center; font-size: 34px; line-height: 41px; font-weight: 700; color: var(--text-strong); font-variant-numeric: tabular-nums; }
 .status { display: block; width: max-content; margin: 8px auto 0; padding: 4px 16px; border-radius: 12px; background: rgba(49, 209, 88, 0.15); color: #1b6b2e; font-size: 13px; line-height: 16px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; --dark-fg: var(--tone-ok); }

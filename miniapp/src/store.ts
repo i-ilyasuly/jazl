@@ -413,8 +413,10 @@ const giftReady = new Map<string, Promise<string | null>>();
 /** Сыйлық серверде жасалып болғанша күтеді (сілтеме сервердегі кодпен болуы үшін). Сервер жоқ болса — null. */
 export const waitGift = (id: string) => giftReady.get(id) ?? Promise.resolve(null);
 /** srvCode — карта төлемі серверде сыйлықты жасап қойды: код бірден қолданылады. */
-export function sendGift(offerId: string, msg: string, anon: boolean, toUsername?: string, srvCode?: string, days = 7): string {
-  const o = findOffer(offerId);
+export function sendGift(offerId: string, msg: string, anon: boolean, toUsername?: string, srvCode?: string, days = 7, units?: number): string {
+  const o0 = findOffer(offerId);
+  const z = units ? o0.sizes?.find((x) => x.units === units) : undefined;
+  const o = z ? { ...o0, title: o0.title.replace(/· \d+ /, `· ${z.units} `) } : o0;
   const id = "g" + (Date.now() % 100000) + (srvCode ? "-" + srvCode.slice(0, 4) : "");
   const until = new Date(Date.now() + days * 864e5);
   gifts = [{ id, dir: "sent", color: "#229af0", pack: o.title, emoji: o.kind === "coffee" ? "☕" : o.kind === "hair" ? "✂️" : "🍔", venue: o.venue,
@@ -423,23 +425,23 @@ export function sendGift(offerId: string, msg: string, anon: boolean, toUsername
   // B4: сыйлық серверде сатып алынады (пакет алушы қабылдағанша «сыйлықта» тұрады), код — сілтеме үшін
   const hasTg = Boolean((window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData);
   if (srvCode) { gifts = gifts.map((g) => (g.id === id ? { ...g, code: srvCode } : g)); emit(); giftReady.set(id, Promise.resolve(srvCode)); }
-  else if (hasTg) giftReady.set(id, api<{ gift: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, gift: { message: msg || undefined, anonymous: anon, toUsername: toUsername || undefined }, idempotencyKey: newKey() }) }, 12000)
+  else if (hasTg) giftReady.set(id, api<{ gift: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, ...(z ? { units: z.units } : {}), gift: { message: msg || undefined, anonymous: anon, toUsername: toUsername || undefined }, idempotencyKey: newKey() }) }, 12000)
     .then((j) => { gifts = gifts.map((g) => (g.id === id ? { ...g, code: j.gift.code } : g)); emit(); return j.gift.code; }).catch(() => null));
   return id;
 }
 
 /** Корпоративтік сыйлық (Патша, 2026-11-18): бір төлеммен 2–50 адамға. codes — карта төлемінде сервер қайтарған кодтар;
  *  жоқ болса (Kaspi, сынақ) — сервердің өзінен сатып алынады. Әр код «Сыйлықтарым» тізіміне жеке жол болып қосылады. Қайтарады: сілтемелер. */
-export async function sendGiftsBulk(offerId: string, count: number, msg: string, anon: boolean, codes?: string[], methodLabel = "Kaspi Pay"): Promise<string[]> {
+export async function sendGiftsBulk(offerId: string, count: number, msg: string, anon: boolean, codes?: string[], methodLabel = "Kaspi Pay", units?: number): Promise<string[]> {
   let list = codes;
   if (!list?.length) {
     try {
-      const j = await api<{ gifts?: { code: string }[]; gift?: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, method: /kaspi/i.test(methodLabel) ? "kaspi" : "test", methodLabel,
+      const j = await api<{ gifts?: { code: string }[]; gift?: { code: string } }>("/v1/purchases", { method: "POST", body: JSON.stringify({ offerSlug: offerId, ...(units ? { units } : {}), method: /kaspi/i.test(methodLabel) ? "kaspi" : "test", methodLabel,
         gift: { message: msg || undefined, anonymous: anon, count }, idempotencyKey: newKey() }) }, 20000);
       list = (j.gifts ?? (j.gift ? [j.gift] : [])).map((x) => x.code);
     } catch { return []; }
   }
-  for (const code of list) sendGift(offerId, msg, anon, undefined, code, 30);
+  for (const code of list) sendGift(offerId, msg, anon, undefined, code, 30, units);
   return list.map((c) => appLink("gift", c));
 }
 
