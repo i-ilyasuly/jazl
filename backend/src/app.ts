@@ -1,4 +1,5 @@
 // HTTP API (Hono). Маршруттар: /health — тексеру; /v1/* — тек дұрыс Telegram initData-мен.
+import { botRoutes } from "./bot/handler.js";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { sql } from "drizzle-orm";
@@ -42,6 +43,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender } = {}) {
   app.route("/files", receiptFileRoutes(cfg, db));
   app.route("/files", adminFileRoutes(cfg, db));
   app.route("/admin-web", adminWebRoutes(cfg, db));
+  app.route("/bot", botRoutes(cfg, db)); // Medeo боты: Telegram вебхугы (құпия тақырыпшамен)
   app.route("/payments/webhook", paymentWebhookRoutes(cfg, db)); // төлем провайдерінің вебхугы (қолтаңбамен) // Басқаруға веб арқылы кіру (Telegram Login Widget + PIN)
   void refreshFees(db).catch(() => null); // мекеме комиссиялары (Medeo Басқару «Комиссия»)
   app.route("/media", localMediaRoutes(cfg)); // тек MEDIA_DIR болғанда (жергілікті)
