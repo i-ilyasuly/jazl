@@ -162,6 +162,8 @@ export function VGuide() {
   const app = BOT_APP_LINK;
   useEffect(() => { void QRCode.toString(app, { type: "svg", margin: 0, color: { dark: "#111a26", light: "#0000" } }).then(setQr); }, [app]);
   const pdf = me ? `${API_URL}/files/guide/${me.venue.id}.pdf` : "";
+  const tent = me ? `${API_URL}/files/tent/${me.venue.id}.pdf` : "";
+  const downloadTent = useCallback(async () => { if (!tent) return; const r = await downloadFile(tent, "Medeo-taqtaisha.pdf"); if (r === null) saveFile(tent, "Medeo-taqtaisha.pdf"); }, [tent]);
   const download = useCallback(async () => { if (!pdf) return; const r = await downloadFile(pdf, "Medeo-kassa.pdf"); if (r === null) saveFile(pdf, "Medeo-kassa.pdf"); }, [pdf]);
   const steps = ["Клиент «Medeo бойынша» дейді", "Пакетті таңда, QR шығар", "Клиент сканерлейді, төлем өтті", "Қосымша тауарды бөлек төлет (қолма-қол / басқа банк)"];
   return (
@@ -176,6 +178,16 @@ export function VGuide() {
         <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 16 }}>
           <span style={{ width: 96, height: 96 }} dangerouslySetInnerHTML={{ __html: qr }} />
           <span className={`t-cap1 ${s.muted}`}>Клиент қолданбаны осы QR-мен жүктей алады</span>
+        </div>
+      </div>
+      {/* Клиентке тақтайша (Хормози: мекеме — ең арзан тарату арнасы): кассаның не үстелдің үстіне, клиенттің көз алдына */}
+      <div className={s.card} style={{ padding: 18 }}>
+        <b className={s.lead} style={{ fontSize: 19 }}>Клиентке тақтайша</b>
+        <p className={s.muted} style={{ marginTop: 4 }}>A5 парақ: «Пакетпен N%-ға дейін арзан», 3 қадам және мекемеңіздің бетіне апаратын QR. Кассаның не үстелдің үстіне қойыңыз.</p>
+        <p style={{ marginTop: 10, fontSize: 15, lineHeight: "20px" }}><b>Кассир айтатын бір сөйлем:</b> «Осыны пакетпен алсаңыз, арзанырақ — QR осы жерде, Telegram-да бір минутта».</p>
+        <div style={{ display: "flex", gap: 16, marginTop: 12 }}>
+          <button className={s.textBtn} onClick={() => void downloadTent()}>PDF жүктеу</button>
+          <button className={s.textBtn} onClick={() => (tent ? openExternal(tent) : undefined)}>Басып шығару</button>
         </div>
       </div>
       <Buttons main={{ text: "PDF жүктеу", onClick: () => void download() }} second={{ text: "Басып шығару", onClick: () => (pdf ? openExternal(pdf) : undefined) }} />

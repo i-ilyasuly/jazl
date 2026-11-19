@@ -149,7 +149,7 @@ initTelegram();
   // Бот хабарламаларының батырмалары (backend/src/notify.ts): vo_ — тапсырыс, vc_ — шағым, pk_ — клиент пакеті, v_<бет> — мекеме беті
   const m = sp?.match(/^(gift|venue|offer|rc|staff|vo|vc|pk|v|a|pay|p)_([\w-]+)$/);
   const vPage: Record<string, string> = { home: "/v", report: "/v/report", team: "/v/team", reviews: "/v/reviews", apply: "/v/apply/status", complaints: "/v/complaints", new: "/v/apply", offers: "/v/offers" }; // new — бот /business: тіркелуді бастау
-  const to = m && (m[1] === "a" ? "/a" : m[1] === "pay" ? `/pay/3ds/${m[2]}?wait=1` : m[1] === "v" ? vPage[m[2]] : m[1] === "p" ? ({ bonus: "/profile/bonus", packs: "/packs", help: "/profile/faq", report: "/profile/report", lang: "/profile/language", home: "/" } as Record<string, string>)[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
+  const to = m && (m[1] === "a" ? "/a" : m[1] === "pay" ? `/pay/3ds/${m[2]}?wait=1` : m[1] === "v" ? vPage[m[2]] : m[1] === "p" ? ({ bonus: "/profile/bonus", savings: "/profile/savings", packs: "/packs", help: "/profile/faq", report: "/profile/report", lang: "/profile/language", home: "/" } as Record<string, string>)[m[2]] : ({ gift: "/gift/open/", venue: "/venue/", offer: "/offer/", rc: "/receipt/no/", staff: "/v/join/", vo: "/v/orders/", vc: "/v/complaints/", pk: "/pack/" } as Record<string, string>)[m[1]] + m[2]);
   if (m && to) window.location.hash = "#" + to;
 }
 

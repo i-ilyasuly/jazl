@@ -115,6 +115,9 @@ export function PackPage() {
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 2 }}>
           <h2 className={`t-sub2 w-600 ${s.groupTitle}`}>Ақпарат</h2>
           {pack.extendedTo && <div className={`t-text ${s.kv}`}><span className={s.muted}>Мерзімі ұзартылды</span><span className="w-600">{pack.extendedTo}</span><span className={s.line16} /></div>}
+          {/* Пакет иесінің артықшылығы / пакетке қоса (мекеме береді): кассада айтуды ұмытпау үшін */}
+          {o.perk && <div className={`t-text ${s.kv}`}><span className={s.muted}>Пакет иесіне</span><span className="w-600">{o.perk}</span><span className={s.line16} /></div>}
+          {o.bonus && <div className={`t-text ${s.kv}`}><span className={s.muted}>Пакетке қоса</span><span className="w-600">{o.bonus}</span><span className={s.line16} /></div>}
           <div className={`t-text ${s.kv}`}><span className={s.muted}>Бағасы</span><span className="w-600">{fmt(o.price)}</span><span className={s.line16} /></div>
           <div className={`t-text ${s.kv}`}><span className={s.muted}>Төлем тәсілі</span><span className="w-600">Kaspi Pay</span><span className={s.line16} /></div>
           <button className={s.cell} onClick={() => { haptic.tap(); if (pack.receiptId) go("/receipt/srv/" + pack.receiptId); }}><span className={s.rowTitle}>{`Чек${pack.receiptNo ? ` · ${pack.receiptNo}` : ""}`}</span><img src={chev} width={18} height={18} alt="" /></button>
