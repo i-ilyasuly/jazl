@@ -8,7 +8,7 @@ import { Hono, type Context } from "hono";
 import { and, asc, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Env } from "../app.js";
-import type { Config } from "../config.js";
+import { devToolsFor, type Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
 import { venuePrefDefaults } from "../notify.js";
@@ -659,7 +659,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
 
   // Сынақ режимі ғана: өзіңді мекеменің иесі қылу (телефоннан сынау үшін). Нақты режимде 404.
   r.post("/venue/dev-join", async (c) => {
-    if (cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "disabled" }, 404);
+    if (!devToolsFor(cfg, c.get("user").telegramId)) return c.json({ ok: false, error: "disabled" }, 404);
     const b = z.object({ venueSlug: z.string().min(1).max(64), leave: z.boolean().optional() }).strict().safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const [v] = await db.select().from(venues).where(eq(venues.slug, b.data.venueSlug)).limit(1);

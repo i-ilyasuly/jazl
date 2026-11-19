@@ -1,8 +1,8 @@
 // Сату лимиті (Патша, 2026-11-18): мекеме ұсыныстың айлық сатылым санын шектей алады (мыс. Bahandi — айына 50 жазылым).
 // Лимит әр айдың 1-інде (Алматы уақыты) қайта ашылады. Бір адамға шекті де мекеме өзі қояды (бір кісі бәрін алып қоймауы үшін).
 // Ережелер offers.rules ішінде: { monthlyLimit?: number | null, perUserLimit?: number | null }.
-// Есеп: осы айда жасалған пакеттер (қайтарылғандар мен «көшу» пакеттерінен басқа). Төлемі күтілуде тұрған пакет
-// 20 минут бойы орынды ұстап тұрады (екі адам соңғы орынды бір мезетте алмауы үшін); төлем өтпесе — орын босайды.
+// Есеп: осы айда жасалған пакеттер (қайтарылғандар мен «көшу» пакеттерінен басқа). Төлемі шешілмеген пакет 2 сағатқа дейін
+// орынды ұстайды (екі адам соңғы орынды бір мезетте алмауы және кеш расталған төлем артық сатылмауы үшін).
 import { sql } from "drizzle-orm";
 
 type Exec = { execute: (q: ReturnType<typeof sql>) => Promise<{ rows: unknown[] }> };
@@ -16,10 +16,12 @@ export const limitsOf = (rules: unknown): Limits => {
 
 /** Осы айдың басы (Алматы) */
 const MONTH = sql`(date_trunc('month', now() at time zone 'Asia/Almaty') at time zone 'Asia/Almaty')`;
-/** Пакет орын алады: төленген (кейін пайдаланылған/мерзімі өткен/сыйланған да) не 20 минуттан жас «күтуде» */
+/** Пакет орын алады: төленген (кейін пайдаланылған/мерзімі өткен/сыйланған да) не төлемі әлі шешілмеген «күтуде» пакет.
+ *  Күтудегі пакет өз төлемі «created/pending» күйінде тұрғанда 2 сағат бойы орын ұстайды (банк беті / 3-D Secure кеш расталса да
+ *  лимиттен артық сатылмауы үшін); төлем өтпесе не 2 сағат өтсе — орын босайды. Корпоративтік сыйлықта төлем meta.packIds арқылы табылады. */
 const HOLDS = sql`p.status <> 'refunded' and p.source <> 'carry' and p.created_at >= ${MONTH}
-  and (p.status <> 'pending_payment' or (p.created_at > now() - interval '20 minutes'
-    and not exists (select 1 from app.payments y where y.pack_id = p.id and y.status = 'failed')))`;
+  and (p.status <> 'pending_payment' or (p.created_at > now() - interval '2 hours'
+    and exists (select 1 from app.payments y where (y.pack_id = p.id or (y.meta->'packIds') @> to_jsonb(p.id::text)) and y.status in ('created','pending'))))`;
 
 /** Ұсыныстар бойынша осы айда сатылғаны */
 export async function soldThisMonth(db: Exec, offerIds: string[]): Promise<Map<string, number>> {

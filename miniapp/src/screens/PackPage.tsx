@@ -13,7 +13,8 @@ import { findVenue, venues } from "../mocks/venues";
 import { carryOf, CARRY_DAYS, getPack, offerOf, packState, rateActivityOf, usePacks, type Activity , refundPack, setAutoRenew, useDefaultMethod, useMethods } from "../store";
 import { offPeakPrice } from "../offpeak";
 import { Switch } from "../ui/SubPage";
-import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
+import { haptic, inTelegram, nativePick, useBackButton, useBottomButtons } from "../telegram";
+import { api } from "../api";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { ExtendSheet } from "../ui/ExtendSheet";
 import { RateSheet } from "../ui/RateSheet";
@@ -55,6 +56,11 @@ export function PackPage() {
     const r = await setAutoRenew(pack.id, on, on ? renewCard?.cardId : undefined);
     if (!r.ok) { haptic.error(); say("Өзгерту мүмкін болмады"); return; }
     say(on ? `Автожаңарту қосылды · ${r.card ?? renewCard?.title ?? ""}` : "Автожаңарту өшірілді");
+    // Кету себебін сұрау (Хормози): бір сұрақ, міндетті емес — жауап өнімді жақсартуға
+    if (!on) {
+      const why = await nativePick("Бір сұрақ", "Автожаңартуды неге өшірдіңіз? Жауабыңыз бізге жақсаруға көмектеседі.", [{ id: "price", text: "Қымбат" }, { id: "inconvenient", text: "Ыңғайсыз" }, { id: "other", text: "Басқа себеп" }], "");
+      if (why) void api("/v1/feedback", { method: "POST", body: JSON.stringify({ kind: "renew_off", reason: why, ...(pack.serverId ? { packId: pack.serverId } : {}) }) }).catch(() => null);
+    }
   };
   if (!pack) return null;
   const o = offerOf(pack);

@@ -111,6 +111,7 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
         if (p.units_left < 1) throw new B4Error("no_units");
         if (opt.price === 0 && p.free_extend_used) throw new B4Error("free_used");
         if ((await extendedDays(tx, p.id)) + opt.days > maxDays) throw new B4Error("extend_limit"); // бұғаттан кейін қайта тексеру (қатар екі сұрау)
+        if (opt.price && cfg.PAYMENTS_MODE === "live") throw new B4Error("payment_method_unavailable"); // нақты режимде ақылы ұзарту тек картамен (жоғарыдағы карта жолы)
         const [pay] = opt.price ? await tx.insert(payments).values({ userId: user.id, packId: p.id, provider: cfg.PAYMENTS_MODE, method: "test", amount: opt.price, status: "paid", paidAt: new Date(), externalId: "test_" + randomUUID(), idempotencyKey: b.data.idempotencyKey }).returning() : [undefined];
         return applyExtend(tx, p, opt.days, opt.price, pay?.id ?? null);
       });

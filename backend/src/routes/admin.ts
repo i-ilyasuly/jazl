@@ -167,6 +167,26 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       feed: feed.map((x) => ({ kind: x.kind, at: x.at, who: short(x.first_name, x.last_name), title: head(x.title), venue: x.venue, amount: x.amount, units: x.units })),
     }, attention: await attention() });
   });
+  // Клиентті ұстау көрсеткіштері (Хормози: өлшенбейтін нәрсе жақсармайды; Патша, 2026-11-19). Соңғы 90 күн.
+  r.get("/admin/retention", async (c) => {
+    const [x] = await rows<{ first_use_h: number | null; first_used: number; bought: number; buyers: number; repeat: number; revenue: number; cust: number }>(sql`
+      with b as (select p.id, p.user_id, p.created_at, p.price_paid from app.packs p where p.status <> 'pending_payment' and p.source = 'purchase' and p.created_at > now() - interval '90 days'),
+        f as (select b.id, min(e.created_at) as first_at from b join app.pack_events e on e.pack_id = b.id and e.units_delta < 0 group by b.id)
+      select (select percentile_cont(0.5) within group (order by extract(epoch from f.first_at - b.created_at) / 3600) from f join b on b.id = f.id)::float as first_use_h,
+        (select count(*) from f)::int as first_used, (select count(*) from b)::int as bought,
+        (select count(distinct user_id) from b)::int as buyers,
+        (select count(*) from (select user_id from b group by user_id having count(*) >= 2) t)::int as repeat,
+        (select coalesce(sum(p.price_paid), 0) from app.packs p where p.status <> 'pending_payment' and p.source <> 'carry' and p.price_paid > 0)::int as revenue,
+        (select count(distinct p.user_id) from app.packs p where p.status <> 'pending_payment' and p.source <> 'carry' and p.price_paid > 0)::int as cust`);
+    const reasons = await rows<{ reason: string; n: number }>(sql`select reason, count(*)::int as n from app.feedback where kind = 'renew_off' and created_at > now() - interval '90 days' group by reason order by n desc`);
+    return c.json({ ok: true, retention: {
+      firstUseHours: x.first_use_h == null ? null : Math.round(x.first_use_h * 10) / 10,
+      firstUseShare: x.bought ? Math.round((x.first_used / x.bought) * 100) : null,
+      repeatShare: x.buyers ? Math.round((x.repeat / x.buyers) * 100) : null, buyers: x.buyers,
+      ltv: x.cust ? Math.round(x.revenue / x.cust) : null,
+      renewOff: reasons,
+    } });
+  });
   r.get("/admin/attention", async (c) => c.json({ ok: true, attention: await attention() }));
   // Сәтсіз қайтарулар (провайдер қабылдамаған): тізім және «Қайта жіберу» (src/refund.ts)
   r.get("/admin/refunds/failed", async (c) => {

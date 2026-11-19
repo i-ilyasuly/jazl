@@ -163,6 +163,8 @@ export const packs = app.table("packs", {
   autoRenew: boolean("auto_renew").notNull().default(false),
   autoRenewCard: uuid("auto_renew_card"),
   autoRenewAt: timestamp("auto_renew_at", { withTimezone: true }),
+  /** Автожаңарту сату лимитіне тірелсе: осы уақытқа дейін (келесі айдың 1-і) қайта әрекет жасалмайды (0026) */
+  renewRetryAt: timestamp("renew_retry_at", { withTimezone: true }),
   /** Автожаңарту жасаған жаңа пакет (екінші рет жаңармауы үшін) */
   renewedTo: uuid("renewed_to"),
   /** Пакет картасы — клиенттің жеке чатындағы виджет (0024): хабарлама ID (-1 — жіберу мүмкін болмады) және соңғы күйі */
@@ -459,3 +461,13 @@ export const offerWaits = app.table("offer_waits", {
   offerId: uuid("offer_id").notNull().references(() => offers.id),
   createdAt: created(),
 }, (t) => [uniqueIndex("offer_waits_pk").on(t.userId, t.offerId), index("offer_waits_offer").on(t.offerId)]);
+
+/** Клиенттің қысқа кері байланысы (Хормози: кету себебін сұра): kind = renew_off …, reason = price | inconvenient | quality | other (0026) */
+export const feedback = app.table("feedback", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  kind: text("kind").notNull(),
+  reason: text("reason").notNull(),
+  packId: uuid("pack_id").references(() => packs.id),
+  createdAt: created(),
+}, (t) => [index("feedback_kind").on(t.kind, t.createdAt)]);

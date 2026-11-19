@@ -10,7 +10,7 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
-import { branches, gifts, offerWaits, offers, packEvents, packs, paymentCards, payments, receipts, users, venues } from "../db/schema.js";
+import { branches, feedback, gifts, offerWaits, offers, packEvents, packs, paymentCards, payments, receipts, users, venues } from "../db/schema.js";
 import { hostedProviders, paymentProvider, providerByName, type CardInfo, type PaymentProvider } from "../payments/index.js";
 import { PaymentError } from "../payments/types.js";
 import { leftValue } from "../value.js";
@@ -26,6 +26,12 @@ type CardIn = z.infer<typeof CardBody>;
 export type ResolvedCard = { provider: PaymentProvider; card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; id?: string; label?: string } };
 /** Төлем қай провайдер арқылы өтеді: сақталған карта — өз провайдері (сол банкте сақталған); банк беті — таңдалған hosted провайдер; әйтпесе — PAYMENTS_PROVIDER */
 export async function resolveCard(db: Db, cfg: Config, userId: string, b: CardIn): Promise<ResolvedCard | { error: string; status: 400 | 404 }> {
+  const r = await resolveCardRaw(db, cfg, userId, b);
+  // Нақты режимде сынақ провайдері ақша алмай «төленді» дейді — жабық (қауіпсіздік тексерісі, 2026-11-19)
+  if (!("error" in r) && cfg.PAYMENTS_MODE === "live" && r.provider.name === "test") return { error: "payment_method_unavailable", status: 400 };
+  return r;
+}
+async function resolveCardRaw(db: Db, cfg: Config, userId: string, b: CardIn): Promise<ResolvedCard | { error: string; status: 400 | 404 }> {
   if (b.id) {
     const [pc] = await db.select().from(paymentCards).where(and(eq(paymentCards.id, b.id), eq(paymentCards.userId, userId), isNull(paymentCards.removedAt))).limit(1);
     if (!pc) return { error: "card_not_found", status: 404 };
@@ -115,6 +121,16 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     if (b.data.on) await db.insert(offerWaits).values({ userId, offerId: o.id }).onConflictDoNothing();
     else await db.delete(offerWaits).where(and(eq(offerWaits.userId, userId), eq(offerWaits.offerId, o.id)));
     return c.json({ ok: true, on: b.data.on });
+  });
+
+  // Қысқа кері байланыс (Хормози: кету себебін сұра): мыс. автожаңартуды өшіргенде «Неге?»
+  r.post("/feedback", async (c) => {
+    const b = z.object({ kind: z.enum(["renew_off"]), reason: z.enum(["price", "inconvenient", "quality", "other"]), packId: z.string().uuid().optional() }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const userId = c.get("user").id;
+    const own = b.data.packId ? (await db.select({ id: packs.id }).from(packs).where(and(eq(packs.id, b.data.packId), eq(packs.userId, userId))).limit(1))[0] : undefined;
+    await db.insert(feedback).values({ userId, kind: b.data.kind, reason: b.data.reason, packId: own?.id ?? null });
+    return c.json({ ok: true });
   });
 
   r.get("/bonus", async (c) => c.json({ ok: true, ...(await bonusOf(db, c.get("user").id)) }));
@@ -244,11 +260,14 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
     if ("error" in rc) return err(rc.error, rc.status);
     provider = rc.provider; card = rc.card;
   }
-  if (opts.background && !card?.token) return err("card_required"); // автожаңарту тек сақталған картамен, ешқашан сынақ «төленді» жолымен емес
+  if (opts.background && !card?.token) return err("card_required");
+  // Нақты режим: ақша тек банк арқылы (Kaspi/сынақ «төленді» жолы жабық). Толық бонуспен төлеу — рұқсат (тексеріс транзакцияда)
+  if (cfg.PAYMENTS_MODE === "live" && !card && !body.useBonus) return err("payment_method_unavailable", 400); // автожаңарту тек сақталған картамен, ешқашан сынақ «төленді» жолымен емес
   const methodLabel = card?.label ?? body.methodLabel ?? { kaspi: "Kaspi Pay", card: "Банк картасы", test: "Сынақ төлемі" }[body.method];
   const total = price * count;
   const meta = { body, units, price, count, offPeak, methodLabel, card: card?.id ? { id: card.id, label: card.label } : null, client, ...(opts.background ? { kind: "purchase", auto: true } : {}) };
 
+  // Транзакция ішіндегі бас тарту (нақты режимде банксіз төлем) — бәрі кері қайтады (бонус ұсталмайды)
   const created = await db.transaction(async (tx) => {
     // Сату лимиті (айлық және бір адамға): ұсыныс жолы құлыпталады — соңғы орынды екі адам бір мезетте ала алмайды
     await tx.execute(sql`select id from app.offers where id = ${o.id} for update`);
@@ -258,6 +277,7 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
     const bonus = body.useBonus ? await holdBonus(tx, user.id, total) : { used: 0, from: [] };
     const cash = total - bonus.used;
     const viaProvider = Boolean(card) && cash > 0;
+    if (cfg.PAYMENTS_MODE === "live" && !viaProvider && cash > 0) throw new PurchaseError("payment_method_unavailable");
     const [pay] = await tx.insert(payments).values({ userId: user.id, provider: viaProvider ? provider.name : cash === 0 && bonus.used ? "bonus" : cfg.PAYMENTS_MODE, method: cash === 0 && bonus.used ? "bonus" : body.method, amount: cash, status: "created",
       idempotencyKey: body.idempotencyKey, externalId: viaProvider ? null : (cash === 0 ? "bonus_" : "test_") + randomUUID(), meta: { ...meta, ...(bonus.used ? { bonus } : {}), ...(cash === 0 && bonus.used ? { methodLabel: "Medeo бонусы" } : {}) }, cardId: viaProvider ? card?.id ?? null : null }).returning();
     const ids: string[] = [];
@@ -268,7 +288,8 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
     }
     await tx.update(payments).set({ packId: ids[0], ...(count > 1 ? { meta: sql`${payments.meta} || ${JSON.stringify({ packIds: ids })}::jsonb` } : {}) }).where(eq(payments.id, pay.id));
     return { ...pay, packId: ids[0], viaProvider };
-  });
+  }).catch((e) => { if (e instanceof PurchaseError && e.code === "payment_method_unavailable") return { refused: e.code } as const; throw e; });
+  if ("refused" in created) return err(created.refused, 400);
 
   if ("limit" in created && created.limit) return err(created.limit.code, 409, created.limit.extra);
   // Сынақ режимі (Kaspi, сынақ, картасыз) не толық бонуспен: бірден «төленді»

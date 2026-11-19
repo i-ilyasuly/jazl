@@ -117,6 +117,30 @@ d("Жаңа мүмкіндіктер", () => {
     expect((await q("select count(*)::int n from app.payments where idempotency_key like 'renew_%' and user_id = (select user_id from app.packs where id=$1)", [p]))[0].n).toBe(1);
   });
 
+  it("автожаңарту сату лимитіне тірелсе: ақша алынбайды, автожаңарту өшпейді — келесі айдың 1-іне шегеріледі", async () => {
+    const a = (await buy({}, 905)).pack.id;
+    await pj(`/v1/packs/${a}/auto-renew`, { on: true, cardId: await card("4242", 905) }, 905);
+    await q(`update app.offers set rules = coalesce(rules, '{}'::jsonb) || '{"perUserLimit":1}'::jsonb where slug = 'doner'`);
+    await q("update app.packs set units_left = 0, status = 'used' where id=$1", [a]);
+    expect(await autoRenewTick(dbh.db, cfg)).toBe(0);
+    const x = (await q("select auto_renew, renewed_to, renew_retry_at > now() + interval '1 hour' as later from app.packs where id=$1", [a]))[0];
+    expect(x).toEqual({ auto_renew: true, renewed_to: null, later: true });
+    expect((await q("select count(*)::int n from app.payments where idempotency_key like $1", ["renew_" + a + "_%"]))[0].n).toBe(0);
+    expect(await autoRenewTick(dbh.db, cfg)).toBe(0); // келесі айға дейін қайта әрекет жоқ
+    await q(`update app.offers set rules = rules - 'perUserLimit' where slug = 'doner'`);
+    await q("update app.packs set renew_retry_at = now() - interval '1 minute' where id=$1", [a]);
+    expect(await autoRenewTick(dbh.db, cfg)).toBe(1); // 1-і келді, шек жоқ — жаңарды
+  });
+
+  it("кері байланыс: автожаңартуды өшіру себебі сақталады (бөтен пакет байланбайды)", async () => {
+    const a = (await buy({}, 906)).pack.id;
+    expect((await post("/v1/feedback", { kind: "renew_off", reason: "price", packId: a }, 906)).status).toBe(200);
+    expect((await post("/v1/feedback", { kind: "renew_off", reason: "other", packId: a }, 907)).status).toBe(200);
+    expect((await post("/v1/feedback", { kind: "renew_off", reason: "hack" }, 906)).status).toBe(400);
+    const rows = await q("select reason, pack_id from app.feedback order by created_at");
+    expect(rows.map((r: { reason: string; pack_id: string | null }) => [r.reason, r.pack_id])).toEqual([["price", a], ["other", null]]);
+  });
+
   it("автожаңарту тоқтайды: банк бас тартса не баға көтерілсе — ақша алынбайды, автожаңарту өшеді", async () => {
     const a = (await buy({}, 904)).pack.id;
     await pj(`/v1/packs/${a}/auto-renew`, { on: true, cardId: await card("0002", 904) }, 904);

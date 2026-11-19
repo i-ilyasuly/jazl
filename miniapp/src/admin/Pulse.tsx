@@ -50,6 +50,28 @@ function Row({ r }: { r: { e: string; t: string; sub: string; n: number; tone?: 
   );
 }
 
+/** Клиентті ұстау (Хормози: өлшенбейтін нәрсе жақсармайды): соңғы 90 күн — бірінші қолдануға дейінгі уақыт, қайта алу, бір клиенттен табыс, автожаңартуды өшіру себебі */
+interface Retention { firstUseHours: number | null; firstUseShare: number | null; repeatShare: number | null; buyers: number; ltv: number | null; renewOff: { reason: string; n: number }[] }
+const REASON: Record<string, string> = { price: "Қымбат", inconvenient: "Ыңғайсыз", quality: "Сапа", other: "Басқа" };
+function RetentionCard() {
+  const [d] = useCached<{ retention: Retention }>("a:retention", () => A("/retention"));
+  const r = d?.retention;
+  const hrs = (h: number | null) => (h == null ? "–" : h < 48 ? `${h} сағ` : `${Math.round(h / 24)} күн`);
+  return (
+    <>
+      <div className={v.sectionHead}><h2 className={v.sectionTitle}>Клиентті ұстау · 90 күн</h2></div>
+      <div className={v.stats}>
+        <div className={v.stat}><span className={v.statLabel}>Бірінші қолдануға дейін</span><span className={v.statNum}>{r ? hrs(r.firstUseHours) : "–"}</span>{r?.firstUseShare != null && <span className={v.statLabel}>{`${r.firstUseShare}% пакет қолданылды`}</span>}</div>
+        <div className={v.stat}><span className={v.statLabel}>Қайта алатындар</span><span className={v.statNum}>{r?.repeatShare != null ? `${r.repeatShare}%` : "–"}</span>{r && <span className={v.statLabel}>{`${r.buyers} сатып алушыдан`}</span>}</div>
+      </div>
+      <div className={v.stats}>
+        <div className={v.stat}><span className={v.statLabel}>Бір клиенттен табыс</span><span className={v.statNum}>{r?.ltv != null ? money(r.ltv) : "–"}</span></div>
+        <div className={v.stat}><span className={v.statLabel}>Автожаңартуды өшіру себебі</span>{r && r.renewOff.length ? r.renewOff.map((x) => <span key={x.reason} className={v.statLabel}>{`${REASON[x.reason] ?? x.reason}: ${x.n}`}</span>) : <span className={v.statNum}>–</span>}</div>
+      </div>
+    </>
+  );
+}
+
 export function APulse() {
   const go = useGo();
   const [period, setPeriod] = useState<(typeof PERIODS)[number][0]>("today");
@@ -86,6 +108,7 @@ export function APulse() {
             <div className={v.stat}><span className={v.statLabel}>Қолданылды</span><span className={v.statNum}>{p ? p.units : "–"}</span>{p && <Growth v={p.unitsGrowth} />}</div>
           </div>
           {chart}
+          <RetentionCard />
           <div className={v.sectionHead}><h2 className={v.sectionTitle}>Тірі лента</h2></div>
           <table className={s.table}>
             <thead><tr><th>Уақыт</th><th>Клиент</th><th>Әрекет</th><th>Мекеме</th><th className={s.num}>Сома</th></tr></thead>
@@ -128,6 +151,7 @@ export function APulse() {
           <div key={w.d} className={`${v.barCol} ${i === arr.length - 1 && w.sales ? v.max : ""}`}><i style={{ height: `${Math.max(12, (w.sales / max) * 100)}%` }} /><span>{p ? DOW[new Date(w.d + "T12:00:00").getDay()] : ""}</span></div>
         ))}</div>
       </div>
+      <RetentionCard />
       <div className={v.sectionHead}><h2 className={v.sectionTitle}>Тірі лента</h2></div>
       {p && p.feed.length === 0 ? (
         <div className={v.result} style={{ marginTop: 0 }}><VSticker name="sleep" size={96} /><p className={v.stateText}>Әзірге оқиға жоқ. Алғашқы сатылым осында көрінеді.</p></div>

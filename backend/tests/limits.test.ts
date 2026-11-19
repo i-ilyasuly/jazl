@@ -90,6 +90,20 @@ d("Сату лимиті", () => {
     expect(res.map((x) => x.status).sort()).toEqual([200, 409, 409]);
     expect((await catalogLatte()).limit.left).toBe(0);
   });
+  it("төлемі шешілмеген пакет 2 сағатқа дейін орын ұстайды; төлем сәтсіз болса не 2 сағат өтсе — босайды", async () => {
+    const { soldThisMonth } = await import("../src/limits.js");
+    const oid = (await dbh.pool.query("select id from app.offers where slug = 'latte'")).rows[0].id;
+    const base = (await soldThisMonth(dbh.db, [oid])).get(oid) ?? 0;
+    const u = (await dbh.pool.query("select id from app.users limit 1")).rows[0].id;
+    const pk = (await dbh.pool.query("insert into app.packs (user_id, offer_id, units_total, units_left, price_paid, valid_until, status, created_at) values ($1, $2, 4, 4, 100, now() + interval '30 days', 'pending_payment', now() - interval '90 minutes') returning id", [u, oid])).rows[0].id;
+    const pay = (await dbh.pool.query("insert into app.payments (user_id, pack_id, provider, method, amount, status, idempotency_key) values ($1, $2, 'halyk', 'card', 100, 'pending', 'hold-test-key-1') returning id", [u, pk])).rows[0].id;
+    expect((await soldThisMonth(dbh.db, [oid])).get(oid)).toBe(base + 1); // 90 минут — банк әлі растамады, орын ұсталады
+    await dbh.pool.query("update app.payments set status = 'failed' where id = $1", [pay]);
+    expect((await soldThisMonth(dbh.db, [oid])).get(oid) ?? 0).toBe(base);
+    await dbh.pool.query("update app.payments set status = 'pending' where id = $1", [pay]);
+    await dbh.pool.query("update app.packs set created_at = now() - interval '3 hours' where id = $1", [pk]);
+    expect((await soldThisMonth(dbh.db, [oid])).get(oid) ?? 0).toBe(base);
+  });
   it("лимитсіз ұсыныс бұрынғыдай", async () => {
     await setRules({ monthlyLimit: null, perUserLimit: null });
     expect((await catalogLatte()).limit).toBeNull();
