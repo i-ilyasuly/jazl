@@ -4,7 +4,7 @@
 /* Өнімділік (Патша, 2026-11-16: скролл қатып қалды): экраннан тыс карточкалар салынбайды, әр карточка өз қабатында оқшауланады */
 .card { content-visibility: auto; contain-intrinsic-size: auto 204px; contain: layout paint style; }
 .title { position: absolute; left: 16px; top: 15px; max-width: 272px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-primary); }
-.venue { position: absolute; left: 16px; top: 42px; font-size: 15px; line-height: 20px; white-space: nowrap; color: var(--hint); }
+.venue { position: absolute; left: 16px; top: 42px; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; font-size: 15px; line-height: 20px; white-space: nowrap; color: var(--hint); }
 .discount { position: absolute; right: 60px; top: 16px; height: 24px; padding: 4px 9px 4px 8px; border-radius: 6px; font-size: 13px; line-height: 16px; font-weight: 700 !important; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
 .fav { position: absolute; right: 6px; top: 6px; width: 44px; height: 44px; border-radius: 8px; background: transparent; display: flex; align-items: center; justify-content: center; }
 .pop { animation: pop 0.28s cubic-bezier(0.3, 1.6, 0.5, 1); }

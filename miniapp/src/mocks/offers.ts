@@ -8,6 +8,8 @@ export interface Offer {
   planOnly?: boolean;
   /** Бос сағат жеңілдігі (тек planOnly ұсыныста): терезе мен қосымша % */
   offPeak?: { days: number[]; from: string; to: string; pct: number };
+  /** Пакеттің маркетингтік атауы (мекеме береді, клиент тілінде): карточкада басты орында, тауар атауы (title) астында */
+  packName?: string;
   /** Құрамы (мекеме жазады, клиент тілінде) және порциясы: «350 г» (Патша, 2026-11-18) */
   composition?: string;
   portion?: { value: number; unit: "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min" };

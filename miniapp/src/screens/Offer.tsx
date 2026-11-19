@@ -75,6 +75,13 @@ function Gallery({ photos, fallback, kind, onIndex }: { photos: string[]; fallba
   );
 }
 
+/** «Аптасына 1 рет донер алсаң — бөлек 8 000 ₸ төлер едің»: пакетті әдеттегі жиілікке айналдырады (мерзім ішінде біркелкі қолданса) */
+function habitText(units: number, days: number, unitWord: string, old: number) {
+  const perWeek = (units * 7) / days;
+  const freq = Math.round(perWeek) >= 1 ? `Аптасына ${Math.round(perWeek)} рет` : `Айына ${Math.max(1, Math.round((units * 30) / days))} рет`;
+  return `${freq} ${unitWord} алсаң, бөлек ${fmt(old)} төлер едің. Пакетпен:`;
+}
+
 export function OfferPage() {
   const { id } = useParams();
   return <OfferView key={id} id={id} />;
@@ -164,7 +171,7 @@ function OfferView({ id }: { id?: string }) {
 
   return (
     <div className={`${s.page} ${caption ? s.pageTall : ""}`}>
-      <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`}><p className={`pageTitle ${s.barTitle}`}>{offer.title}</p></div>
+      <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`}><p className={`pageTitle ${s.barTitle}`}>{base.packName ?? offer.title}</p></div>
       <TelegramChrome mode="back" onBack={back} />
       <div className={`${s.photo} ${ended ? s.photoEnded : ""} ${springing ? s.spring : ""}`} style={{ viewTransitionName: "offer-photo", height: 412 + pull }} onTransitionEnd={() => setSpringing(false)}>
         <Gallery photos={photos} fallback={kindPic[offer.kind]} kind={offer.kind} />
@@ -175,7 +182,7 @@ function OfferView({ id }: { id?: string }) {
         <section className={`${s.head} ${s.blk}`}>
           {/* Патша, 2026-11-16: бөлісу мен таңдаулы фото үстінен атаудың оң жағына, мөлдір фонсыз (Krisha үлгісі) */}
           <div className={s.titleRow}>
-            <h1 className={s.h1}>{offer.title}</h1>
+            <h1 className={s.h1}>{base.packName ?? offer.title}</h1>
             <div className={s.titleActs}>
               <button className={s.act} aria-label="Бөлісу" onClick={shareIt}><span className={s.ico} style={{ maskImage: `url("${share}")`, WebkitMaskImage: `url("${share}")` }} /></button>
               <button className={s.act} aria-label="Таңдаулы" onClick={() => { haptic.medium(); toggleFav(offer.id); }}>
@@ -183,11 +190,15 @@ function OfferView({ id }: { id?: string }) {
               </button>
             </div>
           </div>
+          {/* Пакет атауы берілсе — тауар атауы астында (Патша, 2026-11-18) */}
+          {base.packName && <p className={s.productLine}>{offer.title}</p>}
           <p className={s.venueLine}>
             <button className={`${s.link} ${s.venueLink}`} onClick={toVenue}>{offer.venue}<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
             <span className={s.muted}>{`·  ★ ${String(offer.rating).replace(".", ",")} (${offer.ratingCount})  ·  ${offer.distance}`}</span>
           </p>
           {venue?.trust != null && <p className={s.trust}><span aria-hidden>✓</span>{`Сенімді мекеме · ${venue.trust}% қызмет шағымсыз`}</p>}
+          {/* Бағадан бұрын контекст (Хормози): клиент әдетте қанша төлейтінін көрсетіп, сосын пакет бағасы */}
+          {!ended && <p className={s.context}>{habitText(offer.units, d.days ?? 30, offer.unitWord, offer.oldPrice)}</p>}
           <div className={s.priceRow}>
             <div>
               <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}>{fmt(offer.price)}</span><span className={s.discount}>▼ {discount(offer)}%</span></p>
@@ -210,6 +221,7 @@ function OfferView({ id }: { id?: string }) {
             <div className={`${s.sizeRow} ${s.sizesIn}`} role="radiogroup" aria-label="Пакет көлемі">
               {base.sizes.map((z, i) => (
                 <button key={z.units} role="radio" aria-checked={size === i} className={`${s.size} ${size === i ? s.sizeOn : ""}`} onClick={() => { if (size !== i) { haptic.select(); setSize(i); } }}>
+                  {base.sizes!.length >= 3 && i === Math.floor(base.sizes!.length / 2) && <span className={s.sizeTag}>Ұсынамыз</span>}
                   <b>{`${z.units} дана`}</b><small>{`${fmt(Math.round(z.price / z.units))} / дана`}</small>
                 </button>
               ))}
@@ -217,6 +229,19 @@ function OfferView({ id }: { id?: string }) {
           )}
         </section>
 
+
+        {/* Medeo кепілдігі (Патша, 2026-11-18): тәуекел клиентте емес — бар ережелерді бір жерде, бағаның жанында ашық айтамыз */}
+        {!ended && (
+          <section className={`${s.block} ${s.blk} ${s.guarantee}`}>
+            <h2 className={s.blockTitle}><span className={s.shield} aria-hidden>✓</span>Medeo кепілдігі</h2>
+            <ul className={s.gList}>
+              <li><b>Ақшаң күймейді.</b> Мерзімінде қолданылмаған бірліктің құны Medeo бонусы болып қайтады — 12 ай жарамды.</li>
+              <li><b>Ойыңнан айнысаң.</b> Бір бірлік те қолданбасаң, 14 күн ішінде ақшаның бәрі қайтарылады.</li>
+              <li><b>Мекеме кінәлі болса.</b> Жабылып қалса не қабылдамаса, пайдаланылмаған бірліктердің ақшасы толық қайтарылады.</li>
+            </ul>
+            <button className={s.gLink} onClick={() => { haptic.tap(); go("/legal/refund"); }}>Қайтару ережесі</button>
+          </section>
+        )}
 
         <section className={`${s.block} ${s.blk}`}>
         <h2 className={s.blockTitle}>Шарттары</h2>

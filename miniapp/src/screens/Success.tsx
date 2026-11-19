@@ -7,7 +7,7 @@ import { buyPack, getPack, offerOf, usePacks } from "../store";
 import { useEffect, useRef } from "react";
 import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
-import { inTelegram, useBottomButtons } from "../telegram";
+import { inTelegram, openExternal, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Timeline } from "../ui/Timeline";
 import burger from "../assets/icons/cardBurger.svg";
@@ -62,16 +62,21 @@ export function Success() {
   const offer = findOffer(id);
   const go = useGo();
   const done = useRef(false);
-  useEffect(() => { if (!done.current) { done.current = true; buyPack(offer.id); } }, [offer.id]);
-  const toPacks = useCallback(() => go("/packs", "forward", { replace: true }), [go]);
+  const packId = useRef<string | null>(null);
+  useEffect(() => { if (!done.current) { done.current = true; packId.current = buyPack(offer.id); } }, [offer.id]);
   const close = useCallback(() => go("/", "fade", { replace: true }), [go]);
+  // «Алғашқы жеңіс» (Патша, 2026-11-18): сатып алған сәтте бірінші қолдануға бір қадам — пакет бетіне (Қолдану / Жоспарлау) және мекемеге бағыт
+  const plan = offer.kind === "hair" || Boolean(offer.planOnly);
+  const useNow = useCallback(() => go(packId.current ? `/pack/${packId.current}` : "/packs", "forward", { replace: true }), [go]);
+  const route = useCallback(() => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(offer.address || offer.venue)), [offer.address, offer.venue]);
+  const where = offer.address ? offer.address.replace(/^Қарағанды,\s*/, "") : offer.venue;
   return (
     <ResultScreen
       title="Пакет сатып алынды" paid={`Төлем қабылданды · ${fmt(offer.price)}`}
-      cardTitle={offer.title} cardSub={`${offer.venue} · ${offer.distance}`} kind={offer.kind}
+      cardTitle={offer.packName ?? offer.title} cardSub={`${offer.venue} · ${offer.distance}`} kind={offer.kind}
       total={offer.units} used={0} counter={`${offer.units} / ${offer.units} · 30 күн`}
-      next="Келесі қадам: мекемеде «Medeo бойынша» деп айт"
-      main={{ text: "Пакеттерге өту", onClick: toPacks }} secondary={{ text: "Жабу", onClick: close }} onClose={close}
+      next={plan ? `Алғашқы келуіңді қазір жоспарла — ${where}` : `Алғашқысын бүгін-ақ ал: ${where}. Кассада «Medeo» деп айтып, QR-ды сканерле`}
+      main={{ text: plan ? "Уақыт таңдау" : "Қазір қолдану", onClick: useNow }} secondary={{ text: "Бағыт", onClick: route }} onClose={close}
     />
   );
 }

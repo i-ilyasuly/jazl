@@ -188,3 +188,19 @@ button.link:active, .link button:active { opacity: 0.55; }
 /* Құрамы: мекеме жазған мәтін, порциясы астында */
 .composition { font-size: 17px; line-height: 22px; color: var(--text-strong); white-space: pre-line; }
 .portion { margin-top: 8px; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+/* Пакет атауы берілсе — тауар атауы (Патша, 2026-11-18) */
+.productLine { margin: 2px 0 6px; font-size: 17px; line-height: 22px; color: var(--text-strong); font-weight: 500; }
+/* Бағадан бұрынғы контекст */
+.context { margin: 4px 0 6px; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+/* Көлем: «Ұсынамыз» белгісі ортаңғы нұсқада */
+.size { position: relative; }
+.sizeTag { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); height: 18px; padding: 1px 8px; border-radius: 9px; background: var(--link); color: #fff; font-size: 11px; line-height: 16px; font-weight: 700; white-space: nowrap; }
+.sizeRow { padding-top: 6px; }
+/* Medeo кепілдігі */
+.guarantee .blockTitle { display: flex; align-items: center; gap: 8px; }
+.shield { width: 24px; height: 24px; border-radius: 12px; background: var(--green-bg); color: var(--green-text); display: inline-grid; place-items: center; font-size: 14px; font-weight: 800; flex: none; }
+.gList { list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 20px; color: var(--text-strong); }
+.gList li { position: relative; padding-left: 18px; }
+.gList li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 6px; height: 6px; border-radius: 3px; background: var(--green-text); }
+.gList b { font-weight: 600; }
+.gLink { align-self: flex-start; color: var(--link); font-size: 15px; line-height: 20px; font-weight: 600; }

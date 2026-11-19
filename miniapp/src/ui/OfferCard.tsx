@@ -30,8 +30,9 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
   const moving = useViewTransitionState(to);
   return (
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
-      <p className={s.title}>{offer.title}</p>
-      <p className={s.venue}>{offer.venue} · {offer.distance}</p>
+      {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
+      <p className={s.title}>{offer.packName ?? offer.title}</p>
+      <p className={s.venue}>{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
       {!ended && <span className={s.discount}>▼ {discount(offer)}%</span>}
       <button
         className={s.fav}
