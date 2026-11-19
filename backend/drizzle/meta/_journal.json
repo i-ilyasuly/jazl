@@ -183,6 +183,13 @@
       "when": 1795040000000,
       "tag": "0025_offer_waits",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795050000000,
+      "tag": "0026_renew_retry_feedback",
+      "breakpoints": true
     }
   ]
 }

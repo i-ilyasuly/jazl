@@ -14,7 +14,8 @@ const Env = z.object({
   /** initData қанша уақыт жарамды (секунд). Telegram ұсынысы: қысқа ұстау. */
   INIT_DATA_TTL: z.coerce.number().default(24 * 3600),
   /** Төлем режимі: test — ақша жүрмейді (Kaspi келісімі біткенше) */
-  PAYMENTS_MODE: z.enum(["test"]).default("test"),
+  /** test — сынақ: Kaspi/сынақ әдісі ақшасыз «төленді», сынақ QR, сынақ құралдары (тек басқару иелеріне); live — нақты: тек банк арқылы (не толық бонуспен) */
+  PAYMENTS_MODE: z.enum(["test", "live"]).default("test"),
   /** Карта төлемінің провайдері (src/payments): test — сынақ (ақша жүрмейді). Кейін: halyk | freedom | tiptop (шарт пен кілттер келгенде). */
   PAYMENTS_PROVIDER: z.enum(["test"]).default("test"),
   /** Halyk ePay (src/payments/halyk.ts): кілттер берілсе — «Банк картасы · Halyk» төлем тәсілі қосылады (банктің қорғалған беті).
@@ -50,3 +51,8 @@ const Env = z.object({
 export type Config = z.infer<typeof Env>;
 // Medeo. атауына ауысу: ескі JAZL_FEE_PCT айнымалысы да оқылады (Cloud Run-да бұрын қойылған болса)
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => Env.parse({ ...env, MEDEO_FEE_PCT: env.MEDEO_FEE_PCT ?? env.JAZL_FEE_PCT });
+
+/** Сынақ құралдары (өзіңді мекеме иесі ету, өтінімді өзің мақұлдау): тек сынақ режимінде және тек басқару иелеріне (ADMIN_IDS).
+ *  Автосынақтарда (NODE_ENV=test) — барлығына. Қауіпсіздік тексерісі, 2026-11-19: бұрын кез келген Telegram пайдаланушысына ашық болатын. */
+export const devToolsFor = (cfg: Config, telegramId: number | string) =>
+  cfg.PAYMENTS_MODE === "test" && (cfg.NODE_ENV === "test" || cfg.ADMIN_IDS.split(",").map((x) => x.trim()).filter(Boolean).includes(String(telegramId)));

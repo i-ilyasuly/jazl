@@ -7,7 +7,7 @@ import { Hono, type Context } from "hono";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Env } from "../app.js";
-import type { Config } from "../config.js";
+import { devToolsFor, type Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
 import { branches, venueApplications, venueDocs, venueStaff, venues } from "../db/schema.js";
@@ -145,7 +145,7 @@ export function applyRoutes(cfg: Config, db: Db, notify?: Notifier) {
 
   // Сынақ режимі ғана: өтінімді өзің мақұлдау (Medeo басқару беті жасалғанша). Нақты режимде 404.
   r.post("/venue/application/dev-approve", async (c) => {
-    if (cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "disabled" }, 404);
+    if (!devToolsFor(cfg, c.get("user").telegramId)) return c.json({ ok: false, error: "disabled" }, 404);
     const a = await current(c.get("user").id);
     if (!a || a.status !== "review") return c.json({ ok: false, error: "not_in_review" }, 409);
     const venueId = await approve(db, a);

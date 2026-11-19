@@ -23,7 +23,7 @@ export async function autoRenewTick(db: Db, cfg: Config, notify?: Notifier): Pro
       exists (select 1 from app.payment_cards c where c.id = p.auto_renew_card and c.user_id = p.user_id and c.removed_at is null) as card_ok,
       o.slug, o.title, o.title_ru, o.status as o_status, v.status as v_status, o.price, o.units, o.sizes, o.rules
     from app.packs p join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id join app.users u on u.id = p.user_id
-    where p.auto_renew and p.renewed_to is null and p.status in ('active','used','expired') and (p.units_left = 0 or p.valid_until < now())
+    where p.auto_renew and p.renewed_to is null and (p.renew_retry_at is null or p.renew_retry_at <= now()) and p.status in ('active','used','expired') and (p.units_left = 0 or p.valid_until < now())
       -- Соңғы бірлік жоспарға жазылған болса — қызмет көрсетілгенше күтеміз (ақша қызметтен бұрын алынбауы үшін)
       and not exists (select 1 from app.orders o where o.pack_id = p.id and o.status in ('sent','accepted','ready'))
     order by p.valid_until limit 50`)).rows as Due[];
@@ -55,7 +55,15 @@ export async function autoRenewTick(db: Db, cfg: Config, notify?: Notifier): Pro
       continue;
     }
     // Сату лимиті (айлық таусылды не бір адамға шек): ақша алынбайды, автожаңарту тоқтайды — клиент кейін қолмен ала алады
-    if (r.type === "error" && (r.code === "sold_out" || r.code === "user_limit")) { await stop("limit"); continue; }
+    // Сату лимиті (айлық таусылды не бір адамға шек): ақша алынбайды, автожаңарту ТОҚТАМАЙДЫ — келесі айдың 1-інде (Алматы) қайта әрекет.
+    // Клиентке бір рет хабар барады. Келесі айда да болмаса — тағы бір айға шегеріледі.
+    if (r.type === "error" && (r.code === "sold_out" || r.code === "user_limit")) {
+      const [y, m] = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" }).split("-").map(Number);
+      const next = new Date(`${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01T09:00:00+05:00`);
+      await db.execute(sql`update app.packs set renew_retry_at = ${next} where id = ${p.id}`);
+      await notify?.autoRenew(p.user_id, p.title, p.title_ru, { ok: false, why: "limit" });
+      continue;
+    }
     if (r.type === "error" && r.code === "offer_unavailable") { await stop("unavailable"); continue; }
     await stop("payment");
   }

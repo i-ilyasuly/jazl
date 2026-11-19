@@ -48,6 +48,10 @@ d("Medeo Басқару", () => {
     const s = await json(app.request("/v1/admin/pin", { method: "POST", headers: h(ADMIN), body: JSON.stringify({ pin: "5821", setup: true }) }));
     expect(s.ok).toBe(true); tok = s.token;
     expect((await get("/v1/admin/pulse")).status).toBe(200);
+    const rt = await json(get("/v1/admin/retention"));
+    expect(rt.retention).toMatchObject({ renewOff: [] });
+    expect(Object.keys(rt.retention).sort()).toEqual(["buyers", "firstUseHours", "firstUseShare", "ltv", "renewOff", "repeatShare"]);
+    expect((await get("/v1/admin/retention", OTHER)).status).toBe(403);
     expect((await get("/v1/admin/pulse", OTHER)).status).toBe(403);
     // басқа адамның токенін қолдану — жарамсыз
     expect((await app.request("/v1/admin/pulse", { headers: h(OTHER, { "X-Admin-Token": tok }) })).status).toBe(403);
