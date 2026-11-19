@@ -8,7 +8,7 @@ import { categoryOffers, endedOffers, moreOffers, offers, type Offer, type Offer
 import { venues } from "./mocks/venues";
 
 interface SrvVenue { slug: string; name: string; kind: OfferKind; rating: number | null; reviewsCount: number; trust?: number | null; branches: { id: string; address: string }[] }
-interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown; composition?: string | null; compositionRu?: string | null; portion?: Offer["portion"] | null } | null; limit?: Offer["limit"]; rules?: { planOnly?: boolean; offPeak?: { days: number[]; from: string; to: string; pct: number } } | null; sizes?: { units: number; price: number }[] | null }
+interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown; composition?: string | null; compositionRu?: string | null; packName?: string | null; packNameRu?: string | null; portion?: Offer["portion"] | null } | null; limit?: Offer["limit"]; rules?: { planOnly?: boolean; offPeak?: { days: number[]; from: string; to: string; pct: number } } | null; sizes?: { units: number; price: number }[] | null }
 
 export const catalogState: { source: "mock" | "server"; venues: number; offers: number; error?: string; ms?: number; branches: { venue: string; slug: string; branchId: string; address: string }[] } = { source: "mock", venues: 0, offers: 0, branches: [] };
 
@@ -32,6 +32,8 @@ export async function loadCatalog() {
       const comp = getLang() === "ru" && o.details?.compositionRu?.trim() ? o.details.compositionRu : o.details?.composition;
       if (comp?.trim()) patch.composition = comp;
       if (o.details?.portion) patch.portion = o.details.portion;
+      const pn = getLang() === "ru" && o.details?.packNameRu?.trim() ? o.details.packNameRu : o.details?.packName;
+      patch.packName = pn?.trim() || undefined;
       patch.limit = o.limit ?? null;
       if (o.rules?.planOnly) patch.planOnly = true;
       if (o.rules?.offPeak) patch.offPeak = o.rules.offPeak;

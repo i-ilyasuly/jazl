@@ -20,9 +20,9 @@ import s from "./V.module.css";
 
 type Size = { units: number; price: number };
 type PortionUnit = "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min";
-interface Draft { title: string; titleRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
+interface Draft { title: string; titleRu: string; packName: string; packNameRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
   rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; branches: string[] | null; monthlyLimit?: number | null; perUserLimit?: number | null } }
-interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu" | "composition" | "compositionRu" | "portion"> { titleRu?: string | null; aboutRu?: string | null; composition?: string; compositionRu?: string; portion?: Draft["portion"]; soldMonth?: number; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
+interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu" | "composition" | "compositionRu" | "portion" | "packName" | "packNameRu"> { packName?: string; packNameRu?: string; titleRu?: string | null; aboutRu?: string | null; composition?: string; compositionRu?: string; portion?: Draft["portion"]; soldMonth?: number; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 // Санат серверге қазақша сақталады (тілге тәуелсіз мән), ал экранда таңдалған тілде көрінеді: __t(c)
 const cats = { food: [kk("Донер"), kk("Бургер"), kk("Шаурма"), kk("Кофе"), kk("Басқа")], coffee: [kk("Кофе"), kk("Шай"), kk("Десерт"), kk("Басқа")], hair: [kk("Шаш қию"), kk("Сақал"), kk("Балалар"), kk("Басқа")] };
@@ -98,9 +98,9 @@ export function VOfferWizard() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("draft");
   const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
-  const [d, setD] = useState<Draft>({ title: "", titleRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  const [d, setD] = useState<Draft>({ title: "", titleRu: "", packName: "", packNameRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
   const hadExtra = useRef(false);
-  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); hadExtra.current = Boolean(o.composition || o.compositionRu || o.portion); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); hadExtra.current = Boolean(o.composition || o.compositionRu || o.portion || o.packName || o.packNameRu); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", packName: o.packName ?? "", packNameRu: o.packNameRu ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
   // Бір тілде жазса, екіншісі сөздіктен өзі толады (бос не бұрын өзі толтырылған болса ғана — мекеме жазғанын баспаймыз)
   const setTitle = (v: string) => setD((x) => { const auto = !x.titleRu || x.titleRu === ruOf(x.title); return { ...x, title: v, titleRu: auto ? ruOf(v) ?? (auto && x.titleRu ? "" : x.titleRu) : x.titleRu }; });
@@ -122,9 +122,9 @@ export function VOfferWizard() {
     if (publish && status === "draft" && !accepted && !(await kv.get("medeo_offer_terms"))) { setTerms(true); return; }
     setBusy(true); haptic.medium();
     // Құрамы/порция тек толтырылса не бұрын сақталған болса жіберіледі (бос болса — кілт жоқ: ескі сервер нұсқасы да қабылдайды)
-    const { composition, compositionRu, portion, ...rest } = d;
-    const extra = composition.trim() || compositionRu.trim() || portion || hadExtra.current
-      ? { composition: composition.trim(), compositionRu: compositionRu.trim(), portion: portion && portion.value > 0 ? portion : null } : {};
+    const { composition, compositionRu, portion, packName, packNameRu, ...rest } = d;
+    const extra = composition.trim() || compositionRu.trim() || portion || packName.trim() || packNameRu.trim() || hadExtra.current
+      ? { composition: composition.trim(), compositionRu: compositionRu.trim(), portion: portion && portion.value > 0 ? portion : null, packName: packName.trim(), packNameRu: packNameRu.trim() } : {};
     const body = { ...rest, ...extra, titleRu: d.titleRu.trim() || undefined, aboutRu: d.aboutRu.trim() || undefined, category: d.category || undefined, publish };
     try {
       const st = id ? (await api<{ status: string }>(`/v1/venue/${me.venue.id}/offers/${id}`, { method: "PUT", body: JSON.stringify(body) })).status
@@ -132,7 +132,7 @@ export function VOfferWizard() {
       haptic.success();
       // «Ұсыныс тексеруде» — тек Medeo тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
-    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : err(e) === "composition_ru_required" ? "Құрамын орысша да жазыңыз." : err(e) === "big_off_peak" ? `Бос сағат бағасымен жалпы жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 40}%-дан аспауы керек. Бос сағат жеңілдігін азайтыңыз.` : "Сақталмады. Қайталап көріңіз."); }
+    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : err(e) === "composition_ru_required" ? "Құрамын орысша да жазыңыз." : err(e) === "pack_name_ru_required" ? "Пакет атауын орысша да жазыңыз." : err(e) === "big_off_peak" ? `Бос сағат бағасымен жалпы жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 40}%-дан аспауы керек. Бос сағат жеңілдігін азайтыңыз.` : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
   }, [me, busy, d, id, status, go]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -142,6 +142,8 @@ export function VOfferWizard() {
     if (step === 1 && d.titleRu.trim().length < 2) { haptic.error(); return nativeAlert("Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді."); }
     if (step === 1 && d.about.trim() && !d.aboutRu.trim()) { haptic.error(); return nativeAlert("Сипаттаманы орысша да жазыңыз."); }
     if (step === 1 && d.aboutRu.trim() && !d.about.trim()) { haptic.error(); return nativeAlert("Сипаттаманы қазақша да жазыңыз."); }
+    if (step === 1 && d.packName.trim() && !d.packNameRu.trim()) { haptic.error(); return nativeAlert("Пакет атауын орысша да жазыңыз."); }
+    if (step === 1 && d.packNameRu.trim() && !d.packName.trim()) { haptic.error(); return nativeAlert("Пакет атауын қазақша да жазыңыз."); }
     if (step === 1 && d.composition.trim() && !d.compositionRu.trim()) { haptic.error(); return nativeAlert("Құрамын орысша да жазыңыз."); }
     if (step === 1 && d.compositionRu.trim() && !d.composition.trim()) { haptic.error(); return nativeAlert("Құрамын қазақша да жазыңыз."); }
     if (step === 2 && low && !locked) { haptic.error(); return nativeAlert(`Жеңілдік 10%-дан аз: ${low.units} бірлік. Бағаны азайтыңыз не қалыпты бағаны тексеріңіз.`); }
@@ -172,6 +174,19 @@ export function VOfferWizard() {
         {sugg.length > 0 && <div className={s.chips} style={{ flexWrap: "wrap" }}>
           {sugg.map(([a, b]) => <button key={a} className={`${s.chip} ${d.title === a ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ title: a, titleRu: b }); }}>{getLang() === "ru" ? b : a}</button>)}
         </div>}
+        {/* Пакет атауы (Патша, 2026-11-18): міндетті емес. Берілсе — клиент карточкасында басты орында, тауар атауы астында */}
+        <h2 className={s.blueHead}>Пакет атауы · міндетті емес</h2>
+        <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
+          <span className="t-cap1" style={{ color: "var(--link)" }}>Пакет атауы (қазақша)</span>
+          <input value={d.packName} maxLength={40} onChange={(e) => up({ packName: e.target.value })} placeholder="Мысалы: Түскі ас абонементі"
+            style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />
+        </label>
+        <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
+          <span className="t-cap1" style={{ color: "var(--link)" }}>Пакет атауы (орысша)</span>
+          <input value={d.packNameRu} maxLength={40} onChange={(e) => up({ packNameRu: e.target.value })} placeholder="Например: Абонемент на обед" lang="ru"
+            style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />
+        </label>
+        <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Клиент карточкада алдымен осы атауды, астында тауар атауын көреді. Бос қалса — тауар атауы шығады.</p>
         <h2 className={s.blueHead}>Санат</h2>
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
           {cats[me.venue.kind].map((c) => <button key={c} className={`${s.chip} ${d.category === c ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ category: c }); }}>{__t(c)}</button>)}
@@ -281,8 +296,8 @@ export function VOfferWizard() {
       {step === 4 && <>
         <h2 className={s.blueHead}>Клиент осылай көреді</h2>
         <div className={s.card} style={{ padding: 16 }}>
-          <b className={s.lead} style={{ fontSize: 19 }}>{`${d.title || "Атауы"} · ${d.sizes[0].units} дана`}</b>
-          <p className={`t-cap1 ${s.muted}`} style={{ marginTop: 2 }}>{me.venue.name}</p>
+          <b className={s.lead} style={{ fontSize: 19 }}>{d.packName.trim() || `${d.title || "Атауы"} · ${d.sizes[0].units} дана`}</b>
+          <p className={`t-cap1 ${s.muted}`} style={{ marginTop: 2 }}>{d.packName.trim() ? `${d.title || "Атауы"} · ${d.sizes[0].units} дана · ${me.venue.name}` : me.venue.name}</p>
           <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
             <span style={{ width: 170, height: 110, borderRadius: 14, background: "var(--thumb-bg)", display: "grid", placeItems: "center", overflow: "hidden" }}>{d.photos[0] ? <img src={d.photos[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <OfferPic kind={me.venue.kind} size={40} />}</span>
             <span style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, justifyContent: "center" }}>

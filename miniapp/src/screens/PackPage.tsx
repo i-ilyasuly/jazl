@@ -126,7 +126,7 @@ export function PackPage() {
           <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 3 }}>
             <div className={`${s.cell} ${s.cell2}`}>
               <span className={s.rowText} style={{ minWidth: 0, whiteSpace: "normal" }}><span className={s.rowTitle}>Автожаңарту</span>
-                <span className={s.cellSub}>{pack.autoRenew ? `Пакет біткенде ${renewCard?.title ?? "сақталған карта"} арқылы ${fmt(pack.offPeak ? offPeakPrice(o.price, pack.offPeak.pct) : o.price)} алынады. Қалған бірлік жаңасына көшеді. Өшіргенше әр пакет біткенде жалғасады.` : "Пакет біткенде өзі қайта алынады — үзіліссіз. Қалаған кезде өшіресің."}</span></span>
+                <span className={s.cellSub}>{pack.autoRenew ? `Пакет біткенде ${renewCard?.title ?? "сақталған карта"} арқылы ${fmt(pack.offPeak ? offPeakPrice(o.price, pack.offPeak.pct) : o.price)} алынады. Қалған бірлік жаңасына көшеді. Өшіргенше әр пакет біткенде жалғасады.` : "Ешқашан толық баға төлемейсің: пакет біткенде сол жеңілдікпен өзі жаңарады. Тоқтату — бір батырма."}</span></span>
               <Switch on={Boolean(pack.autoRenew)} onChange={(v) => void toggleRenew(v)} />
             </div>
           </section>
