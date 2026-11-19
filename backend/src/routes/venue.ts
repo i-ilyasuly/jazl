@@ -265,7 +265,8 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const Size = z.object({ units: z.number().int().min(1).max(100), price: z.number().int().min(100).max(10_000_000) });
   const Portion = z.object({ value: z.number().positive().max(100_000), unit: z.enum(["g", "kg", "ml", "l", "cm", "pcs", "min"]) }).strict();
   /** Ұсыныстың details ішіне жазылатын құрам/порция (бос жол — жоқ) */
-  const extraDetails = (d: { composition?: string; compositionRu?: string; portion?: { value: number; unit: string } | null; packName?: string; packNameRu?: string }) => ({
+  const extraDetails = (d: { composition?: string; compositionRu?: string; portion?: { value: number; unit: string } | null; packName?: string; packNameRu?: string; bonus?: string; bonusRu?: string; perk?: string; perkRu?: string }) => ({
+    ...Object.fromEntries((["bonus", "bonusRu", "perk", "perkRu"] as const).filter((k) => d[k] !== undefined).map((k) => [k, d[k] || null])),
     ...(d.packName !== undefined ? { packName: d.packName || null } : {}), ...(d.packNameRu !== undefined ? { packNameRu: d.packNameRu || null } : {}),
     ...(d.composition !== undefined ? { composition: d.composition || null } : {}), ...(d.compositionRu !== undefined ? { compositionRu: d.compositionRu || null } : {}),
     ...(d.portion !== undefined ? { portion: d.portion } : {}) });
@@ -279,7 +280,9 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
       offPeak: OffPeak.nullable().optional(),
       /** Сату лимиті (Патша, 2026-11-18): айына неше пакет сатылады (әр айдың 1-інде жаңарады); бір адам айына неше пакет ала алады. null — шексіз */
       monthlyLimit: z.number().int().min(1).max(100_000).nullable().optional(),
-      perUserLimit: z.number().int().min(1).max(100).nullable().optional() }).transform((r) => {
+      perUserLimit: z.number().int().min(1).max(100).nullable().optional(),
+      /** Сатылым соңы (Патша, 2026-11-19): «2026-11-30» — сол күн қоса сатылады, кейін ұсыныс «аяқталды». null — мерзімсіз */
+      saleUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional() }).transform((r) => {
       const x = r.planOnly ? { ...r, preorder: true } : r;
       return x.planOnly && x.offPeak ? x : { ...x, offPeak: undefined };
     }),
@@ -288,6 +291,9 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     composition: z.string().trim().max(300).optional(), compositionRu: z.string().trim().max(300).optional(),
     /** Пакеттің маркетингтік атауы (Патша, 2026-11-18): «Түскі ас абонементі» — карточкада басты орында, тауар атауы астында. Міндетті емес, екі тілде */
     packName: z.string().trim().max(40).optional(), packNameRu: z.string().trim().max(40).optional(),
+    /** Мекеменің өз еркімен (Патша, 2026-11-19): пакетке қоса берілетін сыйлық («Әр донерге тегін шай») және пакет иесінің артықшылығы («Сусынға 20%») */
+    bonus: z.string().trim().max(80).optional(), bonusRu: z.string().trim().max(80).optional(),
+    perk: z.string().trim().max(80).optional(), perkRu: z.string().trim().max(80).optional(),
     portion: Portion.nullable().optional(),
     photos: z.array(z.string().url().max(500)).max(5).default([]),
   }).strict();
@@ -332,6 +338,8 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (d.publish && d.about && !d.aboutRu) return c.json({ ok: false, error: "about_ru_required" }, 400);
     if (d.publish && d.composition && !d.compositionRu) return c.json({ ok: false, error: "composition_ru_required" }, 400);
     if (d.publish && d.packName && !d.packNameRu) return c.json({ ok: false, error: "pack_name_ru_required" }, 400);
+    if (d.publish && ((d.bonus && !d.bonusRu) || (d.perk && !d.perkRu))) return c.json({ ok: false, error: "extras_ru_required" }, 400);
+    if (d.rules.saleUntil && d.rules.saleUntil < new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" })) return c.json({ ok: false, error: "sale_until_past" }, 400);
     const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
     const [o] = await db.insert(offers).values({ venueId, slug: slugOf(d.title), title: `${d.title} · ${sizes[0].units} дана`, titleRu: d.titleRu ?? null, kind: v.kind, unitName: "дана", units: sizes[0].units, price: sizes[0].price,
       regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, sizes: sizes.length > 1 ? sizes : null, details: { about: d.about, aboutRu: d.aboutRu ?? null, ...extraDetails(d) }, photos: d.photos, category: d.category ?? null, rules: { ...d.rules, branches: await ownBranches(venueId, d.rules.branches) },
@@ -360,6 +368,9 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (d.publish && draft && d.about && !(d.aboutRu ?? (cur.details as { aboutRu?: string } | null)?.aboutRu)) return c.json({ ok: false, error: "about_ru_required" }, 400);
     if (d.composition && !(d.compositionRu ?? (cur.details as { compositionRu?: string } | null)?.compositionRu) && (d.publish || !draft)) return c.json({ ok: false, error: "composition_ru_required" }, 400);
     if (d.packName && !(d.packNameRu ?? (cur.details as { packNameRu?: string } | null)?.packNameRu) && (d.publish || !draft)) return c.json({ ok: false, error: "pack_name_ru_required" }, 400);
+    { const cd = (cur.details ?? {}) as { bonusRu?: string; perkRu?: string };
+      if ((d.publish || !draft) && ((d.bonus && !(d.bonusRu ?? cd.bonusRu)) || (d.perk && !(d.perkRu ?? cd.perkRu)))) return c.json({ ok: false, error: "extras_ru_required" }, 400); }
+    if (d.rules.saleUntil && d.rules.saleUntil !== (cur.rules as { saleUntil?: string } | null)?.saleUntil && d.rules.saleUntil < new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" })) return c.json({ ok: false, error: "sale_until_past" }, 400);
     const next = d.publish && draft ? await statusAfterPublish() : cur.status;
     await db.update(offers).set({ title: `${d.title} · ${(keepSizes ? cur.units : sizes[0].units)} дана`, titleRu: d.titleRu ?? cur.titleRu, validDays: d.validDays, details: { ...(cur.details as object ?? {}), about: d.about, ...(d.aboutRu !== undefined ? { aboutRu: d.aboutRu } : {}), ...extraDetails(d) },
       category: d.category ?? null, rules: { ...d.rules, branches: await ownBranches(venueId, d.rules.branches) }, photos: d.photos, regularUnitPrice: keepSizes ? cur.regularUnitPrice : d.regularUnitPrice,
@@ -388,6 +399,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const all = sizes.some((x) => x.units === o.units) ? sizes : [{ units: o.units, price: o.price }, ...sizes];
     return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], titleRu: o.titleRu, kind: o.kind, status: o.status, reviewNote: o.reviewNote, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "", aboutRu: (o.details as { aboutRu?: string } | null)?.aboutRu ?? null,
       packName: (o.details as { packName?: string } | null)?.packName ?? "", packNameRu: (o.details as { packNameRu?: string } | null)?.packNameRu ?? "",
+      ...Object.fromEntries((["bonus", "bonusRu", "perk", "perkRu"] as const).map((k) => [k, (o.details as Record<string, string | undefined> | null)?.[k] ?? ""])),
       composition: (o.details as { composition?: string } | null)?.composition ?? "", compositionRu: (o.details as { compositionRu?: string } | null)?.compositionRu ?? "", portion: (o.details as { portion?: unknown } | null)?.portion ?? null,
       soldMonth: (await soldThisMonth(db, [o.id])).get(o.id) ?? 0,
       regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, photos: o.photos, rules: o.rules ?? { carry: true, extend: true, preorder: true, branches: null },

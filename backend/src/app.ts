@@ -8,7 +8,7 @@ import { sql } from "drizzle-orm";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
 import { users, venues } from "./db/schema.js";
-import { guidePdf } from "./receipt/guide.js";
+import { guidePdf, tentPdf } from "./receipt/guide.js";
 import { validateInitData } from "./auth/telegram.js";
 import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
@@ -60,6 +60,18 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     if (!v) return c.notFound();
     const pdf = await guidePdf(v.name, `https://t.me/${cfg.MINIAPP_BOT_USERNAME}`);
     return c.body(new Uint8Array(pdf), 200, { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Medeo-kassa.pdf"` });
+  });
+  // Клиентке тақтайша (A5): мекеменің ең үлкен нақты жеңілдігі және мекеме бетіне QR (ашық — ішінде тек мекеме атауы)
+  app.get("/files/tent/:file", async (c) => {
+    const id = c.req.param("file").replace(/\.pdf$/, "");
+    if (!/^[0-9a-f-]{36}$/.test(id)) return c.notFound();
+    const [v] = await db.select({ name: venues.name, slug: venues.slug }).from(venues).where(sql`${venues.id} = ${id}`).limit(1);
+    if (!v) return c.notFound();
+    const [m] = (await db.execute(sql`select coalesce(max(floor(100 - 100.0 * x.price / (x.units * o.regular_unit_price))), 0)::int as pct
+      from app.offers o cross join lateral jsonb_to_recordset(coalesce(o.sizes, jsonb_build_array(jsonb_build_object('units', o.units, 'price', o.price)))) as x(units int, price int)
+      where o.venue_id = ${id} and o.status = 'active'`)).rows as { pct: number }[];
+    const pdf = await tentPdf(v.name, m?.pct ?? 0, `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=venue_${v.slug}`);
+    return c.body(new Uint8Array(pdf), 200, { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Medeo-taqtaisha.pdf"` });
   });
   // Жоспарлы жұмыс: Cloud Scheduler 15 минут сайын шақырады (өтінім нәтижелері, 22:00 қорытынды, мерзім ескертуі)
   app.post("/cron/tick", async (c) => {

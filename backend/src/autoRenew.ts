@@ -56,6 +56,7 @@ export async function autoRenewTick(db: Db, cfg: Config, notify?: Notifier): Pro
     }
     // Сату лимиті (айлық таусылды не бір адамға шек): ақша алынбайды, автожаңарту тоқтайды — клиент кейін қолмен ала алады
     if (r.type === "error" && (r.code === "sold_out" || r.code === "user_limit")) { await stop("limit"); continue; }
+    if (r.type === "error" && r.code === "offer_unavailable") { await stop("unavailable"); continue; }
     await stop("payment");
   }
   return renewed;

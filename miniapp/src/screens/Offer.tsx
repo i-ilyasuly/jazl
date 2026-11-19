@@ -1,3 +1,4 @@
+import { getLang, kk } from "../i18n";
 import { winLabel } from "../offpeak";
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
 import { Rich } from "../ui/Rich";
@@ -81,6 +82,11 @@ function habitText(units: number, days: number, unitWord: string, old: number) {
   const freq = Math.round(perWeek) >= 1 ? `Аптасына ${Math.round(perWeek)} рет` : `Айына ${Math.max(1, Math.round((units * 30) / days))} рет`;
   return `${freq} ${unitWord} алсаң, бөлек ${fmt(old)} төлер едің. Пакетпен:`;
 }
+
+/** «2026-11-30» → «30 қарашаға» (барыс септігі «дейін» алдында) */
+const MON_DAT = [kk("қаңтарға"), kk("ақпанға"), kk("наурызға"), kk("сәуірге"), kk("мамырға"), kk("маусымға"), kk("шілдеге"), kk("тамызға"), kk("қыркүйекке"), kk("қазанға"), kk("қарашаға"), kk("желтоқсанға")];
+const MON_RU_GEN = [kk("января"), kk("февраля"), kk("марта"), kk("апреля"), kk("мая"), kk("июня"), kk("июля"), kk("августа"), kk("сентября"), kk("октября"), kk("ноября"), kk("декабря")];
+const saleDate = (d: string) => `${Number(d.slice(8, 10))} ${(getLang() === "ru" ? MON_RU_GEN : MON_DAT)[Number(d.slice(5, 7)) - 1]}`;
 
 export function OfferPage() {
   const { id } = useParams();
@@ -238,8 +244,20 @@ function OfferView({ id }: { id?: string }) {
               <li><b>Ақшаң күймейді.</b> Мерзімінде қолданылмаған бірліктің құны Medeo бонусы болып қайтады — 12 ай жарамды.</li>
               <li><b>Ойыңнан айнысаң.</b> Бір бірлік те қолданбасаң, 14 күн ішінде ақшаның бәрі қайтарылады.</li>
               <li><b>Мекеме кінәлі болса.</b> Жабылып қалса не қабылдамаса, пайдаланылмаған бірліктердің ақшасы толық қайтарылады.</li>
+              <li><b>Ұмытып кетпейсің.</b> Мерзімі бітерден 3 күн бұрын бот еске салады.</li>
             </ul>
             <button className={s.gLink} onClick={() => { haptic.tap(); go("/legal/refund"); }}>Қайтару ережесі</button>
+          </section>
+        )}
+
+        {/* Мекеменің өз еркімен (Патша, 2026-11-19): пакетке қоса сыйлық және пакет иесінің артықшылығы */}
+        {!ended && (base.bonus || base.perk) && (
+          <section className={`${s.block} ${s.blk}`}>
+            <h2 className={s.blockTitle}>Мекемеден қосымша</h2>
+            <dl className={s.params}>
+              {base.bonus && <div><dt>Пакетке қоса</dt><dd>{base.bonus}</dd></div>}
+              {base.perk && <div><dt>Пакет иесіне</dt><dd>{base.perk}</dd></div>}
+            </dl>
           </section>
         )}
 
@@ -249,6 +267,7 @@ function OfferView({ id }: { id?: string }) {
           <div><dt>Бірлік</dt><dd>{`${offer.units} ${offer.unitWord}, әрқайсысы бөлек`}</dd></div>
           {base.portion && <div><dt>{base.kind === "hair" ? "Ұзақтығы" : "Порция"}</dt><dd>{base.kind === "hair" ? portionText(base.portion) : `${portionText(base.portion)}, бір ${offer.unitWord}`}</dd></div>}
           <div><dt>Мерзімі</dt><dd>{`${d.days ?? 30} күн, сатып алған сәттен`}</dd></div>
+          {base.saleUntil && !ended && <div><dt>Сатылым</dt><dd>{`${saleDate(base.saleUntil)} дейін сатылады`}</dd></div>}
           {d.duration && !(base.kind === "hair" && base.portion) && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
           {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
           <div><dt>Қолдану тәсілі</dt><dd>{base.planOnly ? "Тек алдын ала жоспар бойынша: әр келуге күн мен уақыт таңдайсың" : d.use}</dd></div>

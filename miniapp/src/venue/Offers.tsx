@@ -20,9 +20,9 @@ import s from "./V.module.css";
 
 type Size = { units: number; price: number };
 type PortionUnit = "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min";
-interface Draft { title: string; titleRu: string; packName: string; packNameRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
-  rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; branches: string[] | null; monthlyLimit?: number | null; perUserLimit?: number | null } }
-interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu" | "composition" | "compositionRu" | "portion" | "packName" | "packNameRu"> { packName?: string; packNameRu?: string; titleRu?: string | null; aboutRu?: string | null; composition?: string; compositionRu?: string; portion?: Draft["portion"]; soldMonth?: number; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
+interface Draft { title: string; titleRu: string; packName: string; packNameRu: string; bonus: string; bonusRu: string; perk: string; perkRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
+  rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; branches: string[] | null; monthlyLimit?: number | null; perUserLimit?: number | null; saleUntil?: string | null } }
+interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu" | "composition" | "compositionRu" | "portion" | "packName" | "packNameRu" | "bonus" | "bonusRu" | "perk" | "perkRu"> { packName?: string; packNameRu?: string; bonus?: string; bonusRu?: string; perk?: string; perkRu?: string; titleRu?: string | null; aboutRu?: string | null; composition?: string; compositionRu?: string; portion?: Draft["portion"]; soldMonth?: number; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 // Санат серверге қазақша сақталады (тілге тәуелсіз мән), ал экранда таңдалған тілде көрінеді: __t(c)
 const cats = { food: [kk("Донер"), kk("Бургер"), kk("Шаурма"), kk("Кофе"), kk("Басқа")], coffee: [kk("Кофе"), kk("Шай"), kk("Десерт"), kk("Басқа")], hair: [kk("Шаш қию"), kk("Сақал"), kk("Балалар"), kk("Басқа")] };
@@ -98,9 +98,9 @@ export function VOfferWizard() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("draft");
   const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
-  const [d, setD] = useState<Draft>({ title: "", titleRu: "", packName: "", packNameRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  const [d, setD] = useState<Draft>({ title: "", titleRu: "", packName: "", packNameRu: "", bonus: "", bonusRu: "", perk: "", perkRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
   const hadExtra = useRef(false);
-  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); hadExtra.current = Boolean(o.composition || o.compositionRu || o.portion || o.packName || o.packNameRu); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", packName: o.packName ?? "", packNameRu: o.packNameRu ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); hadExtra.current = Boolean(o.composition || o.compositionRu || o.portion || o.packName || o.packNameRu || o.bonus || o.bonusRu || o.perk || o.perkRu); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", packName: o.packName ?? "", packNameRu: o.packNameRu ?? "", bonus: o.bonus ?? "", bonusRu: o.bonusRu ?? "", perk: o.perk ?? "", perkRu: o.perkRu ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
   // Бір тілде жазса, екіншісі сөздіктен өзі толады (бос не бұрын өзі толтырылған болса ғана — мекеме жазғанын баспаймыз)
   const setTitle = (v: string) => setD((x) => { const auto = !x.titleRu || x.titleRu === ruOf(x.title); return { ...x, title: v, titleRu: auto ? ruOf(v) ?? (auto && x.titleRu ? "" : x.titleRu) : x.titleRu }; });
@@ -122,9 +122,10 @@ export function VOfferWizard() {
     if (publish && status === "draft" && !accepted && !(await kv.get("medeo_offer_terms"))) { setTerms(true); return; }
     setBusy(true); haptic.medium();
     // Құрамы/порция тек толтырылса не бұрын сақталған болса жіберіледі (бос болса — кілт жоқ: ескі сервер нұсқасы да қабылдайды)
-    const { composition, compositionRu, portion, packName, packNameRu, ...rest } = d;
-    const extra = composition.trim() || compositionRu.trim() || portion || packName.trim() || packNameRu.trim() || hadExtra.current
-      ? { composition: composition.trim(), compositionRu: compositionRu.trim(), portion: portion && portion.value > 0 ? portion : null, packName: packName.trim(), packNameRu: packNameRu.trim() } : {};
+    const { composition, compositionRu, portion, packName, packNameRu, bonus, bonusRu, perk, perkRu, ...rest } = d;
+    const texts = { composition, compositionRu, packName, packNameRu, bonus, bonusRu, perk, perkRu };
+    const extra = Object.values(texts).some((x) => x.trim()) || portion || hadExtra.current
+      ? { ...Object.fromEntries(Object.entries(texts).map(([k, v]) => [k, v.trim()])), portion: portion && portion.value > 0 ? portion : null } : {};
     const body = { ...rest, ...extra, titleRu: d.titleRu.trim() || undefined, aboutRu: d.aboutRu.trim() || undefined, category: d.category || undefined, publish };
     try {
       const st = id ? (await api<{ status: string }>(`/v1/venue/${me.venue.id}/offers/${id}`, { method: "PUT", body: JSON.stringify(body) })).status
@@ -132,7 +133,7 @@ export function VOfferWizard() {
       haptic.success();
       // «Ұсыныс тексеруде» — тек Medeo тексеруіне кеткенде (нақты режим); сынақ режимінде бірден жарияланады
       go(st === "review" ? "/v/offers/review" : "/v/offers", "forward", { replace: true });
-    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : err(e) === "composition_ru_required" ? "Құрамын орысша да жазыңыз." : err(e) === "pack_name_ru_required" ? "Пакет атауын орысша да жазыңыз." : err(e) === "big_off_peak" ? `Бос сағат бағасымен жалпы жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 40}%-дан аспауы керек. Бос сағат жеңілдігін азайтыңыз.` : "Сақталмады. Қайталап көріңіз."); }
+    } catch (e) { haptic.error(); nativeAlert(err(e) === "low_discount" ? "Жеңілдік кемінде 10% болуы керек: көлем бағасын азайтыңыз." : err(e) === "big_discount" ? bigText(e) : err(e) === "title_ru_required" ? "Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді." : err(e) === "about_ru_required" ? "Сипаттаманы орысша да жазыңыз." : err(e) === "composition_ru_required" ? "Құрамын орысша да жазыңыз." : err(e) === "pack_name_ru_required" ? "Пакет атауын орысша да жазыңыз." : err(e) === "extras_ru_required" ? "Сыйлық пен артықшылықты орысша да жазыңыз." : err(e) === "sale_until_past" ? "Сатылым соңы өткен күн бола алмайды." : err(e) === "big_off_peak" ? `Бос сағат бағасымен жалпы жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 40}%-дан аспауы керек. Бос сағат жеңілдігін азайтыңыз.` : "Сақталмады. Қайталап көріңіз."); }
     finally { setBusy(false); }
   }, [me, busy, d, id, status, go]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -144,6 +145,7 @@ export function VOfferWizard() {
     if (step === 1 && d.aboutRu.trim() && !d.about.trim()) { haptic.error(); return nativeAlert("Сипаттаманы қазақша да жазыңыз."); }
     if (step === 1 && d.packName.trim() && !d.packNameRu.trim()) { haptic.error(); return nativeAlert("Пакет атауын орысша да жазыңыз."); }
     if (step === 1 && d.packNameRu.trim() && !d.packName.trim()) { haptic.error(); return nativeAlert("Пакет атауын қазақша да жазыңыз."); }
+    if (step === 1 && ([["bonus", "bonusRu"], ["perk", "perkRu"]] as const).some(([a, b]) => Boolean(d[a].trim()) !== Boolean(d[b].trim()))) { haptic.error(); return nativeAlert("Сыйлық пен артықшылықты екі тілде де жазыңыз (не екеуін де бос қалдырыңыз)."); }
     if (step === 1 && d.composition.trim() && !d.compositionRu.trim()) { haptic.error(); return nativeAlert("Құрамын орысша да жазыңыз."); }
     if (step === 1 && d.compositionRu.trim() && !d.composition.trim()) { haptic.error(); return nativeAlert("Құрамын қазақша да жазыңыз."); }
     if (step === 2 && low && !locked) { haptic.error(); return nativeAlert(`Жеңілдік 10%-дан аз: ${low.units} бірлік. Бағаны азайтыңыз не қалыпты бағаны тексеріңіз.`); }
@@ -187,6 +189,10 @@ export function VOfferWizard() {
             style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />
         </label>
         <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Клиент карточкада алдымен осы атауды, астында тауар атауын көреді. Бос қалса — тауар атауы шығады.</p>
+        {/* Атау үлгілері (Хормози, MAGIC: себеп + кімге + нәтиже + мерзім + пішін) — басса, екі тілде толады, кейін өзгертуге болады */}
+        <div className={s.chips} style={{ flexWrap: "wrap" }}>
+          {NAME_TEMPLATES[me.venue.kind].map(([a, b]) => <button key={a} className={`${s.chip} ${d.packName === a ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ packName: a, packNameRu: b }); }}>{getLang() === "ru" ? b : a}</button>)}
+        </div>
         <h2 className={s.blueHead}>Санат</h2>
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
           {cats[me.venue.kind].map((c) => <button key={c} className={`${s.chip} ${d.category === c ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ category: c }); }}>{__t(c)}</button>)}
@@ -206,6 +212,11 @@ export function VOfferWizard() {
         <TextBox ru label={me.venue.kind === "hair" ? "Қызметке не кіреді (орысша)" : "Құрамы (орысша)"} value={d.compositionRu} onChange={(v) => up({ compositionRu: v })}
           placeholder={me.venue.kind === "hair" ? "Например: стрижка, мытьё, укладка" : me.venue.kind === "coffee" ? "Например: эспрессо, молоко, пенка" : "Например: лаваш, курица, огурец, помидор, домашний соус"} />
         <PortionField kind={me.venue.kind} value={d.portion} onChange={(v) => up({ portion: v })} />
+        {/* Мекеменің өз еркімен (Патша, 2026-11-19): Medeo есебінен емес — мекеменің өзі береді. Міндетті емес */}
+        <h2 className={s.blueHead}>Мекемеден қосымша · міндетті емес</h2>
+        <PairBox label="Пакетке қоса (сыйлық)" kk={d.bonus} ru={d.bonusRu} onKk={(v) => up({ bonus: v })} onRu={(v) => up({ bonusRu: v })} phKk="Мысалы: әр донерге тегін шай" phRu="Например: бесплатный чай к каждому донеру" />
+        <PairBox label="Пакет иесіне артықшылық" kk={d.perk} ru={d.perkRu} onKk={(v) => up({ perk: v })} onRu={(v) => up({ perkRu: v })} phKk="Мысалы: сусынға 20% жеңілдік" phRu="Например: скидка 20% на напитки" />
+        <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Бұларды Medeo емес, мекеменің өзі береді. Кассада пакет иесі айтқанда орындалуы керек.</p>
         {d.photos[0] ? (
           <div className={s.card} style={{ padding: 8 }}>
             <img src={d.photos[0]} alt="" style={{ display: "block", width: "100%", aspectRatio: "4 / 3", objectFit: "cover", borderRadius: 14 }} />
@@ -290,6 +301,20 @@ export function VOfferWizard() {
           <LimitRow title="Бір адамға шек" sub="Бір клиент айына осыдан артық пакет ала алмайды (өзіне де, сыйлыққа да)." def={1} min={1} max={100} unit="Бір адам айына неше пакет"
             value={d.rules.perUserLimit ?? null} onChange={(v) => up({ rules: { ...d.rules, perUserLimit: v } })} />
         </div>
+        {/* Сатылым соңы (Патша, 2026-11-19): шынайы мерзім — сол күн қоса сатылады, кейін ұсыныс «аяқталды». Сатылған пакеттер жұмыс істей береді */}
+        <div className={s.card}>
+          <div className={s.row}>
+            <span className={s.rowText}><span className={s.rowTitle}>Сатылым соңы</span><span className={s.rowSub} style={{ whiteSpace: "normal" }}>Осы күнге дейін ғана сатылады (мыс. «Қараша пакеті»). Соңғы 7 күнде клиент «N күн қалды» деп көреді. Сатылған пакеттер өз мерзімімен жұмыс істей береді.</span></span>
+            <Switch on={Boolean(d.rules.saleUntil)} onChange={(on) => { haptic.select(); up({ rules: { ...d.rules, saleUntil: on ? monthEnd() : null } }); }} />
+          </div>
+          {d.rules.saleUntil && (
+            <div className={s.row} style={{ paddingTop: 0 }}>
+              <span className={s.rowText}><span className={s.rowSub}>Соңғы күн</span></span>
+              <input type="date" value={d.rules.saleUntil} min={todayStr()} onChange={(e) => up({ rules: { ...d.rules, saleUntil: e.target.value || null } })}
+                style={{ border: 0, outline: 0, background: "none", font: "inherit", fontSize: 16, color: "var(--text-strong)" }} />
+            </div>
+          )}
+        </div>
         {d.rules.monthlyLimit ? <Note>{`Клиент карточкада «Қалды ${d.rules.monthlyLimit} / ${d.rules.monthlyLimit}» деп көреді. Лимитті кез келген уақытта көбейте аласыз — күтіп тұрғандарға бот хабарлайды.`}</Note> : null}
       </>}
 
@@ -324,6 +349,32 @@ export function VOfferWizard() {
         onClose={() => setSizeEdit(null)} onSave={(x) => { up({ sizes: d.sizes.map((y, i) => (i === sizeEdit ? x : y)).sort((a, b) => a.units - b.units) }); setSizeEdit(null); }}
         onDelete={() => { up({ sizes: d.sizes.filter((_, i) => i !== sizeEdit) }); setSizeEdit(null); }} />}
     </VPage>
+  );
+}
+
+const todayStr = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" });
+/** Осы айдың соңғы күні (Алматы): «Қараша пакеті» үшін әдепкі сатылым соңы */
+const monthEnd = () => { const [y, m] = todayStr().split("-").map(Number); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); };
+const MONTH_KK = [kk("Қаңтар"), kk("Ақпан"), kk("Наурыз"), kk("Сәуір"), kk("Мамыр"), kk("Маусым"), kk("Шілде"), kk("Тамыз"), kk("Қыркүйек"), kk("Қазан"), kk("Қараша"), kk("Желтоқсан")];
+const MONTH_RU = [kk("январский"), kk("февральский"), kk("мартовский"), kk("апрельский"), kk("майский"), kk("июньский"), kk("июльский"), kk("августовский"), kk("сентябрьский"), kk("октябрьский"), kk("ноябрьский"), kk("декабрьский")];
+const mi = () => Number(todayStr().slice(5, 7)) - 1;
+/** Пакет атауының үлгілері (MAGIC): кімге + нәтиже + мерзім + пішін */
+const NAME_TEMPLATES: Record<"food" | "coffee" | "hair", [string, string][]> = {
+  food: [[kk("Түскі ас абонементі"), kk("Абонемент на обед")], [kk("Студенттің түскі асы"), kk("Студенческий обед")], [kk(`${MONTH_KK[mi()]} пакеті`), kk(`${MONTH_RU[mi()]} пакет`).replace(/^./, (c) => c.toUpperCase())], [kk("Аптасына бір донер"), kk("Донер раз в неделю")]],
+  coffee: [[kk("Таңғы кофе абонементі"), kk("Утренний кофе-абонемент")], [kk("Кеңседегі кофе"), kk("Кофе для офиса")], [kk(`${MONTH_KK[mi()]} пакеті`), kk(`${MONTH_RU[mi()]} пакет`).replace(/^./, (c) => c.toUpperCase())], [kk("Күнделікті латте"), kk("Латте каждый день")]],
+  hair: [[kk("Ай сайынғы күтім"), kk("Ежемесячный уход")], [kk("Ұқыпты шаш · 2 ай"), kk("Аккуратная стрижка · 2 месяца")], [kk(`${MONTH_KK[mi()]} пакеті`), kk(`${MONTH_RU[mi()]} пакет`).replace(/^./, (c) => c.toUpperCase())], [kk("Сақал мен шаш"), kk("Борода и стрижка")]],
+};
+
+/** Екі тілдегі қысқа өріс (сыйлық, артықшылық) */
+function PairBox({ label, kk, ru, onKk, onRu, phKk, phRu }: { label: string; kk: string; ru: string; onKk: (v: string) => void; onRu: (v: string) => void; phKk: string; phRu: string }) {
+  const inp = { display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" } as const;
+  return (
+    <div className={s.card} style={{ padding: "10px 16px 4px" }}>
+      <span className="t-cap1" style={{ color: "var(--link)" }}>{`${label} · қазақша`}</span>
+      <input value={kk} maxLength={80} onChange={(e) => onKk(e.target.value)} placeholder={phKk} style={inp} />
+      <span className="t-cap1" style={{ color: "var(--link)", display: "block", marginTop: 8 }}>{`${label} · орысша`}</span>
+      <input value={ru} maxLength={80} lang="ru" onChange={(e) => onRu(e.target.value)} placeholder={phRu} style={inp} />
+    </div>
   );
 }
 

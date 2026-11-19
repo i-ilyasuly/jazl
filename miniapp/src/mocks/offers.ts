@@ -10,6 +10,11 @@ export interface Offer {
   offPeak?: { days: number[]; from: string; to: string; pct: number };
   /** Пакеттің маркетингтік атауы (мекеме береді, клиент тілінде): карточкада басты орында, тауар атауы (title) астында */
   packName?: string;
+  /** Мекеменің өз еркімен: пакетке қоса берілетін сыйлық және пакет иесінің артықшылығы (клиент тілінде) */
+  bonus?: string;
+  perk?: string;
+  /** Сатылым соңы «2026-11-30» (сол күн қоса) */
+  saleUntil?: string | null;
   /** Құрамы (мекеме жазады, клиент тілінде) және порциясы: «350 г» (Патша, 2026-11-18) */
   composition?: string;
   portion?: { value: number; unit: "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min" };

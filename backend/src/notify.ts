@@ -31,6 +31,7 @@ const tz = { timeZone: "Asia/Almaty" } as const;
 const hm = (d: Date) => d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", ...tz });
 const ymd = (d: Date) => d.toLocaleDateString("sv-SE", tz);
 const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const MON_RU = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 /** Хабарлама тілі (Патша, 2026-11-18: орыс тілі): алушының users.lang мәні бойынша. Мәтін — қазақша не {kk, ru}. */
 export type Lang = "kk" | "ru";
@@ -254,7 +255,7 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
 
     /** Жоспарлы жұмыс (Cloud Scheduler, 15 минут сайын): өтінім нәтижелері, 22:00 күндік қорытынды, 10:00 мерзім ескертуі */
     tick: async (now = new Date()) => {
-      const out = { applications: 0, daily: 0, expiry: 0, bonus: 0, soldOut: 0, restock: 0 };
+      const out = { applications: 0, daily: 0, expiry: 0, bonus: 0, soldOut: 0, restock: 0, lastUnit: 0, idle: 0, savings: 0, saleEnded: 0 };
       // 🎁 Күйген бірлік → клиентке Medeo бонусы (мекемеге үлес жоқ — Патша, 2026-11-17)
       for (const b of await creditBreakage(db, now).catch((e) => { console.error("creditBreakage", e); return []; })) {
         if (b.amount <= 0 || !(await once(`bonus:${b.packId}`))) continue;
@@ -263,6 +264,12 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
           `🎁 В пакете «${b.titleRu ?? head(b.title)}» осталось неиспользованных единиц: ${b.units}. Деньги не сгорели: ${money(b.amount)} вернулись бонусом Medeo. Бонус действует 12 месяцев, его можно потратить на следующую покупку в любом заведении.`), button: { text: L("Бонусты көру", "Посмотреть бонус"), start: "p_bonus" } }).catch(() => null);
         out.bonus++;
       }
+      // ⌛ Сатылым соңы (мекеме қойған күн, Алматы бойынша сол күн қоса): өткен ұсыныс «аяқталды» болады — каталог, сатып алу, «Хабарла», автожаңарту өзі тоқтайды
+      await safe("saleEnd", async () => {
+        const ended = await rows(sql`update app.offers set status = 'ended' where status = 'active' and (rules->>'saleUntil') is not null
+          and (rules->>'saleUntil')::date < (now() at time zone 'Asia/Almaty')::date returning id`);
+        out.saleEnded += ended.length;
+      });
       // 🔔 Сату лимиті: таусылса — мекемеге (айына бір рет); қайта ашылса (жаңа ай, лимит көбейді, ұсыныс қайта қосылды) — күткен клиенттерге
       await safe("limits", async () => {
         const lim = await rows<{ id: string; title: string; venue_id: string; rules: unknown }>(sql`select id, title, venue_id, rules from app.offers where status = 'active' and (rules->>'monthlyLimit') is not null`);
@@ -336,8 +343,55 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
             and not exists (select 1 from app.notify_log l where l.key = 'exp:' || p.id) limit 500`);
         for (const p of soon) {
           if (!({ ...clientPrefDefaults, ...(p.notify ?? {}) }).expiry || !(await once(`exp:${p.id}`))) continue;
-          await send({ chatId: Number(p.tg), text: L(`⏰ «${head(p.title)}» пакетінің мерзімі 3 күннен кейін бітеді. ${p.left} ${p.unit_name || "дана"} қалды.`, `⏰ Срок пакета «${p.title_ru ?? head(p.title)}» истекает через 3 дня. Осталось ${p.left} ед.`), button: { text: L("Пакеттерім", "Мои пакеты"), start: `pk_${p.id}` } }).catch(() => null);
+          await send({ chatId: Number(p.tg), text: L(`⏰ «${head(p.title)}» пакетінің мерзімі 3 күннен кейін бітеді. ${p.left} ${p.unit_name || "дана"} қалды. Қайта алсаң, қалған бірліктер жаңа пакетке көшеді — ештеңе жоғалмайды.`, `⏰ Срок пакета «${p.title_ru ?? head(p.title)}» истекает через 3 дня. Осталось ${p.left} ед. Если купите пакет снова, оставшиеся единицы перейдут в новый — ничего не пропадёт.`), button: { text: L("Пакеттерім", "Мои пакеты"), start: `pk_${p.id}` } }).catch(() => null);
           out.expiry++;
+        }
+        const pref = (x: Partial<typeof clientPrefDefaults> | null, k: keyof typeof clientPrefDefaults) => ({ ...clientPrefDefaults, ...(x ?? {}) })[k];
+        // 🍽 Соңғы бірлік қолданылды (Хормози: ең жақсы сату сәті — пайданы жаңа көрген сәт) → сол бағамен қайта алу ұсынысы.
+        // Автожаңарту қосулы, жаңасы алынған не ұсыныс сатылмайтын болса — жібермейміз
+        const done = await rows<{ id: string; tg: string; slug: string; title: string; title_ru: string | null; notify: Partial<typeof clientPrefDefaults> | null }>(sql`
+          select p.id, u.telegram_id as tg, f.slug, f.title, f.title_ru, u.notify from app.packs p join app.offers f on f.id = p.offer_id join app.users u on u.id = p.user_id
+          where p.units_left = 0 and p.status in ('active','used') and not p.auto_renew and p.renewed_to is null and f.status = 'active'
+            and exists (select 1 from app.pack_events e where e.pack_id = p.id and e.units_delta < 0 and e.created_at > now() - interval '2 days')
+            and not exists (select 1 from app.packs q where q.user_id = p.user_id and q.offer_id = p.offer_id and q.created_at > p.created_at and q.status <> 'pending_payment')
+            and not exists (select 1 from app.notify_log l where l.key = 'last:' || p.id) limit 300`);
+        for (const p of done) {
+          if (!pref(p.notify, "offers") || !(await once(`last:${p.id}`))) continue;
+          await send({ chatId: Number(p.tg), text: L(`🍽 «${head(p.title)}» пакетіңнің соңғы бірлігі қолданылды. Ұнаса — сол жеңілдікпен қайта ал, бір басу жеткілікті.`, `🍽 Последняя единица пакета «${p.title_ru ?? head(p.title)}» использована. Понравилось — купите снова с той же скидкой, в одно касание.`),
+            button: { text: L("Қайта алу", "Купить снова"), start: `offer_${p.slug}` } }).catch(() => null);
+          out.lastUnit++;
+        }
+        // 🎟 Сатып алғанына 2 күн өтті, бірде-бір бірлік қолданылмады → жұмсақ еске салу (алғашқы қолдану — клиентті ұстаудың ең үлкен рычагы)
+        const idle = await rows<{ id: string; tg: string; title: string; title_ru: string | null; venue: string; notify: Partial<typeof clientPrefDefaults> | null }>(sql`
+          select p.id, u.telegram_id as tg, f.title, f.title_ru, v.name as venue, u.notify from app.packs p join app.offers f on f.id = p.offer_id join app.venues v on v.id = f.venue_id join app.users u on u.id = p.user_id
+          where p.status = 'active' and p.units_left = p.units_total and p.source <> 'carry' and p.created_at between now() - interval '72 hours' and now() - interval '48 hours'
+            and not exists (select 1 from app.orders o where o.pack_id = p.id)
+            and not exists (select 1 from app.notify_log l where l.key = 'idle:' || p.id) limit 300`);
+        for (const p of idle) {
+          if (!pref(p.notify, "expiry") || !(await once(`idle:${p.id}`))) continue;
+          await send({ chatId: Number(p.tg), text: L(`🎟 «${head(p.title)}» пакетің сені күтіп тұр. Алғашқысын бүгін ал — ${p.venue}, кассада «Medeo» деп айтсаң болды.`, `🎟 Пакет «${p.title_ru ?? head(p.title)}» ждёт вас. Заберите первую единицу сегодня — ${p.venue}, просто скажите на кассе «Medeo».`),
+            button: { text: L("Пакетті ашу", "Открыть пакет"), start: `pk_${p.id}` } }).catch(() => null);
+          out.idle++;
+        }
+        // 📊 Айдың 1-інде: өткен айдағы жеке үнем (Хормози: ең күшті дәлел — адамның өз нәтижесі)
+        if (day.slice(8, 10) === "01") {
+          const to = new Date(`${day}T00:00:00+05:00`);
+          const prev = new Date(to.getTime() - 86400_000); const from = new Date(`${ymd(prev).slice(0, 7)}-01T00:00:00+05:00`);
+          const sav = await rows<{ tg: string; user_id: string; saved: number; uses: number; notify: Partial<typeof clientPrefDefaults> | null }>(sql`
+            with x as (
+              select p.user_id, r.units::int as units, greatest(0, r.units * f.regular_unit_price - coalesce(r.amount, round(coalesce(p.value_total, p.price_paid)::numeric * r.units / p.units_total)::int)) as saved
+                from app.redemptions r join app.packs p on p.id = r.pack_id join app.offers f on f.id = p.offer_id where r.cancelled_at is null and r.created_at >= ${from} and r.created_at < ${to}
+              union all
+              select p.user_id, 1, greatest(0, f.regular_unit_price - coalesce(o.amount, round(coalesce(p.value_total, p.price_paid)::numeric / p.units_total)::int))
+                from app.orders o join app.packs p on p.id = o.pack_id join app.offers f on f.id = p.offer_id where o.status = 'done' and o.created_at >= ${from} and o.created_at < ${to})
+            select u.telegram_id as tg, x.user_id, sum(x.saved)::int as saved, sum(x.units)::int as uses, u.notify from x join app.users u on u.id = x.user_id group by x.user_id, u.telegram_id, u.notify having sum(x.saved) > 0 limit 2000`);
+          const mon = MON[Number(ymd(prev).slice(5, 7)) - 1];
+          for (const u of sav) {
+            if (!pref(u.notify, "expiry") || !(await once(`sav:${u.user_id}:${ymd(prev).slice(0, 7)}`))) continue;
+            await send({ chatId: Number(u.tg), text: L(`📊 ${cap(mon)} айында Medeo-мен ${money(u.saved)} үнемдедің — ${u.uses} рет қолдандың. Жарайсың!`, `📊 В прошлом месяце вы сэкономили с Medeo ${money(u.saved)} — использований: ${u.uses}. Отлично!`),
+              button: { text: L("Үнемді көру", "Моя экономия"), start: "p_savings" } }).catch(() => null);
+            out.savings++;
+          }
         }
       }
       return out;

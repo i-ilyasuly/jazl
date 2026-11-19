@@ -212,6 +212,9 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   const [row] = await db.select({ o: offers, v: venues }).from(offers).innerJoin(venues, eq(offers.venueId, venues.id)).where(eq(offers.slug, body.offerSlug)).limit(1);
   if (!row || row.o.status !== "active" || row.v.status !== "active") return err("offer_unavailable");
   const { o } = row;
+  // Сатылым соңы (мекеме қойған күн, Алматы бойынша сол күн қоса) — tick «аяқталды» деп белгілегенше де сатылмайды
+  const saleUntil = (o.rules as { saleUntil?: string | null } | null)?.saleUntil;
+  if (saleUntil && saleUntil < new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" })) return err("offer_unavailable");
   const units = body.units ?? o.units;
   const size = units === o.units ? { units, price: o.price } : ((o.sizes as Sizes) ?? []).find((x) => x.units === units);
   if (!size) return err("bad_size", 400);
