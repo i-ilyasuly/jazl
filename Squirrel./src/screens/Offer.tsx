@@ -22,7 +22,6 @@ import heroBurger from "../assets/icons/heroBurger.svg";
 import share from "../assets/icons/share.svg";
 import heartFill from "../assets/icons/heartFill26.svg";
 import heartLine from "../assets/icons/heart.svg";
-import expand from "../assets/icons/expand.svg";
 import s from "./Offer.module.css";
 
 const Segs = ({ list }: { list: OfferDetails["includes"] }) => <>{list.map((x, i) => typeof x === "string" ? <span key={i}>{x}</span> : "g" in x ? <span key={i} className={s.hlGreen}>{x.g}</span> : <span key={i} className={s.hlBlue}>{x.b}</span>)}</>;
@@ -49,13 +48,14 @@ function About({ list, text, open, onToggle }: { list: OfferDetails["about"]; te
   useLayoutEffect(() => { const el = ref.current; if (el) setLong(el.scrollHeight > 90); }, [list, text]);
   // Мекеме өзі жазған сипаттама бар болса — сол (клиент тілінде), әйтпесе санат үлгісі
   const body = text ? <Rich text={text} /> : <Lines list={list} />;
-  if (!long) return <div className={`${s.quote} ${s.quoteShort} infoBox`}><span ref={ref} className={s.quoteText}>{body}</span></div>;
+  // Squirrel. (13): ішкі көк қорап жоқ — жай мәтін, ұзын болса астында «Толығырақ» сілтемесі
+  if (!long) return <div className={s.about}><span ref={ref} className={s.aboutText}>{body}</span></div>;
   return (
-    <button className={`${s.quote} infoBox ${open ? s.quoteOpen : ""}`} onClick={onToggle} aria-expanded={open}>
-      <span ref={ref} className={s.quoteText}>{body}</span>
-      {!open && <span className={s.fade} />}
-      <img src={expand} className={s.expand} width={22} height={22} alt="" />
-    </button>
+    <div className={`${s.about} ${open ? s.aboutOpen : ""}`}>
+      <span ref={ref} className={s.aboutText}>{body}</span>
+      {!open && <span className={s.aboutFade} />}
+      <button className={s.more} onClick={onToggle} aria-expanded={open}>{open ? "Жасыру" : "Толығырақ"}</button>
+    </div>
   );
 }
 
@@ -202,12 +202,17 @@ function OfferView({ id }: { id?: string }) {
             <button className={`${s.link} ${s.venueLink}`} onClick={toVenue}>{offer.venue}<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
             <span className={s.muted}>{`·  ★ ${String(offer.rating).replace(".", ",")} (${offer.ratingCount})  ·  ${offer.distance}`}</span>
           </p>
+          {/* Squirrel. (19): әлеуметтік дәлел */}
+          {offer.buyers > 0 && <p className={s.buyersLine}><span className={s.buyersIco} aria-hidden />{`${offer.buyers} адам алды`}</p>}
           {venue?.trust != null && <p className={s.trust}><span aria-hidden>✓</span>{`Сенімді мекеме · ${venue.trust}% қызмет шағымсыз`}</p>}
           {/* Бағадан бұрын контекст (Хормози): клиент әдетте қанша төлейтінін көрсетіп, сосын пакет бағасы */}
           <div className={s.priceRow}>
             <div>
+              {/* Squirrel. (11): жеңілдіксіз баға — бағаның үстінде, көмескі (карточкадағыдай) */}
+              <p className={s.oldTop}><s>{fmt(offer.oldPrice)}</s></p>
               <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}>{fmt(offer.price)}</span></p>
-              <p className={s.old}>Бөлек: <s>{fmt(offer.oldPrice)}</s></p>
+              {/* Squirrel. (20): мерзімі бағаның қасында — «Шарттарды» ашпай-ақ көрінеді */}
+              {!ended && <p className={s.validity}>{`${d.days ?? 30} күн жарамды`}</p>}
             </div>
             <div className={s.badges} style={ended ? { visibility: "hidden" } : undefined}>
               {/* Squirrel.: бір жасыл белгі (жеңілдік + үнем) және дана бағасы жай мәтін — бағамен таласпайды */}
@@ -236,20 +241,6 @@ function OfferView({ id }: { id?: string }) {
         </section>
 
 
-        {/* Medeo кепілдігі (Патша, 2026-11-18): тәуекел клиентте емес — бар ережелерді бір жерде, бағаның жанында ашық айтамыз */}
-        {!ended && (
-          <section className={`${s.block} ${s.blk} ${s.guarantee}`}>
-            <h2 className={s.blockTitle}><span className={s.shield} aria-hidden>✓</span>Medeo кепілдігі</h2>
-            <ul className={s.gList}>
-              <li><b>Ақшаң күймейді.</b> Мерзімінде қолданылмаған бірліктің құны Medeo бонусы болып қайтады — 12 ай жарамды.</li>
-              <li><b>Ойыңнан айнысаң.</b> Бір бірлік те қолданбасаң, 14 күн ішінде ақшаның бәрі қайтарылады.</li>
-              <li><b>Мекеме кінәлі болса.</b> Жабылып қалса не қабылдамаса, пайдаланылмаған бірліктердің ақшасы толық қайтарылады.</li>
-              <li><b>Ұмытып кетпейсің.</b> Мерзімі бітерден 3 күн бұрын бот еске салады.</li>
-            </ul>
-            <button className={s.gLink} onClick={() => { haptic.tap(); go("/legal/refund"); }}>Қайтару ережесі</button>
-          </section>
-        )}
-
         {/* Мекеменің өз еркімен (Патша, 2026-11-19): пакетке қоса сыйлық және пакет иесінің артықшылығы */}
         {!ended && (base.bonus || base.perk) && (
           <section className={`${s.block} ${s.blk}`}>
@@ -258,6 +249,19 @@ function OfferView({ id }: { id?: string }) {
               {base.bonus && <div><dt>Пакетке қоса</dt><dd>{base.bonus}</dd></div>}
               {base.perk && <div><dt>Пакет иесіне</dt><dd>{base.perk}</dd></div>}
             </dl>
+          </section>
+        )}
+
+        {/* Құрамы — мекеме өзі жазады (Патша, 2026-11-18). Жоқ болса — тек үлгі ұсыныстарда бұрынғы тізім */}
+        {base.composition ? (
+          <section className={`${s.block} ${s.blk}`}>
+            <h2 className={s.blockTitle}>{base.kind === "hair" ? "Қызметке не кіреді" : "Құрамы"}</h2>
+            <p className={s.composition}>{base.composition}</p>
+          </section>
+        ) : hasSampleIncludes(base.id) && (
+          <section className={`${s.block} ${s.blk}`}>
+            <h2 className={s.blockTitle}>Пакетке не кіреді</h2>
+            <ul className={s.bullets}>{d.includes.map((x, i) => <li key={i}><Segs list={[x]} /></li>)}</ul>
           </section>
         )}
 
@@ -275,28 +279,29 @@ function OfferView({ id }: { id?: string }) {
         </dl>
         </section>
 
-        {/* Құрамы — мекеме өзі жазады (Патша, 2026-11-18). Жоқ болса — тек үлгі ұсыныстарда бұрынғы тізім */}
-        {base.composition ? (
-          <section className={`${s.block} ${s.blk}`}>
-            <h2 className={s.blockTitle}>{base.kind === "hair" ? "Қызметке не кіреді" : "Құрамы"}</h2>
-            <p className={s.composition}>{base.composition}</p>
-          </section>
-        ) : hasSampleIncludes(base.id) && (
-          <section className={`${s.block} ${s.blk}`}>
-            <h2 className={s.blockTitle}>Пакетке не кіреді</h2>
-            <ul className={s.bullets}>{d.includes.map((x, i) => <li key={i}><Segs list={[x]} /></li>)}</ul>
-          </section>
-        )}
-
         <section className={`${s.block} ${s.blk}`} style={{ position: "relative" }}>
           <h2 className={s.blockTitle}>Сипаттама</h2>
           <About list={d.about} text={base.about} open={open} onToggle={() => { haptic.tap(); setOpen(!open); }} />
         </section>
 
+        {/* Medeo кепілдігі (Патша, 2026-11-18): тәуекел клиентте емес — бар ережелерді бір жерде, бағаның жанында ашық айтамыз */}
+        {!ended && (
+          <section className={`${s.block} ${s.blk} ${s.guarantee}`}>
+            <h2 className={s.blockTitle}>Medeo кепілдігі</h2>
+            <ul className={s.gList}>
+              <li><b>Ақшаң күймейді.</b> Мерзімінде қолданылмаған бірліктің құны Medeo бонусы болып қайтады — 12 ай жарамды.</li>
+              <li><b>Ойыңнан айнысаң.</b> Бір бірлік те қолданбасаң, 14 күн ішінде ақшаның бәрі қайтарылады.</li>
+              <li><b>Мекеме кінәлі болса.</b> Жабылып қалса не қабылдамаса, пайдаланылмаған бірліктердің ақшасы толық қайтарылады.</li>
+              <li><b>Ұмытып кетпейсің.</b> Мерзімі бітерден 3 күн бұрын бот еске салады.</li>
+            </ul>
+            <button className={s.gLink} onClick={() => { haptic.tap(); go("/legal/refund"); }}>Қайтару ережесі</button>
+          </section>
+        )}
+
         <section className={`${s.blk} ${s.rules}`}>
           <button className={s.rule} onClick={() => { haptic.tap(); setSheet("how"); }}><span>Қалай қолданамын?</span><i className={s.chev} /></button>
           {offer.kind === "hair" && <button className={s.rule} onClick={() => { haptic.tap(); nativeAlert("Жазылуға 2 сағат қалғанға дейін уақытты тегін ауыстырып не бас тарта аласың. Кейін бас тартсаң не келмесең, пакеттен бір рет жұмсалады."); }}><span>Жазылу және бас тарту</span><i className={s.chev} /></button>}
-          <button className={s.rule} onClick={() => { haptic.tap(); go("/rules/carry"); }}><span>Мерзімі және көшіру</span><span className={s.ruleHint}>қайта төлесе</span><i className={s.chev} /></button>
+          <button className={s.rule} onClick={() => { haptic.tap(); go("/rules/carry"); }}><span>Мерзімі және көшіру</span><i className={s.chev} /></button>
           <button className={s.rule} onClick={() => { haptic.tap(); go("/profile/faq"); }}><span>Қайтару және мәселелер</span><i className={s.chev} /></button>
         </section>
 

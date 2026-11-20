@@ -88,7 +88,7 @@ export function VHome() {
         <button className={s.bell} onClick={() => go("/v/orders")} aria-label="Тапсырыстар"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-strong)" }}><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></svg></button>
       </div>
 
-      <VSticker name="chart" size={96} at={[292, 142]} />
+      <VSticker name="chart" size={96} at={[292, 142]} once />
       <button className={s.hero} onClick={() => go("/v/history")}>
         <span className={s.heroLabel}>{`Бүгін, ${now.getDate()} ${MON[now.getMonth()]}`}</span>
         <span className={s.heroBig}>{d ? d.today : "–"}<small>қолдану</small></span>
@@ -145,7 +145,7 @@ export function VCashier() {
         <span className={s.headText}><span className={s.headName}>{myName}</span><span className={s.headSub}>{roleName[me.role]} • {branchLine}</span></span>
         {me.role !== "cashier" && <button className={s.link} onClick={() => go("/v/home")}>Басты</button>}
       </div>
-      <VSticker name="race" size={104} at={[284, 208]} />
+      <VSticker name="race" size={104} at={[284, 208]} once />
       <button className={`${s.hero} ${s.cashier}`} onClick={pay}>
         <span className={s.heroIcon}><span style={{ maskImage: `url(${JSON.stringify(qrGlyph)})`, WebkitMaskImage: `url(${JSON.stringify(qrGlyph)})` }} /></span>
         <span className={s.heroTitle}>Төлем қабылдау</span>

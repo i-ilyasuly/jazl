@@ -84,3 +84,24 @@
 :global(:root[data-theme="dark"]) .lg { background: linear-gradient(180deg, rgba(40, 52, 68, 0.42), rgba(28, 37, 49, 0.3)); }
 :global(:root[data-theme="dark"]) .glass .activeBg { background: rgba(255, 255, 255, 0.14); box-shadow: inset 1px 1px 0.5px -0.5px rgba(255, 255, 255, 0.4), inset 0 0 0 0.5px rgba(255, 255, 255, 0.12); }
 :global(:root[data-theme="dark"]) .glass .label { text-shadow: 0 0 6px rgba(0, 0, 0, 0.6); }
+/* Squirrel. (Патша, 2026-11-21, 2-тармақ): таңдалған таб индикаторы (тамшы) — көк түс емес, нағыз шыны.
+   Тұрғанда да, саусақпен сүйрегенде де: мөлдір, артындағыны сындырады/бұлдыратады, жиегі жарқырайды. */
+.glass .activeBg, .glass .lens {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.18)) !important;
+  box-shadow:
+    inset 1.5px 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.98),
+    inset -1px -1px 0.5px -0.5px rgba(255, 255, 255, 0.6),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55),
+    inset 0 0 14px rgba(255, 255, 255, 0.3),
+    0 4px 14px rgba(17, 26, 38, 0.1) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(160%) brightness(1.06);
+  backdrop-filter: blur(3px) saturate(160%) brightness(1.06);
+}
+.lg .activeBg, .lg .lens {
+  -webkit-backdrop-filter: url(#medeo-lg) blur(2px) saturate(170%) brightness(1.08);
+  backdrop-filter: url(#medeo-lg) blur(2px) saturate(170%) brightness(1.08);
+}
+:global(:root[data-theme="dark"]) .glass .activeBg, :global(:root[data-theme="dark"]) .glass .lens {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.06)) !important;
+  box-shadow: inset 1.5px 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.45), inset -1px -1px 0.5px -0.5px rgba(255, 255, 255, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.16), 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
