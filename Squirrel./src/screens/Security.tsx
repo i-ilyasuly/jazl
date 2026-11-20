@@ -22,7 +22,8 @@ export function Security() {
     else if (r === "none") nativeAlert("Бұл құрылғыда биометрия бапталмаған.");
   }
   async function toggleLock(v: boolean) {
-    if (!v) return setSettings({ lock: false, bio: false });
+    // Аудит 2026-11-21: құлыпты өшіру — PIN-мен (әйтпесе телефонды алған адам өшіріп тастай алатын); сервердегі PIN да алынады
+    if (!v) return hasPin() ? go("/profile/pin/off", "up") : setSettings({ lock: false, bio: false });
     if (!hasPin()) return go("/profile/pin/create", "up"); // алдымен PIN, содан кейін биометрия
     setSettings({ lock: true });
     await toggleBio(true);

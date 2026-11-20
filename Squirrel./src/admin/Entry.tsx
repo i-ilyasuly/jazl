@@ -5,7 +5,7 @@ import { Brand } from "../ui/Brand";
 import { useGo } from "../nav";
 import { copyText, haptic, inTelegram, tg } from "../telegram";
 import { Buttons, VPage, VSticker } from "../venue/ui";
-import { getWidgetAuth, hasToken, isWeb, me, pinLogin, setToken, setWidgetAuth, webLogin, type Me, type WidgetAuth } from "./api";
+import { getWidgetAuth, hasToken, isWeb, me, pinChange, pinLen, pinLogin, setToken, setWidgetAuth, webLogin, type Me, type WidgetAuth } from "./api";
 import { PinPad, pinError } from "./ui";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
@@ -97,7 +97,8 @@ export function ANoAccess({ id }: { id: number | null }) {
 }
 
 /** Figma «PIN енгізу» / «PIN қате» / «PIN бұғатталды»; /a/pin/setup — алғаш орнату (екі рет енгізу) */
-export function APin({ setup }: { setup?: boolean }) {
+export function APin({ setup: setupProp, upgrade }: { setup?: boolean; upgrade?: boolean }) {
+  const setup = setupProp || upgrade; // upgrade — ескі 4 таңбалы PIN-ді 6-ға ауыстыру (аудит 2026-11-21)
   const go = useGo();
   const [first, setFirst] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -106,9 +107,12 @@ export function APin({ setup }: { setup?: boolean }) {
     if (setup && !first) { setFirst(pin); setMsg(null); return "again"; }
     if (setup && pin !== first) { setFirst(""); setMsg("Кодтар сәйкес келмеді. Қайта ойлап табыңыз"); return "mismatch"; }
     try {
-      if (isWeb()) { if (!getWidgetAuth()) { go("/a", "fade", { replace: true }); return null; } await webLogin(pin, setup); }
-      else { const r = await pinLogin(pin, setup); setToken(r.token); }
+      if (upgrade) { await pinChange(pin); pinLen.v = 6; haptic.success(); go("/a/pulse", "fade", { replace: true }); return null; }
+      let up = false;
+      if (isWeb()) { if (!getWidgetAuth()) { go("/a", "fade", { replace: true }); return null; } up = Boolean((await webLogin(pin, setup)).upgrade); }
+      else { const r = await pinLogin(pin, setup); setToken(r.token); up = Boolean(r.upgrade); }
       haptic.success();
+      if (up) { pinLen.v = 6; go("/a/pin/upgrade", "fade", { replace: true }); return null; }
       go("/a/pulse", "fade", { replace: true });
       return null;
     } catch (e) {
@@ -118,8 +122,8 @@ export function APin({ setup }: { setup?: boolean }) {
       const m = pinError(e); setMsg(m); return m;
     }
   }, [setup, first, go]);
-  const title = locked ? "PIN бұғатталды" : setup ? (first ? "PIN-ді қайталаңыз" : "PIN-код ойлап табыңыз") : msg ? "Қате PIN" : "PIN-кодты енгізіңіз";
-  const text = locked ? msg ?? "15 минуттан кейін қайталаңыз" : msg ?? (setup ? "Басқару беті мен қауіпті әрекеттерді растау үшін" : "Басқару бетіне кіру үшін");
+  const title = locked ? "PIN бұғатталды" : upgrade && !first ? "Жаңа 6 таңбалы PIN" : setup ? (first ? "PIN-ді қайталаңыз" : "PIN-код ойлап табыңыз") : msg ? "Қате PIN" : "PIN-кодты енгізіңіз";
+  const text = locked ? msg ?? "15 минуттан кейін қайталаңыз" : msg ?? (upgrade ? "Қауіпсіздік үшін PIN енді 6 таңбалы. Жаңасын ойлап табыңыз" : setup ? "6 таңба: басқару беті мен қауіпті әрекеттерді растау үшін" : "Басқару бетіне кіру үшін");
   return (
     <VPage>
       <div className={s.pinWrap} style={{ paddingTop: 24 }}>
@@ -127,7 +131,7 @@ export function APin({ setup }: { setup?: boolean }) {
         <h1 className={s.pinTitle}>{title}</h1>
         <p className={`${s.pinText} ${msg ? s.pinErr : ""}`}>{text}</p>
         {/* алғашқы кіруде (setup) екінші енгізу — кілт ауысқанда нүктелер тазарады */}
-        <PinPad key={setup ? first || "a" : "p"} disabled={locked} onDone={done} />
+        <PinPad key={setup ? first || "a" : "p"} disabled={locked} onDone={done} len={setup ? 6 : undefined} />
       </div>
     </VPage>
   );

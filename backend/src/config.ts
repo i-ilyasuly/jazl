@@ -7,12 +7,16 @@ const Env = z.object({
   DATABASE_URL: z.string().min(1),
   /** Telegram бот токені — тек initData қолтаңбасын тексеруге */
   BOT_TOKEN: z.string().min(1),
+  /** Қолтаңба кілті (src/secret.ts): Secret Manager medeo-app-secret, ұзындығы ≥ 32. Бот токенінен бөлек. */
+  APP_SECRET: z.string().min(32).optional(),
+  /** Өтпелі кезең: осы уақытқа дейін (ISO, мысалы 2026-11-23T00:00:00Z) ескі бот-токен қолтаңбалары да қабылданады */
+  LEGACY_SIG_UNTIL: z.string().optional(),
   /** Мини апп басқа ботта ашылса (мысалы @Mmedeo_bot) — сол боттың токені. initData екеуінің кез келгенімен тексеріледі. */
   MINIAPP_BOT_TOKEN: z.string().optional(),
   /** Мини апп мекенжайлары (CORS), үтірмен: https://a.vercel.app,https://b.vercel.app */
   ALLOWED_ORIGINS: z.string().default(""),
   /** initData қанша уақыт жарамды (секунд). Telegram ұсынысы: қысқа ұстау. */
-  INIT_DATA_TTL: z.coerce.number().default(24 * 3600),
+  INIT_DATA_TTL: z.coerce.number().default(6 * 3600), // аудит 2026-11-21: 24 сағ → 6 сағ (тарап кеткен initData бір тәулік емес, 6 сағ жарамды)
   /** Төлем режимі: test — ақша жүрмейді (Kaspi келісімі біткенше) */
   /** test — сынақ: Kaspi/сынақ әдісі ақшасыз «төленді», сынақ QR, сынақ құралдары (тек басқару иелеріне); live — нақты: тек банк арқылы (не толық бонуспен) */
   PAYMENTS_MODE: z.enum(["test", "live"]).default("test"),

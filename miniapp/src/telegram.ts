@@ -246,13 +246,18 @@ export const botCanWrite = (): boolean | null => (inTelegram ? Boolean(wa?.initD
 
 /** Нативті биометрия (BiometricManager, 7.2+): Face ID / саусақ ізі.
  *  Қайтарады: "ok" — расталды, "denied" — пайдаланушы бас тартты, "none" — құрылғыда жоқ, "browser" — Telegram-нан тыс. */
+/** Соңғы сәтті биометрия ашқан құпия (BiometricManager токені) — серверде PIN токеніне айырбасталады */
+let lastBioToken = "";
+export const takeBioToken = () => { const t = lastBioToken; lastBioToken = ""; return t; };
+/** Биометрия құпиясын құрылғыға жазу (BiometricManager.updateBiometricToken) */
+export function saveBioToken(secret: string) { const bm = wa?.BiometricManager as unknown as { updateBiometricToken?: (t: string, cb?: (ok: boolean) => void) => void } | undefined; try { bm?.updateBiometricToken?.(secret); } catch { /* ескі Telegram */ } }
 export function biometricAuth(reason: string): Promise<"ok" | "denied" | "none" | "browser"> {
   return new Promise((res) => {
     const bm = wa?.BiometricManager;
     if (!inTelegram || !at("7.2") || !bm) return res("browser");
     const run = () => {
       if (!bm.isBiometricAvailable) return res("none");
-      const auth = () => bm.authenticate({ reason }, (ok) => res(ok ? "ok" : "denied"));
+      const auth = () => bm.authenticate({ reason }, (ok, token) => { lastBioToken = ok ? token ?? "" : ""; res(ok ? "ok" : "denied"); });
       if (bm.isAccessGranted) auth();
       else bm.requestAccess({ reason }, (granted) => (granted ? auth() : res("denied")));
     };

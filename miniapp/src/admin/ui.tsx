@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { useGo } from "../nav";
 import { haptic } from "../telegram";
 import { Sheet } from "../venue/ui";
-import { errOf, setToken } from "./api";
+import { errOf, pinLen, setToken } from "./api";
 import { DeskShell, useDesk } from "./Desk";
 import pulseIcon from "../assets/icons/navPulse.svg";
 import storeIcon from "../assets/icons/navStore.svg";
@@ -69,19 +69,20 @@ export function ANavHost({ path }: { path: string }) {
 }
 
 /** PIN пернетақтасы (Figma «PIN енгізу»): 4 нүкте, дөңгелек пернелер. onDone — қате мәтінін (не null) қайтарады. */
-export function PinPad({ onDone, disabled }: { onDone: (pin: string) => Promise<string | null>; disabled?: boolean }) {
+export function PinPad({ onDone, disabled, len: lenProp }: { onDone: (pin: string) => Promise<string | null>; disabled?: boolean; len?: number }) {
+  const len = lenProp ?? pinLen.v; // аудит 2026-11-21: жаңа PIN 6 таңба
   const [code, setCode] = useState("");
   const [err, setErr] = useState(false);
   const busy = useRef(false);
   useEffect(() => {
-    if (code.length < 4 || busy.current) return;
+    if (code.length < len || busy.current) return;
     busy.current = true;
     void onDone(code).then((e) => {
       busy.current = false;
       if (e) { haptic.error(); setErr(true); setTimeout(() => { setCode(""); setErr(false); }, 450); }
     });
   }, [code, onDone]);
-  const press = (d: string) => { if (disabled || code.length >= 4) return; haptic.tap(); setCode(code + d); };
+  const press = (d: string) => { if (disabled || code.length >= len) return; haptic.tap(); setCode(code + d); };
   const del = () => { if (code) { haptic.soft(); setCode(code.slice(0, -1)); } };
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (/^\d$/.test(e.key)) press(e.key); else if (e.key === "Backspace") del(); };
@@ -89,7 +90,7 @@ export function PinPad({ onDone, disabled }: { onDone: (pin: string) => Promise<
   });
   return (
     <>
-      <div className={`${s.pinDots} ${err ? v.shake : ""}`}>{[0, 1, 2, 3].map((i) => <i key={i} className={err ? s.err : i < code.length ? s.on : ""} />)}</div>
+      <div className={`${s.pinDots} ${err ? v.shake : ""}`}>{Array.from({ length: len }, (_, i) => i).map((i) => <i key={i} className={err ? s.err : i < code.length ? s.on : ""} />)}</div>
       <div className={s.pad}>
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => <button key={d} className={s.padKey} onClick={() => press(d)}>{d}</button>)}
         <span />

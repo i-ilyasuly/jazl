@@ -8,6 +8,8 @@ export const apiFetch = (path: string, init: RequestInit = {}): Promise<Response
 const devInit = () => { try { return import.meta.env.DEV ? localStorage.getItem("medeo_dev_init") ?? "" : ""; } catch { return ""; } }; // тек жергілікті әзірлеуде: браузерден сынау
 const initData = () => (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData || devInit();
 
+/** Серверде расталған PIN токені (10 минут; біз 9 минут ұстаймыз) */
+export const pinTok = { v: "", exp: 0 };
 export async function api<T>(path: string, init: RequestInit = {}, timeoutMs = 6000): Promise<T> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), timeoutMs);
@@ -20,12 +22,15 @@ export async function api<T>(path: string, init: RequestInit = {}, timeoutMs = 6
     if (wa?.platform) headers.set("X-Tg-Platform", wa.platform);
     if (wa?.version) headers.set("X-Tg-Version", wa.version);
     headers.set("X-App-Version", String(import.meta.env.VITE_APP_VERSION ?? "web"));
+    // Бірлік жұмсау: серверде расталған PIN токені (аудит 2026-11-21)
+    if (pinTok.v && pinTok.exp > Date.now()) headers.set("X-Pin-Token", pinTok.v);
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
     const res = await apiFetch(path, { ...init, headers, signal: ctl.signal });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
       // Жүйелік күйлер (Figma 13): сессия аяқталды, техникалық жұмыстар — мекеме бөлімі арнайы бет көрсетеді
       if (res.status === 401 && j?.reason === "expired") window.dispatchEvent(new CustomEvent("medeo:sys", { detail: "session" }));
+      if (res.status === 403 && j?.error === "pin_required") { pinTok.v = ""; window.dispatchEvent(new CustomEvent("medeo:pin")); }
       if (res.status === 503 && j?.error === "maintenance") window.dispatchEvent(new CustomEvent("medeo:sys", { detail: "maintenance" }));
       throw Object.assign(new Error(j?.error ?? "http_" + res.status), { status: res.status, body: j });
     }

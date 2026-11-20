@@ -3,11 +3,11 @@
 import type { OffPeak } from "./offpeak";
 import { applyLangPref, getLang, getPref, kk } from "./i18n";
 import { loadBonus, takeBonusNext } from "./pay/bonus";
-import { kv, nativeAlert } from "./telegram";
+import { kv, nativeAlert, saveBioToken, takeBioToken } from "./telegram";
 import { API_URL, BOT_APP_LINK, SITE_URL } from "./config";
 import { venues } from "./mocks/venues";
 import { useSyncExternalStore } from "react";
-import { api, apiFetch } from "./api";
+import { api, apiFetch, pinTok } from "./api";
 import { findOffer, fmt, unitPrice, type Offer } from "./mocks/offers";
 
 export interface HistoryItem { emoji: string; title: string; sub: string; right: string }
@@ -398,7 +398,41 @@ const pinHash = (v: string) => { let h = 2166136261; for (const c of "jazl+pin:"
 let pin: string | null = null;
 export const hasPin = () => pin !== null;
 export const checkPin = (v: string) => pin === pinHash(v);
-export function savePin(v: string) { pin = pinHash(v); kv.set("medeo_pin_h", pin); }
+export function savePin(v: string, old?: string) {
+  pin = pinHash(v); kv.set("medeo_pin_h", pin);
+  // Аудит 2026-11-21: PIN серверде де (scrypt хэш) — бірлік жұмсауды сервер өзі тексереді
+  void api<{ pinToken?: string }>("/v1/me/pin", { method: "POST", body: JSON.stringify(old ? { pin: v, old } : { pin: v }) })
+    .then((r) => { if (r.pinToken) { pinTok.v = r.pinToken; pinTok.exp = Date.now() + 9 * 60_000; void enrollBio(); } })
+    .catch((e: { body?: { error?: string } }) => { if (e?.body?.error === "old_required" && !old) void pinServer(v); });
+}
+/** PIN-ді алып тастау (құлыпты өшіргенде; PIN-мен расталады) — құрылғыда да, серверде де */
+export async function removePin(v: string): Promise<void> {
+  pin = null; kv.set("medeo_pin_h", ""); pinTok.v = ""; bioEnrolled = false;
+  try { await api("/v1/me/pin", { method: "DELETE", body: JSON.stringify({ pin: v }) }); } catch { /* */ }
+}
+/** PIN дұрыс енгізілген соң: серверден 10 минуттық токен (сервер PIN-ді білмесе — тіркейді). Офлайнда/мокта — үнсіз. */
+export async function pinServer(v: string): Promise<void> {
+  try {
+    const r = await api<{ pinToken: string }>("/v1/me/pin/verify", { method: "POST", body: JSON.stringify({ pin: v }) });
+    pinTok.v = r.pinToken; pinTok.exp = Date.now() + 9 * 60_000; void enrollBio();
+  } catch (e) {
+    const err = (e as { body?: { error?: string } })?.body?.error;
+    if (err === "no_pin") { try { const r = await api<{ pinToken: string }>("/v1/me/pin", { method: "POST", body: JSON.stringify({ pin: v }) }); pinTok.v = r.pinToken; pinTok.exp = Date.now() + 9 * 60_000; void enrollBio(); } catch { /* */ } }
+  }
+}
+/** Биометрия қосулы болса: серверден құпия алып, BiometricManager-ге жазу (бір рет) */
+let bioEnrolled = false;
+async function enrollBio() {
+  if (bioEnrolled || !settings.bio || !pinTok.v) return;
+  try { const r = await api<{ bio: string }>("/v1/me/pin/bio", { method: "POST", body: "{}" }); saveBioToken(r.bio); bioEnrolled = true; } catch { /* */ }
+}
+/** Биометриямен расталса: құрылғыдағы құпия → сервер токені */
+export async function pinServerBio(): Promise<void> {
+  const t = takeBioToken(); if (!t) return;
+  try { const r = await api<{ pinToken: string }>("/v1/me/pin/verify", { method: "POST", body: JSON.stringify({ bio: t }) }); pinTok.v = r.pinToken; pinTok.exp = Date.now() + 9 * 60_000; } catch { /* */ }
+}
+// Сервер «PIN керек» десе — келесі жұмсауда PIN қайта сұралады
+window.addEventListener("medeo:pin", () => { pinOkUntil = 0; });
 
 // ── Экран құлпы (Figma 17 «PIN / 3 Қолданба құлыпталған») ──────────────────
 // Қолданба ашылғанда (баптауда «Қолданбаны ашқанда» қосулы болса) және фонда «Автоқұлып» уақытынан

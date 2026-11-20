@@ -107,7 +107,9 @@ export function applyRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const bytes = Buffer.from(await c.req.arrayBuffer());
     if (bytes.byteLength > 5 * 1024 * 1024) return c.json({ ok: false, error: "too_large" }, 413);
     if (!bytes.byteLength) return c.json({ ok: false, error: "empty" }, 400);
-    const fileName = decodeURIComponent(c.req.header("x-file-name") ?? `${kind}.${mime === "application/pdf" ? "pdf" : "jpg"}`).slice(0, 120);
+    let fileName = `${kind}.${mime === "application/pdf" ? "pdf" : "jpg"}`;
+    try { fileName = decodeURIComponent(c.req.header("x-file-name") ?? fileName); } catch { /* бұзылған атау — әдепкісі (аудит 2026-11-21: бұрын 500 болатын) */ }
+    fileName = fileName.replace(/[\u0000-\u001f"\\/]/g, "_").slice(0, 120);
     await db.delete(venueDocs).where(and(eq(venueDocs.applicationId, a.id), eq(venueDocs.kind, kind)));
     await db.insert(venueDocs).values({ applicationId: a.id, kind, fileName, mime, size: bytes.byteLength, bytes });
     return c.json({ ok: true, doc: { kind, fileName, size: bytes.byteLength, mime } });

@@ -1,6 +1,7 @@
 // B2 · Сатып алу, пакеттер, чектер.
 // Ереже: баға тек серверде есептеледі (клиент жіберген бағаға сенбейміз); бір сатып алу кілті — бір төлем (идемпотенттік);
 // бәрі бір транзакцияда: төлем → пакет → тарих → чек. Қазір төлем сынақ режимінде (ақша жүрмейді).
+import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { bonusOf, holdBonus, releaseBonus } from "../bonus.js";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { receiptPdf, type PublicReceipt } from "../receipt/pdf.js";
@@ -186,7 +187,7 @@ export function publicReceipt(rc: ReceiptRow, cfg: Config) {
   return { id: rc.id, no: receiptNo(rc.no), kind: rc.kind, total: rc.total, currency: rc.currency, createdAt: rc.createdAt, ...(rc.public as object),
     verifyUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=rc_${rc.no}` };
 }
-export const signLink = (cfg: Config, id: string, e: number) => createHmac("sha256", cfg.BOT_TOKEN).update(`receipt:${id}:${e}`).digest("hex").slice(0, 32);
+export const signLink = (cfg: Config, id: string, e: number) => hmac(signKey(cfg), `receipt:${id}:${e}`);
 
 /** Ашық маршрут: /files/receipts/:id.pdf?e=&s= — қолтаңба мен мерзім тексеріледі, PDF беріледі. */
 export function receiptFileRoutes(cfg: Config, db: Db) {
@@ -195,8 +196,7 @@ export function receiptFileRoutes(cfg: Config, db: Db) {
     const id = c.req.param("file").replace(/\.pdf$/, "");
     const e = Number(c.req.query("e")); const s = c.req.query("s") ?? "";
     if (!/^[0-9a-f-]{36}$/.test(id) || !e || e < Date.now() / 1000) return c.text("Сілтеменің мерзімі өтті", 410);
-    const want = Buffer.from(signLink(cfg, id, e)); const got = Buffer.from(s);
-    if (want.length !== got.length || !timingSafeEqual(want, got)) return c.text("Сілтеме жарамсыз", 403);
+    if (!sigOk(cfg, `receipt:${id}:${e}`, s)) return c.text("Сілтеме жарамсыз", 403);
     const [rc] = await db.select().from(receipts).where(eq(receipts.id, id)).limit(1);
     if (!rc) return c.text("Чек табылмады", 404);
     const pub = publicReceipt(rc, cfg) as unknown as PublicReceipt;

@@ -190,6 +190,13 @@
       "when": 1795050000000,
       "tag": "0026_renew_retry_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795140000000,
+      "tag": "0027_user_pin",
+      "breakpoints": true
     }
   ]
 }

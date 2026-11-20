@@ -3,6 +3,7 @@
 //   2) config.ts: PAYMENTS_PROVIDER енумына қосу, кілттер — Secret Manager арқылы;
 //   3) мини апп: src/pay/tokenize.ts — провайдердің JS-кітапханасымен криптограмма жасау (карта нөмірі серверге келмейді).
 import type { Config } from "../config.js";
+import { signKey, verifyKeys } from "../secret.js";
 import type { PaymentProvider } from "./types.js";
 import { testProvider } from "./test.js";
 import { halykProvider } from "./halyk.js";
@@ -14,9 +15,9 @@ export function providerByName(cfg: Config, name: string): PaymentProvider | nul
   let m = cache.get(cfg);
   if (!m) { m = new Map(); cache.set(cfg, m); }
   if (!m.has(name)) {
-    const p = name === "test" ? testProvider(cfg.BOT_TOKEN)
+    const p = name === "test" ? testProvider(signKey(cfg), verifyKeys(cfg))
       : name === "halyk" && cfg.HALYK_CLIENT_ID && cfg.HALYK_CLIENT_SECRET && cfg.HALYK_TERMINAL_ID
-        ? halykProvider({ env: cfg.HALYK_ENV, clientId: cfg.HALYK_CLIENT_ID, clientSecret: cfg.HALYK_CLIENT_SECRET, terminalId: cfg.HALYK_TERMINAL_ID, publicUrl: cfg.PUBLIC_URL, hashKey: cfg.BOT_TOKEN })
+        ? halykProvider({ env: cfg.HALYK_ENV, clientId: cfg.HALYK_CLIENT_ID, clientSecret: cfg.HALYK_CLIENT_SECRET, terminalId: cfg.HALYK_TERMINAL_ID, publicUrl: cfg.PUBLIC_URL, hashKey: signKey(cfg), hashKeys: verifyKeys(cfg) })
         : null;
     if (!p) return null;
     m.set(name, p);

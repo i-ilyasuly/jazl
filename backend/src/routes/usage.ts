@@ -1,6 +1,7 @@
 // B3 · Пакетті қолдану: кассадағы QR (scan), қазір тапсырыс (order), жоспар/жазылу (plan); бас тарту; кассир растауы.
 // Басты ереже: бірлік тек транзакция ішінде, пакет жолын бұғаттап (SELECT … FOR UPDATE) шегеріледі — екі сұрау қатар келсе де
 // бір бірлік екі рет жұмсалмайды. Әр қолдануға чек (receipts.kind = use | order) жазылады: алу тәсілі, слот, код — ішкі бөлікте.
+import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { onPackChanged } from "../bot/packCard.js";
 import { createHash, randomInt } from "node:crypto";
 import { Hono, type Context } from "hono";
@@ -76,7 +77,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
 
   r.post("/qr/resolve", async (c) => {
     const raw = String((await c.req.json().catch(() => ({})))?.qr ?? "");
-    const q = parseQr(raw, cfg.BOT_TOKEN);
+    const q = parseQr(raw, verifyKeys(cfg));
     if (!q) return c.json({ ok: false, error: "not_medeo_qr" }, 400);
     if (q.kind === "static" && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
     let branchId: string; let units: number | null = null; let offer: { slug: string; title: string } | null = null; let valid = true; let expired = false;
@@ -101,7 +102,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     // 4 таңбалы код 30 с жарамды (+15 с шыдам: клиент енгізіп жатқанда жаңарып кетсе)
     const [ss] = await db.select().from(qrSessions).where(and(eq(qrSessions.code, code), gt(qrSessions.codeExp, new Date(Date.now() - 15_000)), gt(qrSessions.expiresAt, new Date()), isNull(qrSessions.redemptionId), isNull(qrSessions.cancelledAt))).orderBy(desc(qrSessions.createdAt)).limit(1);
     if (!ss) return c.json({ ok: false, error: "code_not_found" }, 404);
-    return c.json({ ok: true, qr: makeSessionQr(cfg.BOT_TOKEN, ss.id).payload });
+    return c.json({ ok: true, qr: makeSessionQr(signKey(cfg), ss.id).payload });
   });
 
   const Redeem = z.object({ packId: z.string().uuid(), qr: z.string().min(5).max(300), units: z.number().int().min(1).max(20).default(1), idempotencyKey: z.string().min(8).max(64) }).strict();
@@ -109,7 +110,7 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const b = Redeem.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const user = c.get("user");
-    const q = parseQr(b.data.qr, cfg.BOT_TOKEN);
+    const q = parseQr(b.data.qr, verifyKeys(cfg));
     if (!q) return c.json({ ok: false, error: "not_medeo_qr" }, 400);
     if ((q.kind === "dynamic" || q.kind === "session") && !q.valid) return c.json({ ok: false, error: "bad_qr" }, 400);
     if ((q.kind === "dynamic" || q.kind === "session") && q.expired) return c.json({ ok: false, error: "qr_expired" }, 409);
@@ -335,7 +336,7 @@ export function devQrRoutes(cfg: Config, db: Db) {
     const [br] = await db.select({ id: branches.id }).from(branches).where(eq(branches.id, b.data.branchId)).limit(1);
     if (!br) return c.json({ ok: false, error: "not_found" }, 404);
     if (b.data.amount) return c.json({ ok: true, payload: `${branchQr(cfg, br.id)}&amount=${b.data.amount}`, exp: null, ttl: null });
-    return c.json({ ok: true, ...makeDynamicQr(cfg.BOT_TOKEN, br.id, b.data.units) });
+    return c.json({ ok: true, ...makeDynamicQr(signKey(cfg), br.id, b.data.units) });
   });
   return r;
 }

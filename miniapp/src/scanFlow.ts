@@ -1,7 +1,7 @@
 // Сканерді ашу ағыны (Патша, 2026-11-17): экран құлпы қосулы болса — PIN сканерлеуден БҰРЫН сұралады,
 // содан кейін Telegram-ның нативті сканері ашылады; QR оқылса — төлем парағы (/scan?via=qr&qr=…).
 import type { NavigateOptions } from "react-router-dom";
-import { getSettings, hasPin, markPinOk, pinFresh } from "./store";
+import { getSettings, hasPin, markPinOk, pinFresh, pinServerBio } from "./store";
 import { biometricAuth, scanQrNative } from "./telegram";
 import type { Dir } from "./nav";
 
@@ -11,7 +11,7 @@ type Go = (to: string | number, dir?: Dir, opts?: NavigateOptions) => void;
  *  Растау 5 минут жарамды. "ok" — жалғастыра бер; "pin" — PIN бетіне жіберу керек. */
 export async function confirmSpend(): Promise<"ok" | "pin"> {
   if (!(getSettings().lock && hasPin()) || pinFresh()) return "ok";
-  if (getSettings().bio && (await biometricAuth("Бірлікті жұмсауды растау")) === "ok") { markPinOk(); return "ok"; }
+  if (getSettings().bio && (await biometricAuth("Бірлікті жұмсауды растау")) === "ok") { markPinOk(); await pinServerBio(); return "ok"; }
   return "pin";
 }
 

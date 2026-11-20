@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useGo } from "../nav";
-import { checkPin, markPinOk, redeem, savePin, setSettings, unlockApp, useSettings } from "../store";
+import { checkPin, markPinOk, pinServer, pinServerBio, redeem, removePin, savePin, setSettings, unlockApp, useSettings } from "../store";
 import { openScanner } from "../scanFlow";
 import { biometricAuth, haptic, inTelegram, tg, useBackButton, useHideNativeButtons } from "../telegram";
 import { Sticker } from "../ui/Sticker";
@@ -31,13 +31,15 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
   const change = mode === "change";
   const paying = mode === "pay";
   const scanning = mode === "scan"; // Патша (2026-11-17): PIN сканерлеуден бұрын
+  const turningOff = mode === "off"; // құлыпты өшіру: PIN-мен расталады
   const confirming = mode === "confirm"; // тапсырыс/жоспар алдындағы растау: сәтті болса — артқа, батырманы қайта басады
   const locState = useLocation().state as { packId?: string; sum?: string } | null;
   const payInfo = paying ? locState : null;
-  const [step, setStep] = useState<Step>(change || paying || unlocking || scanning || confirming ? "old" : "new");
+  const [step, setStep] = useState<Step>(change || paying || unlocking || scanning || confirming || turningOff ? "old" : "new");
   const [wait, setWait] = useState(0);
   const [code, setCode] = useState("");
   const [first, setFirst] = useState("");
+  const [old, setOld] = useState(""); // PIN ауыстырғанда ескісі (сервер ескісін сұрайды)
   const [error, setError] = useState("");
   const [tries, setTries] = useState(MAX_TRIES);
   const [shake, setShake] = useState(0);
@@ -55,17 +57,20 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
   useEffect(() => {
     if (code.length < 4) return;
     if (step === "old") {
-      if (checkPin(code) && unlocking) { haptic.success(); setTimeout(unlockApp, 200); }
-      else if (checkPin(code) && confirming) { haptic.success(); markPinOk(); setTimeout(() => go(-1, "back"), 200); }
-      else if (checkPin(code) && scanning) { haptic.success(); markPinOk(); setTimeout(() => openScanner(go, locState?.packId, true), 200); }
-      else if (checkPin(code) && paying) { haptic.success(); setTimeout(() => { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); else back(); }, 250); }
-      else if (checkPin(code)) next("new");
+      // Аудит 2026-11-21: дұрыс PIN-нен кейін сервер токені алынады (бірлік жұмсауды сервер де тексереді)
+      const okServer = checkPin(code) ? pinServer(code) : null;
+      if (okServer && turningOff) { haptic.success(); void removePin(code).then(() => { setSettings({ lock: false, bio: false }); go(-1, "back"); }); }
+      else if (okServer && unlocking) { haptic.success(); setTimeout(unlockApp, 200); }
+      else if (okServer && confirming) { haptic.success(); markPinOk(); void okServer.then(() => go(-1, "back")); }
+      else if (okServer && scanning) { haptic.success(); markPinOk(); void okServer.then(() => openScanner(go, locState?.packId, true)); }
+      else if (okServer && paying) { haptic.success(); void okServer.then(() => { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); else back(); }); }
+      else if (okServer) { setOld(code); next("new"); }
       else if (tries > 1) { setTries(tries - 1); fail(`Қате код. ${tries - 1} әрекет қалды`); }
       else if (unlocking) { fail(`Тым көп қате әрекет. ${LOCK_WAIT} секундтан кейін қайтала`); setWait(LOCK_WAIT); }
       else { fail("Тым көп қате әрекет. Кейінірек қайталап көр"); setTimeout(() => (paying ? go("/scan/state/limit", "up", { replace: true }) : back()), 1400); }
     } else if (step === "new") { setFirst(code); next("repeat"); }
     else if (code === first) {
-      haptic.success(); savePin(code); setSettings({ lock: true });
+      haptic.success(); savePin(code, old || undefined); setSettings({ lock: true });
       setTimeout(async () => {
         // PIN қойылған соң биометрияны да қосуды ұсынамыз (екеуі бірге жұмыс істейді)
         if (!st.bio && (await biometricAuth("Medeo төлемдерін биометриямен растау")) === "ok") setSettings({ bio: true });
@@ -76,7 +81,7 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
 
   const press = (d: string) => { if (code.length >= 4 || wait) return; haptic.tap(); setError(""); setCode(code + d); };
   const del = () => { if (!code) return; haptic.soft(); setCode(code.slice(0, -1)); };
-  const bio = async () => { if (step !== "old" || !st.bio || wait) return; if ((await biometricAuth(unlocking ? "Medeo қолданбасын ашу" : scanning ? "Сканерлеуді растау" : paying ? "Төлемді растау" : "PIN-кодты өзгерту")) !== "ok") return; if (unlocking) { haptic.success(); unlockApp(); } else if (scanning) { haptic.success(); markPinOk(); openScanner(go, locState?.packId, true); } else if (confirming) { haptic.success(); markPinOk(); go(-1, "back"); } else if (paying) { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); } else next("new"); };
+  const bio = async () => { if (step !== "old" || !st.bio || wait) return; if ((await biometricAuth(unlocking ? "Medeo қолданбасын ашу" : scanning ? "Сканерлеуді растау" : paying ? "Төлемді растау" : "PIN-кодты өзгерту")) !== "ok") return; await pinServerBio(); if (unlocking) { haptic.success(); unlockApp(); } else if (scanning) { haptic.success(); markPinOk(); openScanner(go, locState?.packId, true); } else if (confirming) { haptic.success(); markPinOk(); go(-1, "back"); } else if (paying) { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); } else next("new"); };
 
   // Нақты пернетақтадан да теруге болады (десктоп Telegram)
   useEffect(() => {
