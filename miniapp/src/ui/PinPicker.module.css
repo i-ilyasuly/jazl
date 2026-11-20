@@ -1,0 +1,20 @@
+.root { position: fixed; inset: 0; z-index: 60; background: #f2efe9; }
+:global(:root[data-theme="dark"]) .root { background: #1c2530; }
+.map { position: absolute; inset: 0; }
+.loading { position: absolute; left: 50%; top: 40%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; border: 3px solid rgba(34, 154, 240, 0.2); border-top-color: #229af0; animation: sp 0.8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+/* Ортадағы түйреуіш: ұшы картаның дәл ортасында */
+.pin { position: absolute; left: 50%; top: 50%; width: 40px; height: 52px; margin: -52px 0 0 -20px; pointer-events: none; transition: transform 0.18s ease;
+  background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 52'%3E%3Cpath d='M20 51s18-17.6 18-31A18 18 0 0 0 2 20c0 13.4 18 31 18 31z' fill='%23229af0'/%3E%3Ccircle cx='20' cy='20' r='7' fill='white'/%3E%3C/svg%3E"); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25)); }
+.lift { transform: translateY(-10px); }
+.shadow { position: absolute; left: 50%; top: 50%; width: 12px; height: 5px; margin: -2px 0 0 -6px; border-radius: 50%; background: rgba(0, 0, 0, 0.3); pointer-events: none; }
+.hint { position: absolute; left: 16px; right: 16px; top: calc(var(--bar-c, 56px) + 40px); padding: 10px 14px; border-radius: 12px; text-align: center; font-size: 15px; line-height: 20px; color: var(--text-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6)); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: 0 4px 14px rgba(17, 26, 38, 0.12); }
+:global(:root[data-theme="dark"]) .hint { background: rgba(36, 47, 61, 0.85); }
+.me { position: absolute; right: 16px; bottom: calc(96px + var(--safe-b, 0px)); width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: #229af0; background: var(--surface-white, #fff); box-shadow: 0 4px 14px rgba(17, 26, 38, 0.16); }
+:global(:root[data-theme="dark"]) .me { background: var(--surface-card); }
+.bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + var(--safe-b, 0px)); display: flex; gap: 8px; background: var(--surface-white, #fff); box-shadow: 0 -4px 16px rgba(17, 26, 38, 0.08); }
+:global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
+.cancel, .ok { flex: 1; height: 50px; border-radius: 12px; font-size: 17px; font-weight: 600; }
+.cancel { background: rgba(34, 154, 240, 0.12); color: #229af0; }
+.ok { background: #229af0; color: #fff; }

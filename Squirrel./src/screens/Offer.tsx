@@ -1,4 +1,5 @@
 import { getLang, kk } from "../i18n";
+import { routeRows as routeRowsOf } from "../ui/route";
 import { winLabel } from "../offpeak";
 import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
 import { Rich } from "../ui/Rich";
@@ -12,7 +13,7 @@ import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { UseSheet } from "../ui/UseSheet";
 import { detailsOf, discount, findOffer, fmt, hasSampleIncludes, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
-import { venues } from "../mocks/venues";
+import { lngLat, venues } from "../mocks/venues";
 import { HowSheet } from "../ui/HowSheet";
 import { LinkSheet, type LinkRow } from "../ui/LinkSheet";
 import { askWriteAccess, haptic, inTelegram, nativeAlert, nativePick, openChat, openExternal, useBackButton, useBottomButtons } from "../telegram";
@@ -169,7 +170,7 @@ function OfferView({ id }: { id?: string }) {
   useBottomButtons(mainBtn, secondBtn, !buying && !sheet && !using && !choose);
   const toVenue = () => go("/venue/" + (venue?.id ?? "damdi"));
   const handle = "@" + base.venue.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/ä/g, "a");
-  const routeRows: LinkRow[] = [{ glyph: "pin", tint: "#31d158", title: "2ГИС", sub: `${base.venue} мекенжайын 2ГИС-те аш`, onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(base.venue)) }];
+  const routeRows: LinkRow[] = routeRowsOf(base.venue, base.address || base.venue, venue ? lngLat(venue) : undefined); // 2ГИС + Google Maps (Патша, 2026-11-21)
   const contactRows: LinkRow[] = [
     { emoji: "✈️", title: "Telegram-да жазу", sub: handle, onClick: () => openChat(handle.slice(1)) },
     { emoji: "📞", title: "Қоңырау шалу", sub: "+7 700 000 00 00", onClick: () => { window.location.href = "tel:+77000000000"; } },

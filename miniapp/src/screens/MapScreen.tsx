@@ -1,11 +1,12 @@
 // Figma, «05 · Карта»: «Орналасу рұқсаты» 13886:18191, «Карта және тізім» 13886:18467, «Мекеме таңдалды» 13886:18763,
 // «Ашық тізім» 13886:19089, «Рұқсатсыз» 13886:19443, «Мекеме жоқ» 13886:19747
 // Карта — MapLibre + OpenFreeMap нағыз вектор картасы; ол жүктелгенше Figma-дағы стильденген үлгі көрінеді.
+import { pickRoute } from "../ui/route";
 import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fmt, type OfferKind } from "../mocks/offers";
 import { demoEmpty } from "../mocks/useMock";
-import { CITY_CENTER, kindLabel, kindTint, venues, type Venue } from "../mocks/venues";
+import { CITY_CENTER, kindLabel, kindTint, lngLat, venues, type Venue } from "../mocks/venues";
 import { useGo } from "../nav";
 import { setSettings, useSettings } from "../store";
 import { askLocation, haptic, inTelegram, openExternal, useBackButton, useBottomButtons } from "../telegram";
@@ -56,7 +57,7 @@ export function MapScreen() {
 
   const pick = (v: Venue) => { haptic.select(); setSel(v); setSnap("peek"); };
   const toVenue = useMemo(() => ({ text: "Мекемеге өту", onClick: () => { if (sel) go("/venue/" + sel.id); } }), [sel, go]);
-  const route = useMemo(() => ({ text: "Бағыт", onClick: () => { if (sel) { haptic.tap(); openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(sel.name)); } }, position: "left" as const }), [sel]);
+  const route = useMemo(() => ({ text: "Бағыт", onClick: () => { if (sel) { haptic.tap(); void pickRoute(sel.name + " " + sel.address, lngLat(sel)); } }, position: "left" as const }), [sel]);
   const widen = useMemo(() => ({ text: "Радиусты үлкейту", onClick: () => haptic.tap() }), []);
   useBottomButtons(sel ? toVenue : widen, sel ? route : undefined, Boolean(sel) || empty);
 
