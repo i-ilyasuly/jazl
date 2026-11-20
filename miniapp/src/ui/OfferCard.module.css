@@ -39,3 +39,26 @@
 /* Сату лимиті: «Қалды 12 / 50» фотоның сол жақ жоғарғы бұрышында — 10-нан көп қалса сабырлы (қара), аз қалса сары */
 .left { position: absolute; left: 8px; top: 8px; height: 24px; padding: 4px 8px; border-radius: 6px; background: var(--orange-bg); color: var(--orange-text); font-weight: 600; white-space: nowrap; }
 .leftCalm { background: rgba(0, 0, 0, 0.36); color: #fff; }
+
+/* ===== Squirrel. (Алтай, 2026-11-21): сыни аудиттен кейінгі түзетулер =====
+   1) Атау енді жүрек белгісіне дейін созылады (жеңілдік белгісі оң жақ бағанға көшті) — «4 р...» деп кесілмейді.
+   2) Оң баған иерархиясы: баға (24/700) → дана бағасы (15, екінші деңгей мәтін, белгісіз) → бір жасыл белгі.
+      Бұрын бір карточкада 3 түсті белгі (жасыл ▼25%, сары дана бағасы, жасыл үнем) бір-бірімен таласатын. */
+.title { max-width: calc(100% - 72px); }
+.unit { top: 128px; height: 20px; padding: 0; background: none !important; color: var(--hint); }
+.saving { top: 156px; }
+/* «N алды» белгісі кеңейді — «2 күн қалды» енді фотоның оң жақ төменгі бұрышында, бір-бірін баспайды */
+.deadline { left: auto; right: 8px; top: 8px; }
+.saving b { font-weight: 700; }
+.oldPrice { position: absolute; right: 16px; top: 72px; font-size: 15px; line-height: 20px; color: var(--hint); opacity: 0.8; text-decoration: line-through; white-space: nowrap; }
+.oldPrice ~ .price { top: 94px; }
+/* «▼ 25%» сары/жасыл фондағы жалғыз белгі — «31» белгісі бұрынғыдай тек сан */
+/* Squirrel. 1-тармақ: жарнама карточкасы толық боялмайды — ақ фон, атау астында шағын түсті белгі */
+.hot, .top { background: var(--surface-card) !important; }
+.promoTag { display: inline-block; vertical-align: 1px; height: 20px; margin-right: 6px; padding: 0 7px; border-radius: 6px; font-size: 13px; line-height: 20px; font-weight: 700; }
+.tag_hot { background: #fff0c2; color: #8a5a00; }
+.tag_top { background: #deebfc; color: #1a5fb4; }
+:global(:root[data-theme="dark"]) .tag_hot { background: rgba(255, 196, 0, 0.18); color: #ffd36b; }
+:global(:root[data-theme="dark"]) .tag_top { background: rgba(92, 180, 244, 0.2); color: #8cc8f6; }
+/* 7-тармақ: дана бағасы сызылған ескі бағадан ажырасын — қараңғырақ, ескі баға көмескі */
+.unit { color: var(--text-strong) !important; opacity: 0.72; }
