@@ -72,20 +72,7 @@ export function MapScreen() {
   const mode = sel ? "venue" : empty ? "none" : snap === "open" ? "open" : granted || st.geo === "unknown" ? "peek" : "peekDenied";
   return (
     <div className={s.page}>
-      <div className={`${s.map} ${panning ? s.grab : ""}`} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
-        <div className={s.layer} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, transition: panning ? "none" : undefined }}>
-          <img src={mapBg} className={s.bg} alt="" draggable={false} />
-          {venues.map((v, i) => {
-            const on = sel?.id === v.id, hidden = !shown.includes(v);
-            return (
-              <button key={v.id} className={`${s.pin} ${on ? s.pinOn : ""} ${hidden ? s.pinHidden : ""}`} style={{ left: v.x, top: v.y, ["--i" as string]: i, ["--tint" as string]: kindTint[v.kind] }} onPointerDown={(e) => e.stopPropagation()} onClick={() => pick(v)} aria-label={v.name}>
-                <span className={s.pinDot}><Emo kind={v.kind} size={24} /></span>
-                {on && <span className={`t-cap1 w-600 ${s.price}`}>{`${fmt(Math.min(...v.offers.map((o) => o[1])))}-дан`}</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Патша (2026-11-21): жасанды (сурет) карта жоқ — бірден нақты карта; жүктелгенше тек фон түсі мен айналма */}
       <MapView venues={venues} shown={shown} sel={sel} onPick={pick} onTapEmpty={() => { if (sel) setSel(null); }} me={me} onReady={(a) => { api.current = a; }} padBottom={sel ? 260 : 230} />
       <TelegramChrome mode="back" onBack={back} />
       <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>

@@ -39,3 +39,12 @@
 /* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
 .sub { transition: transform 0.12s ease; }
 .sub:active { transform: scale(0.94); }
+
+/* Патша (2026-11-21, 2): «Картада» — басты беттегідей тынық шыны */
+.map { background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.36)) !important; color: var(--tx-blue) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(170%) brightness(1.05); backdrop-filter: blur(14px) saturate(170%) brightness(1.05);
+  box-shadow: inset 1.5px 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.98), inset -1px -1px 0.5px -0.5px rgba(255, 255, 255, 0.6), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5), 0 6px 20px rgba(17, 26, 38, 0.16) !important; }
+.map img { filter: brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(1500%) hue-rotate(186deg) brightness(95%); }
+:global(:root[data-theme="dark"]) .map { background: linear-gradient(180deg, rgba(60, 76, 96, 0.55), rgba(36, 47, 61, 0.4)) !important;
+  box-shadow: inset 1.5px 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.4), inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 6px 20px rgba(0, 0, 0, 0.4) !important; }
+:global(:root[data-theme="dark"]) .map img { filter: brightness(0) saturate(100%) invert(68%) sepia(40%) saturate(900%) hue-rotate(180deg); }

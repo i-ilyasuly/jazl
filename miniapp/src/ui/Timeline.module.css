@@ -11,3 +11,7 @@
 :global(:root[data-theme="dark"]) .el { --tl: #5cb4f4; }
 :global(:root[data-theme="dark"]) .used { --tl: #34c759; }
 :global(:root[data-theme="dark"]) .warn { --tl: #ffb800; }
+
+/* Патша (2026-11-21, 4): қолданылғаны — сұр, қалғаны — көк, мерзімі аз қалса қалғаны — сары */
+.used { --tl: rgba(118, 118, 128, 0.28) !important; }
+:global(:root[data-theme="dark"]) .used { --tl: rgba(235, 235, 245, 0.2) !important; }

@@ -73,6 +73,11 @@ export function Search() {
           <div className={`${s.chips} rise`} style={{ ["--i" as string]: 3 }}>
             {popular.map((p) => <button key={p} className={`t-sub2 w-600 ${s.chip}`} onClick={() => pick(p)}>{p}</button>)}
           </div>
+          {/* Патша (2026-11-21, 9): бос орынның орнында — жақын маңдағы танымал ұсыныстар */}
+          <h2 className={`t-sub2 w-600 ${s.popTitle} ${s.nearTitle} rise`} style={{ ["--i" as string]: 4 }}>Жақын маңда танымал</h2>
+          <div className={`${s.list} ${s.nearList}`}>
+            {[...allOffers()].sort((a, b) => b.buyers - a.buyers).slice(0, 4).map((o, i) => <div key={o.id} className="rise" style={{ ["--i" as string]: 5 + i }}><OfferCard offer={o} /></div>)}
+          </div>
         </div>
       ) : found.length ? (
         <div className={s.results} key="found">

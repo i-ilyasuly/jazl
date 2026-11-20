@@ -74,3 +74,8 @@
 
 /* Патша (2026-11-21): ұяшықтар — иконкалы плиткалар (Tile), бұрышы 16 */
 .gridRow .cell { flex: none; border-radius: 16px !important; opacity: 0.92; }
+
+/* Патша (2026-11-21, 3): маркер фоны жоқ — тек түсті әріп */
+.blue, .green { background: none !important; padding: 0 !important; }
+.blue { color: var(--tx-blue) !important; }
+.green { color: var(--tx-green) !important; }

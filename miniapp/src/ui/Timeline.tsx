@@ -1,5 +1,5 @@
 // UI Kit: Timeline (Horizontal) / Android. Нүкте 10, сызық 3, аралық 8.
-// Түстер: қолданылған жасыл, қалған көк, мерзімі жақын қалдық сары.
+// Түстер (Патша, 2026-11-21): қолданылған сұр, қалған көк, мерзімі жақын қалдық сары.
 import s from "./Timeline.module.css";
 
 export function Timeline({ total, used = 0, warn = false, width = 340 }: { total: number; used?: number; warn?: boolean; width?: number }) {

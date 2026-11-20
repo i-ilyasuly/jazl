@@ -358,6 +358,22 @@ void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
 void loadStaff();
 void loadCards(); syncServerLang(); idle(() => void loadWaits(), 4000); // «Хабарла» тізімі // сақталған карталар (сервер болса) // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
+// Патша (2026-11-21): карта кэші — service worker; Қарағанды картасы фонда бір рет алдын ала жүктеледі (тек Wi-Fi/жақсы желіде)
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").then((reg) => {
+      const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+      if (conn?.saveData || /2g/.test(conn?.effectiveType ?? "")) return;
+      let done = false; try { done = localStorage.getItem("medeo_map_pref") === "1"; } catch { /* жеке терезе */ }
+      if (done) return;
+      window.setTimeout(() => {
+        (reg.active ?? navigator.serviceWorker.controller)?.postMessage({ type: "prefetch-map", styles: ["https://tiles.openfreemap.org/styles/liberty", "https://tiles.openfreemap.org/styles/dark"], bbox: [72.95, 49.74, 73.25, 49.9] });
+        try { localStorage.setItem("medeo_map_pref", "1"); } catch { /* */ }
+      }, 8000);
+    }).catch(() => {});
+  });
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

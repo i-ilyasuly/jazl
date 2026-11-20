@@ -1,5 +1,7 @@
 /* Figma: «Medeo» беті, Telegram Mini Apps UI Kit (Android, Roboto) */
 :root {
+  /* Мәтін ішіндегі түсті сөздер (маркер фонсыз) — Патша, 2026-11-21 */
+  --tx-green: #1b8a3a; --tx-blue: #1f73c2;
   --surface-page: #f2f4f7;
   --surface-card: #fbfcfe;
   --surface-category: #e9eef4;
@@ -46,6 +48,7 @@
 
 /* Dark: Telegram палитрасы. Экрандар әлі Figma-мен салыстырылған жоқ. */
 :root[data-theme="dark"] {
+  --tx-green: #5fd47f; --tx-blue: #6ab3f3;
   --hl-green-bg: #1f9a41; --hl-green-text: #fff; --hl-blue-bg: #1e6fb8; --hl-blue-text: #fff;
   --orange-bg: #b8860b;
   --orange-text: #ffffff;
