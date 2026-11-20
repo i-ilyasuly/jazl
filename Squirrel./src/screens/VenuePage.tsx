@@ -2,6 +2,7 @@
 // «Пікірлер» 13886:26155, «Ұсыныс жоқ» 13886:27031, «Жаңа мекеме: пікірлер» 13886:26881,
 // «Бағыт: 2ГИС» 13886:27429, «Қоңырау: растау» 13886:27703, «Бөлісу: Telegram чаттары» 13886:27961 (нативті чат таңдау),
 // «Хабарла: рұқсат диалогы» 13886:28289 (нативті requestWriteAccess), «Хабарла: қосылды» 13886:28547
+import { pickRoute, routeRows } from "../ui/route";
 import { kk } from "../i18n";
 import { RichWords } from "../ui/RichWords";
 import { useTabSwipe } from "../ui/useTabSwipe";
@@ -11,7 +12,7 @@ import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { offersOfVenue } from "../mocks/offers";
-import { findVenue, kindLabel, venues } from "../mocks/venues";
+import { findVenue, kindLabel, lngLat, venues } from "../mocks/venues";
 import { coverPhoto } from "../mocks/photos";
 import { useGo } from "../nav";
 import { appLink, branches, toggleVenueSub, useVenueSubs } from "../store";
@@ -149,11 +150,11 @@ function VenueView({ id }: { id?: string }) {
       </main>
       </div>
       {snack && <div className={s.snack} role="status"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round" /><path d="M10 20.5a2 2 0 0 0 4 0" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg><span>Жаңа ұсыныс шықса, хабарлаймыз</span></div>}
-      {sheet === "route" && <LinkSheet title="Бағыт" rows={[{ glyph: "pin", tint: "#31d158", title: "2ГИС", sub: `${v.name} мекенжайын 2ГИС-те ашу`, onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(v.name)) }]} onClose={() => setSheet(null)} />}
+      {sheet === "route" && <LinkSheet title="Бағыт" rows={routeRows(v.name, v.name + " " + v.address, lngLat(v))} onClose={() => setSheet(null)} />}
       {sheet === "branches" && <LinkSheet title="Филиалдар" note="Пакет барлық филиалда жарамды. Қалағанында ал." cancel="Жабу"
         extra={{ text: "Картада көру", onClick: () => go("/map") }}
         rows={branches(v.name, v.address).map((b) => ({ glyph: "pin" as const, tint: b.open ? "#31d158" : "#8e98a4", title: b.address, sub: `${b.km.toFixed(1).replace(".", ",")} км • ${b.open ? b.hours : "уақытша жабық"}`, badge: { text: b.open ? "Ашық" : "Жабық", ok: b.open },
-          onClick: () => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(v.name + " " + b.address)) }))}
+          onClick: () => { void pickRoute(v.name + " " + b.address); } }))}
         onClose={() => setSheet(null)} />}
       {sheet === "call" && <Confirm title="Қоңырау шалу" text={`${v.name} мекемесіне қоңырау шалынсын ба?`} cancel="Бас тарту" ok="Қоңырау шалу" onClose={() => setSheet(null)} onOk={() => { window.location.href = "tel:+77000000000"; }} />}
       {sheet === "perm" && <Confirm title="Хабарламаға рұқсат" text="Medeo ботына сізге хабарлама жіберуге рұқсат бересіз бе?" cancel="Бас тарту" ok="Рұқсат ету" onClose={() => setSheet(null)} onOk={subDone} />}

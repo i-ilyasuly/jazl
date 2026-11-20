@@ -1,6 +1,7 @@
 // Figma «07 · Филиалдар»: тізім (14009:8007), Филиалды өңдеу (14019:7998, 8183), Жұмыс уақытын таңдау (14019:8272),
 // 24/7 режимі (14019:8414), Мереке күнін қосу (14019:8520), Уақытша жабу (14009:8193).
 // Ереже: жұмыс уақытынан тыс не уақытша жабық филиалда QR төлем қабылданбайды (бэкенд hours.ts).
+import { PinPicker } from "../ui/PinPicker";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
@@ -15,7 +16,7 @@ import s from "./V.module.css";
 interface Day { on: boolean; open: string; close: string }
 interface Holiday { name: string; from: string; to: string; closed: boolean; open?: string; close?: string }
 interface Status { open: boolean; kind: "open" | "temp" | "holiday" | "247" | "closed" | "unknown"; until: string | null; reason?: string | null }
-interface Branch { id: string; address: string; is247: boolean; hours: { days?: Day[]; daily?: [string, string] } | null; holidays: Holiday[]; status: Status; today: number; cashiers: number }
+interface Branch { id: string; address: string; lat?: number | null; lng?: number | null; is247: boolean; hours: { days?: Day[]; daily?: [string, string] } | null; holidays: Holiday[]; status: Status; today: number; cashiers: number }
 
 const DOW = ["Дүйсенбі", "Сейсенбі", "Сәрсенбі", "Бейсенбі", "Жұма", "Сенбі", "Жексенбі"];
 const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
@@ -116,14 +117,16 @@ export function VBranchEdit() {
   const [hol, setHol] = useState<number | "new" | null>(null);
   const [closing, setClosing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const load = useCallback(() => { if (me) api<{ branches: Branch[] }>(`/v1/venue/${me.venue.id}/branches`).then((r) => { const x = r.branches.find((y) => y.id === id); if (x) { setB(x); setAddress(x.address); set247(x.is247); setDays(weekOf(x)); setHolidays(x.holidays ?? []); } }).catch(() => null); }, [me?.venue.id, id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [ll, setLl] = useState<[number, number] | null>(null); // картадағы орны (Патша, 2026-11-21)
+  const [picking, setPicking] = useState(false);
+  const load = useCallback(() => { if (me) api<{ branches: Branch[] }>(`/v1/venue/${me.venue.id}/branches`).then((r) => { const x = r.branches.find((y) => y.id === id); if (x) { setB(x); setAddress(x.address); setLl(x.lat != null && x.lng != null ? [x.lng, x.lat] : null); set247(x.is247); setDays(weekOf(x)); setHolidays(x.holidays ?? []); } }).catch(() => null); }, [me?.venue.id, id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(load, [load]);
   const save = useCallback(async () => {
     if (!me || busy) return;
     setBusy(true); haptic.medium();
-    try { await api(`/v1/venue/${me.venue.id}/branches/${id}`, { method: "PUT", body: JSON.stringify({ address, is247, days, holidays }) }); haptic.success(); await loadStaff(); go(-1, "back"); }
+    try { await api(`/v1/venue/${me.venue.id}/branches/${id}`, { method: "PUT", body: JSON.stringify({ address, is247, days, holidays, ...(ll ? { lng: ll[0], lat: ll[1] } : {}) }) }); haptic.success(); await loadStaff(); go(-1, "back"); }
     catch { haptic.error(); nativeAlert("Сақталмады. Мекенжай мен уақыттарды тексеріңіз."); } finally { setBusy(false); }
-  }, [me, busy, id, address, is247, days, holidays, go]);
+  }, [me, busy, id, address, is247, days, holidays, ll, go]);
   const remove = useCallback(async () => {
     if (!me) return;
     const r = await nativePick("Филиалды өшіру?", "Филиал тізімнен алынады. Тарихы есепте сақталады.", [{ id: "no", text: "Жоқ" }, { id: "yes", text: "Өшіру" }], "yes");
@@ -138,6 +141,13 @@ export function VBranchEdit() {
         <span className={`t-cap1 ${s.muted}`}>Мекенжай</span>
         <input value={address} maxLength={120} onChange={(e) => setAddress(e.target.value)} style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, paddingTop: 4, color: "var(--text-strong)" }} />
       </label>
+      {/* Картадағы орны: клиенттің картасында түйреуіш дәл осы жерде тұрады, «Бағыт» осында апарады */}
+      <div className={s.card}>
+        <button className={s.row} onClick={() => { haptic.tap(); setPicking(true); }}>
+          <Tile e="v:branch" size={36} />
+          <span className={s.rowText}><span className={s.rowTitle}>Картадағы орны</span><span className={s.rowSub} style={ll ? { color: "var(--tx-green)", fontWeight: 600 } : undefined}>{ll ? "Белгіленді · өзгерту" : "Түйреуішпен белгілеңіз — клиенттер оңай табады"}</span></span>
+        </button>
+      </div>
       <h2 className={s.blueHead}>Жұмыс уақыты</h2>
       <div className={s.card}>
         <div className={s.row}><Tile e="v:clock" size={36} /><span className={s.rowText}><span className={s.rowTitle}>24/7 жұмыс істейді</span><span className={s.rowSub}>Тәулік бойы, мереке күндері де</span></span><Switch on={is247} onChange={set247} /></div>
@@ -174,6 +184,7 @@ export function VBranchEdit() {
       </div>
       <Note>Жұмыс уақытынан тыс QR төлем қабылданбайды.</Note>
       <Buttons main={{ text: busy ? "Сақталуда…" : "Сақтау", onClick: () => void save(), disabled: busy || address.trim().length < 3 }} second={{ text: "Өшіру", onClick: () => void remove() }} />
+      {picking && <PinPicker start={ll} onClose={() => setPicking(false)} onPick={(p) => { setLl(p); setPicking(false); }} />}
       {hoursFor !== null && <HoursSheet title={hoursFor < 0 ? "Барлық күн: жұмыс уақыты" : `${DOW[hoursFor]}: жұмыс уақыты`} day={days[Math.max(0, hoursFor)]} all={hoursFor < 0}
         onClose={() => setHoursFor(null)} onSave={(d, all) => { setDays(all ? days.map((x) => ({ ...x, open: d.open, close: d.close, on: true })) : days.map((x, k) => (k === hoursFor ? d : x))); setHoursFor(null); }} />}
       {hol !== null && <HolidaySheet h={hol === "new" ? null : holidays[hol]} onClose={() => setHol(null)}

@@ -1,4 +1,5 @@
 // Figma: «Сатып алу / Сәтті / Light» (13886:25101)
+import { pickRoute } from "../ui/route";
 import { kindPic } from "../ui/Emo";
 import type { OfferKind } from "../mocks/offers";
 import { useCallback, useMemo } from "react";
@@ -68,7 +69,7 @@ export function Success() {
   // «Алғашқы жеңіс» (Патша, 2026-11-18): сатып алған сәтте бірінші қолдануға бір қадам — пакет бетіне (Қолдану / Жоспарлау) және мекемеге бағыт
   const plan = offer.kind === "hair" || Boolean(offer.planOnly);
   const useNow = useCallback(() => go(packId.current ? `/pack/${packId.current}` : "/packs", "forward", { replace: true }), [go]);
-  const route = useCallback(() => openExternal("https://2gis.kz/karaganda/search/" + encodeURIComponent(offer.address || offer.venue)), [offer.address, offer.venue]);
+  const route = useCallback(() => { void pickRoute(offer.address || offer.venue); }, [offer.address, offer.venue]);
   const where = offer.address ? offer.address.replace(/^Қарағанды,\s*/, "") : offer.venue;
   return (
     <ResultScreen

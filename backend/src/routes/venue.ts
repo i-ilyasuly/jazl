@@ -460,6 +460,8 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     address: z.string().trim().min(3).max(120), is247: z.boolean(),
     days: z.array(z.object({ on: z.boolean(), open: Hm, close: Hm })).length(7),
     holidays: z.array(z.object({ name: z.string().trim().min(1).max(40), from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), closed: z.boolean(), open: Hm.optional(), close: Hm.optional() })).max(30),
+    // Картадағы орны (Патша, 2026-11-21): мекеме түйреуішпен өзі белгілейді — сыртқы карта қызметіне тәуелді емес. Қазақстан шекарасы шамамен.
+    lat: z.number().min(40).max(56).optional(), lng: z.number().min(46).max(88).optional(),
   }).strict();
   const branchOf = async (venueId: string, id: string) => (await db.select().from(branches).where(and(eq(branches.id, id), eq(branches.venueId, venueId), eq(branches.active, true))).limit(1))[0];
 
@@ -471,7 +473,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const staffN = (await db.execute(sql`select branch_id, count(*)::int as n from app.venue_staff where venue_id = ${venueId} and role = 'cashier' and status = 'active' group by 1`)).rows as { branch_id: string | null; n: number }[];
     const allCashiers = staffN.filter((x) => !x.branch_id).reduce((a, x) => a + x.n, 0);
     return c.json({ ok: true, today: today.filter((u) => !u.cancelled_at).length, branches: list.map((b) => ({
-      id: b.id, address: b.address, is247: b.is247, hours: b.hours, holidays: b.holidays ?? [], closedUntil: b.closedUntil, closedReason: b.closedReason, status: branchStatus(b),
+      id: b.id, address: b.address, lat: b.lat, lng: b.lng, is247: b.is247, hours: b.hours, holidays: b.holidays ?? [], closedUntil: b.closedUntil, closedReason: b.closedReason, status: branchStatus(b),
       today: today.filter((u) => u.branch_id === b.id && !u.cancelled_at).length, cashiers: (staffN.find((x) => x.branch_id === b.id)?.n ?? 0) + allCashiers })) });
   });
   r.post("/venue/:venueId/branches", async (c) => {
@@ -488,7 +490,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const b = BranchBody.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const br = await branchOf(venueId, c.req.param("id")); if (!br) return c.json({ ok: false, error: "not_found" }, 404);
-    await db.update(branches).set({ address: b.data.address, is247: b.data.is247, hours: { days: b.data.days }, holidays: b.data.holidays }).where(eq(branches.id, br.id));
+    await db.update(branches).set({ address: b.data.address, is247: b.data.is247, hours: { days: b.data.days }, holidays: b.data.holidays, ...(b.data.lat != null && b.data.lng != null ? { lat: b.data.lat, lng: b.data.lng } : {}) }).where(eq(branches.id, br.id));
     return c.json({ ok: true });
   });
   // Уақытша жабу (Figma «Уақытша жабу»): 1 сағат, 3 сағат, бүгін, ертеңге дейін; себебі
