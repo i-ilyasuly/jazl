@@ -105,7 +105,7 @@ export function PackPage() {
                 <button className={s.noteLink} onClick={() => go("/rules/carry")}>Көшіру ережесі туралы толығырақ</button></p>
             </div>
           )}
-          {usable && <p className={s.howUse}>{o.kind === "hair" ? <>Алдын ала <b>«Жазылу»</b> арқылы уақыт таңда, не жазылусыз келіп QR сканерле. Жазылусыз келгенде тек бос уақытқа қабылданады.</> : <>Кассада «Medeo бойынша» деп айтып, QR-ды сканерле. Не мекемеге бармай <b>«Тапсырыс беру»</b> батырмасын бас — ақша төленбейді, бірлік пакеттен шегеріледі.</>}</p>}
+          {usable && <p className={s.howUse}>{o.kind === "hair" ? <>Алдын ала <b>«Жазылу»</b> арқылы уақыт таңда, не жазылусыз келіп QR сканерле. Жазылусыз келгенде тек бос уақытқа қабылданады.</> : <>Кассада «Medeo бойынша» деп айтып, QR-ды сканерле. Ақша төленбейді — бірлік пакеттен шегеріледі.</>}</p>}
         </section>
 
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 1 }}>
@@ -167,8 +167,8 @@ export function PackPage() {
       {toast && <div className={s.toast} role="status"><Tile e="📅" size={28} />{toast}</div>}
       {!inTelegram && (
         <div className={s.bar}>
-          {usable && <button className={`${s.btn} ${s.btn2}`} onClick={scan.onClick}><img src={qr} width={22} height={22} alt="" />Сканерлеу</button>}
-          <button className={`${s.btn} ${s.shine}`} onClick={usable ? order.onClick : rebuy.onClick}>{usable ? order.text : rebuy.text}</button>
+          {usable && hairPack && <button className={`${s.btn} ${s.btn2}`} onClick={scan.onClick}><img src={qr} width={22} height={22} alt="" />Сканерлеу</button>}
+          <button className={`${s.btn} ${s.shine}`} onClick={usable ? (hairPack ? order.onClick : scanMain.onClick) : rebuy.onClick}>{usable ? (hairPack ? order.text : scanMain.text) : rebuy.text}</button>
         </div>
       )}
     </div>
