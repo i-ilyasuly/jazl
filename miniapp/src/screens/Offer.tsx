@@ -51,10 +51,10 @@ function About({ list, text, open, onToggle }: { list: OfferDetails["about"]; te
   // Squirrel. (13): ішкі көк қорап жоқ — жай мәтін, ұзын болса астында «Толығырақ» сілтемесі
   if (!long) return <div className={s.about}><span ref={ref} className={s.aboutText}>{body}</span></div>;
   return (
-    <div className={`${s.about} ${open ? s.aboutOpen : ""}`}>
+    <div className={`${s.about} ${open ? s.aboutOpen : ""}`} role="button" tabIndex={0} aria-expanded={open} onClick={onToggle} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}>
       <span ref={ref} className={s.aboutText}>{body}</span>
       {!open && <span className={s.aboutFade} />}
-      <button className={s.more} onClick={onToggle} aria-expanded={open}>{open ? "Жасыру" : "Толығырақ"}</button>
+      <span className={s.more}>{open ? "Жасыру" : "Толығырақ"}</span>
     </div>
   );
 }
@@ -202,8 +202,6 @@ function OfferView({ id }: { id?: string }) {
             <button className={`${s.link} ${s.venueLink}`} onClick={toVenue}>{offer.venue}<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
             <span className={s.muted}>{`·  ★ ${String(offer.rating).replace(".", ",")} (${offer.ratingCount})  ·  ${offer.distance}`}</span>
           </p>
-          {/* Squirrel. (19): әлеуметтік дәлел */}
-          {offer.buyers > 0 && <p className={s.buyersLine}><span className={s.buyersIco} aria-hidden />{`${offer.buyers} адам алды`}</p>}
           {venue?.trust != null && <p className={s.trust}><span aria-hidden>✓</span>{`Сенімді мекеме · ${venue.trust}% қызмет шағымсыз`}</p>}
           {/* Бағадан бұрын контекст (Хормози): клиент әдетте қанша төлейтінін көрсетіп, сосын пакет бағасы */}
           <div className={s.priceRow}>
@@ -218,6 +216,8 @@ function OfferView({ id }: { id?: string }) {
               {/* Squirrel.: бір жасыл белгі (жеңілдік + үнем) және дана бағасы жай мәтін — бағамен таласпайды */}
               <span className={`${s.badge} ${s.green}`}><b>▼ {discount(offer)}%</b></span>
               <span className={s.unitText}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
+              {/* Патша (2026-11-21): әлеуметтік дәлел — дана бағасының астында */}
+              {offer.buyers > 0 && <span className={s.buyersLine}><span className={s.buyersIco} aria-hidden />{`${offer.buyers} адам алды`}</span>}
             </div>
           </div>
           {/* Сату лимиті (Патша, 2026-11-18): қалған орын және бір адамға шек */}

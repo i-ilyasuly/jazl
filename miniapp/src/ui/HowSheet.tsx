@@ -1,12 +1,14 @@
 // Figma: «Бірінші ашу / Қалай жұмыс істейді?» → Modal (Half Screen) 412×357
 import { useEffect, useMemo, useState } from "react";
 import { haptic, useBackButton } from "../telegram";
+import { Tile } from "./Tile";
 import s from "./HowSheet.module.css";
 
+// Патша (2026-11-21): бос түсті орындардың орнында — профильдегідей қанық фонды, мағынасын көрсететін иконка
 const steps = [
-  ["#f3ead8", "1. Пакетті сатып ал", "Мекеме мен пакетті таңда, бір рет төле."],
-  ["#e9e9ec", "2. Кассирге «Medeo бойынша» де", "Кассир бағаны терсін, терминалда QR шығады."],
-  ["#e4f0e4", "3. Сканерле және төле", "Төменгі ортадағы батырмамен QR-ды оқы, пакетті таңда. Қалғанын Пакеттерімде көресің."],
+  ["h:buy", "1. Пакетті сатып ал", "Мекеме мен пакетті таңда, бір рет төле."],
+  ["h:say", "2. Кассирге «Medeo бойынша» де", "Кассир бағаны терсін, терминалда QR шығады."],
+  ["▦", "3. Сканерле және төле", "Төменгі ортадағы батырмамен QR-ды оқы, пакетті таңда. Қалғанын Пакеттерімде көресің."],
 ];
 
 export function HowSheet({ onClose }: { onClose: () => void }) {
@@ -20,9 +22,9 @@ export function HowSheet({ onClose }: { onClose: () => void }) {
       <div className={s.sheet}>
         <span className={s.grabber} />
         <h2 className={s.title}>Қалай жұмыс істейді?</h2>
-        {steps.map(([bg, t, sub], i) => (
+        {steps.map(([ic, t, sub], i) => (
           <div key={t} className={s.step} style={{ ["--i" as string]: i }}>
-            <span className={s.slot} style={{ background: bg }} />
+            <Tile e={ic} size={44} className={s.slot} />
             <div className={s.text}><p className="t-sub1 w-600">{t}</p><p className={`t-cap1 ${s.sub}`}>{sub}</p></div>
           </div>
         ))}
