@@ -46,7 +46,7 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
         <button className={`t-sub2 w-600 ${s.use}`} disabled={pack.left < 1} onClick={(e) => { e.stopPropagation(); haptic.medium(); onUse(pack); }}>Қолдану</button>
         {hint && (
           <div className={s.tip} role="note" onClick={(e) => e.stopPropagation()}>
-            <p>Мекемеде «Қолдану» батырмасын бас: сканерле немесе тапсырыс бер</p>
+            <p>Мекемеде «Қолдану» батырмасын бас да, кассадағы QR-ды сканерле</p>
             <button onClick={() => { haptic.tap(); onHint?.(); }}>Түсінікті</button>
           </div>
         )}
@@ -73,7 +73,8 @@ export function Packs() {
   const orders = useOrders().filter((o) => o.status === "sent");
   const bookings = useBookings().filter((b) => b.status === "ok");
   // Figma «22 · менің жазылуларым»: тек жазылулар болса таб «Жазылулар» деп аталады
-  const tabs = ["Белсенді", bookings.length && !orders.length ? "Жазылулар" : "Тапсырыстар", "Тарих"];
+  // Патша (2026-11-21): тамақ/кофеде тапсырыс жоқ — екінші бет «Жазылулар» (бұрынғы тапсырыстар болса — «Тапсырыстар»)
+  const tabs = ["Белсенді", orders.length ? "Тапсырыстар" : "Жазылулар", "Тарих"];
   const { loading } = useMock("packs", packs, 500);
   const active = packs.filter((p) => p.left > 0 && !p.expired);
   const allActs = useActivity();
@@ -152,7 +153,7 @@ export function Packs() {
                 <button key={o.id} className={`${s.order} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/orders/" + o.id)}>
                   <span className={s.oHead}><span className={s.oEmoji}><Emo e={o.emoji} size={40} /></span><span className={s.oText}><b>{o.title}</b><small>№{o.no} • {o.venue} • {o.time}</small></span></span>
                   <CopyCode code={o.code} className={s.oCode}><small>Кассирге айтатын код · басып көшір</small><b className="mono">{o.code}</b></CopyCode>
-                </button>))] : <p className={`t-sub2 rise ${s.empty}`}>Белсенді тапсырыс жоқ. Пакет бетінде «Тапсырыс беру» батырмасы бар.</p>)
+                </button>))] : <p className={`t-sub2 rise ${s.empty}`}>Белсенді жазылу жоқ. Шаштараз пакетінде «Жазылу» батырмасы бар.</p>)
           : tab === 2
             ? (acts.length ? (
                 <section className={`${s.acts} rise`}>
