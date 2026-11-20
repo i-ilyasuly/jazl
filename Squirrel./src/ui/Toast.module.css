@@ -1,0 +1,2 @@
+.toast { position: fixed; z-index: 120; left: 50%; margin-left: -190px; bottom: calc(104px + var(--safe-b, 0px)); width: 380px; height: 48px; padding: 14px 16px; border-radius: 12px; background: #2b3645; color: #fff; animation: in 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; pointer-events: none; }
+@keyframes in { 0% { transform: translateY(16px); opacity: 0; } 8%, 88% { transform: none; opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }

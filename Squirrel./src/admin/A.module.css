@@ -1,0 +1,89 @@
+/* Medeo Басқару: мекеме бөлімінің стиліне (V.module.css) қосымша бөлшектер */
+.sub { margin: -12px 0 0; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.statBlue { background: #229af0 !important; }
+.statBlue span, .statBlue b { color: #fff !important; }
+.pillUp { align-self: flex-start; display: inline-flex; gap: 4px; padding: 2px 8px; border-radius: 8px; background: rgba(49, 209, 88, 0.16); color: #1f9d48; font-size: 13px; line-height: 18px; font-weight: 600; }
+.pillDown { composes: pillUp; background: rgba(255, 58, 48, 0.12); color: #e53935; }
+.pillWhite { align-self: flex-start; font-size: 13px; line-height: 18px; font-weight: 600; color: #fff; }
+.badge { flex: none; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; background: #229af0; }
+.badgeRed { background: #ff3a30; }
+.badgeOrange { background: #ff9500; }
+.right { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.right b { font-size: 16px; line-height: 20px; font-weight: 600; color: var(--text-strong); white-space: nowrap; }
+.right span { font-size: 13px; line-height: 17px; color: var(--text-secondary); }
+.green { color: #1f9d48 !important; }
+.red { color: #e53935 !important; }
+.search { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 17px; color: var(--text-strong); }
+.search svg { flex: none; color: var(--text-secondary); }
+.chipsWrap { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Радио жолы (Figma «Қайтару себебі», «Шешім») */
+.radio { flex: none; width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 2px #b0b5ba; }
+.radioOn { box-shadow: inset 0 0 0 2px #229af0, inset 0 0 0 6px var(--surface-white), inset 0 0 0 12px #229af0; }
+/* Мәтін өрісі (Figma «Түсініктеме», «Жаңа жазба») */
+.field { display: block; padding: 10px 16px 0; border-radius: 16px; background: var(--surface-white); }
+.field > span { font-size: 13px; line-height: 17px; color: var(--link); }
+.field textarea, .field input { display: block; width: 100%; border: 0; outline: 0; resize: none; background: none; font: inherit; font-size: 17px; line-height: 22px; padding: 4px 0 10px; color: var(--text-strong); border-bottom: 2px solid #229af0; }
+/* Тексеру парағы / құжаттар */
+.ok { flex: none; width: 24px; display: grid; place-items: center; color: #31d158; font-size: 20px; font-weight: 700; }
+.wait { composes: ok; color: #ff9500; }
+.bad { composes: ok; color: #ff3a30; }
+/* Тірі лента / уақыт сызығы */
+.tl { position: relative; padding-left: 22px; }
+.tl::before { content: ""; position: absolute; left: 4px; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--dot, #229af0); }
+.tl + .tl { margin-top: 14px; }
+.tlTitle { font-size: 17px; line-height: 22px; color: var(--text-strong); }
+.tlSub { font-size: 13px; line-height: 18px; color: var(--text-secondary); }
+.quote { margin: 0; padding: 12px 16px; border-radius: 12px; font-size: 15px; line-height: 20px; color: var(--text-strong); }
+.quoteYellow { composes: quote; background: rgba(255, 184, 0, 0.16); }
+.quoteBlue { composes: quote; background: var(--hl-blue-bg, rgba(34, 154, 240, 0.12)); }
+/* PIN (Figma «PIN енгізу»): нүктелер және дөңгелек пернелер */
+.pinWrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.pinTitle { margin: 4px 0 0; font-size: 22px; line-height: 28px; font-weight: 700; color: var(--text-strong); text-align: center; }
+.pinText { margin: 0; font-size: 15px; line-height: 20px; color: var(--text-secondary); text-align: center; }
+.pinErr { color: #e53935; }
+.pinDots { display: flex; gap: 18px; margin: 10px 0 14px; }
+.pinDots i { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 2px #b0b5ba; transition: background 0.12s ease; }
+.pinDots i.on { background: #229af0; box-shadow: none; }
+.pinDots i.err { background: #e53935; box-shadow: none; }
+.pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 16px 28px; justify-content: center; }
+.padKey { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-white); font-size: 28px; color: var(--text-strong); transition: background 0.12s ease; }
+.padKey:active { background: var(--chip-tint); }
+.padGhost { background: none !important; }
+.idBox { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 12px; background: var(--surface-white); font-size: 17px; font-weight: 600; color: var(--text-strong); }
+
+/* ── Кең экран (Figma «22 · Кең экран (десктоп)») ── */
+.split { display: grid; grid-template-columns: minmax(420px, 1.25fr) minmax(380px, 1fr); gap: 24px; align-items: start; padding: 32px 40px 56px 280px; min-height: 100vh; background: var(--surface-page); }
+.splitSide { position: sticky; top: 88px; max-height: calc(100vh - 110px); overflow: auto; border-radius: 24px; }
+.side { position: fixed; z-index: 50; left: 0; top: 0; bottom: 0; width: 240px; padding: 22px 12px 12px; display: flex; flex-direction: column; gap: 4px; background: var(--surface-white); border-right: 1px solid var(--separator); }
+.logo { display: flex; align-items: center; gap: 8px; padding: 0 8px 18px; font-size: 22px; font-weight: 800; color: var(--text-strong); }
+.logo span { padding: 2px 8px; border-radius: 8px; background: var(--chip-tint); color: var(--link); font-size: 13px; font-weight: 600; }
+.sideItem { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text-strong); font-size: 16px; text-align: left; transition: background 0.15s ease; }
+.sideItem:hover { background: var(--chip-tint); }
+.sideItem i { flex: none; width: 20px; height: 20px; background: currentColor; mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; }
+.sideItem span { flex: 1; }
+.sideOn { background: var(--hl-blue-bg, rgba(34, 154, 240, 0.12)); color: var(--link); font-weight: 600; }
+.sideUser { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 14px; background: var(--surface-page); }
+.sideUser b { display: block; font-size: 15px; color: var(--text-strong); }
+.sideUser small { font-size: 13px; color: var(--text-secondary); }
+.sideUser button { font-size: 16px; opacity: 0.6; }
+.sideAvatar { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #229af0; color: #fff; font-weight: 700; }
+.topbar { position: fixed; z-index: 45; top: 18px; right: 40px; display: flex; align-items: center; gap: 12px; }
+.topbar .search { height: 40px; background: var(--surface-white); }
+.topbar .search input { font-size: 15px; }
+.bell { position: relative; width: 40px; height: 40px; border-radius: 50%; background: var(--surface-white); display: grid; place-items: center; color: var(--text-strong); }
+.bell i { width: 20px; height: 20px; background: currentColor; mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; }
+.bell span { position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 4px; background: #ff3a30; }
+/* Кесте (Figma: мекемелер, пакеттер, тірі лента) */
+.table { width: 100%; border-collapse: collapse; background: var(--surface-white); border-radius: 20px; overflow: hidden; font-size: 15px; color: var(--text-strong); }
+.table th { text-align: left; padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--text-secondary); border-bottom: 1px solid var(--separator); }
+.table td { padding: 12px 16px; border-bottom: 1px solid var(--separator); vertical-align: middle; }
+.table tr:last-child td { border-bottom: 0; }
+.table tbody tr { cursor: pointer; transition: background 0.12s ease; }
+.table tbody tr:hover { background: var(--chip-tint); }
+.table tr.sel { background: var(--hl-blue-bg, rgba(34, 154, 240, 0.12)); }
+.table td:first-child { white-space: nowrap; }
+.table td small { display: block; font-size: 13px; color: var(--text-secondary); }
+.num { text-align: right !important; white-space: nowrap; font-weight: 600; }
+.pulseGrid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; max-width: none !important; }
+.stats4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }

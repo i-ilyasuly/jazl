@@ -19,12 +19,12 @@ export function preloadSticker(name: StickerName) {
   return Promise.all([player, d]);
 }
 
-// ЕРЕЖЕ (Патша, 2026-11-17, ескі «үздіксіз қайталансын» ережесінің орнына): стикер бет ашылғанда бір рет ойнайды да,
-// соңғы кадрында тоқтайды. Үстінен басқанда басынан қайта ойнайды.
+// ЕРЕЖЕ (Патша, 2026-11-21): стикер ШЕКСІЗ қайталанып ойнайды (экраннан тыс болса — кідіреді).
+// Тек мекеменің басты бетінде (venue/Home) `once` — бір рет ойнап, соңғы кадрда тоқтайды, басқанда қайта ойнайды.
 type Anim = { destroy(): void; play(): void; pause(): void; goToAndPlay(v: number, f: boolean): void; goToAndStop(v: number, f: boolean): void; totalFrames: number; isPaused: boolean; addEventListener(e: string, f: () => void): void };
 // Бетке қайта оралғанда (мысалы, мәзірде табтан табқа) стикер қайта ойнамайды — бірден соңғы кадрда тұрады (Патша, 2026-11-17)
 const seen = new Set<string>();
-export function Sticker({ name, size = 120, className }: { name: StickerName; size?: number; className?: string }) {
+export function Sticker({ name, size = 120, className, once = false }: { name: StickerName; size?: number; className?: string; once?: boolean }) {
   const box = useRef<HTMLSpanElement>(null);
   const anim = useRef<Anim | null>(null);
   const [ready, setReady] = useState(false);
@@ -36,8 +36,14 @@ export function Sticker({ name, size = 120, className }: { name: StickerName; si
     setReady(false);
     void preloadSticker(name).then(([m, data]) => {
       if (dead || !box.current) return;
-      const a = m.default.loadAnimation({ container: box.current, renderer: "svg", loop: false, autoplay: false, animationData: data }) as unknown as Anim;
+      const a = m.default.loadAnimation({ container: box.current, renderer: "svg", loop: !once, autoplay: false, animationData: data }) as unknown as Anim;
       anim.current = a;
+      if (!once) {
+        setReady(true);
+        io = new IntersectionObserver(([e]) => { if (e.isIntersecting) a.play(); else a.pause(); });
+        io.observe(box.current);
+        return;
+      }
       a.addEventListener("complete", () => { played = true; seen.add(key); });
       if (again) { played = true; a.goToAndStop(a.totalFrames - 1, true); setInstant(true); setReady(true); return; }
       setReady(true);
@@ -46,7 +52,7 @@ export function Sticker({ name, size = 120, className }: { name: StickerName; si
       io.observe(box.current);
     });
     return () => { dead = true; io?.disconnect(); anim.current?.destroy(); anim.current = null; };
-  }, [name]);
+  }, [name, once]);
   const replay = () => { const a = anim.current; if (a && a.isPaused) a.goToAndPlay(0, true); };
   return <span ref={box} className={className} aria-hidden onClick={replay} style={{ cursor: "pointer", display: "block", width: size, height: size, opacity: ready ? 1 : 0, transform: ready ? "none" : "scale(0.85)", transition: instant ? "none" : "opacity 0.3s ease, transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1)" }} />;
 }

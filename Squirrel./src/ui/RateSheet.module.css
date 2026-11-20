@@ -1,0 +1,50 @@
+/* Figma «12 · Бағалау»: шет 16, жұлдыз 40 (арасы 8), чип 36 (15/20, бұрыш 18), өріс 76 (бұрыш 12) */
+.root { position: fixed; inset: 0; z-index: 50; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 32px 16px calc(96px + var(--safe-b, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 12px; color: var(--text-strong); animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+:global(:root[data-env="telegram"]) .sheet { padding-bottom: calc(24px + var(--safe-b, 0px)); }
+.closing .scrim { animation: fadeOut 0.22s ease both; }
+.closing .sheet { animation: slideDown 0.22s ease-in both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes slideUp { from { transform: translateY(100%); } }
+@keyframes slideDown { to { transform: translateY(100%); } }
+.sheet > * { animation: stepIn 0.26s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.sheet > .grabber, .sheet > .bar { animation: none; }
+@keyframes stepIn { from { opacity: 0; transform: translateY(8px); } }
+.grabber { position: absolute; left: 188px; top: 12px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+.muted { color: var(--text-secondary); }
+.center { align-self: center; text-align: center; }
+
+.item { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.icon { width: 48px; height: 48px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; }
+.itemText { display: flex; flex-direction: column; gap: 2px; min-width: 0; white-space: nowrap; }
+
+.stars { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+.star { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+.star svg { fill: #e3e7ec; transition: fill 0.18s ease, transform 0.18s ease; }
+.starOn svg { fill: #ffb800; animation: starPop 0.32s var(--d) cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+.star:active svg, .star:active { opacity: 0.7; }
+@keyframes starPop { 40% { transform: scale(1.22); } }
+.label { min-height: 21px; animation: stepIn 0.2s ease both; }
+
+.more { display: flex; align-items: center; justify-content: space-between; min-height: 48px; color: var(--link); }
+.ask { margin-top: 4px; color: var(--link); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { height: 36px; padding: 8px 16px; border-radius: 8px; background: var(--search-bg); color: var(--text-strong); font-size: 15px; line-height: 20px; transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease; }
+.chip:active { transform: scale(0.95); }
+.chipOn { background: var(--chip-tint); color: var(--link); font-weight: 600; }
+.input { width: 100%; min-height: 76px; padding: 12px 16px; border: 0; outline: 0; resize: none; border-radius: 12px; background: var(--search-bg); color: var(--text-strong); font: inherit; font-size: 17px; line-height: 22px; caret-color: #229af0; transition: box-shadow 0.2s ease; }
+.input::placeholder { color: var(--text-secondary); opacity: 0.8; }
+.input:focus { box-shadow: 0 0 0 2px rgba(34, 154, 240, 0.35); }
+.sticker { align-self: center; }
+
+.bar { position: absolute; left: 0; bottom: 0; width: 412px; padding: 8px 10px calc(8px + var(--safe-b, 0px)); background: var(--surface-white); }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; transition: opacity 0.15s ease; }
+.btn:active { opacity: 0.8; }
+.btn:disabled { opacity: 0.45; }
+:global(:root[data-theme="dark"]) .star svg { fill: #3a4756; }
+:global(:root[data-theme="dark"]) .starOn svg { fill: #ffb800; }
+:global(:root[data-theme="dark"]) .chipOn { background: rgba(92, 180, 244, 0.24); }
+/* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
+.star:active svg, .star:active { opacity: 0.7; }

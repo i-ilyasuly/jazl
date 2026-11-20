@@ -204,3 +204,38 @@ button.link:active, .link button:active { opacity: 0.55; }
 .gList li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 6px; height: 6px; border-radius: 3px; background: var(--green-text); }
 .gList b { font-weight: 600; }
 .gLink { align-self: flex-start; color: var(--link); font-size: 15px; line-height: 20px; font-weight: 600; }
+
+/* ===== Squirrel. (Алтай, 2026-11-21) =====
+   Баға блогы: баға → бір жасыл белгі → дана бағасы (жай мәтін). Бұрын бағаның қасында ▼25% + сары + жасыл үш белгі болатын. */
+.badge b { font-weight: 700; }
+.unitText { font-size: 15px; line-height: 20px; color: var(--hint); white-space: nowrap; }
+/* Мекеме белгілеген сөздер: маркер фоны емес, тек қалыңдық пен түс — «емле қатесі» сияқты көрінбейді */
+.hlGreen, .hlBlue { background: none !important; padding: 0; margin: 0; border-radius: 0; font-weight: 600; }
+.hlGreen { color: var(--green-text); }
+.hlBlue { color: var(--link); }
+/* Rich.tsx белгілеуі (inline стиль) — маркер фонсыз, бірақ қалыңдығы сақталады */
+:global(.hl) { background: none !important; padding: 0 !important; font-weight: 600 !important; }
+/* Шарттар: белгі бағаны кеңейді — «Қолдану тәсілі» екі жолға бөлінбейді */
+.params dt { width: 116px; }
+
+/* ===== Squirrel. 3-кезең (Патша, 2026-11-21) ===== */
+.oldTop { font-size: 15px; line-height: 20px; color: var(--hint); opacity: 0.8; }
+.old { display: none; }
+.validity { margin-top: 2px; font-size: 15px; line-height: 20px; color: var(--text-strong); opacity: 0.72; }
+.buyersLine { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 15px; line-height: 20px; color: var(--hint); }
+.buyersIco { width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5'/%3E%3Cpath d='M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5'/%3E%3Cpath d='M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2'/%3E%3C/svg%3E") center / contain no-repeat; }
+/* 13: сипаттама — жай мәтін + «Толығырақ» */
+.about { position: relative; width: 100%; }
+.aboutText { display: block; color: var(--text-strong); font-size: 17px; line-height: 22px; max-height: 88px; overflow: hidden; transition: max-height 0.3s ease; }
+.aboutOpen .aboutText { max-height: 2000px; }
+.aboutFade { position: absolute; left: 0; right: 0; top: 56px; height: 32px; background: linear-gradient(to bottom, transparent, var(--surface-white)); pointer-events: none; }
+:global(:root[data-theme="dark"]) .aboutFade { background: linear-gradient(to bottom, transparent, var(--surface-card)); }
+.more { margin-top: 8px; color: var(--link); font-size: 15px; line-height: 20px; font-weight: 600; }
+/* 14: блоктар біркелкі — кепілдік тізімі де басқалардай (бірдей нүкте, бірдей өлшем) */
+.gList { font-size: 17px; line-height: 22px; gap: 8px; }
+.gList li::before { background: var(--link); top: 8px; }
+.gList b { font-weight: 600; }
+/* 15: әр пікірдегі жұлдыз — кіші әрі сабырлы; жиынтық баға жанындағысы ғана жарқын */
+.revHead .stars { font-size: 11px !important; line-height: 14px !important; letter-spacing: 0 !important; opacity: 0.55; }
+.buyersLine { margin-top: 2px; }
+.oldTop { margin-top: 12px; }

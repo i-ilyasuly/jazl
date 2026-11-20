@@ -1,0 +1,17 @@
+.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #229af0; transition: scale 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; }
+.read { scale: 0; opacity: 0; }
+.time { flex: none; width: 33px; color: var(--text-secondary); white-space: nowrap; }
+/* Бот рұқсаты жолағы: 380×64, сол жақта 4px жолақ, мәтін 15/20, батырма 36 */
+.banner { position: relative; display: flex; align-items: center; gap: 12px; width: 380px; min-height: 64px; padding: 12px 12px 12px 16px; border-radius: 12px; background: #e3f0fb; overflow: visible; }
+.bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; background: #229af0; }
+.bannerText { flex: 1; min-width: 0; color: var(--text-strong); }
+.bannerBtn { flex: none; height: 36px; padding: 8px 16px; border-radius: 8px; background: #229af0; color: #fff; transition: transform 0.15s ease, opacity 0.15s ease; }
+.bannerBtn:active { transform: scale(0.96); opacity: 0.85; }
+.mark { position: absolute; right: 12px; top: -12px; font-size: 48px; line-height: 48px; font-weight: 700; color: #229af0; pointer-events: none; }
+.warn { background: #fdf3d6; }
+.warn .bar, .warn .mark { background: #f5b800; }
+.warn .mark { background: none; color: #f5b800; }
+.snack { position: fixed; z-index: 40; left: 50%; margin-left: -190px; bottom: calc(24px + var(--safe-b, 0px)); width: 380px; height: 48px; padding: 14px 16px; border-radius: 12px; background: #2b3645; color: #fff; animation: snack 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes snack { 0% { transform: translateY(20px); opacity: 0; } 8%, 88% { transform: none; opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
+:global(:root[data-theme="dark"]) .banner { background: rgba(34, 154, 240, 0.18); }
+:global(:root[data-theme="dark"]) .warn { background: rgba(245, 184, 0, 0.16); }

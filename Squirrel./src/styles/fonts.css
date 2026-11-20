@@ -1,0 +1,13 @@
+/* Medeo — DNF студиясының ашық шрифт отбасы (SIL OFL 1.1, лицензия: assets/fonts/medeo/OFL.txt).
+   Қазақ әріптері мен ₸ белгісі бар. Патша рұқсат етті (2026-11-16): негізгі шрифт — Medeo Sans,
+   кодтар (тапсырыс коды, транзакция №, PIN) — Medeo Mono. Serif пен Pixel тек «Шрифт» сынақ бетінде. */
+@font-face { font-family: "Medeo Sans"; src: url("../assets/fonts/medeo/MedeoSansVariable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: block; }
+@font-face { font-family: "Medeo Sans"; src: url("../assets/fonts/medeo/MedeoSansVariable-Italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "Medeo Mono"; src: url("../assets/fonts/medeo/MedeoMonoVariable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Medeo Serif"; src: url("../assets/fonts/medeo/MedeoSerif-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Medeo Pixel"; src: url("../assets/fonts/medeo/MedeoPixelVariable.woff") format("woff"); font-weight: 100 900; font-style: normal; font-display: swap; }
+:root {
+  --font-sans: "Medeo Sans", system-ui, -apple-system, Roboto, sans-serif;
+  --font-mono: "Medeo Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }

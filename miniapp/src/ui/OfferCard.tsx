@@ -32,8 +32,7 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
       <p className={s.title}>{offer.packName ?? offer.title}</p>
-      <p className={s.venue}>{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
-      {!ended && <span className={s.discount}>▼ {discount(offer)}%</span>}
+      <p className={s.venue}>{!ended && offer.promo && <span className={`${s.promoTag} ${s["tag_" + offer.promo]}`}>{offer.promo === "hot" ? "Ыстық" : "ТОП"}</span>}{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
@@ -51,6 +50,8 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
       </div>
       {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
+      {/* Squirrel.: бағаның үстінде — жеңілдіксіз бағасы, көмескі әрі сызылған */}
+      {!ended && <s className={s.oldPrice}>{fmt(offer.sizes && offer.sizes.length > 1 ? [...offer.sizes].sort((a, b) => a.price - b.price)[0].oldPrice : offer.oldPrice)}</s>}
       <p className={s.price}>{offer.sizes && offer.sizes.length > 1 ? `${fmt(Math.min(...offer.sizes.map((x) => x.price)))}-дан` : fmt(offer.price)}</p>
       {ended ? <>
         <span className={`t-cap1 ${s.over}`}>{soldOut ? "Таусылды" : "Аяқталды"}</span>
@@ -58,8 +59,9 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
           <img src={bell} width={20} height={20} alt="" className={waiting ? s.ring : undefined} />{waiting ? "Қосылды" : "Хабарла"}
         </button>
       </> : <>
+        {/* Squirrel.: үш түрлі түсті белгінің орнына — бір жасыл белгі (жеңілдік + үнем), дана бағасы жай мәтін */}
         <span className={s.unit}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
-        <span className={s.saving}>{`${fmt(saving(offer))} үнем`}</span>
+        <span className={s.saving}><b>▼ {discount(offer)}%</b></span>
       </>}
     </Link>
   );

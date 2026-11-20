@@ -1,0 +1,64 @@
+/* Ұсыныс карточкасы: 412×204, r20 — экран еніне дейін (Патша, 2026-11-16: Krisha/Kolesa сияқты екі жаққа созылған) */
+.card { position: relative; display: block; width: 412px; margin: 0 -16px; height: 204px; border-radius: 20px; background: var(--surface-card); overflow: hidden; flex: none; transition: transform 0.12s ease; }
+.card:active { transform: scale(0.985); }
+/* Өнімділік (Патша, 2026-11-16: скролл қатып қалды): экраннан тыс карточкалар салынбайды, әр карточка өз қабатында оқшауланады */
+.card { content-visibility: auto; contain-intrinsic-size: auto 204px; contain: layout paint style; }
+.title { position: absolute; left: 16px; top: 15px; max-width: 272px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-primary); }
+.venue { position: absolute; left: 16px; top: 42px; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; font-size: 15px; line-height: 20px; white-space: nowrap; color: var(--hint); }
+.discount { position: absolute; right: 60px; top: 16px; height: 24px; padding: 4px 9px 4px 8px; border-radius: 6px; font-size: 13px; line-height: 16px; font-weight: 700 !important; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; }
+.fav { position: absolute; right: 6px; top: 6px; width: 44px; height: 44px; border-radius: 8px; background: transparent; display: flex; align-items: center; justify-content: center; }
+.pop { animation: pop 0.28s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes pop { from { transform: scale(0.6); } to { transform: scale(1); } }
+.thumb { position: absolute; left: 16px; top: 72px; width: 176px; height: 116px; border-radius: 12px; background: var(--thumb-bg); overflow: hidden; }
+.thumbIcon { position: absolute; left: 40px; top: 10px; object-fit: contain; }
+.photo { width: 100%; height: 100%; object-fit: cover; }
+.buyers { position: absolute; left: 8px; top: 80px; height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.36); display: flex; align-items: center; gap: 4px; color: #fff; font-weight: 600; }
+.buyers img { filter: brightness(0) invert(1); }
+.deadline { position: absolute; left: 80px; top: 80px; height: 24px; padding: 4px 8px; border-radius: 6px; background: var(--orange-bg); color: var(--orange-text); font-weight: 600; white-space: nowrap; }
+.price { position: absolute; right: 16px; top: 72px; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.unit, .saving { position: absolute; height: 28px; padding: 4px 12px; border-radius: 6px; white-space: nowrap; font-size: 15px; line-height: 20px; }
+.unit { right: 16px; top: 114px; background: var(--orange-bg); color: var(--orange-text); }
+.saving { right: 16px; top: 150px; background: var(--green-bg); color: var(--green-text); }
+.ended .title, .ended .venue, .ended .thumb, .ended .price { opacity: 0.5; }
+.over { position: absolute; left: 95px; top: 152px; height: 24px; padding: 4px 12px 4px 14px; border-radius: 6px; background: #f4f4f7; color: #000; font-weight: 700; white-space: nowrap; }
+.notify { position: absolute; right: 16px; top: 152px; height: 36px; padding: 7px 12px; border-radius: 8px; background: rgba(67, 120, 255, 0.1); color: #007aff; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.25s ease, transform 0.12s ease; }
+.notify:active { transform: scale(0.95); }
+.waiting { background: rgba(49, 209, 88, 0.15); color: #1f7a38;  --dark-fg: var(--tone-ok); }
+.ring { animation: ring 0.6s ease; transform-origin: 50% 10%; }
+@keyframes ring { 20% { transform: rotate(-18deg); } 45% { transform: rotate(14deg); } 70% { transform: rotate(-8deg); } 100% { transform: none; } }
+.unit, .saving { font-weight: 400; } /* Figma ережесі + Krisha: белгі мәтіні Regular */
+:global(:root[data-theme="dark"]) .buyers { background: rgba(0, 0, 0, 0.4); color: #fff; }
+:global(:root[data-theme="dark"]) .buyers img { filter: brightness(0) invert(1); }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .over { background: rgba(255, 255, 255, 0.09); }
+/* Ақылы жарнама фоны (Kolesa түстері): сары — «Ыстық ұсыныс», көк — «ТОП» */
+.hot { background: #fef5ca; }
+.top { background: #deebfc; }
+:global(:root[data-theme="dark"]) .hot { background: #3a3a2c; }
+:global(:root[data-theme="dark"]) .top { background: #263850; }
+/* Сату лимиті: «Қалды 12 / 50» фотоның сол жақ жоғарғы бұрышында — 10-нан көп қалса сабырлы (қара), аз қалса сары */
+.left { position: absolute; left: 8px; top: 8px; height: 24px; padding: 4px 8px; border-radius: 6px; background: var(--orange-bg); color: var(--orange-text); font-weight: 600; white-space: nowrap; }
+.leftCalm { background: rgba(0, 0, 0, 0.36); color: #fff; }
+
+/* ===== Squirrel. (Алтай, 2026-11-21): сыни аудиттен кейінгі түзетулер =====
+   1) Атау енді жүрек белгісіне дейін созылады (жеңілдік белгісі оң жақ бағанға көшті) — «4 р...» деп кесілмейді.
+   2) Оң баған иерархиясы: баға (24/700) → дана бағасы (15, екінші деңгей мәтін, белгісіз) → бір жасыл белгі.
+      Бұрын бір карточкада 3 түсті белгі (жасыл ▼25%, сары дана бағасы, жасыл үнем) бір-бірімен таласатын. */
+.title { max-width: calc(100% - 72px); }
+.unit { top: 128px; height: 20px; padding: 0; background: none !important; color: var(--hint); }
+.saving { top: 156px; }
+/* «N алды» белгісі кеңейді — «2 күн қалды» енді фотоның оң жақ төменгі бұрышында, бір-бірін баспайды */
+.deadline { left: auto; right: 8px; top: 8px; }
+.saving b { font-weight: 700; }
+.oldPrice { position: absolute; right: 16px; top: 72px; font-size: 15px; line-height: 20px; color: var(--hint); opacity: 0.8; text-decoration: line-through; white-space: nowrap; }
+.oldPrice ~ .price { top: 94px; }
+/* «▼ 25%» сары/жасыл фондағы жалғыз белгі — «31» белгісі бұрынғыдай тек сан */
+/* Squirrel. 1-тармақ: жарнама карточкасы толық боялмайды — ақ фон, атау астында шағын түсті белгі */
+.hot, .top { background: var(--surface-card) !important; }
+.promoTag { display: inline-block; vertical-align: 1px; height: 20px; margin-right: 6px; padding: 0 7px; border-radius: 6px; font-size: 13px; line-height: 20px; font-weight: 700; }
+.tag_hot { background: #fff0c2; color: #8a5a00; }
+.tag_top { background: #deebfc; color: #1a5fb4; }
+:global(:root[data-theme="dark"]) .tag_hot { background: rgba(255, 196, 0, 0.18); color: #ffd36b; }
+:global(:root[data-theme="dark"]) .tag_top { background: rgba(92, 180, 244, 0.2); color: #8cc8f6; }
+/* 7-тармақ: дана бағасы сызылған ескі бағадан ажырасын — қараңғырақ, ескі баға көмескі */
+.unit { color: var(--text-strong) !important; opacity: 0.72; }

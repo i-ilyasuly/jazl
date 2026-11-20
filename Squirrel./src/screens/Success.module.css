@@ -1,0 +1,32 @@
+.page { position: relative; min-height: 917px; height: var(--app-h, 100vh); background: var(--surface-white); overflow: hidden; }
+.page > * { translate: 0 var(--top-shift); }
+.title { position: absolute; left: 0; top: 116px; width: 100%; text-align: center; font-size: 28px; line-height: 34px; font-weight: 600; color: var(--text-strong); animation: rise 0.45s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.halo1 { position: absolute; left: 112px; top: 198px; animation: halo 0.7s 0.1s cubic-bezier(0.2, 0.9, 0.2, 1) both, pulse 2.6s 0.9s ease-in-out infinite; }
+.halo2 { position: absolute; left: 132px; top: 218px; animation: halo 0.6s 0.05s cubic-bezier(0.2, 0.9, 0.2, 1) both, pulse 2.6s 1.1s ease-in-out infinite; }
+.confetti { position: absolute; left: 46px; top: 162px; animation: burst 0.8s 0.22s cubic-bezier(0.15, 0.9, 0.2, 1) both; }
+.circle { position: absolute; left: 154px; top: 240px; animation: pop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+.check { position: absolute; left: 174px; top: 260px; }
+.checkImg { clip-path: inset(0 100% 0 0); animation: draw 0.38s 0.3s ease-out forwards; }
+.paid { position: absolute; left: 0; top: 430px; width: 100%; text-align: center; color: var(--text-secondary); animation: rise 0.45s 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes pop { from { transform: scale(0); } }
+@keyframes halo { from { transform: scale(0.3); opacity: 0; } }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+@keyframes burst { from { transform: scale(0.35); opacity: 0; } 60% { opacity: 1; } }
+@keyframes draw { to { clip-path: inset(0 0 0 0); } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+
+.card { position: absolute; left: 16px; top: 470px; width: 380px; padding: 20px 16px; border-radius: 20px; background: #f4f6fa; display: flex; flex-direction: column; gap: 16px; color: var(--text-strong); animation: rise 0.5s 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.head { display: flex; align-items: center; gap: 12px; }
+.icon { width: 56px; height: 56px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; }
+.headText { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
+.muted { color: var(--text-secondary); }
+.next { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: var(--chip-tint); }
+.emoji { width: 32px; height: 32px; border-radius: 9px; background: rgba(34, 154, 240, 0.3); flex: none; }
+.nextText { color: var(--link); }
+
+.btn { position: absolute; left: 10px; width: 392px; height: 50px; border-radius: 8px; padding-left: 10px; font-size: 17px; line-height: 22px; font-weight: 500; transition: opacity 0.12s ease; animation: rise 0.45s 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.btn:active { opacity: 0.75; }
+.main { top: 778px; background: var(--button); color: #fff; }
+.secondary { top: 842px; background: var(--button-tint); color: var(--link); }
+:global(:root[data-theme="dark"]) .card { background: #242f3d; }
+.sticker { position: absolute; left: 131px; top: 212px; }

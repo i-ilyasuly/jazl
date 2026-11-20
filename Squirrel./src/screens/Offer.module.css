@@ -1,0 +1,241 @@
+/* Figma: «Ұсыныс беті / Қолжетімді (1) / Light». Фото 412×412 (1:1; мекемеге стандарт — кемі 1080×1080 px квадрат). */
+.page { position: relative; min-height: var(--app-h, 100vh); background: var(--surface-white); padding-bottom: 94px; }
+:global(:root[data-env="telegram"]) .page { padding-bottom: 24px; }
+.photo { position: relative; width: 100%; height: 412px; background: var(--photo-bg); overflow: hidden; }
+.photoImg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.gallery::-webkit-scrollbar { display: none; }
+.slide { position: relative; flex: none; width: 100%; height: 100%; scroll-snap-align: center; scroll-snap-stop: always; }
+.counter { position: absolute; right: 16px; top: calc(var(--bar-c) + 28px); height: 24px; padding: 2px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.45); color: #fff; font-size: 13px; line-height: 16px; font-weight: 600; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); pointer-events: none; }
+.heroIcon { position: absolute; left: calc(50% - 90px); top: calc(50% - 90px); object-fit: contain; }
+.dots { position: absolute; left: 0; right: 0; bottom: 32px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+.dots span { width: 7px; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.6); box-shadow: 0 0 4px rgba(0, 0, 0, 0.2); transition: width 0.25s ease, background 0.25s ease; }
+.dots .dotOn { width: 18px; background: #fff; }
+.round { position: absolute; z-index: 2; top: 232px; width: 44px; height: 44px; border-radius: 22px; background: rgba(255, 255, 255, 0.42); border: 1px solid rgba(255, 255, 255, 0.55); -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 10px rgba(0, 0, 0, 0.12); display: flex; align-items: center; justify-content: center; transition: transform 0.12s ease; }
+.round:active { transform: scale(0.92); }
+.share { left: 16px; }
+.fav { left: 352px; }
+.share img { filter: none; }
+.pop { animation: pop 0.28s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes pop { from { transform: scale(0.6); } to { transform: scale(1); } }
+
+.content { padding: 20px 16px 24px; display: flex; flex-direction: column; gap: 24px; }
+.h1 { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
+.content h1 { color: var(--text-strong); }
+.contentIn > * { animation: rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.contentIn > *:nth-child(2) { animation-delay: 50ms; }
+.contentIn > *:nth-child(n+3) { animation-delay: 100ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+.head { display: flex; flex-direction: column; gap: 4px; }
+.priceRow { position: relative; display: flex; align-items: flex-start; justify-content: space-between; color: var(--text-strong); }
+.priceRow p { white-space: nowrap; }
+.discount { margin-left: 12px; height: 26px; padding: 3px 10px; border-radius: 6px; background: var(--green-chip-bg); color: var(--green-text); white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 700; }
+.old { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.badges { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; padding-top: 2px; }
+.badge { height: 28px; padding: 4px 12px; border-radius: 6px; white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 400; }
+.orange { background: var(--orange-bg); color: var(--orange-text); }
+.green { background: var(--green-bg); color: var(--green-text); }
+.muted { color: var(--text-secondary); }
+.link { color: var(--link); }
+.venueLine { display: flex; gap: 6px; white-space: pre; font-size: 15px; line-height: 20px; margin-bottom: 12px; }
+.venueLine .link { font-weight: 600; }
+
+.params { display: flex; flex-direction: column; gap: 12px; font-size: 17px; line-height: 22px; }
+.params div { display: flex; gap: 12px; align-items: baseline; }
+.params dt { width: 92px; flex: none; color: var(--text-secondary); font-size: 15px; line-height: 20px; }
+.params dd { color: var(--text-strong); }
+
+.sep { border: 0; height: 1px; width: 100%; background: var(--separator); flex: none; }
+.block8 { display: flex; flex-direction: column; gap: 8px; }
+.block10 { display: flex; flex-direction: column; gap: 10px; }
+.block { display: flex; flex-direction: column; gap: 12px; }
+.blockTitle { font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
+.bullets { list-style: none; display: flex; flex-direction: column; gap: 8px; width: 100%; color: var(--text-strong); font-size: 17px; line-height: 22px; }
+.bullets li { position: relative; padding-left: 18px; }
+.bullets li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 6px; height: 6px; border-radius: 3px; background: var(--link); }
+
+.hlGreen, .hlBlue { display: inline; padding: 1px 3px; margin: 0 -1px; border-radius: 4px; -webkit-box-decoration-break: clone; box-decoration-break: clone; font-weight: 600; }
+.hlGreen { background: var(--hl-green-bg); color: var(--hl-green-text); }
+.hlBlue { background: var(--hl-blue-bg); color: var(--hl-blue-text); }
+
+/* Telegram blockquote: сол жақта 4px сызық, жұмсақ реңк, оң жақ жоғарыда үлкен тырнақша */
+.quote { position: relative; display: block; width: 100%; padding: 16px 16px 12px !important; background: var(--quote-bg); overflow: hidden; text-align: left; }
+.quoteText { display: block; color: var(--text-strong); font-size: 17px; line-height: 22px; max-height: 88px; overflow: hidden; transition: max-height 0.25s ease; }
+.para, .li { display: block; }
+.para + .li, .li + .para { margin-top: 4px; }
+.li { position: relative; padding-left: 16px; }
+.dot { position: absolute; left: 2px; top: 0; font-style: normal; color: var(--link); }
+.quoteOpen .quoteText, .quoteShort .quoteText { max-height: 440px; }
+.quoteShort { padding-bottom: 16px !important; }
+.fade { position: absolute; left: 0; right: 0; bottom: 34px; height: 32px; background: linear-gradient(to bottom, transparent, var(--quote-bg)); pointer-events: none; }
+:global(.infoBox).quote .fade { background: linear-gradient(to bottom, rgba(234, 242, 253, 0), #eaf2fd); }
+:global(:root[data-theme="dark"]) :global(.infoBox).quote .fade { background: linear-gradient(to bottom, rgba(36, 47, 61, 0), rgb(36, 54, 74)); }
+.expand { display: block; margin: 0 -4px 0 auto; transition: transform 0.25s ease; }
+.quoteOpen .expand { transform: rotate(180deg); }
+.quoteMark { position: absolute; left: 350.5px; top: 30px; font-size: 56px; line-height: 56px; font-weight: 700; color: var(--link); pointer-events: none; }
+
+.card { display: flex; flex-direction: column; border-radius: 20px; background: var(--surface-page); overflow: hidden; }
+.rule { position: relative; display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 16px; text-align: left; color: var(--text-strong); width: 100%; font-size: 17px; line-height: 22px; }
+.rule:active { background: rgba(34, 154, 240, 0.08); }
+.rule + .rule::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 1px; background: var(--separator); }
+.ruleHint { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.chev { flex: none; width: 9px; height: 9px; margin-left: 4px; border-right: 2px solid var(--text-secondary); border-top: 2px solid var(--text-secondary); rotate: 45deg; opacity: 0.7; }
+.rule span:first-child { flex: 1; }
+
+.venue { display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; padding: 14px 16px 10px; }
+.venueAvatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #5cb4f4, #2481cc); flex: none; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; line-height: 25px; font-weight: 700; }
+.venueText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.venueName { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
+.venueAddr { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.open { display: flex; align-items: center; gap: 8px; padding: 0 16px 0 76px; font-size: 15px; line-height: 20px; color: var(--text-strong); }
+.openDot { width: 8px; height: 8px; border-radius: 50%; background: #22a559; }
+.actions { display: flex; gap: 8px; padding: 14px 16px 16px; }
+.chipBtn { flex: 1; height: 44px; border-radius: 8px; background: var(--chip-tint); color: var(--link); font-size: 15px; line-height: 20px; font-weight: 600; transition: transform 0.12s ease; }
+.chipBtn:active { transform: scale(0.95); }
+.score { display: flex; align-items: center; gap: 14px; padding: 16px 16px 12px; }
+.score > b { font-size: 34px; line-height: 41px; font-weight: 700; color: var(--text-strong); }
+.score > span { display: flex; flex-direction: column; gap: 2px; }
+.stars { color: #ffb800 !important; font-size: 15px; letter-spacing: 1px; line-height: 20px; }
+.review { position: relative; display: flex; gap: 12px; padding: 12px 16px 14px; color: var(--text-strong); }
+.review::before { content: ""; position: absolute; left: 64px; right: 0; top: 0; height: 1px; background: var(--separator); }
+.revAvatar { width: 36px; height: 36px; flex: none; border-radius: 50%; background: rgba(34, 154, 240, 0.14); color: var(--link); display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 20px; font-weight: 700; }
+.revHead { display: flex; align-items: center; gap: 8px; font-size: 15px; line-height: 20px; }
+.revHead .stars { font-size: 13px; line-height: 16px; }
+.revText { font-size: 17px; line-height: 22px; margin-top: 2px; }
+
+/* Төменгі жолақ: тек браузерде. Telegram ішінде нативті Main/Secondary батырмалары шығады. */
+.bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: 94px; background: var(--surface-white); border-top: 1px solid var(--separator); padding: 9px 10px 0; display: flex; gap: 8px; }
+.btn { flex: 1; height: 50px; border-radius: 8px; padding-left: 8px; transition: opacity 0.12s ease; }
+.btn:active { opacity: 0.75; }
+.secondary { background: var(--button-tint); color: var(--link); }
+.main { background: var(--button); color: #fff; }
+
+/* Қосымша күйлер */
+.priceLine { display: flex; align-items: center; font-size: 34px; line-height: 41px; font-weight: 700; transition: opacity 0.2s ease; }
+
+.dim > span:first-child { opacity: 0.5; }
+.swap { display: inline-block; animation: swap 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes swap { from { transform: translateY(8px); opacity: 0; } }
+.sizes { display: flex; flex-direction: column; gap: 12px; }
+.size b { font-size: 17px; line-height: 22px; font-weight: 600; }
+.size small { font-size: 13px; line-height: 16px; }
+.sizeRow { display: flex; gap: 8px; }
+.size { flex: 1; height: 62px; border-radius: 8px; background: #eef1f5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--text-strong); box-shadow: inset 0 0 0 0 #229af0; transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease; }
+.size small { color: var(--text-secondary); }
+.size:active { transform: scale(0.96); }
+.sizeOn { background: #dcebfb; }
+.sizeOn b, .sizeOn small { color: var(--link); }
+.pageTall { padding-bottom: 118px; }
+.barTall { height: 118px; padding-top: 33px; }
+.caption { position: absolute; left: 0; top: 11px; width: 100%; text-align: center; color: var(--text-secondary); }
+.mainDone { background: rgba(95, 107, 122, 0.16); color: #5f6b7a; }
+.topBar { position: fixed; z-index: 4; left: 50%; margin-left: -206px; top: 0; width: 412px; height: calc(92px + var(--top-shift)); background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 0.5px 0 rgba(17, 26, 38, 0.1); opacity: 0; transition: opacity 0.22s ease; pointer-events: none; }
+.topBarOn { opacity: 1; }
+:global(:root[data-theme="dark"]) .topBar { background: rgba(28, 39, 53, 0.72); }
+:global(:root[data-theme="dark"]) .size { background: var(--surface-category); }
+.photoEnded > img:first-child { opacity: 0.5; }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .sizeOn { background: rgba(92, 180, 244, 0.2); }
+
+:global(:root[data-theme="dark"]) .card { background: var(--surface-card); }
+:global(:root[data-theme="dark"]) .round { background: rgba(255, 255, 255, 0.5); }
+:global(:root[data-theme="dark"]) .revAvatar { background: rgba(92, 180, 244, 0.2); }
+.shine { position: relative; overflow: hidden; }
+.shine::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: shine 2.6s ease-in-out infinite; }
+@keyframes shine { 0%, 45% { left: -60%; } 100% { left: 130%; } }
+:global(:root[data-theme="dark"] .app) .stars { color: #ffb800 !important; }
+.heartLine { filter: brightness(0) !important; opacity: 0.85; }
+.priceLine .discount { align-self: flex-start; margin-top: 8px; }
+/* Krisha.kz үлгісіндегі блоктар (Патша, 2026-11-16): сұр фонда толық енді ақ блоктар, бұрыш 20, арасы 12,
+   ішкі шегініс 20/16, тақырып блок ішінде 20/25; бірінші блок фотоның үстіне 20px шығып тұрады. */
+.page { background: var(--surface-page); }
+.content { position: relative; z-index: 2; margin-top: -20px; padding: 0 0 24px; gap: 12px; }
+.blk { padding: 20px 16px; border-radius: 20px; background: var(--surface-white); }
+.rules { padding: 4px 0; overflow: hidden; }
+.inner { display: flex; flex-direction: column; margin: -4px -16px -20px; }
+:global(:root[data-theme="dark"]) .blk { background: var(--surface-card); }
+:global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
+/* Атау жолы: оң жақта бөлісу мен таңдаулы (40×40, фонсыз, көк иконка — Krisha үлгісі) */
+.titleRow { display: flex; align-items: flex-start; gap: 8px; }
+.titleRow .h1 { flex: 1; min-width: 0; }
+.titleActs { flex: none; display: flex; gap: 4px; margin: -8px -10px 0 0; }
+.act { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.15s ease, transform 0.12s ease; }
+.act:active { background: rgba(34, 154, 240, 0.1); transform: scale(0.92); }
+.ico { display: block; width: 32px; height: 32px; background: var(--link); mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; }
+.venueLink { display: inline-flex; align-items: center; gap: 2px; }
+.venueLink svg { flex: none; margin-top: 1px; }
+.sizesIn { margin-top: 16px; }
+/* Созылған фото жібергенде серпіліп қайтады; жоғарғы жолақта атау (скролда) */
+.spring { transition: height 0.45s cubic-bezier(0.3, 1.35, 0.4, 1); }
+.slide .photoImg { object-position: center 40%; }
+.barTitle { left: 92px !important; right: 92px !important; opacity: 0; transform: translateY(6px); transition: opacity 0.22s ease, transform 0.22s ease; }
+.topBarOn .barTitle { opacity: 1; transform: none; }
+/* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
+.quote, .venue { transition: transform 0.12s ease, opacity 0.12s ease; }
+.quote:active { transform: scale(0.98); }
+.venue:active { opacity: 0.6; }
+button.link:active, .link button:active { opacity: 0.55; }
+
+/* Сенімділік белгісі (2026-11-18): соңғы 90 күнде шағымсыз өткен қызмет үлесі */
+.trust { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: 6px 0 0; padding: 3px 10px 3px 8px; border-radius: 10px;
+  background: rgba(49, 209, 88, 0.14); color: #1f9d48; font-size: 13px; line-height: 18px; font-weight: 600; }
+.trust span { font-weight: 800; }
+/* Сату лимиті (Патша, 2026-11-18): «Қалды 12 / 50 · осы айға», аз қалса сары; бір адамға шек — сұр жазу */
+.limitRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
+.limitBadge { height: 28px; padding: 4px 12px; border-radius: 6px; font-size: 15px; line-height: 20px; white-space: nowrap; background: var(--fill-secondary, rgba(116, 116, 128, 0.12)); color: var(--text-strong); }
+.limitHot { background: var(--orange-bg); color: var(--orange-text); font-weight: 600; }
+.limitNote { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+/* Құрамы: мекеме жазған мәтін, порциясы астында */
+.composition { font-size: 17px; line-height: 22px; color: var(--text-strong); white-space: pre-line; }
+.portion { margin-top: 8px; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+/* Пакет атауы берілсе — тауар атауы (Патша, 2026-11-18) */
+.productLine { margin: 2px 0 6px; font-size: 17px; line-height: 22px; color: var(--text-strong); font-weight: 500; }
+/* Бағадан бұрынғы контекст */
+.context { margin: 4px 0 6px; font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+/* Көлем: «Ұсынамыз» белгісі ортаңғы нұсқада */
+.size { position: relative; }
+.sizeTag { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); height: 18px; padding: 1px 8px; border-radius: 9px; background: var(--link); color: #fff; font-size: 11px; line-height: 16px; font-weight: 700; white-space: nowrap; }
+.sizeRow { padding-top: 6px; }
+/* Medeo кепілдігі */
+.guarantee .blockTitle { display: flex; align-items: center; gap: 8px; }
+.shield { width: 24px; height: 24px; border-radius: 12px; background: var(--green-bg); color: var(--green-text); display: inline-grid; place-items: center; font-size: 14px; font-weight: 800; flex: none; }
+.gList { list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 20px; color: var(--text-strong); }
+.gList li { position: relative; padding-left: 18px; }
+.gList li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 6px; height: 6px; border-radius: 3px; background: var(--green-text); }
+.gList b { font-weight: 600; }
+.gLink { align-self: flex-start; color: var(--link); font-size: 15px; line-height: 20px; font-weight: 600; }
+
+/* ===== Squirrel. (Алтай, 2026-11-21) =====
+   Баға блогы: баға → бір жасыл белгі → дана бағасы (жай мәтін). Бұрын бағаның қасында ▼25% + сары + жасыл үш белгі болатын. */
+.badge b { font-weight: 700; }
+.unitText { font-size: 15px; line-height: 20px; color: var(--hint); white-space: nowrap; }
+/* Мекеме белгілеген сөздер: маркер фоны емес, тек қалыңдық пен түс — «емле қатесі» сияқты көрінбейді */
+.hlGreen, .hlBlue { background: none !important; padding: 0; margin: 0; border-radius: 0; font-weight: 600; }
+.hlGreen { color: var(--green-text); }
+.hlBlue { color: var(--link); }
+/* Rich.tsx белгілеуі (inline стиль) — маркер фонсыз, бірақ қалыңдығы сақталады */
+:global(.hl) { background: none !important; padding: 0 !important; font-weight: 600 !important; }
+/* Шарттар: белгі бағаны кеңейді — «Қолдану тәсілі» екі жолға бөлінбейді */
+.params dt { width: 116px; }
+
+/* ===== Squirrel. 3-кезең (Патша, 2026-11-21) ===== */
+.oldTop { font-size: 15px; line-height: 20px; color: var(--hint); opacity: 0.8; }
+.old { display: none; }
+.validity { margin-top: 2px; font-size: 15px; line-height: 20px; color: var(--text-strong); opacity: 0.72; }
+.buyersLine { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 15px; line-height: 20px; color: var(--hint); }
+.buyersIco { width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5'/%3E%3Cpath d='M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5'/%3E%3Cpath d='M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2'/%3E%3C/svg%3E") center / contain no-repeat; }
+/* 13: сипаттама — жай мәтін + «Толығырақ» */
+.about { position: relative; width: 100%; }
+.aboutText { display: block; color: var(--text-strong); font-size: 17px; line-height: 22px; max-height: 88px; overflow: hidden; transition: max-height 0.3s ease; }
+.aboutOpen .aboutText { max-height: 2000px; }
+.aboutFade { position: absolute; left: 0; right: 0; top: 56px; height: 32px; background: linear-gradient(to bottom, transparent, var(--surface-white)); pointer-events: none; }
+:global(:root[data-theme="dark"]) .aboutFade { background: linear-gradient(to bottom, transparent, var(--surface-card)); }
+.more { margin-top: 8px; color: var(--link); font-size: 15px; line-height: 20px; font-weight: 600; }
+/* 14: блоктар біркелкі — кепілдік тізімі де басқалардай (бірдей нүкте, бірдей өлшем) */
+.gList { font-size: 17px; line-height: 22px; gap: 8px; }
+.gList li::before { background: var(--link); top: 8px; }
+.gList b { font-weight: 600; }
+/* 15: әр пікірдегі жұлдыз — кіші әрі сабырлы; жиынтық баға жанындағысы ғана жарқын */
+.revHead .stars { font-size: 11px !important; line-height: 14px !important; letter-spacing: 0 !important; opacity: 0.55; }
+.buyersLine { margin-top: 2px; }
+.oldTop { margin-top: 12px; }

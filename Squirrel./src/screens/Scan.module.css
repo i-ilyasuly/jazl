@@ -1,0 +1,94 @@
+.page { position: relative; height: var(--app-h, 100vh); min-height: 917px; overflow: hidden; background: linear-gradient(168deg, #1c2733 0%, #05080b 100%); color: #fff; }
+.page > h1, .page > p, .page > button, .page > .line { translate: 0 var(--top-shift); }
+.title { position: absolute; left: 0; top: 150px; width: 100%; text-align: center; font-size: 20px; line-height: 25px; font-weight: 600; }
+.hint { position: absolute; left: 56px; top: 186px; width: 300px; text-align: center; opacity: 0.7; }
+.frame { position: absolute; left: 76px; top: 290px; width: 260px; height: 260px; animation: breathe 2.4s ease-in-out infinite; }
+.found .frame { animation: lock 0.35s cubic-bezier(0.3, 1.5, 0.5, 1) both; filter: drop-shadow(0 0 10px rgba(52, 209, 122, 0.9)); }
+@keyframes breathe { 50% { transform: scale(1.03); } }
+@keyframes lock { from { transform: scale(1.1); } }
+.line { position: absolute; left: 96px; top: 420px; width: 220px; height: 3px; border-radius: 2px; background: #229af0; box-shadow: 0 0 14px 3px rgba(34, 154, 240, 0.75); animation: sweep 2.2s ease-in-out infinite; }
+@keyframes sweep { 0%, 100% { transform: translateY(-106px); } 50% { transform: translateY(106px); } }
+.tip { position: absolute; left: 46px; top: 700px; width: 320px; text-align: center; opacity: 0.6; }
+.round { position: absolute; top: 760px; width: 56px; height: 56px; border-radius: 28px; background: rgba(255, 255, 255, 0.16); display: flex; align-items: center; justify-content: center; transition: transform 0.12s ease, background 0.2s ease; }
+.round:active { transform: scale(0.9); }
+.flash { left: 132px; }
+.gallery { left: 256px; }
+.on { background: rgba(255, 213, 79, 0.9); }
+
+.scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); animation: fade 0.24s ease both; }
+@keyframes fade { from { opacity: 0; } }
+/* Патша (2026-11-17): парақ экранның астына бекітіледі және толық көрінеді (бұрын 917px бет биіктігінің астында қалып, жартысы көрінбейтін) */
+.sheet { position: fixed; z-index: 20; left: 50%; margin-left: -206px; bottom: 0; width: 412px; max-height: calc(100vh - 56px); overflow-y: auto; overscroll-behavior: contain; padding: 28px 16px calc(82px + var(--safe-b, 0px)); border-radius: 16px 16px 0 0; background: #fff; color: var(--text-strong); display: flex; flex-direction: column; gap: 12px; animation: up 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+:global(:root[data-env="telegram"]) .sheet { padding-bottom: calc(24px + var(--safe-b, 0px)); }
+@keyframes up { from { transform: translateY(100%); } }
+.grabber { position: absolute; left: 188px; top: 8px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+.venue { display: flex; align-items: center; gap: 12px; height: 48px; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; background: #eef1f5; flex: none; }
+.venueText { flex: 1; min-width: 0; display: flex; flex-direction: column; white-space: nowrap; overflow: hidden; }
+.venueText span { overflow: hidden; text-overflow: ellipsis; }
+.amount { font-size: 24px; line-height: 30px; font-weight: 700; white-space: nowrap; }
+.muted { color: var(--text-secondary); }
+.link { color: var(--link); }
+/* Пакет жолы: биіктігі 60, таңдалғаны жиексіз — фоны ғана боялады (04, 7-ереже) */
+.opts { display: flex; flex-direction: column; gap: 4px; margin: 0 -8px; }
+.pack { display: flex; align-items: center; gap: 12px; width: 100%; height: 60px; padding: 0 8px; border-radius: 12px; text-align: left; color: var(--text-strong); transition: background 0.2s ease; }
+.packOn { background: var(--chip-tint); }
+.pack:disabled { opacity: 0.5; }
+.packSub { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.packPrice { font-size: 17px; line-height: 22px; font-weight: 600; white-space: nowrap; }
+.sheetTitle { font-size: 20px; line-height: 25px; font-weight: 700; }
+.quote { position: relative; padding: 12px 40px 12px 16px; border-radius: 12px; background: rgba(34, 154, 240, 0.12); font-size: 15px; line-height: 20px; overflow: hidden; }
+.quote::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #229af0; }
+.quote i { position: absolute; right: 12px; top: -4px; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: #229af0; }
+/* Төлем өңделуде */
+.wait { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 24px 20px; text-align: center; }
+.wait h2 { font-size: 20px; line-height: 25px; font-weight: 700; }
+.wait p { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.wait b { font-size: 17px; line-height: 22px; font-weight: 600; }
+.btnWait { background: rgba(95, 107, 122, 0.16) !important; color: var(--text-secondary) !important; }
+.emoji { width: 40px; height: 40px; border-radius: 20px; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 24px; flex: none; }
+.packText { flex: 1; display: flex; flex-direction: column; white-space: nowrap; }
+.packTitle { font-size: 17px; line-height: 22px; }
+.radio { width: 24px; height: 24px; border-radius: 12px; border: 2px solid #229af0; display: flex; align-items: center; justify-content: center; flex: none; }
+.radio span { width: 12px; height: 12px; border-radius: 50%; background: #229af0; animation: pop 0.3s 0.25s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+@keyframes pop { from { transform: scale(0); } }
+.rows { display: flex; flex-direction: column; gap: 8px; }
+.rows p { display: flex; justify-content: space-between; font-size: 15px; line-height: 20px; }
+.rows b { font-weight: 600; }
+.bar { position: absolute; left: 0; bottom: 0; width: 412px; height: 66px; padding: 8px 10px; background: #fff; }
+.btn { width: 392px; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.btn:active { opacity: 0.8; }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+:global(:root[data-theme="dark"]) .sheet, :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
+.native { background: var(--surface-page) !important; }
+.native .scrim { background: transparent; }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .avatar { background: rgba(255, 255, 255, 0.09); }
+:global(:root[data-theme="dark"]) .emoji { background: rgba(92, 180, 244, 0.2); }
+/* Figma 23: «Код енгізу» сілтемесі және «кассада қосымша» парағы */
+.codeBtn { position: absolute; left: 146px; top: 732px; width: 120px; height: 36px; border-radius: 8px; background: rgba(255, 255, 255, 0.16); color: #fff; }
+.kvList { display: flex; flex-direction: column; }
+.kvList p { display: flex; align-items: center; justify-content: space-between; height: 44px; font-size: 17px; line-height: 22px; }
+.kvList p + p { box-shadow: inset 0 1px 0 var(--separator); }
+.kvList b { font-weight: 600; }
+.extraChip { align-self: flex-start; height: 28px; padding: 4px 8px; border-radius: 8px; background: rgba(49, 209, 88, 0.16); color: #1b6b2e;  --dark-fg: var(--tone-ok); }
+.bar2 { display: flex; gap: 8px; }
+.bar2 .btn { width: auto; flex: 1; }
+.btn2 { background: var(--chip-tint); color: var(--link); }
+:global(:root[data-theme="dark"]) .extraChip { color: #fff; }
+.closedBox { position: absolute; left: 32px; top: calc(320px + var(--top-shift, 0px)); width: 348px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.closedTitle { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
+.closedText { color: var(--text-secondary); }
+
+/* B3.1 · дана саны (Патша, 2026-11-17) */
+.units { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 12px 16px; border-radius: 12px; background: var(--surface-page); }
+.unitsText { display: flex; flex-direction: column; gap: 2px; }
+.unitsText b { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
+.unitsText small { font-size: 13px; line-height: 16px; color: var(--text-secondary); }
+.unitsFixed { min-width: 40px; text-align: center; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--text-strong); }
+.stepper { display: flex; align-items: center; gap: 12px; }
+.stepper button { width: 40px; height: 40px; border-radius: 20px; background: var(--chip-tint); color: var(--link); font-size: 24px; line-height: 30px; font-weight: 600; transition: transform 0.12s ease, opacity 0.12s ease; }
+.stepper button:active:not(:disabled) { transform: scale(0.9); }
+.stepper button:disabled { opacity: 0.35; }
+.stepper b { min-width: 24px; text-align: center; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }

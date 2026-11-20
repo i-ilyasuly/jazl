@@ -1,0 +1,5 @@
+.bubble { position: fixed; z-index: 200; left: 0; top: 50%; width: 44px; height: 44px; border-radius: 22px; background: rgba(255, 255, 255, 0.92); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translate(-44px, -50%) scale(0.7); transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease; pointer-events: none; }
+.chev { width: 10px; height: 10px; margin-left: 4px; border-left: 2.5px solid #229af0; border-bottom: 2.5px solid #229af0; transform: rotate(45deg); }
+.ready { background: #229af0; }
+.ready .chev { border-color: #fff; }
+:global(:root[data-theme="dark"]) .bubble:not(.ready) { background: rgba(36, 47, 61, 0.95); }
