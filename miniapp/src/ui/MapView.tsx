@@ -45,7 +45,8 @@ export function MapView({ venues, shown, sel, onPick, onTapEmpty, me, onReady, p
         const el = document.createElement("button");
         el.className = s.pin; el.setAttribute("aria-label", v.name);
         el.style.setProperty("--tint", kindTint[v.kind]);
-        el.innerHTML = `<span class="${s.dot}"><i>${kindEmoji[v.kind]}</i></span><span class="${s.price}">${fmt(Math.min(...v.offers.map((o) => o[1])))}-дан</span>`;
+        // Патша (2026-11-21, 10): Airbnb сияқты — түйреуіште бағасы әрдайым жазулы
+        el.innerHTML = `<span class="${s.dot}"><i>${kindEmoji[v.kind]}</i></span><span class="${s.price}">${fmt(Math.min(...v.offers.map((o) => o[1])))}</span>`;
         el.addEventListener("click", (e) => { e.stopPropagation(); pickRef.current(v); });
         markers.current.set(v.id, { m: new ml.Marker({ element: el, anchor: "center" }).setLngLat(lngLat(v)).addTo(m), el });
       }
@@ -78,5 +79,8 @@ export function MapView({ venues, shown, sel, onPick, onTapEmpty, me, onReady, p
     });
   }, [me, live]);
 
-  return <div ref={box} className={`${s.map} ${live ? s.live : ""}`} />;
+  return <>
+    <div ref={box} className={`${s.map} ${live ? s.live : ""}`} />
+    {!live && <span className={s.loading} aria-label="Карта жүктелуде" />}
+  </>;
 }

@@ -104,3 +104,6 @@
 /* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
 .segBtn:active { opacity: 0.6; }
 .rateClose:active { opacity: 0.5; }
+
+/* Патша (2026-11-21, 3): маркер фоны жоқ — тек түсті әріп */
+.renewText b { background: none !important; padding: 0 !important; color: var(--tx-green) !important; }

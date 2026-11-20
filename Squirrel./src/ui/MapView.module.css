@@ -14,3 +14,17 @@
 @keyframes pulse { 50% { box-shadow: 0 0 0 14px rgba(34, 154, 240, 0.08), 0 2px 6px rgba(0, 0, 0, 0.3); } }
 :global(:root[data-theme="dark"]) .pin { background: #242f3d; }
 :global(:root[data-theme="dark"]) .dot { background: color-mix(in srgb, var(--tint) 35%, #242f3d); }
+
+/* Патша (2026-11-21, 9): жасанды карта жоқ — нақты карта бірден, жүктелгенше карта фонының түсі мен айналма */
+.map { opacity: 1 !important; pointer-events: auto !important; background: #f2efe9; }
+:global(:root[data-theme="dark"]) .map { background: #1c2530; }
+.loading { position: absolute; z-index: 2; left: 50%; top: 45%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; border: 3px solid rgba(34, 154, 240, 0.2); border-top-color: #229af0; animation: mvspin 0.8s linear infinite; pointer-events: none; }
+@keyframes mvspin { to { transform: rotate(360deg); } }
+/* Патша (2026-11-21, 10): баға түйреуіші — ақ «таблетка»: санат белгісі + баға; таңдалғаны көк */
+.pin { width: auto !important; height: 34px !important; padding: 0 12px 0 32px; border-radius: 17px !important; display: flex; align-items: center; white-space: nowrap; }
+.pin .dot { inset: 4px auto 4px 4px; width: 26px; height: 26px; }
+.pin .dot i { font-size: 14px; line-height: 18px; }
+.pin .price { position: static !important; translate: none !important; opacity: 1 !important; scale: 1 !important; height: auto; padding: 0; background: none !important; color: var(--text-strong) !important; font-size: 14px; line-height: 18px; font-weight: 700; box-shadow: none !important; }
+.pin.on { height: 38px !important; background: #229af0 !important; box-shadow: 0 4px 12px rgba(34, 154, 240, 0.4) !important; }
+.pin.on .price { color: #fff !important; }
+.pin.on .dot { background: rgba(255, 255, 255, 0.9); }

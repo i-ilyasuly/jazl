@@ -112,3 +112,7 @@
 .trust { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: 6px 0 0; padding: 3px 10px 3px 8px; border-radius: 10px;
   background: rgba(49, 209, 88, 0.14); color: #1f9d48; font-size: 13px; line-height: 18px; font-weight: 600; }
 .trust span { font-weight: 800; }
+/* Патша (2026-11-21, 8): әрекет батырмалары кеңірек әрі оқылымды — аралық 8, жазу 15 px */
+.actions { gap: 8px; height: 72px; }
+.action { height: 72px; padding: 12px 0 10px; gap: 6px; }
+.action span:not(.bell) { font-size: 15px !important; line-height: 20px !important; }

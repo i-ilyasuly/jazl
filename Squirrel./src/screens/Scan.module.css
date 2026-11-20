@@ -92,3 +92,9 @@
 .stepper button:active:not(:disabled) { transform: scale(0.9); }
 .stepper button:disabled { opacity: 0.35; }
 .stepper b { min-width: 24px; text-align: center; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
+/* Патша (2026-11-21, 7): «Код енгізу» төменгі ортада, жарық пен галерея оның екі жағында — бір қатарда, бір-бірін баспайды */
+.tip { top: 704px !important; }
+.round { top: 764px !important; }
+.flash { left: 56px !important; }
+.gallery { left: 300px !important; }
+.codeBtn { left: 132px !important; top: 768px !important; width: 148px !important; height: 48px !important; border-radius: 24px !important; font-size: 15px; }

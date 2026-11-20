@@ -211,8 +211,8 @@ button.link:active, .link button:active { opacity: 0.55; }
 .unitText { font-size: 15px; line-height: 20px; color: var(--hint); white-space: nowrap; }
 /* Мекеме белгілеген сөздер: маркер фоны емес, тек қалыңдық пен түс — «емле қатесі» сияқты көрінбейді */
 .hlGreen, .hlBlue { background: none !important; padding: 0; margin: 0; border-radius: 0; font-weight: 600; }
-.hlGreen { color: var(--hl-green-text); }
-.hlBlue { color: var(--link); }
+.hlGreen { color: var(--tx-green); }
+.hlBlue { color: var(--tx-blue); }
 /* Rich.tsx белгілеуі (inline стиль) — маркер фонсыз, бірақ қалыңдығы сақталады */
 :global(.hl) { background: none !important; padding: 0 !important; font-weight: 600 !important; }
 /* Шарттар: белгі бағаны кеңейді — «Қолдану тәсілі» екі жолға бөлінбейді */
