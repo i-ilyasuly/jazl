@@ -204,7 +204,6 @@ function OfferView({ id }: { id?: string }) {
           </p>
           {venue?.trust != null && <p className={s.trust}><span aria-hidden>✓</span>{`Сенімді мекеме · ${venue.trust}% қызмет шағымсыз`}</p>}
           {/* Бағадан бұрын контекст (Хормози): клиент әдетте қанша төлейтінін көрсетіп, сосын пакет бағасы */}
-          {!ended && <p className={s.context}>{habitText(offer.units, d.days ?? 30, offer.unitWord, offer.oldPrice)}</p>}
           <div className={s.priceRow}>
             <div>
               <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}>{fmt(offer.price)}</span></p>
@@ -212,7 +211,7 @@ function OfferView({ id }: { id?: string }) {
             </div>
             <div className={s.badges} style={ended ? { visibility: "hidden" } : undefined}>
               {/* Squirrel.: бір жасыл белгі (жеңілдік + үнем) және дана бағасы жай мәтін — бағамен таласпайды */}
-              <span className={`${s.badge} ${s.green}`}><b>▼ {discount(offer)}%</b>{` · ${fmt(saving(offer))} үнем`}</span>
+              <span className={`${s.badge} ${s.green}`}><b>▼ {discount(offer)}%</b></span>
               <span className={s.unitText}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
             </div>
           </div>

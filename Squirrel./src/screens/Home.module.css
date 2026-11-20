@@ -46,7 +46,3 @@
 /* Басқан сәтте бірден көрінетін жауап (Патша, 2026-11-16) */
 .soon { transition: transform 0.12s ease; }
 .soon:active { transform: scale(0.96); }
-
-/* Squirrel.: «дайын» сөзі пайыздан кіші әрі әлсіз — сан басты, сөз түсіндіреді */
-.soonUnit { font-size: 15px; line-height: 20px; font-weight: 500; color: var(--hint); }
-.soonLabel { color: var(--hint); font-weight: 500; }

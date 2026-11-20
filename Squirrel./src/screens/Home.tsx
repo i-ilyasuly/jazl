@@ -53,9 +53,8 @@ export function Home() {
           {soon.map((x, i) => (
             <button key={x.pct} className={s.soon} onClick={() => { haptic.tap(); setSheet(x); }}>
               <span className={s.soonFill} style={{ width: x.fill, animationDelay: `${0.15 + i * 0.08}s` }} />
-              {/* Squirrel.: «Жуырда 30%» түсініксіз еді (30% жеңілдік пе?) — енді «Жаңа санат · 30% дайын» */}
-              <span className={s.soonLabel}>Жаңа санат</span>
-              <span className={s.soonPct}>{x.pct}%<small className={s.soonUnit}> дайын</small></span>
+              <span className={s.soonLabel}>Жуырда</span>
+              <span className={s.soonPct}>{x.pct}%</span>
             </button>
           ))}
         </div>

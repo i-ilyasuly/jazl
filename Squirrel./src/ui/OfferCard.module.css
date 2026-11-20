@@ -45,8 +45,11 @@
    2) Оң баған иерархиясы: баға (24/700) → дана бағасы (15, екінші деңгей мәтін, белгісіз) → бір жасыл белгі.
       Бұрын бір карточкада 3 түсті белгі (жасыл ▼25%, сары дана бағасы, жасыл үнем) бір-бірімен таласатын. */
 .title { max-width: calc(100% - 72px); }
-.unit { top: 108px; height: 20px; padding: 0; background: none !important; color: var(--hint); }
-.saving { top: 140px; }
+.unit { top: 128px; height: 20px; padding: 0; background: none !important; color: var(--hint); }
+.saving { top: 156px; }
 /* «N алды» белгісі кеңейді — «2 күн қалды» енді фотоның оң жақ төменгі бұрышында, бір-бірін баспайды */
 .deadline { left: auto; right: 8px; top: 8px; }
 .saving b { font-weight: 700; }
+.oldPrice { position: absolute; right: 16px; top: 72px; font-size: 15px; line-height: 20px; color: var(--hint); opacity: 0.8; text-decoration: line-through; white-space: nowrap; }
+.oldPrice ~ .price { top: 94px; }
+/* «▼ 25%» сары/жасыл фондағы жалғыз белгі — «31» белгісі бұрынғыдай тек сан */

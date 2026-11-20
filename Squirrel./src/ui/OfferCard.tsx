@@ -44,12 +44,14 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
         {offer.photo && !broken ? <Photo src={offer.photo.replace(/([?&])w=\d+/, "$1w=480")} kind={offer.kind} className={s.photo} alt="" loading="lazy" decoding="async" width={176} height={116} onError={() => setBroken(true)} /> : <img src={kindPic[offer.kind]} className={s.thumbIcon} width={96} height={96} alt="" decoding="sync" />}
         <span className={s.buyers}>
           <img src={group} width={14} height={14} alt="" />
-          <span className="t-cap1 w-700">{`${offer.buyers} алды`}</span>
+          <span className="t-cap1 w-700">{offer.buyers}</span>
         </span>
         {left != null && <span className={`t-cap1 ${s.left} ${left > 10 ? s.leftCalm : ""}`}>{`Қалды ${left} / ${offer.limit!.monthly}`}</span>}
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
       </div>
       {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
+      {/* Squirrel.: бағаның үстінде — жеңілдіксіз бағасы, көмескі әрі сызылған */}
+      {!ended && <s className={s.oldPrice}>{fmt(offer.sizes && offer.sizes.length > 1 ? [...offer.sizes].sort((a, b) => a.price - b.price)[0].oldPrice : offer.oldPrice)}</s>}
       <p className={s.price}>{offer.sizes && offer.sizes.length > 1 ? `${fmt(Math.min(...offer.sizes.map((x) => x.price)))}-дан` : fmt(offer.price)}</p>
       {ended ? <>
         <span className={`t-cap1 ${s.over}`}>{soldOut ? "Таусылды" : "Аяқталды"}</span>
@@ -59,7 +61,7 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
       </> : <>
         {/* Squirrel.: үш түрлі түсті белгінің орнына — бір жасыл белгі (жеңілдік + үнем), дана бағасы жай мәтін */}
         <span className={s.unit}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
-        <span className={s.saving}><b>▼ {discount(offer)}%</b>{` · ${fmt(saving(offer))} үнем`}</span>
+        <span className={s.saving}><b>▼ {discount(offer)}%</b></span>
       </>}
     </Link>
   );
