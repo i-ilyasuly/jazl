@@ -43,7 +43,9 @@ export function PackPage() {
   // Біткен не мерзімі өткен пакетте жалғыз негізгі әрекет — «Қайта алу»
   const usable = Boolean(pack && pack.left > 0 && !pack.expired);
   const rebuy = useMemo(() => ({ text: "Қайта алу", shine: true, onClick: () => { haptic.medium(); go("/rebuy/" + id); } }), [go, id]);
-  useBottomButtons(usable ? order : rebuy, usable ? scan : undefined, Boolean(pack) && !sheet);
+  // Патша (2026-11-21): тамақ пен кофеде тапсырыс жоқ — жалғыз негізгі әрекет «Сканерлеу»; шаштаразда «Жазылу + Сканерлеу»
+  const scanMain = useMemo(() => ({ text: "Сканерлеу", shine: true, onClick: () => { haptic.medium(); go("/scan?pack=" + id, "up"); } }), [go, id]);
+  useBottomButtons(usable ? (hairPack ? order : scanMain) : rebuy, usable && hairPack ? scan : undefined, Boolean(pack) && !sheet);
   const onExtended = useCallback((until: string) => { setExtending(false); setToast(`Мерзімі ұзартылды: ${until}`); window.setTimeout(() => setToast(""), 2600); }, []);
   const methods = useMethods(); const defMethod = useDefaultMethod();
   // Автожаңарту картасы: әдепкі тәсіл карта болса — сол, әйтпесе сақталған алғашқы карта

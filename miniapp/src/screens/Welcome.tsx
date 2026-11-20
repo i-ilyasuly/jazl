@@ -13,6 +13,7 @@ import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import spin from "../assets/icons/splashSpin.svg";
 import arrow from "../assets/icons/docArrow.svg";
+import { Tile } from "../ui/Tile";
 import s from "./Welcome.module.css";
 
 export function Splash() {
@@ -28,8 +29,9 @@ export function Splash() {
 }
 
 // Эмодзи ұяшықтарының торы: 4 қатар, қадамы 74, қатарлар кезекпен ығысқан. Қатарлар баяу қарама-қарсы жылжиды.
-const colors = [["#fbe4de", "#f3ead8", "#e3ecf7", "#e9e9ec", "#f6eedb", "#e4f0e4", "#ece7f6"], ["#e9e9ec", "#f6eedb", "#e4f0e4", "#ece7f6", "#fbe4de", "#f3ead8", "#e3ecf7"], ["#ece7f6", "#fbe4de", "#f3ead8", "#e3ecf7", "#e9e9ec", "#f6eedb", "#e4f0e4"], ["#e3ecf7", "#e9e9ec", "#f6eedb", "#e4f0e4", "#ece7f6", "#fbe4de", "#f3ead8"]];
-const perks = [["#f3ead8", "Пакетті алдын ала ал", "4–12 бірлік жеңілдікпен, бір төлеммен"], ["#e9e9ec", "Кассирде сканерле", "Кассирге «Medeo бойынша» дегенің жеткілікті"], ["#e4f0e4", "Қалғанын бақыла", "Мерзімі мен бірліктер әрдайым көз алдыңда"]];
+// Патша (2026-11-21): жұмыртқа артындағы ұяшықтарда — профильдегідей қанық фонды иконкалар; қатарлар бір-біріне қарсы баяу жылжиды
+const colors = [["☕", "🍴", "✂", "🎁", "▦", "h:save", "🛍"], ["h:time", "💰", "🍴", "h:star", "☕", "📍", "h:track"], ["✂", "h:bell", "🎁", "☕", "h:wallet", "🍴", "▦"], ["h:save", "🛍", "h:pin", "✂", "💰", "h:star", "☕"]];
+const perks = [["h:buy", "Пакетті алдын ала ал", "4–12 бірлік жеңілдікпен, бір төлеммен"], ["▦", "Кассирде сканерле", "Кассирге «Medeo бойынша» дегенің жеткілікті"], ["h:track", "Қалғанын бақыла", "Мерзімі мен бірліктер әрдайым көз алдыңда"]];
 
 export function Welcome() {
   const go = useGo();
@@ -42,7 +44,7 @@ export function Welcome() {
       <div className={s.grid} aria-hidden>
         {colors.map((row, r) => (
           <div key={r} className={`${s.gridRow} ${r % 2 ? s.rev : ""}`} style={{ top: 12 + r * 74, left: r % 2 ? 3 - 518 : -34 }}>
-            {[...row, ...row].map((c, i) => <span key={i} style={{ background: c }} />)}
+            {[...row, ...row].map((c, i) => <Tile key={i} e={c} size={64} className={s.cell} />)}
           </div>
         ))}
       </div>
@@ -57,7 +59,7 @@ export function Welcome() {
       <div className={s.perks}>
         {perks.map(([bg, t, sub], i) => (
           <div key={t} className={s.perk} style={{ ["--i" as string]: i }}>
-            <span className={s.slot} style={{ background: bg }} />
+            <Tile e={bg} size={44} className={s.slot} />
             <div><p className="t-sub2 w-600">{t}</p><p className={`t-cap1 ${s.perkSub}`}>{sub}</p></div>
           </div>
         ))}

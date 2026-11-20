@@ -21,7 +21,11 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
   useBackButton(close);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
-  // Патша (2026-11-16): тамақ пен кофеге де жоспарлау — күнтізбеден күн мен уақыт; үш жол: Жоспарлау · Тапсырыс · Сканер.
+  // Патша (2026-11-21): тамақ пен кофеде тапсырыс пен жоспарлау алынды — тек мекемеде сканерлеу (кассир қабылдайды).
+  // Шаштаразда жазылу қалады; мекеме өзі «тек жоспар бойынша» қойса — сол жол қалады.
+  const direct = !hair && !o.planOnly;
+  useEffect(() => { if (direct) { onClose(); startScan(go, pack.id); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // (Бұрынғы ереже, 2026-11-16): тамақ пен кофеге де жоспарлау — күнтізбеден күн мен уақыт; үш жол: Жоспарлау · Тапсырыс · Сканер.
   // «Тек жоспар бойынша» ұсыныс: жалғыз жол — жоспарлау/жазылу (мекеме солай қойған)
   const opts: { id: Way; icon: string; title: string; sub: string }[] = o.planOnly
     ? [{ id: "plan", icon: "📅", title: hair ? "Жазылу" : "Жоспарлау", sub: "Бұл ұсыныс тек алдын ала жоспар бойынша: күн мен уақытты таңда" }]
@@ -38,7 +42,8 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
     else go("/order/" + pack.id, "forward");
   } }), [way, go, pack.id, onClose]);
   const cancel = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: close }), [close]);
-  useBottomButtons(next, cancel);
+  useBottomButtons(next, cancel, !direct);
+  if (direct) return null;
 
   return (
     <div className={`${s.root} ${closing ? s.closing : ""}`}>

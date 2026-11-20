@@ -71,3 +71,6 @@
 :global(:root[data-theme="dark"]) .logo { background: rgba(255, 255, 255, 0.09); }
 :global(:root[data-theme="dark"]) .blue { background: rgba(92, 180, 244, 0.2); }
 :global(:root[data-theme="dark"]) .green { background: rgba(52, 199, 89, 0.24); }
+
+/* Патша (2026-11-21): ұяшықтар — иконкалы плиткалар (Tile), бұрышы 16 */
+.gridRow .cell { flex: none; border-radius: 16px !important; opacity: 0.92; }

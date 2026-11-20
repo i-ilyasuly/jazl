@@ -29,6 +29,8 @@ const map: Record<string, [string, C]> = {
   "a:bell": ["bell", "orange"], "a:rules": ["sun", "blue"], "a:security": ["shield", "green"], "a:log": ["file", "gray"], "a:maint": ["triangle", "red"], "a:eye": ["eye", "gray"],
   "a:pay": ["credit-card", "blue"], "a:settle": ["landmark", "green"], "a:recon": ["refresh", "red"], "a:refunds": ["undo-2", "orange"], "a:expired": ["clock", "gray"], "a:export": ["download", "lavender"],
   "a:templates": ["file", "gray"], "a:repeat": ["flag", "orange"], "a:moderation": ["eye", "blue"],
+  // «Қалай жұмыс істейді?» және таныстыру (Патша, 2026-11-21)
+  "h:buy": ["shopping-bag", "orange"], "h:say": ["message", "green"], "h:track": ["package", "indigo"], "h:save": ["percent", "red"], "h:star": ["star", "yellow"], "h:time": ["clock", "blue"], "h:wallet": ["wallet", "lavender"], "h:pin": ["map-pin", "red"], "h:bell": ["bell", "cyan"],
   "🍔": ["utensils", "orange"], "🌯": ["utensils", "orange"], "🥙": ["utensils", "orange"], "🍕": ["utensils", "orange"], "🍵": ["coffee", "orange"], "💈": ["scissors", "purple"],
 };
 const norm = (e: string) => e.replace(/️/g, "").trim();
