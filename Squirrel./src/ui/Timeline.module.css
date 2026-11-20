@@ -1,0 +1,13 @@
+.row { display: flex; align-items: flex-start; height: 10px; }
+.el { flex: 1; display: flex; align-items: center; gap: 8px; padding-right: 8px; height: 10px; --tl: #229af0; }
+.last { flex: none; padding-right: 0; }
+.used { --tl: #31d158; }
+.warn { --tl: #ffb800; }
+.dot, .line { transition: background 0.4s ease; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--tl); flex: none; animation: dotIn 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both; animation-delay: calc(0.25s + var(--i) * 90ms); }
+.line { flex: 1; height: 4px; border-radius: 2px; background: var(--tl); transform-origin: left; animation: lineIn 0.3s ease-out both; animation-delay: calc(0.32s + var(--i) * 90ms); }
+@keyframes dotIn { from { transform: scale(0); } }
+@keyframes lineIn { from { transform: scaleX(0); } }
+:global(:root[data-theme="dark"]) .el { --tl: #5cb4f4; }
+:global(:root[data-theme="dark"]) .used { --tl: #34c759; }
+:global(:root[data-theme="dark"]) .warn { --tl: #ffb800; }

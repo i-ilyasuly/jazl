@@ -1,0 +1,27 @@
+.root { position: fixed; inset: 0; z-index: 50; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 28px 0 calc(8px + var(--safe-b, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.closing .scrim { animation: fadeOut 0.2s ease both; }
+.closing .sheet { animation: slideDown 0.2s ease-in both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes slideUp { from { transform: translateY(100%); } }
+@keyframes slideDown { to { transform: translateY(100%); } }
+.grabber { position: absolute; left: 188px; top: 8px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+/* Бөлім тақырыбы: Title3 20/25 bold, мазмұнға дейін 12 */
+.title { margin: 0 16px 12px; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; height: 60px; padding: 0 16px; text-align: left; transition: background 0.15s ease; animation: rowIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(120ms + var(--i) * 60ms); }
+.row:active { background: rgba(34, 154, 240, 0.08); }
+@keyframes rowIn { from { transform: translateX(12px); opacity: 0; } }
+.tile { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 25px; }
+.text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.text b { font-size: 17px; line-height: 22px; font-weight: 400; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.text small { font-size: 15px; line-height: 20px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row > img { flex: none; }
+.cancel { display: block; width: 100%; height: 48px; margin-top: 4px; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--link); }
+/* Figma 23 «Мекеме: филиалдар парағы»: түсініктеме 15/20, белгі 24 (Ашық — жасыл, Жабық — сұр) */
+.note { padding: 0 16px 8px; color: var(--text-secondary); }
+.badge { flex: none; height: 24px; padding: 4px 8px; border-radius: 8px; background: rgba(95, 107, 122, 0.12); color: #5f6b7a; }
+.badge.ok { background: rgba(49, 209, 88, 0.16); color: #1b6b2e;  --dark-fg: var(--tone-ok); }
+.extra { margin-top: 8px; border-radius: 12px; background: var(--chip-tint); }
+:global(:root[data-theme="dark"]) .badge { color: #fff; }

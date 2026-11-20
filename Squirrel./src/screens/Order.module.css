@@ -1,0 +1,77 @@
+.empty { padding: 40px 16px; text-align: center; color: var(--text-secondary); font-size: 17px; line-height: 22px; }
+.pack, .card { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border-radius: 20px; background: var(--surface-white); text-align: left; }
+.emoji, .pin { width: 52px; height: 52px; flex: none; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 34px; }
+.pin { width: 44px; height: 44px; font-size: 20px; line-height: 25px; border-radius: 12px; }
+.packText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.packText b { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
+.packText small { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.branch { transition: transform 0.12s ease; }
+.branch:active { transform: scale(0.98); }
+.chev { flex: none; width: 9px; height: 9px; border-right: 2px solid var(--text-secondary); border-top: 2px solid var(--text-secondary); rotate: 45deg; opacity: 0.7; }
+.h2 { margin: 12px 0 0 4px; font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { height: 44px; padding: 0 16px; border-radius: 8px; background: var(--surface-white); color: var(--text-strong); font-size: 17px; line-height: 22px; font-weight: 500; transition: background 0.2s ease, color 0.2s ease, transform 0.12s ease; }
+.chip:active { transform: scale(0.95); }
+.on { background: var(--chip-tint); color: var(--link); font-weight: 600; }
+.quote { position: relative; margin-top: 8px; padding: 12px 40px 12px 16px; border-radius: 14px; background: rgba(255, 184, 0, 0.12); border-left: 4px solid #ffb800; font-size: 15px; line-height: 20px; color: var(--text-strong); }
+.quote i { position: absolute; right: 12px; top: -6px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b301; font-style: normal; }
+
+.root { position: fixed; inset: 0; z-index: 50; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
+@keyframes fadeIn { from { opacity: 0; } }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 30px 16px calc(24px + var(--safe-b, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+@keyframes slideUp { from { transform: translateY(100%); } }
+.grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+.sheetTitle { font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); padding: 0 4px 8px; }
+.bRow { position: relative; display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 10px 4px; text-align: left; }
+.bRow + .bRow::before { content: ""; position: absolute; left: 4px; right: 0; top: 0; height: 1px; background: var(--separator); }
+.bRow:disabled { opacity: 0.5; }
+.km { font-size: 15px; line-height: 20px; color: var(--text-secondary); }
+.radio { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 2px solid #9aa5b1; transition: border 0.18s ease; }
+.bOn .radio { border: 7px solid #229af0; }
+.bRow { border-radius: 14px; padding-left: 10px; padding-right: 10px; transition: background 0.2s ease; }
+.bOn { background: var(--chip-tint); }
+.bOn::before, .bOn + .bRow::before { display: none; }
+.green { color: #1f9a41;  --dark-fg: var(--tone-ok); }
+.red { color: #e53935;  --dark-fg: var(--tone-bad); }
+.sendSheet { align-items: center; text-align: center; gap: 8px; padding-top: 36px; padding-bottom: calc(40px + var(--safe-b, 0px)); }
+.sendSheet .sheetTitle { padding-bottom: 0; }
+.sendText { font-size: 17px; line-height: 22px; color: var(--text-secondary); }
+.ring { width: 52px; height: 52px; margin-bottom: 8px; border-radius: 50%; border: 4px solid rgba(34, 154, 240, 0.2); border-top-color: #229af0; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.bar { position: fixed; z-index: 30; left: 50%; margin-left: -206px; bottom: 0; width: 412px; height: calc(70px + var(--safe-b, 0px)); padding: 10px 10px 0; background: var(--glass-bg); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-top: 1px solid var(--glass-border); }
+.btn { position: relative; overflow: hidden; width: 100%; height: 50px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; }
+.btn::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: shine 2.6s ease-in-out infinite; }
+.btn:disabled { opacity: 0.6; }
+@keyframes shine { 0%, 45% { left: -60%; } 100% { left: 130%; } }
+:global(:root[data-theme="dark"]) .pack, :global(:root[data-theme="dark"]) .card, :global(:root[data-theme="dark"]) .chip:not(.on) { background: var(--surface-card); }
+:global(:root[data-theme="dark"]) .on { background: rgba(92, 180, 244, 0.22); }
+:global(:root[data-theme="dark"]) .quote { background: rgba(255, 184, 0, 0.16); }
+:global(:root[data-theme="dark"]) .green { color: #34c759 !important; }
+:global(:root[data-theme="dark"]) .red { color: #ff6b6b !important; }
+/* Figma 23 «мерзім алу уақытынан ерте бітеді»: сызылған күн, сары ескерту, кесте 52 */
+.off { color: var(--text-secondary); text-decoration: line-through; background: rgba(118, 118, 128, 0.12); }
+.warn { position: relative; padding: 12px 40px 12px 16px; border-radius: 12px; background: #fdf3d6; color: var(--text-strong); }
+.warn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; background: #f5b800; }
+.warn i { position: absolute; right: 12px; top: -12px; font-size: 48px; line-height: 48px; font-weight: 700; font-style: normal; color: #f5b800; }
+.shake { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); } }
+.kvCard { margin-top: 12px; padding: 0 16px; border-radius: 20px; background: var(--surface-white); }
+.kvCard p { display: flex; align-items: center; justify-content: space-between; height: 52px; font-size: 17px; line-height: 22px; color: var(--text-secondary); }
+.kvCard p + p { box-shadow: inset 0 1px 0 var(--separator); }
+.kvCard b { font-weight: 600; color: var(--text-strong); }
+.kvCard b.amber { color: #a86400; }
+.btnOff { opacity: 0.4; }
+:global(:root[data-theme="dark"]) .warn { background: rgba(245, 184, 0, 0.16); }
+:global(:root[data-theme="dark"]) .kvCard b.amber { color: #fff; }
+
+/* «Қашан аласың»: қазір не күнтізбе (Патша, 2026-11-17) */
+.whenList { display: flex; flex-direction: column; gap: 8px; }
+.when { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 12px 16px; border-radius: 16px; background: var(--surface-white); text-align: left; transition: transform 0.12s ease, background 0.2s ease; }
+.when:active:not(:disabled) { transform: scale(0.98); }
+.when:disabled { opacity: 0.5; }
+.whenOn { background: var(--chip-tint); }
+.radio { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #9aa5b1; }
+.radioOn { border: 7px solid #229af0; }
+:global(:root[data-theme="dark"]) .when { background: var(--surface-card); }
+:global(:root[data-theme="dark"]) .whenOn { background: rgba(92, 180, 244, 0.16); }

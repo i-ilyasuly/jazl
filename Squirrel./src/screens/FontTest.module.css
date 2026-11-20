@@ -1,0 +1,10 @@
+.box { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 16px; }
+.item { display: flex; flex-direction: column; gap: 4px; }
+.item small { color: var(--text-secondary); }
+.item p { color: var(--text-strong); }
+.hlG, .hlB { font-weight: 600; }
+.hlG { background: var(--hl-green-bg); color: var(--hl-green-text); }
+.hlB { background: var(--hl-blue-bg); color: var(--hl-blue-text); }
+.code { font-size: 34px; line-height: 41px; font-weight: 800; color: var(--link); }
+.serif { font-family: "Medeo Serif", Georgia, serif; color: var(--text-strong); }
+.pixel { font-family: "Medeo Pixel", monospace; color: var(--text-strong); }

@@ -1,0 +1,22 @@
+.root { position: fixed; inset: 0; z-index: 50; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: fadeIn 0.24s ease both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 36px 0 20px; background: var(--surface-white); border-radius: 16px 16px 0 0; animation: slideUp 0.34s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.closing .scrim { animation: fadeOut 0.2s ease both; }
+.closing .sheet { animation: slideDown 0.2s ease-in both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes slideUp { from { transform: translateY(100%); } }
+@keyframes slideDown { to { transform: translateY(100%); } }
+.grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+.title { height: 32px; padding: 0 16px 8px; font-size: 20px; line-height: 25px; font-weight: 600; color: var(--text-strong); }
+.row { display: block; width: 100%; height: 46px; padding: 10px 16px; text-align: left; font-size: 17px; line-height: 22px; color: var(--text-strong); transition: background 0.15s ease; }
+.row:active { background: rgba(34, 154, 240, 0.08); }
+.danger { color: #d8434b; }
+.cancel { display: block; width: 100%; height: 42px; padding: 14px 0 4px; text-align: center; color: var(--link); }
+.row { position: relative; }
+.radio { position: absolute; right: 16px; top: 12px; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px #9aa5b1; }
+.radio::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: #229af0; scale: 0; transition: scale 0.25s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.radioOn { box-shadow: inset 0 0 0 2px #229af0; }
+.radioOn::after { scale: 1; }
+.tall { height: 54px; padding: 14px 16px; }
+.tall .radio { top: 16px; }

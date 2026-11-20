@@ -1,0 +1,10 @@
+/* 380×64, навигацияның үстінде 12px; мәтін 15/20, батырма 36 */
+.bar { position: fixed; z-index: 29; left: 50%; margin-left: -190px; bottom: calc(100px + var(--safe-b, 0px)); width: 380px; min-height: 64px; padding: 12px 12px 12px 16px; border-radius: 12px; background: #fdf3d6; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); animation: in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes in { from { transform: translateY(16px); opacity: 0; } }
+.edge { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; background: #f5b800; }
+.text { flex: 1; min-width: 0; color: var(--text-strong); }
+.btn { flex: none; height: 36px; padding: 8px 12px; border-radius: 8px; color: var(--link); transition: background 0.15s ease, opacity 0.15s ease; }
+.btn:active { background: rgba(34, 154, 240, 0.1); }
+.btn:disabled { opacity: 0.5; }
+.mark { position: absolute; right: 12px; top: -12px; font-size: 48px; line-height: 48px; font-weight: 700; color: #f5b800; pointer-events: none; }
+:global(:root[data-theme="dark"]) .bar { background: #3a3424; }

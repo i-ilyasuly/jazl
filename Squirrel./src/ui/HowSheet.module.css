@@ -1,0 +1,18 @@
+.root { position: fixed; inset: 0; z-index: 50; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.24s ease both; }
+.sheet { position: absolute; left: 50%; margin-left: -206px; bottom: 0; width: 412px; padding: 36px 20px calc(34px + var(--safe-b, 0px)); background: var(--surface-white); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 16px; animation: slideUp 0.36s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.closing .scrim { animation: fadeOut 0.22s ease both; }
+.closing .sheet { animation: slideDown 0.22s ease-in both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes slideUp { from { transform: translateY(100%); } }
+@keyframes slideDown { to { transform: translateY(100%); } }
+.grabber { position: absolute; left: 188px; top: 10px; width: 36px; height: 4px; border-radius: 2px; background: rgba(95, 107, 122, 0.4); }
+.title { font-size: 20px; line-height: 25px; font-weight: 700; color: var(--text-strong); }
+.step { display: flex; align-items: center; gap: 14px; color: var(--text-strong); animation: stepIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(140ms + var(--i) * 70ms); }
+@keyframes stepIn { from { transform: translateX(16px); opacity: 0; } }
+.slot { flex: none; width: 44px; height: 44px; border-radius: 12px; }
+.text { display: flex; flex-direction: column; gap: 1px; width: 314px; }
+.sub { width: 300px; color: var(--text-secondary); }
+.btn { width: 372px; height: 50px; border-radius: 8px; background: #229af0; color: #fff; font-size: 17px; line-height: 22px; font-weight: 500; transition: transform 0.12s ease; }
+.btn:active { transform: scale(0.98); }

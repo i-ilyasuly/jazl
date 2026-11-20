@@ -1,0 +1,86 @@
+@import "./fonts.css";
+@import "./tokens.css";
+@import "./motion.css";
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body, #root { height: 100%; }
+body {
+  font-family: var(--font-sans);
+  background: var(--surface-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+img { display: block; }
+
+.app { position: relative; width: 100%; max-width: var(--app-width); min-height: 100%; margin: 0 auto; }
+
+/* Мәтін стильдері: Telegram Mini Apps UI Kit шкаласы (04 файлы, 18-ереже): 34/41, 28/34, 24/30, 20/25, 19/24, 17/22, 16/21, 15/20, 13/16, 11/13 */
+.t-large-title { font-size: 34px; line-height: 41px; font-weight: 700; }
+.t-title1 { font-size: 28px; line-height: 34px; font-weight: 700; }
+.t-title3 { font-size: 20px; line-height: 25px; font-weight: 600; }
+.t-headline { font-size: 19px; line-height: 24px; font-weight: 600; }
+.t-text { font-size: 17px; line-height: 22px; font-weight: 400; }
+.t-title2 { font-size: 24px; line-height: 30px; font-weight: 700; }
+.t-sub1 { font-size: 16px; line-height: 21px; font-weight: 400; }
+.t-sub2 { font-size: 15px; line-height: 20px; font-weight: 400; }
+.t-cap1 { font-size: 13px; line-height: 16px; font-weight: 400; }
+.t-cap2 { font-size: 11px; line-height: 13px; font-weight: 400; }
+.w-600 { font-weight: 600; }
+.w-700 { font-weight: 700; }
+
+/* Жоғарғы аймақ. Figma-да Telegram батырмалары top 52-де, мазмұн 96-дан басталады.
+   Telegram ішінде нақты қауіпсіз аймақ мәндері қолданылады (Bot API 8.0). */
+:root { --top-shift: 0px; --safe-b: 0px; --bar-c: 68px; --bar-l: 96px; --bar-r: 92px; }
+/* Telegram жүйелік батырмалар жолының ортасы (--bar-c) және олардың арасындағы бос орын (--bar-l/--bar-r). */
+:root[data-env="telegram"] { --bar-c: calc((var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) / 2) * var(--k, 1)); --bar-l: calc(92px * var(--k, 1) + 4px); --bar-r: calc(88px * var(--k, 1) + 4px); }
+/* --k: бет масштабының еселігі (412 / телефон ені). Telegram шегіністерді телефон өлшемімен береді,
+   ал макет 412-ге созылған, сондықтан оларды --k-ға көбейтеміз. 93 = макеттегі жоғарғы аймақ (96) − 3. */
+:root[data-env="telegram"] { --top-shift: calc((var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)) * var(--k, 1) - 93px); --safe-b: calc(var(--tg-safe-area-inset-bottom, 0px) * var(--k, 1)); }
+
+/* ── Түнгі режим: мәтін әдепкіде таза ақ (батырмалардағы жазу да). Мағыналы түсті мәтін (сәтті — жасыл, қате — қызыл)
+   түнде де түсін сақтайды: модуль ережесі --dark-fg: var(--tone-ok|--tone-bad) береді (Патша, 2026-11-16, токендерге көшу). ── */
+:root { --tone-ok: #1b6b2e; --tone-bad: #e53935; }
+:root[data-theme="dark"] { --tone-ok: #6fdc8c; --tone-bad: #ff7b72; }
+:root[data-theme="dark"] .app, :root[data-theme="dark"] .app * { color: var(--dark-fg, #ffffff) !important; }
+:root[data-theme="dark"] .app ::placeholder { color: rgba(255, 255, 255, 0.72) !important; }
+/* Қара не сұр сызылған белгішелер түнде ақ болады (түсі SVG ішінде жазылған) */
+:root[data-theme="dark"] .app img[src*="111A26" i], :root[data-theme="dark"] .app img[src*="5F6B7A" i], :root[data-theme="dark"] .app img[src*="17212B" i],
+:root[data-theme="dark"] .app img[src*="9AA5B1" i], :root[data-theme="dark"] .app img[src*="B8BEC4" i], :root[data-theme="dark"] .app img[src*="626A72" i] { filter: brightness(0) invert(1); }
+
+/* Басты бет пен іздеу бетіндегі ортақ іздеу жолағы: Telegram батырмаларының дәл ортасында, 48px биік */
+.topSearch { position: absolute; z-index: 21; left: var(--bar-l); right: var(--bar-r); top: calc(var(--bar-c) - 21px); height: 42px; border-radius: 12px; background: var(--search-bg); border: 1px solid var(--search-border); display: flex; align-items: center; gap: 8px; padding: 0 14px; text-align: left; transition: box-shadow 0.2s ease, transform 0.12s ease; }
+.topSearch:focus-within { box-shadow: 0 0 0 2px rgba(34, 154, 240, 0.3); }
+.topSearch > img { width: 20px; height: 20px; flex: none; }
+.topSearch > span, .topSearch > input { flex: 1; min-width: 0; font-size: 17px; line-height: 22px; color: var(--text-secondary); border: 0; outline: 0; background: none; padding: 0; font-family: inherit; caret-color: #229af0; white-space: nowrap; }
+.topSearch > input { color: var(--text-strong); }
+.topSearch > input::placeholder { color: var(--text-secondary); }
+button.topSearch:active { transform: scale(0.98); }
+/* Беттің атауы: «Артқа» мен ⌄⋯ батырмаларының арасында, сол жолдың ортасында */
+.pageTitle { position: absolute; z-index: 19; left: var(--bar-l); right: var(--bar-r); top: calc(var(--bar-c) - 12px); height: 24px; text-align: center; font-size: 19px; line-height: 24px; font-weight: 600; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+/* Фото үстіндегі әйнек батырмалар: иконкасы әр режимде қара болып қалады */
+:root[data-theme="dark"] .app .keepIcon img { filter: none !important; }
+/* Басты беттегі іздеу: айналдырғанда орнында бекітулі, навигациядағыдай мөлдір glass */
+.topSearch.pinned { position: fixed; z-index: 40; background: var(--glass-bg); border: 1px solid var(--glass-border); -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); box-shadow: inset 0 1px 0 var(--glass-hi), 0 4px 18px var(--glass-lo); }
+@media (min-width: 413px) { .topSearch.pinned { left: calc(50% - 206px + var(--bar-l)); right: calc(50% - 206px + var(--bar-r)); } }
+/* Ақпарат блогы (Патша, 2026-11-16): дәйексөз стилінің орнына Krisha «Хабарландырудың үлкен өлшемі» үлгісі —
+   шетке дейін емес, бұрышы 12, ішкі шегініс 12/16, сол жақ жолақ пен ” белгісі жоқ; боялған сөздер өзгеріссіз қалады. */
+.infoBox { border-radius: 8px !important; padding: 12px 16px !important; height: auto !important; min-height: 0 !important; background: #eaf2fd !important; border-left: 0 !important; color: var(--text-strong); overflow: hidden; }
+.infoBox::before { display: none !important; }
+.infoBox > i, .infoBox > [class*=mark], .infoBox > [class*=Mark], .infoBox > span[class*=bar], .infoBox > span[class*=Bar], .infoBox > [class*=edge] { display: none !important; }
+.infoWarn { background: #fef5ca !important; }
+.infoOk { background: #ddf5df !important; }
+:root[data-theme="dark"] .infoBox { background: rgba(92, 180, 244, 0.16) !important; }
+:root[data-theme="dark"] .infoWarn { background: rgba(255, 219, 79, 0.14) !important; }
+:root[data-theme="dark"] .infoOk { background: rgba(49, 209, 88, 0.16) !important; }
+/* Басқан сәтте бірден көрінетін жауап: өз :active ережесі жоқ мәтінді батырмалар (Патша, 2026-11-16) */
+.app button.t-sub2:not(:disabled):active, .app button.t-cap1:not(:disabled):active { opacity: 0.6; }
+/* Ескерту блогындағы боялған сөздер: кішірек бұрыш, жол ауысса да әр бөлігі тұтас көрінеді (Патша, 2026-11-16) */
+.infoBox :is(b, strong)[class], .hl { border-radius: 4px !important; padding: 0 3px !important; margin: 0 -1px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* Фондағы мәтіннің (ескерту, сипаттама) боялған сөздері қалың болмайды — айналасындағы мәтінмен бірдей салмақ (Патша, 2026-11-16) */
+.infoBox b, .infoBox strong, .infoBox [class*=hl], .infoBox [class*=green], .infoBox [class*=blue] { font-weight: inherit !important; }
+
+/* Medeo Басқару десктопта: бет толық енге жайылады (сол жақта мәзір) */
+:root[data-desk] .app { max-width: none; }

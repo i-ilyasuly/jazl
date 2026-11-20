@@ -1,0 +1,73 @@
+/* Аласа экранда мазмұн кесілмей, айналдырылады: бет биіктігі макеттегі соңғы батырмаға дейін жетеді */
+.page { position: relative; min-height: max(var(--app-h, 100vh), calc(908px + var(--top-shift))); background: #f4f6fa; overflow-x: clip; }
+.page > * { translate: 0 var(--top-shift); }
+/* Бастапқы экран */
+.logo { position: absolute; left: 160px; top: 340px; width: 92px; height: 92px; border-radius: 50%; background: #e3e7ed; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+.brand { position: absolute; left: 0; top: 452px; width: 100%; text-align: center; font-size: 24px; line-height: 30px; font-weight: 600; color: var(--text-strong); }
+.tagline { position: absolute; left: 0; top: 488px; width: 100%; text-align: center; color: var(--text-secondary); }
+.spin { position: absolute; left: 190px; top: 540px; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+/* Onboarding */
+.grid { position: absolute; left: 0; top: 80px; width: 412px; height: 300px; overflow: hidden; }
+.gridRow { position: absolute; display: flex; gap: 10px; animation: drift 38s linear infinite; }
+.gridRow span { flex: none; width: 64px; height: 64px; border-radius: 16px; }
+.rev { animation-name: driftBack; }
+@keyframes drift { to { transform: translateX(-518px); } }
+@keyframes driftBack { to { transform: translateX(518px); } }
+.fadeBottom { position: absolute; left: 0; top: 292px; width: 412px; height: 110px; background: linear-gradient(180deg, rgba(244, 246, 250, 0), #f4f6fa); }
+.fadeTop { position: absolute; left: 0; top: 0; width: 412px; height: 96px; background: linear-gradient(180deg, rgba(244, 246, 250, 0.92), rgba(244, 246, 250, 0)); }
+.sticker { position: absolute; left: 131px; top: 226px; }
+.h1 { position: absolute; left: 28px; top: 402px; width: 356px; text-align: center; font-size: 28px; line-height: 34px; font-weight: 700; color: var(--text-strong); animation: up 0.5s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.lead { position: absolute; left: 38px; top: 482px; width: 336px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; color: var(--text-secondary); animation: up 0.5s 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.lead b { height: 22px; padding: 0 6px; border-radius: 6px; font-weight: 600; }
+.blue { background: #dcebfb; color: #1f5fa8; }
+.green { background: #ddf3e4; color: #1b6b2e;  --dark-fg: var(--tone-ok); }
+.nogap { display: flex; }
+@keyframes up { from { transform: translateY(12px); opacity: 0; } }
+.perks { position: absolute; left: 16px; top: 563px; width: 380px; height: 194px; padding: 16px; border-radius: 20px; background: #fff; border: 1px solid #e3e7ed; display: flex; flex-direction: column; gap: 14px; animation: up 0.5s 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.perk { display: flex; align-items: center; gap: 14px; height: 44px; color: var(--text-strong); white-space: nowrap; animation: perk 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(380ms + var(--i) * 80ms); }
+.perk > div { display: flex; flex-direction: column; gap: 0; }
+@keyframes perk { from { transform: translateX(14px); opacity: 0; } }
+.slot { flex: none; width: 44px; height: 44px; border-radius: 12px; }
+.perkSub { color: var(--text-secondary); }
+.btn { position: absolute; left: 10px; width: 392px; height: 50px; border-radius: 8px; font-size: 17px; line-height: 22px; font-weight: 500; transition: transform 0.12s ease, filter 0.12s ease; }
+.btn:active { transform: scale(0.98); filter: brightness(0.95); }
+.main { top: 778px; background: #229af0; color: #fff; }
+.second { top: 842px; background: rgba(34, 154, 240, 0.16); color: var(--link); }
+/* Қадамдар */
+.step { position: absolute; left: 16px; top: 110px; width: 380px; display: flex; flex-direction: column; gap: 12px; }
+.stepTitle { font-size: 24px; line-height: 30px; font-weight: 600; color: var(--text-strong); }
+.stepSub { margin-top: 6px; color: var(--text-secondary); white-space: nowrap; }
+.group { width: 380px; padding: 4px 0; border-radius: 20px; background: #fff; overflow: hidden; }
+.row { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; height: 50px; padding: 12px 16px; text-align: left; color: var(--text-strong); transition: background 0.15s ease; }
+.row:active { background: rgba(34, 154, 240, 0.08); }
+.rowTall { height: 70px; }
+.row:not(:last-child) { margin-bottom: 1px; }
+.row:not(:last-child)::after { content: ""; position: absolute; left: 16px; right: 0; bottom: -1px; height: 1px; background: var(--separator); }
+.rowText { display: flex; flex-direction: column; font-size: 17px; line-height: 22px; }
+.rowText small { color: var(--text-secondary); }
+.dim { color: var(--text-secondary); }
+.radio { position: relative; flex: none; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px #9aa5b1; transition: box-shadow 0.2s ease; }
+.radio::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: #229af0; scale: 0; transition: scale 0.28s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.radioOn { box-shadow: inset 0 0 0 2px #229af0; }
+.radioOn::after { scale: 1; }
+.quote { position: relative; width: 380px; height: 42px; padding: 10px 30px 10px 16px; border-radius: 8px; background: rgba(34, 154, 240, 0.12); color: var(--text-strong); }
+.bar { position: absolute; left: 0; top: 0; width: 4px; height: 42px; border-radius: 8px 0 0 8px; background: #229af0; }
+.mark { position: absolute; left: 350.5px; top: -10px; font-size: 56px; line-height: 56px; font-weight: 700; color: #229af0; pointer-events: none; }
+.agree { display: flex; align-items: center; gap: 12px; height: 26px; padding-left: 6px; font-size: 17px; line-height: 22px; color: var(--text-strong); align-self: flex-start; -webkit-tap-highlight-color: transparent; }
+.box { width: 24px; height: 24px; border-radius: 7px; box-shadow: inset 0 0 0 2px #9aa5b1; transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.box svg { scale: 0; transition: scale 0.25s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.boxOn { background: #229af0; box-shadow: inset 0 0 0 2px #229af0; }
+.boxOn svg { scale: 1; }
+.shake { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); color: #d8434b; }
+.shake .box { box-shadow: inset 0 0 0 2px #d8434b; }
+@keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(3px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
+:global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
+:global(:root[data-theme="dark"]) .group, :global(:root[data-theme="dark"]) .perks { background: var(--surface-card); border-color: transparent; }
+:global(:root[data-theme="dark"]) .fadeBottom { background: linear-gradient(180deg, transparent, var(--surface-page)); }
+:global(:root[data-theme="dark"]) .fadeTop { background: none; }
+/* Түнгі режим фондары (автоматты түрде қосылған) */
+:global(:root[data-theme="dark"]) .logo { background: rgba(255, 255, 255, 0.09); }
+:global(:root[data-theme="dark"]) .blue { background: rgba(92, 180, 244, 0.2); }
+:global(:root[data-theme="dark"]) .green { background: rgba(52, 199, 89, 0.24); }
