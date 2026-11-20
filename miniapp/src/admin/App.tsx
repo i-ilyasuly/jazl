@@ -22,6 +22,7 @@ export default function AdminApp() {
       <Route index element={<AGate />} />
       <Route path="pin" element={<APin />} />
       <Route path="pin/setup" element={<APin setup />} />
+      <Route path="pin/upgrade" element={<APin upgrade />} />
       <Route path="pulse" element={<APulse />} />
       <Route path="attention" element={<AAttention />} />
       <Route path="venues" element={sp(<AVenues />, undefined, "Мекемені таңдаңыз")} />

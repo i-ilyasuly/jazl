@@ -40,12 +40,12 @@ d("Medeo Басқару", () => {
 
   it("кіру: тізімде жоқ — рұқсат жоқ (ID көрсетіледі); тізімдегі — PIN орнатады, токен алады", async () => {
     expect(await json(get("/v1/admin/me", OTHER))).toMatchObject({ admin: false, telegramId: OTHER });
-    expect((await post("/v1/admin/pin", { pin: "5821", setup: true }, OTHER)).status).toBe(403);
+    expect((await post("/v1/admin/pin", { pin: "582193", setup: true }, OTHER)).status).toBe(403);
     expect((await get("/v1/admin/pulse", OTHER)).status).toBe(403);
     expect(await json(app.request("/v1/admin/me", { headers: h(ADMIN) }))).toMatchObject({ admin: true, hasPin: false });
     expect((await app.request("/v1/admin/pulse", { headers: h(ADMIN) })).status).toBe(401); // токенсіз
-    expect((await json(app.request("/v1/admin/pin", { method: "POST", headers: h(ADMIN), body: JSON.stringify({ pin: "1111", setup: true }) }))).error).toBe("weak_pin");
-    const s = await json(app.request("/v1/admin/pin", { method: "POST", headers: h(ADMIN), body: JSON.stringify({ pin: "5821", setup: true }) }));
+    expect((await json(app.request("/v1/admin/pin", { method: "POST", headers: h(ADMIN), body: JSON.stringify({ pin: "111111", setup: true }) }))).error).toBe("weak_pin");
+    const s = await json(app.request("/v1/admin/pin", { method: "POST", headers: h(ADMIN), body: JSON.stringify({ pin: "582193", setup: true }) }));
     expect(s.ok).toBe(true); tok = s.token;
     expect((await get("/v1/admin/pulse")).status).toBe(200);
     const rt = await json(get("/v1/admin/retention"));
@@ -108,9 +108,9 @@ d("Medeo Басқару", () => {
   });
 
   it("комиссия PIN-мен: қате PIN — қалған әрекет; 3 қате — 15 минут бұғат; дұрыс — өткен есеп өзгермейді (10%), жаңа қолдану 8%", async () => {
-    let r = await json(post(`/v1/admin/venues/${venueId}/fee`, { feePct: 8, pin: "0000" }));
+    let r = await json(post(`/v1/admin/venues/${venueId}/fee`, { feePct: 8, pin: "000000" }));
     expect(r).toMatchObject({ error: "bad_pin", left: 2 });
-    r = await json(post(`/v1/admin/venues/${venueId}/fee`, { feePct: 8, pin: "5821" }));
+    r = await json(post(`/v1/admin/venues/${venueId}/fee`, { feePct: 8, pin: "582193" }));
     expect(r.ok).toBe(true);
     const card = (await json(get(`/v1/admin/venues/${venueId}`))).venue;
     expect(card).toMatchObject({ feePct: 8, feeCustom: true });
@@ -119,21 +119,21 @@ d("Medeo Басқару", () => {
     const u = hist.items[0]; expect(u.venueAmount).toBe(Math.round(u.amount * 0.9));
     await dbh.pool.query("update app.redemptions set fee_pct = 8 where id = $1", [u.id]); // жаңа қолдануда 8% жазылатынын usage.test тексереді
     const u2 = (await json(get(`/v1/venue/${venueId}/history?days=1`, OWNER))).items[0]; expect(u2.venueAmount).toBe(Math.round(u2.amount * 0.92));
-    for (let i = 0; i < 2; i++) await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "0000" });
-    const locked = await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "0000" });
+    for (let i = 0; i < 2; i++) await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "000000" });
+    const locked = await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "000000" });
     expect(locked.status).toBe(423);
-    expect((await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "5821" })).status).toBe(423); // бұғат кезінде дұрыс PIN да өтпейді
+    expect((await post(`/v1/admin/venues/${venueId}/fee`, { feePct: 10, pin: "582193" })).status).toBe(423); // бұғат кезінде дұрыс PIN да өтпейді
     await dbh.pool.query("update app.admins set locked_until = null, failed = 0");
   });
 
   it("мекемені тоқтату: себебі міндетті, сатып алу жабылады, мекемеге хабар; қайта қосу", async () => {
-    expect((await post(`/v1/admin/venues/${venueId}/status`, { status: "paused", reason: "", pin: "5821" })).status).toBe(400);
-    expect((await post(`/v1/admin/venues/${venueId}/status`, { status: "paused", reason: "Қайталанған шағымдар", pin: "5821" })).status).toBe(200);
+    expect((await post(`/v1/admin/venues/${venueId}/status`, { status: "paused", reason: "", pin: "582193" })).status).toBe(400);
+    expect((await post(`/v1/admin/venues/${venueId}/status`, { status: "paused", reason: "Қайталанған шағымдар", pin: "582193" })).status).toBe(200);
     expect((await post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT)).status).toBe(409);
     expect(sent.at(-1)?.text).toContain("Мекеме уақытша тоқтатылды: Қайталанған шағымдар");
     const me = await json(app.request("/v1/venue/me", { headers: h(OWNER) }));
     expect(me.staff[0].venue).toMatchObject({ status: "paused", statusNote: "Қайталанған шағымдар" });
-    await post(`/v1/admin/venues/${venueId}/status`, { status: "active", pin: "5821" });
+    await post(`/v1/admin/venues/${venueId}/status`, { status: "active", pin: "582193" });
     expect((await post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, CLIENT)).status).toBe(200);
   });
 
@@ -163,29 +163,29 @@ d("Medeo Басқару", () => {
     expect(p.ref).toMatch(/^MD-\d+$/);
     expect((await json(get(`/v1/admin/packs?q=${p.ref}`))).packs[0].id).toBe(id);
     const before = new Date(p.validUntil).getTime();
-    expect((await post(`/v1/admin/packs/${id}/extend`, { days: 7, pin: "5821" })).status).toBe(200);
+    expect((await post(`/v1/admin/packs/${id}/extend`, { days: 7, pin: "582193" })).status).toBe(200);
     expect(new Date((await json(get(`/v1/admin/packs/${id}`))).pack.validUntil).getTime() - before).toBe(7 * 86400_000);
     // Бонус беру: PIN қате — 403/409; дұрыс — клиенттің бонусына қосылады, журналда
-    expect((await post(`/v1/admin/packs/${id}/bonus`, { amount: 1000, reason: "сынақ", pin: "0000" })).status).not.toBe(200);
-    expect((await post(`/v1/admin/packs/${id}/bonus`, { amount: 1000, reason: "сынақ", pin: "5821" })).status).toBe(200);
+    expect((await post(`/v1/admin/packs/${id}/bonus`, { amount: 1000, reason: "сынақ", pin: "000000" })).status).not.toBe(200);
+    expect((await post(`/v1/admin/packs/${id}/bonus`, { amount: 1000, reason: "сынақ", pin: "582193" })).status).toBe(200);
     const owner = (await dbh.pool.query("select user_id from app.packs where id = $1", [id])).rows[0].user_id;
     expect((await dbh.pool.query("select kind, amount, \"left\" from app.bonuses where user_id = $1 and kind = 'manual'", [owner])).rows).toEqual([{ kind: "manual", amount: 1000, left: 1000 }]);
-    expect((await post(`/v1/admin/packs/${id}/refund-use`, { reason: "Қате қолдану", pin: "1234" })).status).toBe(403);
+    expect((await post(`/v1/admin/packs/${id}/refund-use`, { reason: "Қате қолдану", pin: "123456" })).status).toBe(403);
     const left = p.left;
-    expect((await json(post(`/v1/admin/packs/${id}/refund-use`, { reason: "Қате қолдану", pin: "5821" }))).returned).toBe(1);
+    expect((await json(post(`/v1/admin/packs/${id}/refund-use`, { reason: "Қате қолдану", pin: "582193" }))).returned).toBe(1);
     expect((await json(get(`/v1/admin/packs/${id}`))).pack.left).toBe(left + 1);
   });
 
   it("техникалық жұмыстар: қосылса клиент/мекеме API 503, Басқару жұмыс істейді; журналда бәрі бар", async () => {
     expect((await post("/v1/admin/settings", { key: "maintenance", value: true })).status).toBe(403); // PIN-сіз
-    expect((await post("/v1/admin/settings", { key: "maintenance", value: true, pin: "5821" })).status).toBe(200);
+    expect((await post("/v1/admin/settings", { key: "maintenance", value: true, pin: "582193" })).status).toBe(200);
     const r = await get("/v1/me", CLIENT);
     expect(r.status).toBe(503);
     expect((await r.json()).text).toContain("Жаңарту");
     expect((await get("/v1/admin/settings")).status).toBe(200);
-    await post("/v1/admin/settings", { key: "maintenance", value: false, pin: "5821" });
+    await post("/v1/admin/settings", { key: "maintenance", value: false, pin: "582193" });
     expect((await get("/v1/me", CLIENT)).status).toBe(200);
-    expect((await post("/v1/admin/settings", { key: "graceDays", value: 40, pin: "5821" })).status).toBe(400);
+    expect((await post("/v1/admin/settings", { key: "graceDays", value: 40, pin: "582193" })).status).toBe(400);
     const log = (await json(get("/v1/admin/log"))).log.map((x: { action: string }) => x.action);
     expect(log).toEqual(expect.arrayContaining(["Комиссия өзгерді", "Өтінім бекітілді", "Ұсыныс бекітілді", "Мекеме тоқтатылды", "Шағым шешілді", "Мерзім ұзартылды", "Қолдану қайтарылды", "Техникалық жұмыстар қосылды", "Техникалық жұмыстар өшірілді"]));
   });
@@ -198,8 +198,8 @@ d("Medeo Басқару", () => {
     expect((await json(login({ auth: w(ADMIN, now - 2 * 86400) }))).reason).toBe("expired");
     expect(await json(login({ auth: w(OTHER) }))).toMatchObject({ error: "forbidden", telegramId: OTHER });
     expect(await json(login({ auth: w(ADMIN) }))).toMatchObject({ ok: true, hasPin: true });
-    expect((await json(login({ auth: w(ADMIN), pin: "0000" }))).error).toBe("bad_pin");
-    const ok = await json(login({ auth: w(ADMIN), pin: "5821" }));
+    expect((await json(login({ auth: w(ADMIN), pin: "000000" }))).error).toBe("bad_pin");
+    const ok = await json(login({ auth: w(ADMIN), pin: "582193" }));
     expect(ok.token).toMatch(/^[0-9a-f-]{36}\.\d+\.[0-9a-f]{32}$/);
     const [, e, sg] = ok.token.split(".");
     const web = { Authorization: "adm " + ok.token, "X-Admin-Token": `${e}.${sg}` };

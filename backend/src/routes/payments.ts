@@ -101,6 +101,8 @@ export function paymentWebhookRoutes(cfg: Config, db: Db) {
   const r = new Hono();
   r.post("/:provider", async (c) => {
     // Вебхук өз провайдеріне: жаңа банкке ауысқаннан кейін де ескі төлемдердің хабары қабылданады
+    // Аудит 2026-11-21: нақты режимде сынақ провайдерінің вебхугы жабық
+    if (cfg.PAYMENTS_MODE === "live" && c.req.param("provider") === "test") return c.json({ ok: false, error: "not_found" }, 404);
     const p = providerByName(cfg, c.req.param("provider"));
     if (!p) return c.json({ ok: false, error: "not_found" }, 404);
     const raw = await c.req.text();

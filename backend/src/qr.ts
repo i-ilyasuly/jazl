@@ -32,19 +32,20 @@ export function makeSessionQr(secret: string, sessionId: string, now = Math.floo
   return { payload: `MDQ3.${sessionId}.${exp}.${signS(secret, sessionId, exp)}`, exp, ttl: QR_TTL_SEC };
 }
 
-export function parseQr(raw: string, secret: string, now = Math.floor(Date.now() / 1000)): ParsedQr | null {
+/** secret — бір кілт не қабылданатын кілттер тізімі (src/secret.ts verifyKeys) */
+export function parseQr(raw: string, secretOrKeys: string | string[], now = Math.floor(Date.now() / 1000)): ParsedQr | null {
+  const keys = Array.isArray(secretOrKeys) ? secretOrKeys : [secretOrKeys];
+  const okAny = (mk: (k: string) => string, sig: string) => keys.some((k) => { const w = Buffer.from(mk(k)); const g = Buffer.from(sig); return w.length === g.length && timingSafeEqual(w, g); });
   const t = raw.trim();
   const ss = t.match(/^(?:MD|JZ)Q3\.([0-9a-f-]{36})\.(\d{9,11})\.([0-9a-f]{16})$/i);
   if (ss) {
     const [, id, e, sig] = ss; const exp = Number(e); const sessionId = id.toLowerCase();
-    const want = Buffer.from(signS(secret, sessionId, exp)); const got = Buffer.from(sig.toLowerCase());
-    return { kind: "session", sessionId, exp, valid: want.length === got.length && timingSafeEqual(want, got), expired: now > exp + GRACE_SEC };
+    return { kind: "session", sessionId, exp, valid: okAny((k) => signS(k, sessionId, exp), sig.toLowerCase()), expired: now > exp + GRACE_SEC };
   }
   const d = t.match(/^(?:MD|JZ)Q2\.([0-9a-f-]{36})\.(\d{1,2})\.(\d{9,11})\.([0-9a-f]{16})$/i);
   if (d) {
     const [, branchId, u, e, sig] = d; const units = Number(u), exp = Number(e);
-    const want = Buffer.from(sign(secret, branchId.toLowerCase(), units, exp)); const got = Buffer.from(sig.toLowerCase());
-    const valid = want.length === got.length && timingSafeEqual(want, got);
+    const valid = okAny((k) => sign(k, branchId.toLowerCase(), units, exp), sig.toLowerCase());
     return { kind: "dynamic", branchId: branchId.toLowerCase(), units, exp, valid, expired: now > exp + GRACE_SEC };
   }
   const b = t.match(/(?:^(?:MD|JZ)B1:|startapp=br_)([0-9a-f-]{36})/i);

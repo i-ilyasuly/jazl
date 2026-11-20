@@ -90,3 +90,12 @@ gcloud run services update medeo-api --region europe-west3 --update-env-vars ADM
 ### Веб-кіру (Басқару тек веб арқылы)
 Браузерде `/#/a` → Telegram Login Widget (@Mmedeo_bot, BotFather-де `/setdomain` → мини апп домені) → PIN → «Authorization: adm <userId>.<exp>.<sig>» (12 сағ).
 `ADMIN_WEB_URL` — бот хабарламасындағы батырмалар апаратын мекенжай. Нативті қосымша сборкасы: `VITE_NO_ADMIN=1 npm run build` (Басқару бандлға кірмейді).
+
+### Қауіпсіздік (аудит, 2026-11-21)
+Қолтаңба кілті бот токенінен бөлек (`APP_SECRET`, src/secret.ts). Бірінші рет қосқанда 48 сағат ескі қолтаңбалар да қабылданады:
+```bash
+openssl rand -hex 32 | tr -d '\n' | gcloud secrets create medeo-app-secret --data-file=-
+gcloud run services update medeo-api --region europe-west3 --update-secrets APP_SECRET=medeo-app-secret:latest \
+  --update-env-vars LEGACY_SIG_UNTIL=$(date -u -d '+48 hours' +%Y-%m-%dT%H:%M:%SZ)
+```
+Сұраныс шегі — src/rateLimit.ts; клиент PIN-і серверде — src/routes/pin.ts (миграция 0027); админ PIN — 6 таңба.

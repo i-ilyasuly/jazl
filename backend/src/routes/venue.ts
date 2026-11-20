@@ -3,6 +3,7 @@
 // 07 Команда (шақыру, рөлдер, кассир профилі), 08 Қолдану тарихы және тапсырыстар, 09 Есеп, 16 Қайтару.
 // Рөлдер (Figma «Рөлдер мен рұқсаттар»): кассир — тек кассир режимі; басқарушы — + қолдану тарихы, ұсыныстарды өңдеу;
 // иесі — + баға, есеп пен төлем, команданы басқару.
+import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { randomInt } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { and, asc, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
@@ -624,7 +625,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return code;
   }
   /** QR суретінің мерзімі кодпен бірдей: екеуі бірге жаңарады */
-  const qrAt = (id: string, codeExp: Date) => makeSessionQr(cfg.BOT_TOKEN, id, Math.floor(codeExp.getTime() / 1000) - 30);
+  const qrAt = (id: string, codeExp: Date) => makeSessionQr(signKey(cfg), id, Math.floor(codeExp.getTime() / 1000) - 30);
 
   // Кассир экраны әр 2 с сұрайды: жаңа QR суреті (30 с) + күйі (күтілуде / төленді / мерзімі өтті)
   r.get("/venue/qr/:id", async (c) => {

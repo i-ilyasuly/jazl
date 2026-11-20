@@ -8,8 +8,13 @@ const WEB_KEY = "medeo_adm_web";
 const hasInit = () => { const w = window as unknown as { Telegram?: { WebApp?: { initData?: string } } }; if (w.Telegram?.WebApp?.initData) return true; try { return import.meta.env.DEV && Boolean(localStorage.getItem("medeo_dev_init")); } catch { return false; } };
 /** Веб-режим: Telegram-нан тыс браузер (Басқару тек веб арқылы — Патша, 2026-11-17). Кіру — Telegram Login Widget + PIN. */
 export const isWeb = () => !hasInit();
-let webToken = (() => { try { return localStorage.getItem(WEB_KEY) ?? ""; } catch { return ""; } })();
-export const setWebToken = (t: string) => { webToken = t; try { if (t) localStorage.setItem(WEB_KEY, t); else localStorage.removeItem(WEB_KEY); } catch { /* жеке терезе */ } };
+// Аудит 2026-11-21: веб-токен localStorage-те емес, тек осы терезенің сеансында (sessionStorage); ескісі тазартылады
+try { localStorage.removeItem(WEB_KEY); } catch { /* */ }
+let webToken = (() => { try { return sessionStorage.getItem(WEB_KEY) ?? ""; } catch { return ""; } })();
+export const setWebToken = (t: string) => { webToken = t; try { if (t) sessionStorage.setItem(WEB_KEY, t); else sessionStorage.removeItem(WEB_KEY); } catch { /* жеке терезе */ } };
+export const webTokenNow = () => webToken;
+/** Админ PIN ұзындығы: жаңасы 6, ескі (4 таңбалы) PIN ауыстырылғанша 4 */
+export const pinLen = { v: 6 };
 const authHeaders = (): Record<string, string> => {
   if (isWeb()) { if (!webToken) return {}; const [, e, sg] = webToken.split("."); return { Authorization: "adm " + webToken, "X-Admin-Token": `${e}.${sg}` }; }
   return { "X-Admin-Token": token };
@@ -33,10 +38,10 @@ export async function A<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const post = <T = { ok: true }>(path: string, body: object = {}) => A<T>(path, { method: "POST", body: JSON.stringify(body) });
 export const errOf = (e: unknown) => (e as { body?: { error?: string; left?: number | null; until?: string | null } }).body ?? { error: "network" };
 
-export interface Me { admin: boolean; telegramId: number | null; name?: string; hasPin?: boolean; lockedUntil?: string | null; session?: boolean; needLogin?: boolean }
+export interface Me { admin: boolean; telegramId: number | null; name?: string; hasPin?: boolean; pinLen?: number; upgrade?: boolean; lockedUntil?: string | null; session?: boolean; needLogin?: boolean }
 export const me = async (): Promise<Me> => {
   if (isWeb() && !webToken) return { admin: false, telegramId: null, needLogin: true };
-  try { return await api<Me>("/v1/admin/me", { headers: authHeaders() }); }
+  try { const r = await api<Me>("/v1/admin/me", { headers: authHeaders() }); if (r.pinLen) pinLen.v = r.pinLen; return r; }
   catch (e) { if (isWeb() && (e as { status?: number }).status === 401) { setWebToken(""); return { admin: false, telegramId: null, needLogin: true }; } throw e; }
 };
 /** Веб-кіру: Telegram Login Widget деректері (бір рет алынады, PIN қадамына дейін жадта) */
@@ -44,15 +49,18 @@ export type WidgetAuth = Record<string, string | number>;
 let widgetAuth: WidgetAuth | null = null;
 export const setWidgetAuth = (a: WidgetAuth | null) => { widgetAuth = a; };
 export const getWidgetAuth = () => widgetAuth;
-export async function webLogin(pin?: string, setup?: boolean): Promise<{ ok: true; hasPin?: boolean; name?: string; token?: string }> {
+export async function webLogin(pin?: string, setup?: boolean): Promise<{ ok: true; hasPin?: boolean; pinLen?: number; upgrade?: boolean; name?: string; token?: string }> {
   const res = await apiFetch("/admin-web/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ auth: widgetAuth, pin, setup }) });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(j?.error ?? "http_" + res.status), { status: res.status, body: j });
   if (j.token) setWebToken(j.token);
+  if (j.pinLen) pinLen.v = j.pinLen;
   if (j.name) { try { localStorage.setItem("medeo_adm_name", j.name); } catch { /* жеке терезе */ } }
   return j;
 }
-export const pinLogin = (pin: string, setup = false) => api<{ token: string }>("/v1/admin/pin", { method: "POST", body: JSON.stringify({ pin, setup }) });
+export const pinLogin = (pin: string, setup = false) => api<{ token: string; upgrade?: boolean }>("/v1/admin/pin", { method: "POST", body: JSON.stringify({ pin, setup }) });
+/** Ескі 4 таңбалы PIN-ді 6 таңбаға ауыстыру (аудит 2026-11-21) */
+export const pinChange = (pin: string) => post("/pin/change", { pin });
 
 // ── Пішімдеу ──
 export const money = (n: number) => Math.round(n).toLocaleString("ru-RU").replace(/[\s,]/g, " ") + " ₸";

@@ -119,7 +119,7 @@ async function download(period: string, parts: string[], pdf = false) {
     const headers: Record<string, string> = {};
     // A() JSON қайтарады — мұнда файл керек, сондықтан тақырыптарды өзіміз қоямыз
     const web = isWeb();
-    const tok = (() => { try { return web ? localStorage.getItem("medeo_adm_web") ?? "" : sessionStorage.getItem("medeo_adm") ?? ""; } catch { return ""; } })();
+    const tok = (() => { try { return web ? sessionStorage.getItem("medeo_adm_web") ?? "" : sessionStorage.getItem("medeo_adm") ?? ""; } catch { return ""; } })();
     if (web) { const [, e, sg] = tok.split("."); headers.Authorization = "adm " + tok; headers["X-Admin-Token"] = `${e}.${sg}`; }
     else { headers.Authorization = "tma " + (window.Telegram?.WebApp?.initData || (import.meta.env.DEV ? localStorage.getItem("medeo_dev_init") ?? "" : "")); headers["X-Admin-Token"] = tok; }
     const res = await apiFetch(`/v1/admin/export?period=${period}&parts=${parts.join(",")}`, { headers });

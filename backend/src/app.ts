@@ -19,7 +19,10 @@ import { venueRoutes } from "./routes/venue.js";
 import { applyRoutes } from "./routes/apply.js";
 import { complaintRoutes } from "./routes/complaints.js";
 import { paymentRoutes, paymentWebhookRoutes } from "./routes/payments.js";
-import { adminFileRoutes, adminRoutes, adminSig, adminWebRoutes } from "./routes/admin.js";
+import { adminFileRoutes, adminRoutes, adminSigOk, adminWebRoutes } from "./routes/admin.js";
+import { safeEqual } from "./secret.js";
+import { rateLimit, type LimitRule } from "./rateLimit.js";
+import { pinGuard, pinRoutes } from "./routes/pin.js";
 import { getSettings, refreshFees, setSetting } from "./settings.js";
 import { refreshVenueScores } from "./venueScore.js";
 import { autoRenewTick } from "./autoRenew.js";
@@ -37,7 +40,15 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
   // Бот хабарламалары: тестте — ештеңе жібермейді (не тест өз жинағышын береді)
   const notify = makeNotifier(db, opts.send ?? (cfg.NODE_ENV === "test" ? noopSender : telegramSender(cfg)), { adminIds: cfg.ADMIN_IDS, adminUrl: cfg.ADMIN_WEB_URL, feePct: cfg.MEDEO_FEE_PCT });
   const origins = cfg.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
-  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version", "X-File-Name", "X-Admin-Token"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 }));
+  app.use("*", cors({ origin: (o) => (origins.includes(o) ? o : null), allowHeaders: ["Authorization", "Content-Type", "X-Tg-Platform", "X-Tg-Version", "X-App-Version", "X-File-Name", "X-Admin-Token", "X-Pin-Token"], allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 }));
+
+  // Сұраныс шегі (аудит, 2026-11-21): автосынақтарда өшірулі (RATE_LIMIT=1 болса қосулы)
+  const rl = cfg.NODE_ENV !== "test" || process.env.RATE_LIMIT === "1";
+  const lim = (rules: LimitRule[]) => rateLimit(rules, rl);
+  // IP шектері жоғары: ұялы байланыста көп адам бір IP-мен шығады (CGNAT)
+  app.use("/admin-web/*", lim([{ name: "adminweb", max: 10, windowSec: 60, by: "ip" }]));
+  app.use("/files/*", lim([{ name: "files", max: 60, windowSec: 60, by: "ip" }]));
+  app.use("/v1/*", lim([{ name: "v1ip", max: 3000, windowSec: 60, by: "ip" }]));
 
   app.get("/health", async (c) => {
     await db.execute(sql`select 1`);
@@ -75,7 +86,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
   });
   // Жоспарлы жұмыс: Cloud Scheduler 15 минут сайын шақырады (өтінім нәтижелері, 22:00 қорытынды, мерзім ескертуі)
   app.post("/cron/tick", async (c) => {
-    if (!cfg.CRON_KEY || c.req.header("X-Cron-Key") !== cfg.CRON_KEY) return c.json({ ok: false, error: "not_found" }, 404);
+    if (!cfg.CRON_KEY || !safeEqual(c.req.header("X-Cron-Key") ?? "", cfg.CRON_KEY)) return c.json({ ok: false, error: "not_found" }, 404);
     const sent = await notify.tick();
     await refreshVenueScores(db, cfg, notify).catch((e) => console.error("venueScore", e)); // сенімділік, комиссия деңгейі
     const renewed = await autoRenewTick(db, cfg, notify).catch((e) => { console.error("autoRenew", e); return 0; }); // автожаңарту
@@ -103,7 +114,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     if (h.startsWith("adm ") && c.req.path.startsWith("/v1/admin")) {
       const [uid, e, sig] = h.slice(4).split(".");
       const exp = Number(e);
-      if (!uid || !/^[0-9a-f-]{36}$/.test(uid) || !(exp > Date.now() / 1000) || sig !== adminSig(cfg, uid, exp)) return c.json({ ok: false, error: "admin_session" }, 401);
+      if (!uid || !/^[0-9a-f-]{36}$/.test(uid) || !(exp > Date.now() / 1000) || !adminSigOk(cfg, uid, exp, sig ?? "")) return c.json({ ok: false, error: "admin_session" }, 401);
       const [row] = await db.select().from(users).where(sql`${users.id} = ${uid}`).limit(1);
       if (!row) return c.json({ ok: false, error: "admin_session" }, 401);
       c.set("user", row); c.set("auth", { authDate: Math.floor(Date.now() / 1000) });
@@ -127,6 +138,26 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     c.set("auth", { authDate: r.authDate, startParam: r.startParam });
     await next();
   });
+
+  // Кіргеннен кейін — пайдаланушы бойынша шектер (жалпы + сезімтал әрекеттер)
+  app.use("/v1/*", lim([{ name: "v1", max: 240, windowSec: 60, by: "user" }]));
+  app.use("/v1/qr/code", lim([{ name: "qrcode", max: 8, windowSec: 60, by: "user" }, { name: "qrcode", max: 120, windowSec: 60, by: "ip" }]));
+  app.use("/v1/qr/resolve", lim([{ name: "qrres", max: 30, windowSec: 60, by: "user" }]));
+  app.use("/v1/redeem", lim([{ name: "redeem", max: 20, windowSec: 60, by: "user" }]));
+  app.use("/v1/purchases", lim([{ name: "buy", max: 15, windowSec: 60, by: "user" }]));
+  app.use("/v1/venue/join", lim([{ name: "join", max: 6, windowSec: 60, by: "user" }]));
+  app.use("/v1/gifts/*", lim([{ name: "gift", max: 20, windowSec: 60, by: "user" }]));
+  app.use("/v1/admin/pin", lim([{ name: "apin", max: 10, windowSec: 60, by: "user" }]));
+  app.use("/v1/me/pin", lim([{ name: "upin", max: 10, windowSec: 60, by: "user" }]));
+  app.use("/v1/me/pin/*", lim([{ name: "upinv", max: 15, windowSec: 60, by: "user" }]));
+  app.use("/v1/venue/orders/verify", lim([{ name: "overify", max: 20, windowSec: 60, by: "user" }]));
+
+  // Бірлік жұмсау — PIN қойылған болса, серверде расталған PIN токенімен ғана (аудит 2026-11-21)
+  const guard = pinGuard(cfg);
+  app.use("/v1/redeem", guard);
+  app.use("/v1/orders", guard);
+  app.use("/v1/packs/:id/refund", guard);
+  app.route("/v1", pinRoutes(cfg, db));
 
   const publicUser = (u: User) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, username: u.username, photoUrl: u.photoUrl, lang: u.lang, city: u.city, hasPin: Boolean(u.pinHash) });
 

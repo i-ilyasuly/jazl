@@ -9,12 +9,12 @@
 //   4) Сақталған карта (cardSave → cardID): /payments/cards/auth, paymentType=cardId — клиентсіз (автожаңарту).
 //   5) Қайтару: /operation/:id/refund?amount= (жартылай да болады, кемінде 10 ₸); AUTH күйінде — толық болса cancel.
 // Ескерту: құжатта көрсетілген testepay.homebank.kz / testoauth.homebank.kz жұмыс істемейді — сынақта test-epay-*.epayment.kz.
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import LZString from "lz-string";
 import type { CardInfo, ChargeResult, FailReason, PaymentProvider, WebhookEvent } from "./types.js";
 import { PaymentError } from "./types.js";
 
-export interface HalykConfig { env: "test" | "prod"; clientId: string; clientSecret: string; terminalId: string; publicUrl?: string; hashKey: string; fetch?: typeof fetch }
+export interface HalykConfig { env: "test" | "prod"; clientId: string; clientSecret: string; terminalId: string; publicUrl?: string; hashKey: string; hashKeys?: string[]; fetch?: typeof fetch }
 const HOSTS = {
   test: { oauth: "https://test-epay-oauth.epayment.kz/oauth2/token", api: "https://test-epay-api.epayment.kz", page: "https://test-epay.epayment.kz/payform/" },
   prod: { oauth: "https://epay-oauth.homebank.kz/oauth2/token", api: "https://epay-api.homebank.kz", page: "https://epay.homebank.kz/payform/" },
@@ -118,7 +118,7 @@ export function halykProvider(c: HalykConfig): PaymentProvider {
     async webhook(req) {
       let j: { invoiceId?: string; secret_hash?: string };
       try { j = JSON.parse(req.body); } catch { return null; }
-      if (!j.invoiceId || !/^\d{6,15}$/.test(j.invoiceId) || j.secret_hash !== hashOf(j.invoiceId)) return null;
+      if (!j.invoiceId || !/^\d{6,15}$/.test(j.invoiceId) || !(c.hashKeys ?? [c.hashKey]).some((k) => { const w = Buffer.from(createHmac("sha256", k).update("halyk:" + j.invoiceId).digest("hex").slice(0, 32)); const g = Buffer.from(String(j.secret_hash ?? "")); return w.length === g.length && timingSafeEqual(w, g); })) return null;
       return settle(j.invoiceId, await status(j.invoiceId)); // хабарламаның өзіне емес, банктің API-іне сенеміз
     },
     async check(externalId) { return settle(externalId, await status(externalId)); },

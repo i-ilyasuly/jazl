@@ -1,6 +1,7 @@
 // Medeo Басқару (Figma «Medeo Басқару» 14060:7998): платформа иесінің беттері.
 // Кіру: ADMIN_IDS тізіміндегі Telegram аккаунты (initData) + жеке PIN → 12 сағаттық X-Admin-Token.
 // Қауіпті әрекеттер (комиссия, тоқтату, қолмен қайтару, ұзарту, техникалық жұмыстар) PIN-мен қайта расталады. Әр өзгеріс — admin_log.
+import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { eq, sql } from "drizzle-orm";
@@ -20,7 +21,7 @@ import { decideComplaint } from "./complaints.js";
 type Row = Record<string, unknown>;
 /** Мекемеге төленетін тапсырыс күйлері: орындалды не клиент келмеді (бірлік жұмсалды, мекеме уақытын бөлді) */
 const PAYABLE = sql.raw("('done','missed')");
-const TOKEN_TTL = 12 * 3600;
+const TOKEN_TTL = 4 * 3600; // аудит 2026-11-21: 12 → 4 сағат
 const LOCK_MIN = 15;
 const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f);
 const head = (t: string) => t.split(" · ")[0];
@@ -35,15 +36,20 @@ function periodOf(p: string) {
 }
 const growth = (now: number, prev: number) => (prev > 0 ? Math.round(((now - prev) / prev) * 100) : null);
 
-function hashPin(pin: string) { const salt = randomBytes(16); return `${salt.toString("hex")}:${scryptSync(pin, salt, 32).toString("hex")}`; }
+// Аудит 2026-11-21: жаңа PIN — 6 таңба («v6:» белгісімен). Ескі 4 таңбалы PIN кіруге жарайды, бірақ кірген соң 6-ға ауыстыру сұралады.
+function hashPin(pin: string) { const salt = randomBytes(16); return `v6:${salt.toString("hex")}:${scryptSync(pin, salt, 32).toString("hex")}`; }
+export const pinLen = (stored?: string | null) => (stored && !stored.startsWith("v6:") ? 4 : 6);
 function pinOk(pin: string, stored: string) {
-  const [s, h] = stored.split(":"); if (!s || !h) return false;
+  const p = stored.split(":"); const [s, h] = p[0] === "v6" ? [p[1], p[2]] : [p[0], p[1]]; if (!s || !h) return false;
+  if (pin.length !== pinLen(stored)) return false;
   const a = scryptSync(pin, Buffer.from(s, "hex"), 32); const b = Buffer.from(h, "hex");
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /** Басқару токенінің қолтаңбасы (Mini App-та X-Admin-Token, вебте «Authorization: adm <userId>.<exp>.<sig>») */
-export const adminSig = (cfg: Config, userId: string, exp: number) => createHmac("sha256", cfg.BOT_TOKEN).update(`adm:${userId}:${exp}`).digest("hex").slice(0, 32);
+export const adminSig = (cfg: Config, userId: string, exp: number) => hmac(signKey(cfg), `adm:${userId}:${exp}`);
+/** Админ қолтаңбасын тексеру: уақыт бойынша салыстырусыз, өтпелі кезеңде ескі кілт те */
+export const adminSigOk = (cfg: Config, userId: string, exp: number, sig: string) => sigOk(cfg, `adm:${userId}:${exp}`, sig);
 const adminIds = (cfg: Config) => new Set(cfg.ADMIN_IDS.split(",").map((x) => x.trim()).filter(Boolean));
 
 /** PIN тексеру (кіру мен қауіпті әрекет үшін ортақ): 3 қате → 15 минут бұғат */
@@ -57,7 +63,7 @@ async function checkPinDb(db: Db, userId: string, pin: string): Promise<{ ok: tr
   await db.update(admins).set({ failed: lock ? 0 : failed, lockedUntil: lock }).where(eq(admins.userId, userId));
   return lock ? { ok: false, error: "locked", until: lock } : { ok: false, error: "bad_pin", left: 3 - failed };
 }
-const weakPin = (p: string) => /^(\d)\1{3}$/.test(p) || ["1234", "4321", "0123"].includes(p);
+const weakPin = (p: string) => p.length !== 6 || /^(\d)\1{5}$/.test(p) || ["123456", "654321", "012345", "123123", "111222", "121212"].includes(p);
 
 export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
@@ -68,14 +74,14 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const tokenOk = (c: Context<Env>) => {
     const [e, s] = (c.req.header("X-Admin-Token") ?? "").split(".");
     const exp = Number(e);
-    return Boolean(s && exp > Date.now() / 1000 && s === sign(c.get("user").id, exp));
+    return Boolean(s && exp > Date.now() / 1000 && adminSigOk(cfg, c.get("user").id, exp, s));
   };
   const rows = async <T = Row>(q: ReturnType<typeof sql>) => (await db.execute(q)).rows as T[];
   const log = (c: Context<Env>, action: string, target: string, meta?: object) => db.insert(adminLog).values({ adminId: c.get("user").id, action, target, meta: meta ?? null });
 
   const checkPin = (userId: string, pin: string) => checkPinDb(db, userId, pin);
   const pinFail = (c: Context<Env>, p: { error: string; left?: number; until?: Date }) => c.json({ ok: false, error: p.error, left: p.left ?? null, until: p.until ?? null }, p.error === "locked" ? 423 : 403);
-  const Pin = z.string().regex(/^\d{4}$/);
+  const Pin = z.string().regex(/^(\d{4}|\d{6})$/);
 
   // ── 01 · Кіру ───────────────────────────────────────────────────
   r.get("/admin/me", async (c) => {
@@ -83,7 +89,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (!isAdmin(c)) return c.json({ ok: true, admin: false, telegramId: u.telegramId });
     await db.insert(admins).values({ userId: u.id }).onConflictDoNothing();
     const [a] = await db.select().from(admins).where(eq(admins.userId, u.id)).limit(1);
-    return c.json({ ok: true, admin: true, telegramId: u.telegramId, name: u.firstName, hasPin: Boolean(a.pinHash), lockedUntil: a.lockedUntil && a.lockedUntil.getTime() > Date.now() ? a.lockedUntil : null, session: tokenOk(c) });
+    return c.json({ ok: true, admin: true, telegramId: u.telegramId, name: u.firstName, hasPin: Boolean(a.pinHash), pinLen: pinLen(a.pinHash), upgrade: Boolean(a.pinHash) && pinLen(a.pinHash) === 4, lockedUntil: a.lockedUntil && a.lockedUntil.getTime() > Date.now() ? a.lockedUntil : null, session: tokenOk(c) });
   });
   // PIN: алғаш — орнату (setup), кейін — кіру. Жауапта токен.
   r.post("/admin/pin", async (c) => {
@@ -102,18 +108,28 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     }
     const p = await checkPin(u.id, b.data.pin);
     if (!p.ok) return pinFail(c, p);
-    return c.json({ ok: true, token: token(u.id) });
+    return c.json({ ok: true, token: token(u.id), upgrade: pinLen(a.pinHash) === 4 });
+  });
+  // Ескі 4 таңбалы PIN-ді 6 таңбаға ауыстыру (жарамды сеанспен; аудит 2026-11-21)
+  r.post("/admin/pin/change", async (c) => {
+    if (!isAdmin(c) || !tokenOk(c)) return c.json({ ok: false, error: "admin_session" }, 401);
+    const b = z.object({ pin: z.string().regex(/^\d{6}$/) }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    if (weakPin(b.data.pin)) return c.json({ ok: false, error: "weak_pin" }, 400);
+    await db.update(admins).set({ pinHash: hashPin(b.data.pin), failed: 0, lockedUntil: null }).where(eq(admins.userId, c.get("user").id));
+    await log(c, "PIN 6 таңбаға ауыстырылды", c.get("user").firstName);
+    return c.json({ ok: true });
   });
   // Қалған барлық маршрут — тек тізімдегі аккаунт + жарамды токен
   r.use("/admin/*", async (c, next) => {
-    if (c.req.path.endsWith("/admin/me") || c.req.path.endsWith("/admin/pin")) return next();
+    if (c.req.path.endsWith("/admin/me") || c.req.path.endsWith("/admin/pin") || c.req.path.endsWith("/admin/pin/change")) return next();
     if (!isAdmin(c)) return c.json({ ok: false, error: "forbidden" }, 403);
     if (!tokenOk(c)) return c.json({ ok: false, error: "admin_session" }, 401);
     await next();
   });
   /** Қауіпті әрекет: денесіндегі pin қайта тексеріледі (Figma «Әрекетті растаңыз») */
   const danger = async (c: Context<Env>, pin: unknown) => {
-    if (typeof pin !== "string" || !/^\d{4}$/.test(pin)) return c.json({ ok: false, error: "pin_required" }, 403);
+    if (typeof pin !== "string" || !/^(\d{4}|\d{6})$/.test(pin)) return c.json({ ok: false, error: "pin_required" }, 403);
     const p = await checkPin(c.get("user").id, pin);
     return p.ok ? null : pinFail(c, p);
   };
@@ -318,7 +334,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, total, items: list.map((x) => ({ pos: x.pos, name: x.pos === "unknown" ? "Белгісіз (ескі өтінім)" : x.pos === "other" ? x.other || posName.other : posName[x.pos] ?? x.pos, n: x.n })) });
   });
   // Құжатты ашу: жабық — тек админ токенімен, қысқа қолтаңбалы сілтеме арқылы (Telegram downloadFile header жібере алмайды)
-  const docSig = (id: string, exp: number) => createHmac("sha256", cfg.BOT_TOKEN).update(`doc:${id}:${exp}`).digest("hex").slice(0, 32);
+  const docSig = (id: string, exp: number) => hmac(signKey(cfg), `doc:${id}:${exp}`);
   r.get("/admin/docs/:id/link", async (c) => {
     const exp = Math.floor(Date.now() / 1000) + 300;
     return c.json({ ok: true, url: `/files/admin-doc/${c.req.param("id")}?e=${exp}&s=${docSig(c.req.param("id"), exp)}` });
@@ -676,7 +692,7 @@ export function adminFileRoutes(cfg: Config, db: Db) {
   const r = new Hono();
   r.get("/admin-doc/:id", async (c) => {
     const id = c.req.param("id"); const e = Number(c.req.query("e")); const s = c.req.query("s") ?? "";
-    const ok = e > Date.now() / 1000 && s === createHmac("sha256", cfg.BOT_TOKEN).update(`doc:${id}:${e}`).digest("hex").slice(0, 32);
+    const ok = e > Date.now() / 1000 && sigOk(cfg, `doc:${id}:${e}`, s);
     if (!ok || !/^[0-9a-f-]{36}$/.test(id)) return c.json({ ok: false, error: "not_found" }, 404);
     const [d] = (await db.execute(sql`select file_name, mime, bytes from app.venue_docs where id = ${id}`)).rows as { file_name: string; mime: string; bytes: Buffer }[];
     if (!d) return c.json({ ok: false, error: "not_found" }, 404);
@@ -689,7 +705,7 @@ export function adminFileRoutes(cfg: Config, db: Db) {
 export function adminWebRoutes(cfg: Config, db: Db) {
   const r = new Hono();
   const ids = adminIds(cfg);
-  const Body = z.object({ auth: z.record(z.string(), z.union([z.string(), z.number()])), pin: z.string().regex(/^\d{4}$/).optional(), setup: z.boolean().optional() });
+  const Body = z.object({ auth: z.record(z.string(), z.union([z.string(), z.number()])), pin: z.string().regex(/^(\d{4}|\d{6})$/).optional(), setup: z.boolean().optional() });
   r.post("/login", async (c) => {
     const b = Body.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
@@ -703,7 +719,7 @@ export function adminWebRoutes(cfg: Config, db: Db) {
       .onConflictDoUpdate({ target: users.telegramId, set: { firstName: u.first_name, lastName: u.last_name ?? null, username: u.username ?? null, lastSeenAt: sql`now()` } }).returning();
     await db.insert(admins).values({ userId: row.id }).onConflictDoNothing();
     const [a] = await db.select().from(admins).where(eq(admins.userId, row.id)).limit(1);
-    if (!b.data.pin) return c.json({ ok: true, hasPin: Boolean(a.pinHash), name: row.firstName, lockedUntil: a.lockedUntil && a.lockedUntil.getTime() > Date.now() ? a.lockedUntil : null });
+    if (!b.data.pin) return c.json({ ok: true, hasPin: Boolean(a.pinHash), pinLen: pinLen(a.pinHash), name: row.firstName, lockedUntil: a.lockedUntil && a.lockedUntil.getTime() > Date.now() ? a.lockedUntil : null });
     if (!a.pinHash) {
       if (!b.data.setup) return c.json({ ok: false, error: "no_pin" }, 409);
       if (weakPin(b.data.pin)) return c.json({ ok: false, error: "weak_pin" }, 400);
@@ -715,7 +731,7 @@ export function adminWebRoutes(cfg: Config, db: Db) {
     }
     const exp = Math.floor(Date.now() / 1000) + TOKEN_TTL;
     await db.insert(adminLog).values({ adminId: row.id, action: "Вебке кірді", target: row.firstName });
-    return c.json({ ok: true, token: `${row.id}.${exp}.${adminSig(cfg, row.id, exp)}`, name: row.firstName });
+    return c.json({ ok: true, token: `${row.id}.${exp}.${adminSig(cfg, row.id, exp)}`, name: row.firstName, upgrade: Boolean(a.pinHash) && pinLen(a.pinHash) === 4 && b.data.setup !== true });
   });
   return r;
 }

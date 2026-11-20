@@ -30,6 +30,10 @@ export const users = app.table("users", {
   city: text("city").notNull().default("karaganda"),
   phone: text("phone"),
   pinHash: text("pin_hash"),
+  /** PIN қате әрекеттері және бұғаттау (аудит 2026-11-21), биометрия кілтінің sha256 хэші */
+  pinFailed: integer("pin_failed").notNull().default(0),
+  pinLockedUntil: timestamp("pin_locked_until", { withTimezone: true }),
+  bioHash: text("bio_hash"),
   /** Клиенттің бот хабарландыру баптаулары (Figma «Хабарландырулар»): { expiry, rating, offers, promo } */
   notify: jsonb("notify"),
   createdAt: created(),
