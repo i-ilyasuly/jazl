@@ -14,7 +14,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org https://oauth.telegram.org https://mapgl.2gis.com 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https://*.2gis.com; connect-src 'self' https://*.run.app https://tiles.openfreemap.org https://telegram.org https://*.telegram.org https://*.2gis.com https://*.2gis.ru; worker-src 'self' blob:; child-src 'self' blob:; frame-src https://oauth.telegram.org; frame-ancestors 'self' https://web.telegram.org https://*.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org https://oauth.telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.run.app https://tiles.openfreemap.org https://telegram.org https://*.telegram.org; worker-src 'self' blob:; child-src 'self' blob:; frame-src https://oauth.telegram.org; frame-ancestors 'self' https://web.telegram.org https://*.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'"
         },
         {
           "key": "X-Content-Type-Options",
