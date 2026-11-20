@@ -76,6 +76,8 @@ export function MapScreen() {
       <MapView venues={venues} shown={shown} sel={sel} onPick={pick} onTapEmpty={() => { if (sel) setSel(null); }} me={me} onReady={(a) => { api.current = a; }} padBottom={sel ? 260 : 230} />
       <TelegramChrome mode="back" onBack={back} />
       <button className="topSearch" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>
+      {/* 2GIS картасын сынау (Патша, 2026-11-21): негізгі карта осы, бұл — салыстыру үшін */}
+      <button className={s.try2gis} onClick={() => { haptic.tap(); go("/map/2gis", "forward"); }}>2GIS</button>
       <div className={s.chips}>
         {chips.map(([id, t]) => <button key={id} className={`t-sub2 w-600 ${s.chip} ${kind === id ? s.chipOn : ""}`} onClick={() => { if (kind !== id) { haptic.select(); setKind(id); setSel(null); } }}>{t}</button>)}
       </div>

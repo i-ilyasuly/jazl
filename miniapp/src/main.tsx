@@ -105,6 +105,7 @@ const _screens_Category = lz(() => import("./screens/Category"));
 const Category = _screens_Category("Category");
 const _screens_MapScreen = lz(() => import("./screens/MapScreen"));
 const MapScreen = _screens_MapScreen("MapScreen");
+const Map2gis = lz(() => import("./screens/Map2gis"))("Map2gis");
 const _screens_VenuePage = lz(() => import("./screens/VenuePage"));
 const VenuePage = _screens_VenuePage("VenuePage");
 const _screens_Stub = lz(() => import("./screens/Stub"));
@@ -278,6 +279,7 @@ const router = createHashRouter([
       { path: "/profile/gift/:id", element: <Gift /> },
       { path: "/search", element: <Search /> },
       { path: "/map", element: <MapScreen /> },
+      { path: "/map/2gis", element: <Map2gis /> }, // 2GIS сынақ картасы (Патша, 2026-11-21)
       { path: "/venue/:id", element: <VenuePage /> },
       { path: "/category/:kind", element: <Category /> },
       { path: "/welcome", element: <Welcome /> },
