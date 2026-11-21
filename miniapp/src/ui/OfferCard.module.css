@@ -78,6 +78,6 @@
 .discTop b { font-weight: 700; }
 :global(:root[data-theme="dark"]) .discTop { background: rgba(52, 199, 89, 0.18); color: #6fe08f; }
 /* Эмодзи белгілер — астыңғы оң жақта, көбейген сайын солға қарай созылады */
-.badges { position: absolute; right: 12px; top: 152px; display: flex; flex-direction: row-reverse; gap: 2px; height: 32px; align-items: center; pointer-events: none; }
+.badges { position: absolute; right: 12px; top: 162px; /* Патша: үстіндегі жазудан алыстау, асты бос қалмасын */ display: flex; flex-direction: row-reverse; gap: 2px; height: 32px; align-items: center; pointer-events: none; }
 .badges > span { display: flex; width: 30px; height: 30px; align-items: center; justify-content: center; }
 .titleIcon { max-width: calc(100% - 136px); }
