@@ -5,6 +5,10 @@ import { Link, useViewTransitionState } from "react-router-dom";
 import { setDir } from "../nav";
 import { toggleFav, toggleRestock, useFavs, useRestock } from "../store";
 import { TgEmoji } from "./TgEmoji";
+
+// Жарнама белгісінің екі нұсқасы — Патша салыстырып таңдайды (2026-11-21): "text" — 🔥 Ыстық / 🚀 ТОП (қазіргі),
+// "icon" — тек эмодзи, жүрекшенің қасында. Салыстыру үшін: localStorage medeo_tag_style = "icon" | "text".
+const TAG_STYLE: "text" | "icon" = (() => { try { const v = localStorage.getItem("medeo_tag_style"); if (v === "icon" || v === "text") return v; } catch { /* */ } return "text"; })();
 import { discount, fmt, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";
@@ -31,8 +35,10 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
   return (
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
-      <p className={s.title}>{offer.packName ?? offer.title}</p>
-      <p className={s.venue}>{!ended && offer.promo && <span className={`${s.promoTag} ${s["tag_" + offer.promo]}`}><TgEmoji name={offer.promo === "hot" ? "fire" : "target"} size={16} />{offer.promo === "hot" ? "Ыстық" : "ТОП"}</span>}{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
+      <p className={`${s.title} ${!ended && offer.promo && TAG_STYLE === "icon" ? s.titleIcon : ""}`}>{offer.packName ?? offer.title}</p>
+      <p className={s.venue}>{!ended && offer.promo && TAG_STYLE === "text" && <span className={`${s.promoTag} ${s["tag_" + offer.promo]}`}><TgEmoji name={offer.promo === "hot" ? "fire" : "rocket"} size={16} every={5000} />{offer.promo === "hot" ? "Ыстық" : "ТОП"}</span>}{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
+      {/* B нұсқасы (Патша, 2026-11-21): сөзсіз, тек эмодзи — жүрекшенің сол жағында, онымен бірдей өлшемде (Krisha үлгісі) */}
+      {!ended && offer.promo && TAG_STYLE === "icon" && <span className={s.promoIcon} title={offer.promo === "hot" ? "Ыстық" : "ТОП"}><TgEmoji name={offer.promo === "hot" ? "fire" : "rocket"} size={28} every={5000} /></span>}
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
