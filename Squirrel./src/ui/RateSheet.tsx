@@ -10,7 +10,7 @@ import { Sticker, preloadSticker } from "./Sticker";
 import burger from "../assets/icons/sheetBurger.svg";
 import scissors from "../assets/icons/offerScissors.svg";
 import s from "./RateSheet.module.css";
-import { TgEmoji } from "./TgEmoji";
+import { TgEmoji, preloadTgEmoji } from "./TgEmoji";
 
 const LABEL = ["Бағаңды таңда", "Өте нашар", "Нашар", "Орташа", "Жақсы", "Тамаша!"];
 const BAD: Record<OfferKind, string[]> = {
@@ -24,10 +24,13 @@ const GOOD: Record<OfferKind, string[]> = {
   hair: ["Шебер", "Нәтиже", "Уақытында", "Таза", "Баға", "Басқа"],
 };
 
+// Патша (2026-11-21): басында — бос жұлдыз орындары. Басылғанда таңдалған жұлдыздар Telegram-ның анимациялық ⭐ эмодзиіне
+// айналып, бір рет ойнайды. Кейін тағы біреуі қосылса — тек сол жаңасы ойнайды (бұрынғылары қайта ойнамайды).
 function Star({ on, i, onPick }: { on: boolean; i: number; onPick: (n: number) => void }) {
   return (
-    <button className={`${s.star} ${on ? s.starOn : ""}`} style={{ ["--d" as string]: `${i * 40}ms` }} aria-label={`${i + 1} жұлдыз`} onClick={() => onPick(i + 1)}>
-      <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9L12 2.6z" /></svg>
+    <button className={`${s.star} ${on ? s.starTg : ""}`} aria-label={`${i + 1} жұлдыз`} onClick={() => onPick(i + 1)}>
+      {on ? <TgEmoji name="star" size={44} once />
+        : <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9L12 2.6z" /></svg>}
     </button>
   );
 }
@@ -41,9 +44,8 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
   const [stars, setStars] = useState(initial);
   const [tags, setTags] = useState<string[]>([]);
   const [text, setText] = useState("");
-  const [more, setMore] = useState(false);
   const [done, setDone] = useState(false);
-  useEffect(() => { void preloadSticker("love"); }, []); // жұлдыз қойып жатқанда стикер дайын болады
+  useEffect(() => { void preloadSticker("love"); void preloadTgEmoji("star").catch(() => null); }, []); // жұлдыз қойып жатқанда стикер мен ⭐ дайын болады
   const [closing, setClosing] = useState(false);
   const low = stars > 0 && stars <= 3;
   const high = stars >= 4;
@@ -54,7 +56,7 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
   useBackButton(close);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
-  const pickStars = (n: number) => { if (n === stars) return; haptic.select(); setStars(n); setTags([]); if (n <= 3) setMore(false); };
+  const pickStars = (n: number) => { if (n === stars) return; haptic.select(); if (n <= 3 !== stars <= 3 || !stars) setTags([]); setStars(n); };
   const toggle = (t: string) => { haptic.select(); setTags((v) => (v.includes(t) ? v.filter((x) => x !== t) : [...v, t])); };
   const send = useMemo(() => () => {
     if (!stars) { haptic.warning(); return; }
@@ -73,19 +75,15 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
           <h2 className={`t-title3 w-700 ${s.center}`}>Рахмет!</h2>
           <p className={`t-sub2 ${s.muted} ${s.center}`}>Бағаң мекемеге жеткізіледі. Ол Medeo сапасын жақсартуға көмектеседі.</p>
         </> : <>
-          <h2 className="t-title3 w-700" style={{ display: "flex", alignItems: "center", gap: 6 }}>Қалай болды?<TgEmoji name="star" size={30} tilt={12} play={stars} /></h2>
+          <h2 className="t-title3 w-700">Қалай болды?</h2>
           <div className={s.item}>
             <span className={s.icon}><img src={kindPic[o.kind]} width={40} height={40} alt="" style={{ objectFit: "contain" }} /></span>
             <span className={s.itemText}><span className="t-text w-600">{title}</span><span className={`t-cap1 ${s.muted}`}>{sub}</span></span>
           </div>
           <Stars value={stars} onPick={pickStars} />
           <p className={`t-sub1 ${stars ? "w-600" : s.muted} ${s.center} ${s.label}`} key={stars}>{LABEL[stars]}</p>
-          {high && !more && (
-            <button className={s.more} onClick={() => { haptic.tap(); setMore(true); }}>
-              <span className="t-text w-600">Пікір қосу</span><span className={`t-cap1 ${s.muted}`}>міндетті емес</span>
-            </button>
-          )}
-          {(low || (high && more)) && <>
+          {/* Патша (2026-11-21): 4–5 жұлдызда да 1–3 жұлдыздағыдай белгілер бірден шығады («Не ұнады?») */}
+          {(low || high) && <>
             <p className={`t-sub2 w-600 ${s.ask}`}>{low ? "Не ұнамады?" : "Не ұнады?"}</p>
             <div className={s.chips}>
               {reasons.map((t) => <button key={t} className={`${s.chip} ${tags.includes(t) ? s.chipOn : ""}`} onClick={() => toggle(t)}>{t}</button>)}
