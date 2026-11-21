@@ -9,6 +9,8 @@ export type Dir = "forward" | "back" | "fade" | "up";
 export function setDir(dir: Dir) {
   document.documentElement.dataset.dir = dir;
 }
+// Артқа қайту (браузер/жүйе тарихы арқылы да) — әрқашан «артқа» бағытымен (Патша, 2026-11-21: бет «ортасына секіріп» кететін)
+if (typeof window !== "undefined") addEventListener("popstate", () => setDir("back"));
 
 export function useGo() {
   const navigate = useNavigate();

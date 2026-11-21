@@ -358,6 +358,8 @@ afterLoad(() => {
   setTimeout(() => idle(() => { for (const load of pageLoaders) void load().catch(() => undefined); }, 3000), 1500);
   setTimeout(() => idle(warmBackground, 4000), 4000); // карта бағдарламасы, стикерлер, фотолар — беттерден кейін
 });
+// Өнімділік (Патша, 2026-11-21): бет айналып жатқанда <html>-ге .scrolling класы — қымбат әсерлер (шынының сынуы) уақытша өшеді
+{ let t: number | undefined; addEventListener("scroll", () => { const r = document.documentElement; if (!r.classList.contains("scrolling")) { r.classList.add("scrolling"); dispatchEvent(new Event("medeo:scroll-start")); } clearTimeout(t); t = window.setTimeout(() => { r.classList.remove("scrolling"); dispatchEvent(new Event("medeo:scroll-end")); }, 180); }, { passive: true, capture: true }); }
 // B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
 void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
