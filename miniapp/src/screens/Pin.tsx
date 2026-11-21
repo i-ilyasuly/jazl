@@ -51,7 +51,7 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
   useHideNativeButtons(unlocking); // құлып экранында астыңғы беттің батырмалары көрінбейді
   useEffect(() => { if (!wait) return; const t = setTimeout(() => { if (wait === 1) { setTries(MAX_TRIES); setError(""); } setWait(wait - 1); }, 1000); return () => clearTimeout(t); }, [wait]);
   // Құлып ашылғанда биометрия бірден сұралады (Figma «5 Биометрия сұрауы»)
-  useEffect(() => { if (unlocking && st.bio) void biometricAuth("Medeo қолданбасын ашу").then((r) => { if (r === "ok") { haptic.success(); unlockApp(); } }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (unlocking && st.bio) void biometricAuth("Squirrel қолданбасын ашу").then((r) => { if (r === "ok") { haptic.success(); unlockApp(); } }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fail = useCallback((msg: string) => { haptic.error(); setError(msg); setShake((n) => n + 1); setTimeout(() => setCode(""), 420); }, []);
   const next = useCallback((to: Step) => { haptic.rigid(); setTimeout(() => { setCode(""); setError(""); setStep(to); }, 180); }, []);
@@ -75,7 +75,7 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
       haptic.success(); savePin(code, old || undefined); setSettings({ lock: true }); setSaved(true);
       setTimeout(async () => {
         // PIN қойылған соң биометрияны да қосуды ұсынамыз (екеуі бірге жұмыс істейді)
-        if (!st.bio && (await biometricAuth("Medeo төлемдерін биометриямен растау")) === "ok") setSettings({ bio: true });
+        if (!st.bio && (await biometricAuth("Squirrel төлемдерін биометриямен растау")) === "ok") setSettings({ bio: true });
         back();
       }, 1600); // «PIN орнатылды» көрінісі (құлыпты үйрек) бір сәт тұрады
     } else { fail("Кодтар сәйкес келмеді. Қайта ойлап тап"); setTimeout(() => { setStep("new"); setFirst(""); }, 420); }
@@ -83,7 +83,7 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
 
   const press = (d: string) => { if (code.length >= 4 || wait) return; haptic.tap(); setError(""); setCode(code + d); };
   const del = () => { if (!code) return; haptic.soft(); setCode(code.slice(0, -1)); };
-  const bio = async () => { if (step !== "old" || !st.bio || wait) return; if ((await biometricAuth(unlocking ? "Medeo қолданбасын ашу" : scanning ? "Сканерлеуді растау" : paying ? "Төлемді растау" : "PIN-кодты өзгерту")) !== "ok") return; await pinServerBio(); if (unlocking) { haptic.success(); unlockApp(); } else if (scanning) { haptic.success(); markPinOk(); openScanner(go, locState?.packId, true); } else if (confirming) { haptic.success(); markPinOk(); go(-1, "back"); } else if (paying) { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); } else next("new"); };
+  const bio = async () => { if (step !== "old" || !st.bio || wait) return; if ((await biometricAuth(unlocking ? "Squirrel қолданбасын ашу" : scanning ? "Сканерлеуді растау" : paying ? "Төлемді растау" : "PIN-кодты өзгерту")) !== "ok") return; await pinServerBio(); if (unlocking) { haptic.success(); unlockApp(); } else if (scanning) { haptic.success(); markPinOk(); openScanner(go, locState?.packId, true); } else if (confirming) { haptic.success(); markPinOk(); go(-1, "back"); } else if (paying) { if (payInfo?.packId && redeem(payInfo.packId)) go("/paid/" + payInfo.packId, "up", { replace: true }); } else next("new"); };
 
   // Нақты пернетақтадан да теруге болады (десктоп Telegram)
   useEffect(() => {
