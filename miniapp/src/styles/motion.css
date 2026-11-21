@@ -49,3 +49,30 @@
 
 /* Бетке қайта келгенде кіру анимациялары ойнамайды (main.tsx → FirstVisit) */
 .still *, .still *::before, .still *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; transition-delay: 0s !important; }
+
+/* Telegram эмодзиінің анимациясы жоқ болса — өзіміздің қимыл (TgEmoji). Цикл 6 с: алғашқы ~20% — қимыл, қалғаны — тыныштық.
+   tgm-run — экранда көрініп тұр; tgm-once — бір рет; tgm-tap — басқанда бір рет. */
+.tgm { animation-duration: 6s; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-play-state: paused; transform-origin: 50% 60%; }
+.tgm.tgm-run { animation-play-state: running; }
+.tgm-twinkle { animation-name: tgm-twinkle; } .tgm-rise { animation-name: tgm-rise; } .tgm-launch { animation-name: tgm-launch; }
+.tgm-flash { animation-name: tgm-flash; } .tgm-flip { animation-name: tgm-flip; } .tgm-pulse { animation-name: tgm-pulse; }
+.tgm-flicker { animation-name: tgm-flicker; } .tgm-ring { animation-name: tgm-ring; transform-origin: 50% 10%; } .tgm-bounce { animation-name: tgm-bounce; }
+.tgm-shake { animation-name: tgm-shake; } .tgm-nudgeX { animation-name: tgm-nudgeX; } .tgm-nudgeUp { animation-name: tgm-nudgeUp; }
+.tgm-nudgeDown { animation-name: tgm-nudgeDown; } .tgm-wiggle { animation-name: tgm-wiggle; } .tgm-pop { animation-name: tgm-pulse; }
+@keyframes tgm-twinkle { 0%, 20%, 100% { transform: scale(1) rotate(0); filter: none; } 6% { transform: scale(1.28) rotate(-18deg); filter: brightness(1.25) drop-shadow(0 0 4px rgba(255, 200, 0, 0.8)); } 13% { transform: scale(0.92) rotate(10deg); } }
+@keyframes tgm-rise { 0%, 20%, 100% { transform: translateY(0); } 6% { transform: translateY(-5px) scale(1.12); } 12% { transform: translateY(1px); } 16% { transform: translateY(-2px); } }
+@keyframes tgm-launch { 0%, 22%, 100% { transform: translate(0, 0) rotate(0); opacity: 1; } 8% { transform: translate(6px, -6px) rotate(-6deg); } 12% { transform: translate(12px, -12px); opacity: 0; } 13% { transform: translate(-8px, 8px); opacity: 0; } 18% { transform: translate(0, 0); opacity: 1; } }
+@keyframes tgm-flash { 0%, 20%, 100% { transform: scale(1); opacity: 1; filter: none; } 4%, 12% { transform: scale(1.22); filter: brightness(1.4) drop-shadow(0 0 5px rgba(255, 210, 0, 0.9)); } 8%, 16% { opacity: 0.45; transform: scale(0.95); } }
+@keyframes tgm-flip { 0%, 22%, 100% { transform: rotate(0); } 10%, 15% { transform: rotate(180deg); } 20% { transform: rotate(360deg); } }
+@keyframes tgm-pulse { 0%, 20%, 100% { transform: scale(1); } 6% { transform: scale(1.25); } 12% { transform: scale(0.94); } 16% { transform: scale(1.06); } }
+@keyframes tgm-flicker { 0%, 100% { transform: scale(1) skewX(0); } 4% { transform: scale(1.08, 1.14) skewX(-4deg); } 8% { transform: scale(0.97, 1.03) skewX(3deg); } 12% { transform: scale(1.05, 1.1) skewX(-2deg); } 18% { transform: scale(1); } }
+@keyframes tgm-ring { 0%, 20%, 100% { transform: rotate(0); } 3%, 11% { transform: rotate(16deg); } 7%, 15% { transform: rotate(-16deg); } }
+@keyframes tgm-bounce { 0%, 20%, 100% { transform: translateY(0) scale(1); } 6% { transform: translateY(-6px) scale(1.06, 0.96); } 11% { transform: translateY(0) scale(1.08, 0.9); } 15% { transform: translateY(-2px); } }
+@keyframes tgm-shake { 0%, 20%, 100% { transform: rotate(0); } 3%, 9%, 15% { transform: rotate(-12deg); } 6%, 12% { transform: rotate(12deg); } }
+@keyframes tgm-nudgeX { 0%, 20%, 100% { transform: translateX(0); } 5%, 13% { transform: translateX(5px); } 9% { transform: translateX(0); } }
+@keyframes tgm-nudgeUp { 0%, 20%, 100% { transform: translateY(0); } 5%, 13% { transform: translateY(-5px); } 9% { transform: translateY(0); } }
+@keyframes tgm-nudgeDown { 0%, 20%, 100% { transform: translateY(0); } 5%, 13% { transform: translateY(5px); } 9% { transform: translateY(0); } }
+@keyframes tgm-wiggle { 0%, 20%, 100% { transform: rotate(0) scale(1); } 5% { transform: rotate(-14deg) scale(1.1); } 10% { transform: rotate(12deg) scale(1.1); } 15% { transform: rotate(-6deg); } }
+/* Бір реттік / басқандағы режим: бір цикл ғана (қимыл алғашқы ~1 с-та, қалғаны — тыныштық) */
+.tgm.tgm-once, .tgm.tgm-tap { animation-duration: 5.5s; animation-iteration-count: 1; }
+@media (prefers-reduced-motion: reduce) { .tgm { animation: none !important; } }
