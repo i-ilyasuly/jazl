@@ -1,7 +1,7 @@
 // Telegram анимациялық эмодзилері: Bot API (getStickerSet → getFile → файл) — желісіз, жалған fetch-пен
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { emojiRoutes } from "../src/routes/emoji.js";
+import { EMOJI, emojiRoutes } from "../src/routes/emoji.js";
 import type { Config } from "../src/config.js";
 
 const cfg = { BOT_TOKEN: "123:TEST" } as unknown as Config;
@@ -37,6 +37,7 @@ describe("GET /v1/emoji/:slug", () => {
   it("бірінші үміткер жоқ болса — келесісін алады (🏷 жоқ → 💸)", async () => {
     const { f } = fake(); expect((await emojiRoutes(cfg, f).request("/cheap")).status).toBe(200);
   });
+  it("жаңа сұрыптау эмодзилері рұқсат тізімінде", () => { expect(Object.keys(EMOJI)).toEqual(expect.arrayContaining(["you", "rich", "thumbs", "partyface"])); });
   it("рұқсат етілмеген не жиынтықта жоқ эмодзи — 404", async () => {
     const { f } = fake(); const app = emojiRoutes(cfg, f);
     expect((await app.request("/skull")).status).toBe(404);
