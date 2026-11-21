@@ -7,7 +7,11 @@
 .link { position: relative; z-index: 1; font-size: 15px; line-height: 20px; font-weight: 500; color: rgba(255, 255, 255, 0.92); }
 .art { position: absolute; right: 14px; top: 50%; height: 112px; width: auto; translate: 0 -50%; rotate: -6deg; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.22)); animation: float 4s ease-in-out infinite; }
 /* Патша (2026-11-21): қалқыған суреттердің орнына — үйрек стикерлері (өздері анимациялы, қалқытпаймыз) */
-.duck { position: absolute; right: 16px; top: 50%; translate: 0 -50%; width: 104px; height: 104px; pointer-events: none; }
+/* Патша (2026-11-21): стикер үлкен, баннердің АСТЫҢҒЫ шетінен шығып тұрады (жоғарыдан шықпайды) — тірі көрінеді */
+.duck { position: absolute; z-index: 2; right: 6px; bottom: -32px; width: 140px; height: 140px; pointer-events: none; }
+.card { overflow: visible; }
+.track { padding-bottom: 32px; }
+.dots { margin-top: -24px; }
 @keyframes float { 50% { translate: 0 calc(-50% - 4px); } }
 .violet { background: radial-gradient(120% 140% at 85% 30%, #b79cff 0%, #8f6bf6 45%, #7a55ee 100%); }
 .teal { background: radial-gradient(120% 140% at 85% 30%, #63f0d2 0%, #22c6b2 45%, #149e9a 100%); }
