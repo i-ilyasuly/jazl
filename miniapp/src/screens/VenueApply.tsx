@@ -48,12 +48,12 @@ export function VenueApply() {
   const err = (k: string) => (bad && missing === k ? s.err : "");
   return (
     <SubPage title="Мекеме болып қосыл" top={100}>
-      <h2 className={`${s.h} rise`}>Мекемеңді Medeo-ға қос</h2>
+      <h2 className={`${s.h} rise`}>Мекемеңді Squirrel-ге қос</h2>
       <p className={`${s.lead} rise`} style={{ ["--i" as string]: 1 }}>
         <RichWords cls={s} text="Мекемеңе [blue:жаңа тұрақты клиенттер] әкел. Төлем [green:алдын ала] түседі, ал [blue:комиссия төмен]." />
       </p>
       <ul className={`${s.points} rise`} style={{ ["--i" as string]: 2 }}>
-        <li>Клиент Medeo сканерімен төлейді, кассир тек жазылымды таңдап QR шығарады.</li>
+        <li>Клиент Squirrel сканерімен төлейді, кассир тек жазылымды таңдап QR шығарады.</li>
         <li>Бірліктер мен мерзімді жүйе өзі есептейді</li>
         <li>Клиенттердің бағасы мен пікірін көресің</li>
       </ul>

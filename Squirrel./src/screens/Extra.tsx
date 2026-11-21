@@ -76,7 +76,7 @@ export function Complaint() {
         <textarea value={text} rows={1} maxLength={300} placeholder="Не болғанын қысқаша жаз" onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }} />
       </label>
       <p className={`t-sub2 ${b.note} infoBox infoWarn rise`} style={{ ["--i" as string]: 3 }}>{refused
-        ? "Сенің кінәң жоқ: пакет мерзімі бірден 7 күнге ұзарады. Medeo мекемені тексереді — қайталанса, мекеменің сатуы тоқтатылады."
+        ? "Сенің кінәң жоқ: пакет мерзімі бірден 7 күнге ұзарады. Squirrel мекемені тексереді — қайталанса, мекеменің сатуы тоқтатылады."
         : "Мекеме 24 сағат ішінде жауап береді. Қате расталса, дана пакетке қайтарылады."}<i>”</i></p>
       <div style={{ height: 70 }} />
       <Bar left={left} main={main} />
@@ -98,7 +98,7 @@ export function ComplaintDone() {
       <div className={r.body}>
         <Sticker name="wait" size={120} className={r.sticker} />
         <h1 className={r.title}>Шағым жіберілді</h1>
-        <p className={r.text}>{st?.extended ? `Пакет мерзімі ${st.extended} күнге ұзартылды. Medeo мекемені тексереді, нәтижесін Telegram-да хабарлаймыз.` : st?.refused ? "Medeo мекемені тексереді. Нәтижесін Telegram-да хабарлаймыз." : "Мекеме 24 сағат ішінде жауап береді. Нәтижесін Telegram-да хабарлаймыз."}</p>
+        <p className={r.text}>{st?.extended ? `Пакет мерзімі ${st.extended} күнге ұзартылды. Squirrel мекемені тексереді, нәтижесін Telegram-да хабарлаймыз.` : st?.refused ? "Squirrel мекемені тексереді. Нәтижесін Telegram-да хабарлаймыз." : "Мекеме 24 сағат ішінде жауап береді. Нәтижесін Telegram-да хабарлаймыз."}</p>
       </div>
       {!inTelegram && <div className={b.bar}><button className={b.btn} onClick={main.onClick}>{main.text}</button></div>}
     </div>

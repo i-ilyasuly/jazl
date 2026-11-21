@@ -68,7 +68,7 @@ function VenueView({ id }: { id?: string }) {
   const share = () => {
     haptic.tap();
     // Нативті бөлісу: Telegram өзінің чат таңдау терезесін ашады
-    const url = "https://t.me/share/url?url=" + encodeURIComponent(appLink("venue", v.id)) + "&text=" + encodeURIComponent(`${v.name} · Medeo\n${kindLabel[v.kind]} • ★ ${String(v.rating).replace(".", ",")} • Қарағанды`);
+    const url = "https://t.me/share/url?url=" + encodeURIComponent(appLink("venue", v.id)) + "&text=" + encodeURIComponent(`${v.name} · Squirrel\n${kindLabel[v.kind]} • ★ ${String(v.rating).replace(".", ",")} • Қарағанды`);
     if (inTelegram && tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
   };
   const subDone = () => { haptic.success(); toggleVenueSub(v.id); setSnack(true); };
@@ -110,7 +110,7 @@ function VenueView({ id }: { id?: string }) {
       </nav>
       <div {...sw.handlers} style={{ ...sw.style, minHeight: 360 }}>
       <main key={tab} className={`${s.body} ${tab > prev ? s.fromRight : s.fromLeft}`}>
-        {tab === 0 && status === "nopay" && offers.length > 0 && <p className={`${s.nopay} infoBox infoWarn`}>Мекеме уақытша Medeo төлемін қабылдамайды. Пакетті сатып алуға болады, пайдалану кейінірек.<i>”</i></p>}
+        {tab === 0 && status === "nopay" && offers.length > 0 && <p className={`${s.nopay} infoBox infoWarn`}>Мекеме уақытша Squirrel төлемін қабылдамайды. Пакетті сатып алуға болады, пайдалану кейінірек.<i>”</i></p>}
         {tab === 0 && (offers.length ? offers.map((o) => <OfferCard key={o.id} offer={o} />) : (
           <div className={s.empty}><h2 className="t-headline">Қазір ұсыныс жоқ</h2><p className={`t-sub2 ${s.gray}`}>Жаңа ұсыныс шықса, хабарлаймыз</p><button className={`t-sub2 w-600 ${s.emptyBtn} ${subscribed ? s.actionOn : ""}`} onClick={notify}><span className={`${s.bell} ${subscribed ? s.ring : ""}`} style={{ maskImage: `url("${bellIcon}")`, WebkitMaskImage: `url("${bellIcon}")` }} />{subscribed ? "Қосулы" : "Хабарла"}</button></div>
         ))}
@@ -118,7 +118,7 @@ function VenueView({ id }: { id?: string }) {
           <section className={s.card}>
             <div className={`${s.quote} infoBox`}><span className={s.qBar} />
               {v.id === "damdi" ? <p className={`t-text ${s.rich}`}><RichWords cls={s} text="[green:Жаңа піскен лаваш] мен үй соусы. Донерді [blue:5 жылдан бері] дайындаймыз, ет күн сайын жаңа келеді." /></p>
-                : <p className="t-text">{`${v.name} — Medeo серіктесі. Пакет сатып алып, мекемеде сканерлеп қолдан.`}</p>}
+                : <p className="t-text">{`${v.name} — Squirrel серіктесі. Пакет сатып алып, мекемеде сканерлеп қолдан.`}</p>}
             </div>
           </section>
           <section className={s.card}>
