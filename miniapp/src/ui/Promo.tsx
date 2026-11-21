@@ -15,19 +15,28 @@ export function Promo() {
   const go = useGo();
   const ref = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
-  // Патша (2026-11-21): баннерлер өздігінен ауысады (5 с сайын, соңынан басына). Қолмен сырғытқанда — 10 с кідіреді.
-  // Діріл тек қолмен ауыстырғанда болады.
+  // Патша (2026-11-21): баннерлер өздігінен ауысады (5 с сайын). Қолмен сырғытқанда — 10 с кідіреді.
+  // Шексіз айналым: соңында біріншінің көшірмесі тұрады. 3-тен кейін әдеттегідей алға жылжып көшірмеге келеді де,
+  // байқатпай нағыз біріншіге секіреді — артқа қарай зымырап қайтпайды. Діріл тек қолмен ауыстырғанда.
   const touched = useRef(0);
-  const onScroll = () => { const el = ref.current; if (!el) return; const i = Math.round(el.scrollLeft / (el.clientWidth - 24)); if (i !== at) { setAt(i); if (Date.now() - touched.current < 1500) haptic.select(); } };
+  const step = () => { const c = ref.current?.firstElementChild as HTMLElement | null; return c ? c.offsetWidth + 12 : 1; };
+  const settle = useRef(0);
+  const onScroll = () => {
+    const el = ref.current; if (!el) return;
+    const raw = Math.round(el.scrollLeft / step());
+    const i = raw % items.length;
+    if (i !== at) { setAt(i); if (Date.now() - touched.current < 1500) haptic.select(); }
+    // Көшірмеге тоқтаса — нағыз біріншіге анимациясыз ауысамыз (сырғу біткен соң)
+    window.clearTimeout(settle.current);
+    if (raw >= items.length) settle.current = window.setTimeout(() => { const e = ref.current; if (e && Math.round(e.scrollLeft / step()) >= items.length) e.scrollTo({ left: e.scrollLeft - items.length * step(), behavior: "instant" as ScrollBehavior }); }, 140);
+  };
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const t = window.setInterval(() => {
       const el = ref.current; if (!el || document.hidden || Date.now() - touched.current < 10000) return;
       const r = el.getBoundingClientRect(); if (r.bottom < 0 || r.top > window.innerHeight) return; // экраннан тыс — ауыстырмаймыз
-      const card = el.firstElementChild as HTMLElement | null; if (!card) return;
-      const step = card.offsetWidth + 12;
-      const next = (Math.round(el.scrollLeft / step) + 1) % items.length;
-      el.scrollTo({ left: next * step, behavior: "smooth" });
+      const next = Math.min(Math.round(el.scrollLeft / step()) + 1, items.length);
+      el.scrollTo({ left: next * step(), behavior: "smooth" });
     }, 5000);
     return () => window.clearInterval(t);
   }, []);
@@ -48,6 +57,13 @@ export function Promo() {
             <i className={s.spark} /><i className={`${s.spark} ${s.spark2}`} />
           </button>
         ))}
+        {/* Шексіз айналымға арналған біріншінің көшірмесі (экран оқитын құралдарға көрінбейді) */}
+        <button aria-hidden tabIndex={-1} className={`${s.card} ${items[0].cls}`} onClick={() => open(items[0].to)}>
+          <span className={s.title}>{items[0].title}</span>
+          <span className={s.link}>{items[0].link} ›</span>
+          <span className={s.duck}><Sticker name={items[0].duck} size={140} /></span>
+          <i className={s.spark} /><i className={`${s.spark} ${s.spark2}`} />
+        </button>
       </div>
       <div className={s.dots}>{items.map((x, i) => <span key={x.id} className={i === at ? s.on : ""} />)}</div>
     </section>
