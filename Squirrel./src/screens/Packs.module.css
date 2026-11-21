@@ -108,6 +108,8 @@
 /* Патша (2026-11-21, 3): маркер фоны жоқ — тек түсті әріп */
 .renewText b { background: none !important; padding: 0 !important; color: var(--tx-green) !important; }
 
-/* Патша (2026-11-21): мерзімі аз қалса — сары белгінің қасында сағатты үйрек */
-.daysRow { display: flex; align-items: flex-end; gap: 2px; }
-.clock { width: 44px; height: 44px; margin: -12px 0 -10px; flex: none; }
+/* Патша (2026-11-21): мерзімі аз қалса — картаның оң жақ жоғарғы бос орнында сағатты үйрек */
+.infoSoon { position: relative; padding-right: 80px; }
+.infoSoon .text { min-width: 0; }
+.infoSoon .text > p { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.clock { position: absolute; right: -10px; top: -12px; width: 92px; height: 92px; pointer-events: none; }
