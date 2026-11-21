@@ -56,7 +56,9 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
         )}
       </div>
       {soon && (
-        <div className={`${s.renew} infoBox infoOk`}>
+        // Патша (2026-11-21): жасыл блоктың кез келген жерін (саусақ эмодзиін де) басқанда — Қайта алу бетіне.
+        // Бұрын батырмадан сәл қате басылса, басу картаға өтіп, пакет беті («Жазылу / Сканерлеу») ашылатын.
+        <div className={`${s.renew} infoBox infoOk`} role="button" onClick={(e) => { e.stopPropagation(); haptic.medium(); go("/rebuy/" + pack.id); }}>
           <span className={s.renewBar} />
           <p className={`t-sub2 ${s.renewText}`}>Қайта алсаң, қалған бірлік <b>келесі айға көшеді</b></p>
           {/* Патша (2026-11-21): «Қайта алу» батырмасына қарай қиғаш нұсқаған саусақ (Telegram анимациялық эмодзиі) */}

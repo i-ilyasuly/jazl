@@ -25,10 +25,12 @@ export function preloadTgEmoji(name: TgEmojiName) {
 
 type Anim = { destroy(): void; play(): void; pause(): void; goToAndPlay(v: number, f: boolean): void; goToAndStop(v: number, f: boolean): void; totalFrames: number; addEventListener(e: string, f: () => void): void };
 
-export function TgEmoji({ name, size = 32, tilt = 0, className, style, play }: {
+export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, once = false }: {
   name: TgEmojiName; size?: number; tilt?: number; className?: string; style?: CSSProperties;
   /** Сырттан ойнату (мысалы, батырма басылғанда): мән өзгерген сайын бір рет ойнайды */
   play?: unknown;
+  /** Бір рет ойнап, соңғы кадрда тоқтайды (мысалы, бағалау жұлдыздары) */
+  once?: boolean;
 }) {
   const box = useRef<HTMLSpanElement>(null);
   const anim = useRef<Anim | null>(null);
@@ -44,6 +46,7 @@ export function TgEmoji({ name, size = 32, tilt = 0, className, style, play }: {
       let runs = 0; let visible = true;
       a.addEventListener("complete", () => {
         runs++;
+        if (once) { runs = 2; return; } // соңғы кадрда тұрып қалады
         if (runs < 2) { a.goToAndPlay(0, true); return; }
         t = window.setTimeout(() => { if (visible && !document.hidden) a.goToAndPlay(0, true); else runs = 1; }, 7000);
       });
@@ -52,7 +55,7 @@ export function TgEmoji({ name, size = 32, tilt = 0, className, style, play }: {
       a.play();
     }).catch(() => undefined);
     return () => { dead = true; io?.disconnect(); window.clearTimeout(t); anim.current?.destroy(); anim.current = null; };
-  }, [name]);
+  }, [name, once]);
   useEffect(() => { if (play !== undefined && anim.current) anim.current.goToAndPlay(0, true); }, [play]);
   return (
     <span aria-hidden className={className} style={{ display: "inline-block", position: "relative", width: size, height: size, rotate: tilt ? `${tilt}deg` : undefined, flex: "none", pointerEvents: "none", ...style }}>
