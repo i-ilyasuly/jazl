@@ -13,6 +13,7 @@ import geo from "../assets/icons/geo.svg";
 import { SoonSheet } from "../ui/SoonSheet";
 import { Promo } from "../ui/Promo";
 import { Sticker } from "../ui/Sticker";
+import { TgEmoji } from "../ui/TgEmoji";
 import { EmptyState } from "../ui/EmptyState";
 import { discount } from "../mocks/offers";
 import artFood from "../assets/tiles/food.webp";
@@ -28,10 +29,11 @@ const soon = [
 
 // Сұрыптау (Патша, 2026-11-21, 8-тармақ). Бэкендте — сервер жағында сұрыпталып, беттеліп келеді.
 const sorts = [
-  { key: "near", label: "Жақын" },
-  { key: "cheap", label: "Арзан" },
-  { key: "best", label: "Тиімді" },
-  { key: "new", label: "Жаңа" },
+  // Патша (2026-11-21): иконкалардың орнына Telegram анимациялық эмодзилері
+  { key: "near", label: "Жақын", emo: "pin" },
+  { key: "cheap", label: "Арзан", emo: "cheap" },
+  { key: "best", label: "Тиімді", emo: "gem" },
+  { key: "new", label: "Жаңа", emo: "sparkles" },
 ] as const;
 type SortKey = (typeof sorts)[number]["key"];
 const km = (d: string) => parseFloat(d.replace(",", ".")) || 99;
@@ -109,7 +111,7 @@ export function Home() {
         <div className={s.sorts} role="radiogroup" aria-label="Сұрыптау">
           {sorts.map((x) => (
             <button key={x.key} role="radio" aria-checked={sort === x.key} className={`${s.sort} ${sort === x.key ? s.sortOn : ""}`} onClick={() => pickSort(x.key)}>
-              <span className={s.sortIco} data-k={x.key} aria-hidden />{x.label}
+              <TgEmoji name={x.emo} size={22} />{x.label}
             </button>
           ))}
         </div>

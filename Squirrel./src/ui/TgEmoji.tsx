@@ -5,7 +5,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { API_URL } from "../api";
 
-export const TG_EMOJI = { point_right: "👉", point_down: "👇", point_up: "👆", bell: "🔔", fire: "🔥", phone: "📱", star: "⭐", money: "💰" } as const;
+export const TG_EMOJI = { point_right: "👉", point_down: "👇", point_up: "👆", bell: "🔔", fire: "🔥", phone: "📱", star: "⭐", money: "💰",
+  target: "🎯", pin: "📍", cheap: "🏷️", gem: "💎", sparkles: "✨" } as const;
 export type TgEmojiName = keyof typeof TG_EMOJI;
 
 type Lottie = typeof import("lottie-web/build/player/lottie_light");

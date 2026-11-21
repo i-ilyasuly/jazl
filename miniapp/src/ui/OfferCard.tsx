@@ -32,7 +32,7 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
       <p className={s.title}>{offer.packName ?? offer.title}</p>
-      <p className={s.venue}>{!ended && offer.promo && <span className={`${s.promoTag} ${s["tag_" + offer.promo]}`}>{offer.promo === "hot" && <TgEmoji name="fire" size={16} style={{ margin: "-2px 2px -3px -2px", verticalAlign: "-3px" }} />}{offer.promo === "hot" ? "Ыстық" : "ТОП"}</span>}{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
+      <p className={s.venue}>{!ended && offer.promo && <span className={`${s.promoTag} ${s["tag_" + offer.promo]}`}><TgEmoji name={offer.promo === "hot" ? "fire" : "target"} size={16} />{offer.promo === "hot" ? "Ыстық" : "ТОП"}</span>}{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
