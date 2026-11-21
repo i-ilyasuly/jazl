@@ -8,7 +8,7 @@ export function whenVisible(el: Element, cb: () => void): () => void {
     if (!e.isIntersecting || done) return;
     done = true; io.disconnect();
     idle = ric(() => cb()) as unknown as number;
-  }, { rootMargin: "120px" });
+  }, { rootMargin: "0px", threshold: 0.01 }); // экранға шықпайынша құрылмайды
   // Бет ауысу анимациясы (≈0.3 с) біткен соң ғана бақылай бастаймыз
   const t = window.setTimeout(() => io.observe(el), 320);
   return () => { done = true; window.clearTimeout(t); io.disconnect(); if (idle !== undefined) { if ("cancelIdleCallback" in window) window.cancelIdleCallback(idle); else globalThis.clearTimeout(idle); } };
