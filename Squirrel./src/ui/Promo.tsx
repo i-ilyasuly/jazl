@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useGo } from "../nav";
 import { haptic } from "../telegram";
-import { Sticker, type StickerName } from "./Sticker";
+import { Sticker, preloadSticker, type StickerName } from "./Sticker";
 import s from "./Promo.module.css";
 
 const items = [
@@ -10,6 +10,10 @@ const items = [
   { id: "gift", title: "Досыңа пакет\nсыйла", link: "Сыйлық жіберу", duck: "gift" as StickerName, cls: s.teal, to: "/profile/gifts" },
   { id: "map", title: "Жаныңдағы мекемелер\nкартада", link: "Картаны ашу", duck: "city" as StickerName, cls: s.blue, to: "/map" },
 ];
+
+// Баннер үйректері (Патша, 2026-11-21): басты бет салынбай тұрып-ақ фонда жүктеле бастайды — баннер көрінгенде орны бос тұрмайды.
+// Бұдан кейін service worker оларды телефонда сақтайды: келесі ашылғанда желіден жүктелмейді.
+for (const x of items) void preloadSticker(x.duck).catch(() => null);
 
 export function Promo() {
   const go = useGo();
