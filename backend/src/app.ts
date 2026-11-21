@@ -13,6 +13,7 @@ import { validateInitData } from "./auth/telegram.js";
 import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
 import { emojiRoutes } from "./routes/emoji.js";
+import { eventRoutes } from "./routes/events.js";
 import { purchaseRoutes, receiptFileRoutes } from "./routes/purchases.js";
 import { devQrRoutes, usageRoutes } from "./routes/usage.js";
 import { b4Routes } from "./routes/b4.js";
@@ -152,6 +153,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
   app.use("/v1/admin/pin", lim([{ name: "apin", max: 10, windowSec: 60, by: "user" }]));
   app.use("/v1/me/pin", lim([{ name: "upin", max: 10, windowSec: 60, by: "user" }]));
   app.use("/v1/me/pin/*", lim([{ name: "upinv", max: 15, windowSec: 60, by: "user" }]));
+  app.use("/v1/events", lim([{ name: "events", max: 30, windowSec: 60, by: "user" }]));
   app.use("/v1/venue/orders/verify", lim([{ name: "overify", max: 20, windowSec: 60, by: "user" }]));
 
   // Бірлік жұмсау — PIN қойылған болса, серверде расталған PIN токенімен ғана (аудит 2026-11-21)
@@ -176,6 +178,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     return c.json({ ok: true, user: publicUser(row) });
   });
 
+  app.route("/v1", eventRoutes(db)); // пилот воронкасы, қолданба қателері
   app.route("/v1", purchaseRoutes(cfg, db));
   app.route("/v1", paymentRoutes(cfg, db));
   app.route("/v1", adminRoutes(cfg, db, notify));

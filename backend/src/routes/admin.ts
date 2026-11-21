@@ -145,7 +145,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       + (select count(*) from app.orders where status not in ('cancelled','failed') and created_at >= ${from} and created_at < ${to}))::int as units`))[0].units;
   const attention = async () => {
     const s = await getSettings(db);
-    const [x] = await rows<{ apps: number; oldest: Date | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold: number; refund_failed: number }>(sql`select
+    const [x] = await rows<{ apps: number; oldest: Date | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold: number; refund_failed: number; app_errors: number }>(sql`select
       (select count(*) from app.venue_applications where status = 'review')::int as apps,
       (select min(submitted_at) from app.venue_applications where status = 'review') as oldest,
       (select count(*) from app.offers o where o.status = 'review' and not exists (select 1 from app.packs p where p.offer_id = o.id))::int as offers_new,
@@ -155,7 +155,8 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       (select count(*) from app.payments where status = 'failed' and created_at > now() - interval '1 day')::int as failed,
       (select count(*) from app.packs where units_left > 0 and valid_until < now() and valid_until > now() - make_interval(days => ${s.graceDays}) and valid_until + make_interval(days => ${s.graceDays}) < now() + interval '1 day')::int as grace,
       (select count(*) from app.packs where status <> 'pending_payment' and source <> 'carry')::int as sold,
-      (select count(*) from app.payments where refund_status = 'failed' or (refund_status = 'pending' and coalesce((meta->>'refundAt')::timestamptz, created_at) < now() - interval '15 minutes'))::int as refund_failed`);
+      (select count(*) from app.payments where refund_status = 'failed' or (refund_status = 'pending' and coalesce((meta->>'refundAt')::timestamptz, created_at) < now() - interval '15 minutes'))::int as refund_failed,
+      (select count(distinct user_id) from app.client_events where kind = 'error' and created_at > now() - interval '1 day')::int as app_errors`);
     return { ...x, tickAt: s.lastTick || null };
   };
   r.get("/admin/pulse", async (c) => {
@@ -182,6 +183,37 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       week: days, weekTotal: days.reduce((a, d) => a + d.sales, 0),
       feed: feed.map((x) => ({ kind: x.kind, at: x.at, who: short(x.first_name, x.last_name), title: head(x.title), venue: x.venue, amount: x.amount, units: x.units })),
     }, attention: await attention() });
+  });
+  // Пилот воронкасы (Патша, 2026-11-21): ашты → ұсынысты көрді → сатып алуды бастады → сатып алды → қолданды → қайта алды.
+  // Алғашқы үшеуі — мини апп оқиғаларынан (client_events), қалғаны — дерекқордың өзінен. Әр қадам — бірегей адам саны.
+  r.get("/admin/funnel", async (c) => {
+    const days = [7, 30, 90].includes(Number(c.req.query("days"))) ? Number(c.req.query("days")) : 30;
+    const from = sql`now() - make_interval(days => ${days})`;
+    const [f] = await rows<{ opened: number; viewed: number; started: number; bought: number; used: number; repeat: number }>(sql`
+      with b as (select user_id from app.packs where status <> 'pending_payment' and source = 'purchase' and created_at > ${from})
+      select (select count(distinct user_id) from app.client_events where kind = 'open' and created_at > ${from})::int as opened,
+        (select count(distinct user_id) from app.client_events where kind = 'view' and created_at > ${from})::int as viewed,
+        (select count(distinct user_id) from app.client_events where kind = 'buy_start' and created_at > ${from})::int as started,
+        (select count(distinct user_id) from b)::int as bought,
+        (select count(distinct p.user_id) from app.redemptions r join app.packs p on p.id = r.pack_id where r.cancelled_at is null and r.created_at > ${from})::int as used,
+        (select count(*) from (select user_id from b group by user_id having count(*) >= 2) t)::int as repeat`);
+    // Ең көп қаралған ұсыныстар: қанша адам көрді, қаншасы сатып алды
+    const top = await rows<{ slug: string; title: string; viewers: number; buyers: number }>(sql`
+      with v as (select ref, count(distinct user_id)::int as viewers from app.client_events where kind = 'view' and ref is not null and created_at > ${from} group by ref order by viewers desc limit 8)
+      select v.ref as slug, coalesce(o.title, v.ref) as title, v.viewers,
+        (select count(distinct p.user_id) from app.packs p where p.offer_id = o.id and p.status <> 'pending_payment' and p.source = 'purchase' and p.created_at > ${from})::int as buyers
+      from v left join app.offers o on o.slug = v.ref order by v.viewers desc`);
+    return c.json({ ok: true, days, funnel: f, top });
+  });
+  // Мини апп қателері (соңғы 7 күн): бірдей хабарламалар топталады — неше рет, неше адамда, соңғысы қашан, қай бетте
+  r.get("/admin/errors", async (c) => {
+    const list = await rows<{ msg: string; n: number; users: number; last_at: Date; route: string | null; ver: string | null; platform: string | null; stack: string | null }>(sql`
+      select coalesce(meta->>'msg', '?') as msg, count(*)::int as n, count(distinct user_id)::int as users, max(created_at) as last_at,
+        (array_agg(meta->>'route' order by created_at desc))[1] as route, (array_agg(meta->>'ver' order by created_at desc))[1] as ver,
+        (array_agg(meta->>'platform' order by created_at desc))[1] as platform, (array_agg(meta->>'stack' order by created_at desc))[1] as stack
+      from app.client_events where kind = 'error' and created_at > now() - interval '7 days' group by 1 order by max(created_at) desc limit 30`);
+    const [d] = await rows<{ day: number; users: number }>(sql`select count(*)::int as day, count(distinct user_id)::int as users from app.client_events where kind = 'error' and created_at > now() - interval '24 hours'`);
+    return c.json({ ok: true, day: d.day, dayUsers: d.users, items: list });
   });
   // Клиентті ұстау көрсеткіштері (Хормози: өлшенбейтін нәрсе жақсармайды; Патша, 2026-11-19). Соңғы 90 күн.
   r.get("/admin/retention", async (c) => {

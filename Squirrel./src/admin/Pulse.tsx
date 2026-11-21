@@ -4,14 +4,14 @@ import { useGo } from "../nav";
 import { haptic } from "../telegram";
 import { Tile } from "../ui/Tile";
 import { useCached } from "../venue/api";
-import { Person, Sk, VPage, VSticker } from "../venue/ui";
+import { Note, Person, Sk, VPage, VSticker } from "../venue/ui";
 import { A, ago, hm, money } from "./api";
 import { Badge, Growth, setComplaintDot } from "./ui";
 import { useDesk } from "./Desk";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
-export interface Attention { apps: number; oldest: string | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold?: number; tickAt?: string | null; refund_failed?: number }
+export interface Attention { apps: number; oldest: string | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold?: number; tickAt?: string | null; refund_failed?: number; app_errors?: number }
 interface Pulse { sales: number; salesGrowth: number | null; fee: number; feeGrowth: number | null; packs: number; packsDelta: number; units: number; unitsGrowth: number | null; clients: number; clientsDelta: number;
   venuesActive: number; venuesTotal: number; venuesPaused: number; week: { d: string; sales: number }[]; weekTotal: number; feed: { kind: string; at: string; who: string; title: string; venue: string; amount: number; units: number }[] }
 const PERIODS = [["today", "Бүгін"], ["7", "7 күн"], ["30", "30 күн"], ["all", "Барлығы"]] as const;
@@ -28,6 +28,8 @@ export function attentionRows(a: Attention) {
       { e: "a:complaints", t: "Ашық шағымдар", sub: a.due_today ? `${a.due_today} шағымның мерзімі бүгін бітеді` : "Мерзімі әлі бар", n: a.complaints, tone: "red" as const, to: "/a/complaints" },
       { e: "a:payfail", t: "Сәтсіз төлемдер", sub: "Соңғы 24 сағатта", n: a.failed, tone: "orange" as const, to: "/a/money" },
       // Провайдер ақшаны қайтаруды қабылдамады — клиент ақшасын күтіп отыр
+      // Мини апп қателері (track.ts): соңғы 24 сағатта қанша адамда қате шықты
+      ...(a.app_errors ? [{ e: "a:maint", t: "Қолданба қателері", sub: "Соңғы 24 сағатта қате шыққан адамдар", n: a.app_errors, tone: "orange" as const, to: "/a/errors" }] : []),
       ...(a.refund_failed ? [{ e: "a:refunds", t: "Картаға қайтарылмаған ақша", sub: "Провайдер қабылдамады — «Қайта жіберу»", n: a.refund_failed, tone: "red" as const, to: "/a/money/refunds" }] : []),
     ],
     waiting: [
@@ -72,6 +74,63 @@ function RetentionCard() {
   );
 }
 
+/** Пилот воронкасы (Патша, 2026-11-21): әр қадамда неше адам, алдыңғы қадамнан неше пайызы өтті */
+interface Funnel { opened: number; viewed: number; started: number; bought: number; used: number; repeat: number }
+const STEPS: [keyof Funnel, string][] = [["opened", "Қолданбаны ашты"], ["viewed", "Ұсынысты көрді"], ["started", "Сатып алуды бастады"], ["bought", "Сатып алды"], ["used", "Қолданды"], ["repeat", "Қайта алды"]];
+function FunnelCard() {
+  const [days, setDays] = useState<7 | 30 | 90>(30);
+  const [d] = useCached<{ funnel: Funnel; top: { slug: string; title: string; viewers: number; buyers: number }[] }>(`a:funnel:${days}`, () => A(`/funnel?days=${days}`));
+  const f = d?.funnel; const max = Math.max(1, f?.opened ?? 1);
+  return (
+    <>
+      <div className={v.sectionHead}><h2 className={v.sectionTitle}>Пилот воронкасы</h2></div>
+      <div className={v.seg}>{([7, 30, 90] as const).map((k) => <button key={k} className={`${v.segBtn} ${days === k ? v.segOn : ""}`} onClick={() => { haptic.select(); setDays(k); }}>{`${k} күн`}</button>)}</div>
+      <div className={v.card} style={{ padding: "4px 0" }}>
+        {STEPS.map(([k, label], i) => {
+          const n = f?.[k] ?? 0; const prev = i ? f?.[STEPS[i - 1][0]] ?? 0 : 0;
+          return (
+            <div key={k} className={v.kv} style={{ position: "relative" }}>
+              <i style={{ position: "absolute", left: 0, top: 6, bottom: 6, width: `${(n / max) * 100}%`, background: "var(--hl-blue-bg)", borderRadius: 8, zIndex: 0 }} />
+              <span style={{ position: "relative" }}>{label}</span>
+              <b style={{ position: "relative" }}>{f ? `${n}${i && prev ? ` · ${Math.round((n * 100) / prev)}%` : ""}` : "–"}</b>
+            </div>
+          );
+        })}
+      </div>
+      {d && d.top.length > 0 && <>
+        <div className={v.sectionHead}><h2 className={v.sectionTitle}>Көп қаралған ұсыныстар</h2></div>
+        <div className={v.card} style={{ padding: "4px 0" }}>{d.top.map((o) => <div className={v.kv} key={o.slug}><span>{o.title}</span><b>{`${o.viewers} көрді · ${o.buyers} алды`}</b></div>)}</div>
+      </>}
+    </>
+  );
+}
+
+/** Мини апп қателері: соңғы 7 күн, бірдей қателер топталған */
+interface ErrRow { msg: string; n: number; users: number; last_at: string; route: string | null; ver: string | null; platform: string | null; stack: string | null }
+export function AErrors() {
+  const [d] = useCached<{ day: number; dayUsers: number; items: ErrRow[] }>("a:errors", () => A("/errors"));
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <VPage title="Қолданба қателері" back>
+      {!d ? <Sk h={160} /> : d.items.length === 0 ? (
+        <div className={v.result}><VSticker name="sleep" size={100} /><h2 className={v.stateTitle}>Қате жоқ</h2><p className={v.stateText}>Соңғы 7 күнде клиенттерде қате шықпады.</p></div>
+      ) : (
+        <div className={v.card}>{d.items.map((e) => (
+          <button key={e.msg} className={v.row} style={{ minHeight: 64, alignItems: "flex-start" }} onClick={() => { haptic.tap(); setOpen(open === e.msg ? null : e.msg); }}>
+            <span className={v.rowText}>
+              <span className={v.rowTitle} style={{ whiteSpace: "normal", wordBreak: "break-word" }}>{e.msg}</span>
+              <span className={v.rowSub}>{`${e.n} рет · ${e.users} адам · ${ago(e.last_at)} бұрын · ${e.route ?? "?"}${e.platform ? " · " + e.platform : ""}${e.ver ? " · v" + e.ver : ""}`}</span>
+              {open === e.msg && e.stack && <pre style={{ margin: "8px 0 0", fontSize: 11, lineHeight: "15px", whiteSpace: "pre-wrap", wordBreak: "break-all", color: "var(--text-secondary)" }}>{e.stack}</pre>}
+            </span>
+            <span className={`${v.tag} ${e.users > 1 ? v.tagRed : v.tagYellow}`}>{e.n}</span>
+          </button>
+        ))}</div>
+      )}
+      <Note>Қате мәтінін басса, толық сипаттамасы (stack) ашылады. Клиенттердің жеке деректері мұнда сақталмайды.</Note>
+    </VPage>
+  );
+}
+
 export function APulse() {
   const go = useGo();
   const [period, setPeriod] = useState<(typeof PERIODS)[number][0]>("today");
@@ -109,6 +168,7 @@ export function APulse() {
           </div>
           {chart}
           <RetentionCard />
+          <FunnelCard />
           <div className={v.sectionHead}><h2 className={v.sectionTitle}>Тірі лента</h2></div>
           <table className={s.table}>
             <thead><tr><th>Уақыт</th><th>Клиент</th><th>Әрекет</th><th>Мекеме</th><th className={s.num}>Сома</th></tr></thead>
@@ -152,6 +212,7 @@ export function APulse() {
         ))}</div>
       </div>
       <RetentionCard />
+      <FunnelCard />
       <div className={v.sectionHead}><h2 className={v.sectionTitle}>Тірі лента</h2></div>
       {p && p.feed.length === 0 ? (
         <div className={v.result} style={{ marginTop: 0 }}><VSticker name="sleep" size={96} /><p className={v.stateText}>Әзірге оқиға жоқ. Алғашқы сатылым осында көрінеді.</p></div>

@@ -7,6 +7,7 @@ import { Photo } from "../ui/Photo";
 import { kindPic } from "../ui/Emo";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
+import { track } from "../track";
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { BuySheet, type BuyStep } from "../ui/BuySheet";
@@ -138,6 +139,9 @@ function OfferView({ id }: { id?: string }) {
   const loc = useLocation();
   const startStep = (loc.state as { buy?: BuyStep } | null)?.buy;
   const [buying, setBuying] = useState(Boolean(startStep));
+  // Пилот воронкасы: ұсынысты көрді, «Сатып алу» парағын ашты (Патша, 2026-11-21)
+  useEffect(() => { if (id) track("view", id); }, [id]);
+  useEffect(() => { if (buying && id) track("buy_start", id); }, [buying, id]);
   const [using, setUsing] = useState(false);
   const [choose, setChoose] = useState(false);
   const { loading } = useMock("offer:" + offer.id, offer, 450);
