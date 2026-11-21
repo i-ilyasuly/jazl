@@ -1,0 +1,25 @@
+# Мини апп тесттері (Патша, 2026-11-21): miniapp/ өзгергенде — логика тесттері, жинау, браузерде негізгі жолдар.
+# Бұлтқа ештеңе шығармайды; құласа — GitHub-та қызыл белгі мен қате суреті (artifact) қалады.
+name: Miniapp CI
+on:
+  push:
+    branches: [miniapp, main]
+    paths: ["miniapp/**", ".github/workflows/miniapp-ci.yml"]
+  pull_request:
+    paths: ["miniapp/**"]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: miniapp } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: miniapp/package-lock.json }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: e2e-screens, path: "miniapp/e2e-fail-*.png", if-no-files-found: ignore }
