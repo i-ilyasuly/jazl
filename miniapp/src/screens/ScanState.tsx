@@ -30,7 +30,7 @@ const copy: Record<ScanKind, Copy> = {
   notpartner: { sticker: "stop", title: "Бұл мекеме Medeo серіктесі емес", text: "Бұл төлем QR-ына Medeo пакетімен төлеу мүмкін емес.", left: "Мекеме ұсыну", main: "Түсінікті" },
   nopack: { sticker: "empty", title: "Бұл мекемеде белсенді пакетің жоқ", text: "Пакет сатып алсаң, келесі жолы төлей аласың.", main: "Ұсыныстарды көру" },
   notqr: { sticker: "search", title: "Бұл төлем QR-ы емес", text: "Кассадағы терминал экранындағы төлем QR-ын сканерле.", main: "Қайта сканерлеу" },
-  nocam: { sticker: "stop", title: "Камераға рұқсат жоқ", text: "Сканер үшін Telegram баптауында Medeo камерасына рұқсат бер.", left: "Код енгізу", main: "Қайта көру" },
+  nocam: { sticker: "phone", title: "Камераға рұқсат жоқ", text: "Сканер үшін Telegram баптауында Medeo камерасына рұқсат бер.", left: "Код енгізу", main: "Қайта көру" },
   offline: { sticker: "offline", title: "Интернет жоқ", text: "Төлем үшін желі керек. Қосылып, қайта сканерле.", main: "Қайта сканерлеу" },
   expired: { sticker: "sleep", title: "QR мерзімі өтті", text: "Кассирден жаңа QR шығаруын сұра.", main: "Қайта сканерлеу" },
   paidbefore: { sticker: "party", title: "Бұл QR бұрын төленген", text: "Төлем жасалған. Қолдану тарихынан көруге болады.", left: "Тарихқа өту", main: "Түсінікті" },

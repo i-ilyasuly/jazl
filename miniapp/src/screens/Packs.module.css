@@ -107,3 +107,7 @@
 
 /* Патша (2026-11-21, 3): маркер фоны жоқ — тек түсті әріп */
 .renewText b { background: none !important; padding: 0 !important; color: var(--tx-green) !important; }
+
+/* Патша (2026-11-21): мерзімі аз қалса — сары белгінің қасында сағатты үйрек */
+.daysRow { display: flex; align-items: flex-end; gap: 2px; }
+.clock { width: 44px; height: 44px; margin: -12px 0 -10px; flex: none; }

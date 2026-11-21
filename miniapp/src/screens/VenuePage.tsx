@@ -28,6 +28,7 @@ import routeIcon from "../assets/icons/vRoute.svg";
 import callIcon from "../assets/icons/vCall.svg";
 import shareIcon from "../assets/icons/vShare.svg";
 import bellIcon from "../assets/icons/vBell.svg";
+import { Sticker } from "../ui/Sticker";
 import s from "./VenuePage.module.css";
 
 const days = ["Дүйсенбі", "Сейсенбі", "Сәрсенбі", "Бейсенбі", "Жұма", "Сенбі", "Жексенбі"];
@@ -77,6 +78,7 @@ function VenueView({ id }: { id?: string }) {
     <div className={s.page}>
       <TelegramChrome mode="back" onBack={back} />
       <div className={s.cover}>
+        {status === "closed" && <span className={s.sleepDuck}><Sticker name="sleep" size={120} /></span>}
         {coverBroken ? <img src={kindPic[v.kind]} width={160} height={160} className={s.coverIcon} alt="" style={{ objectFit: "contain" }} /> : <Photo src={coverPhoto[v.kind]} kind={v.kind} className={s.coverPhoto} alt="" onError={() => setCoverBroken(true)} />}
       </div>
       <header className={s.head}>

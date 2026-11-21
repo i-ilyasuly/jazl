@@ -108,6 +108,7 @@ const inDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n)
 export const usePacks = () => useSyncExternalStore(subscribe, () => packs);
 export const offerOf = (p: Pack): Offer => findOffer(p.offerId);
 export const getPack = (id?: string) => packs.find((p) => p.id === id);
+export const allPacks = () => packs;
 
 /** Келесі сатып алудың қосымша таңдауы (сатып алу парағы қояды): бос сағат жеңілдігі */
 let buyExtra: { offPeak?: boolean } = {};

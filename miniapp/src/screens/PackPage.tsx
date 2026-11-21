@@ -4,7 +4,7 @@
 // Демо: ?extend=no — мекеме ұзартуға рұқсат бермейді.
 import { Tile } from "../ui/Tile";
 import { kindPic } from "../ui/Emo";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Confirm } from "../ui/Confirm";
 import { useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
@@ -19,6 +19,7 @@ import { TelegramChrome } from "../ui/TelegramChrome";
 import { ExtendSheet } from "../ui/ExtendSheet";
 import { RateSheet } from "../ui/RateSheet";
 import { Timeline } from "../ui/Timeline";
+import { Sticker, preloadSticker } from "../ui/Sticker";
 import burger from "../assets/icons/burger36.svg";
 import chev from "../assets/icons/chevRight.svg";
 import qr from "../assets/icons/qr22.svg";
@@ -64,6 +65,12 @@ export function PackPage() {
       if (why) void api("/v1/feedback", { method: "POST", body: JSON.stringify({ kind: "renew_off", reason: why, ...(pack.serverId ? { packId: pack.serverId } : {}) }) }).catch(() => null);
     }
   };
+  // Стикерлер (Патша, 2026-11-21): соңғы бірлік қалса — кубок, қайта алу батырмасы көрінсе — себет алдын ала жүктеледі
+  useEffect(() => {
+    if (!pack) return;
+    if (pack.left <= 1) void preloadSticker("trophy").catch(() => null);
+    if (pack.daysLeft <= 3 || pack.left <= 1) void preloadSticker("shop").catch(() => null);
+  }, [pack?.left, pack?.daysLeft]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!pack) return null;
   const o = offerOf(pack);
   const state = packState(pack);
@@ -79,6 +86,12 @@ export function PackPage() {
       <h1 className="pageTitle">Пакет</h1>
       <div className={s.col}>
         <section className={`${s.card} ${s.main} rise`}>
+          {state === "used" && (
+            <div className={s.trophy}>
+              <Sticker name="trophy" size={128} />
+              <p className="t-headline">Жарайсың! Пакетті толық пайдаландың</p>
+            </div>
+          )}
           <div className={s.head}>
             <span className={s.thumb}><img src={kindPic[o.kind]} width={52} height={52} alt="" style={{ objectFit: "contain" }} /></span>
             <div className={s.headText}>

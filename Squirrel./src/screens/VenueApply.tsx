@@ -75,7 +75,7 @@ export function VenueDone() {
   const done = useCallback(() => go(-1, "back"), [go]);
   return (
     <SubPage title="Мекеме болып қосыл">
-      <DoneHero top={280} title="Өтінім қабылданды" text="Сізбен 24 сағат ішінде хабарласамыз" />
+      <DoneHero top={280} title="Өтінім қабылданды" text="Сізбен 24 сағат ішінде хабарласамыз" sticker="reader" />
       <MainBar text="Дайын" onClick={done} />
     </SubPage>
   );

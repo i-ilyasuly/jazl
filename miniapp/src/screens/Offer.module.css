@@ -245,3 +245,6 @@ button.link:active, .link button:active { opacity: 0.55; }
 .oldTop { margin-top: 8px; }
 /* Сипаттаманың өзін басқанда жайылады/жиырылады */
 .about { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+/* Патша (2026-11-21): сатылым аяқталған ұсыныс — көмескі фотоның ортасында мұңайған үйрек */
+.endedDuck { position: absolute; z-index: 2; left: 50%; top: 50%; width: 150px; height: 150px; translate: -50% -40%; pointer-events: none; }
