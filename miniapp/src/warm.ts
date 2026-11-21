@@ -16,8 +16,8 @@ export function warmBackground() {
   if (slowNet()) return;
   // 1. Картаның бағдарламасы (≈1,6 МБ)
   warmMaplibre();
-  // 6. Жиі шығатын үйрек стикерлері: тізім бітті / желі жоқ / табылмады; басты беттегі баннерлердің үйректері
-  for (const n of ["sleep", "offline", "search", "bags", "gift", "city"] as const) void preloadSticker(n).catch(() => null);
+  // 6. Жиі шығатын үйрек стикерлері: тізім бітті / желі жоқ / табылмады; басты беттегі баннерлердің үйректері; «Жуырда» парағының үйрегі
+  for (const n of ["sleep", "offline", "search", "bags", "gift", "city", "repair"] as const) void preloadSticker(n).catch(() => null);
   // 7. Алғашқы 6 ұсыныстың үлкен фотосы (ұсыныс беті ашылғанда бірден тұрады) — тек Wi-Fi
   if (onWifi()) for (const o of offers.slice(0, 6)) { const src = galleryOf(o.id, o.kind)[0]; if (src) { const im = new Image(); im.src = src; kept.push(im); } }
 }

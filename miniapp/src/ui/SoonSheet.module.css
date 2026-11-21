@@ -35,3 +35,4 @@
 /* Түнгі режим фондары (автоматты түрде қосылған) */
 :global(:root[data-theme="dark"]) .text b { background: rgba(92, 180, 244, 0.2); }
 :global(:root[data-env="telegram"]) .sheet { padding-bottom: calc(28px + var(--safe-b, 0px)); }
+.duck { align-self: center; width: 132px; height: 132px; margin: -12px 0 -6px; }
