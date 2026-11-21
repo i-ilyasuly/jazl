@@ -248,3 +248,7 @@ button.link:active, .link button:active { opacity: 0.55; }
 
 /* Патша (2026-11-21): сатылым аяқталған ұсыныс — көмескі фотоның ортасында мұңайған үйрек */
 .endedDuck { position: absolute; z-index: 2; left: 50%; top: 50%; width: 150px; height: 150px; translate: -50% -40%; pointer-events: none; }
+
+/* Патша (2026-11-21): ▼% белгісі — жеңіл жасыл фон, үйлесімді жасыл мәтін (карточкадағыдай) */
+.green { background: #dcf5e3; color: #18773a; }
+:global(:root[data-theme="dark"]) .green { background: rgba(52, 199, 89, 0.18); color: #6fe08f; }
