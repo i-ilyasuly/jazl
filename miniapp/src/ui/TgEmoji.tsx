@@ -26,6 +26,14 @@ export function preloadTgEmoji(name: TgEmojiName) {
   return Promise.all([player, d]);
 }
 
+// Патша (2026-11-21): «енгізілетін эмодзилердің бәрі анимациялық болуы тиіс». Telegram жиынтығында анимациясы жоқ
+// эмодзи үшін (сервер 404 берсе) — өзіміздің қимыл түрі: әр эмодзиге мағынасына сай CSS анимациясы.
+const MOTION: Partial<Record<TgEmojiName, string>> = {
+  star: "twinkle", top: "rise", rocket: "launch", zap: "flash", hourglass: "flip", new: "pulse", fire: "flicker",
+  bell: "ring", money: "bounce", phone: "shake", point_right: "nudgeX", point_up: "nudgeUp", point_down: "nudgeDown",
+  you: "nudgeX", rich: "bounce", thumbs: "bounce", partyface: "wiggle", target: "pulse", pin: "bounce", cheap: "wiggle", gem: "twinkle", sparkles: "twinkle",
+};
+
 type Anim = { destroy(): void; play(): void; pause(): void; goToAndPlay(v: number, f: boolean): void; goToAndStop(v: number, f: boolean): void; totalFrames: number; addEventListener(e: string, f: () => void): void };
 
 export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, once = false, tap = false, every }: {
@@ -43,6 +51,10 @@ export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, onc
   const box = useRef<HTMLSpanElement>(null);
   const anim = useRef<Anim | null>(null);
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false); // Telegram-да анимациясы жоқ → CSS қимылы
+  const [seen, setSeen] = useState(false);
+  const [kick, setKick] = useState(0);
+  const outer = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     let dead = false; let io: IntersectionObserver | undefined; let t: number | undefined;
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -75,16 +87,23 @@ export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, onc
       io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible && runs < 2) a.play(); else if (!visible) a.pause(); });
       io.observe(box.current);
       a.play();
-    }).catch(() => undefined);
+    }).catch(() => { if (!dead) setFailed(true); });
     // Экранға шыққанда және браузер бос кезде ғана құрамыз; оған дейін кәдімгі эмодзи таңбасы тұрады
     if (box.current) cancelVis = whenVisible(box.current, build);
     return () => { dead = true; cancelVis?.(); io?.disconnect(); window.clearTimeout(t); anim.current?.destroy(); anim.current = null; };
   }, [name, once, tap, every]);
-  useEffect(() => { if (play !== undefined && anim.current) anim.current.goToAndPlay(0, true); }, [play]);
+  useEffect(() => { if (play !== undefined && anim.current) anim.current.goToAndPlay(0, true); if (play) setKick((k) => k + 1); }, [play]);
+  // CSS қимылы да тек көрініп тұрғанда жүреді
+  useEffect(() => {
+    if (!failed || !outer.current) return;
+    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.6 });
+    io.observe(outer.current); return () => io.disconnect();
+  }, [failed]);
+  const mode = tap ? "tap" : once ? "once" : every ? "every" : "loop";
   return (
-    <span aria-hidden className={className} style={{ display: "inline-block", position: "relative", width: size, height: size, rotate: tilt ? `${tilt}deg` : undefined, flex: "none", pointerEvents: "none", ...style }}>
+    <span ref={outer} aria-hidden className={className} style={{ display: "inline-block", position: "relative", width: size, height: size, rotate: tilt ? `${tilt}deg` : undefined, flex: "none", pointerEvents: "none", ...style }}>
       <span ref={box} style={{ position: "absolute", inset: 0, opacity: ready ? 1 : 0, transition: "opacity 0.2s ease" }} />
-      {!ready && <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: size * 0.78, lineHeight: 1 }}>{TG_EMOJI[name]}</span>}
+      {!ready && <span key={kick} className={failed ? `tgm tgm-${MOTION[name] ?? "pop"} tgm-${mode}${(mode === "tap" ? kick > 0 : seen) ? " tgm-run" : ""}` : undefined} style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: size * 0.78, lineHeight: 1 }}>{TG_EMOJI[name]}</span>}
     </span>
   );
 }

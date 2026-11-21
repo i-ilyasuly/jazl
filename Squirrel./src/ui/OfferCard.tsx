@@ -41,7 +41,7 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
       {!ended && <span className={s.discTop}><b>▼ {discount(offer)}%</b></span>}
       {!ended && badges.length > 0 && (
         <span className={s.badges}>
-          {badges.map((b) => <span key={b.emo} title={b.label} aria-label={b.label}><TgEmoji name={b.emo} size={26} every={b.paid ? 5000 : undefined} once={!b.paid} /></span>)}
+          {badges.map((b) => <span key={b.emo} title={b.label} aria-label={b.label}><TgEmoji name={b.emo} size={26} every={b.paid ? 5000 : 8000} /></span>)}
         </span>
       )}
       <button

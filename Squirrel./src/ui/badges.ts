@@ -15,7 +15,23 @@ function hits(kind: Offer["kind"]) {
   return new Set(offers.filter((o) => o.kind === kind && !isEnded(o.id) && o.buyers >= 5).sort((a, b) => b.buyers - a.buyers).slice(0, 3).map((o) => o.id));
 }
 
+// УАҚЫТША КӨРСЕТУ (Патша, 2026-11-21: «эмодзилерді карточкалардан көре алуым үшін»). Әр белгі кемінде бір карточкада
+// шығуы үшін кейбір ұсыныстарға шарт «орындалған» деп белгіленеді. Пилот іске қосылмай тұрып DEMO = {} етіп өшіру керек.
+const DEMO: Record<string, Badge["emo"][]> = {
+  americano: ["hourglass", "new"], doner: ["zap"], cappuccino: ["new", "star"], latte: ["hourglass", "zap", "star"],
+  "doner-drink": ["new"], "burger-combo": ["zap", "hourglass"], haircut: ["star", "new"], pizza: ["hourglass"],
+};
+const LABEL: Record<string, string> = { hourglass: "Аяқталуға жақын", zap: "Аз қалды", rocket: "Хит", new: "Жаңа", star: "Жоғары рейтинг" };
+
 export function badgesOf(o: Offer): Badge[] {
+  const out = realBadges(o);
+  for (const e of DEMO[o.id] ?? []) if (!out.some((b) => b.emo === e)) out.push({ emo: e, label: LABEL[e] });
+  // Реті тұрақты: ақылылар, сосын маңыздылығы бойынша
+  const order: Badge["emo"][] = ["fire", "top", "hourglass", "zap", "rocket", "new", "star"];
+  return out.sort((a, b) => order.indexOf(a.emo) - order.indexOf(b.emo));
+}
+
+function realBadges(o: Offer): Badge[] {
   const out: Badge[] = [];
   if (o.promo === "hot") out.push({ emo: "fire", label: "Ыстық", paid: true });
   if (o.promo === "top") out.push({ emo: "top", label: "ТОП", paid: true });
