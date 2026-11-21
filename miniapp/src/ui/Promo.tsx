@@ -54,7 +54,7 @@ export function Promo() {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const t = window.setInterval(() => {
       const el = ref.current; if (!el || document.hidden || Date.now() - touched.current < 10000) return;
-      const r = el.getBoundingClientRect(); if (r.bottom < 0 || r.top > window.innerHeight) return; // экраннан тыс — ауыстырмаймыз
+      const r = el.getBoundingClientRect(); const vis = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0); if (vis < r.height * 0.5) return; // жартысы көрінбесе — ауыстырмаймыз (Патша, 2026-11-21)
       const next = Math.min(Math.round(el.scrollLeft / step()) + 1, items.length);
       slide(el, next * step());
     }, 8000); // Патша (2026-11-21): 8 с сайын

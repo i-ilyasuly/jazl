@@ -14,6 +14,8 @@ const cache = new Map<string, Promise<object>>();
 // Өнімділік (Патша, 2026-11-21): бет айналып жатқанда барлық Lottie анимациясы (стикерлер мен Telegram эмодзилері — бір ойнатқыш)
 // бір сәтке тоқтайды, айналу біткенде жалғасады. Әйтпесе әр кадрда SVG қайта салынып, айналдыру қатады.
 addEventListener("medeo:scroll-start", () => { void player?.then((m) => (m.default as unknown as { freeze(): void }).freeze()); });
+// Mini App жасырылса (басқа чатқа өтсе) — бәрі тоқтайды
+addEventListener("visibilitychange", () => { void player?.then((m) => { const l = m.default as unknown as { freeze(): void; unfreeze(): void }; if (document.hidden) l.freeze(); else l.unfreeze(); }); });
 addEventListener("medeo:scroll-end", () => { void player?.then((m) => (m.default as unknown as { unfreeze(): void }).unfreeze()); });
 /** Стикерді (ойнатқышымен бірге) алдын ала жүктеп қояды: кейін көрсеткенде орны бос тұрмайды.
  *  Мысалы, бағалау парағы ашылғанда — жұлдыз қойылғаннан кейінгі «love» стикері (Патша, 2026-11-16). */
@@ -46,7 +48,8 @@ export function Sticker({ name, size = 120, className, once = false }: { name: S
       anim.current = a;
       if (!once) {
         setReady(true);
-        io = new IntersectionObserver(([e]) => { if (e.isIntersecting) a.play(); else a.pause(); });
+        // Патша (2026-11-21): тек көзге көрініп тұрғанда ойнайды (кемінде 35%-ы экранда), әйтпесе тоқтап тұрады
+        io = new IntersectionObserver(([e]) => { if (e.isIntersecting && !document.hidden) a.play(); else a.pause(); }, { threshold: 0.35 });
         io.observe(box.current);
         return;
       }
@@ -54,7 +57,7 @@ export function Sticker({ name, size = 120, className, once = false }: { name: S
       if (again) { played = true; a.goToAndStop(a.totalFrames - 1, true); setInstant(true); setReady(true); return; }
       setReady(true);
       // Бірінші рет экранға шыққанда ойнайды (бет төменде болса — көрінген сәтте), бір рет қана
-      io = new IntersectionObserver(([e]) => { if (e.isIntersecting && !played) a.play(); else if (!e.isIntersecting && !played) a.pause(); });
+      io = new IntersectionObserver(([e]) => { if (e.isIntersecting && !played) a.play(); else if (!e.isIntersecting && !played) a.pause(); }, { threshold: 0.35 });
       io.observe(box.current);
     });
     // Экранға шыққанда және браузер бос кезде ғана құрамыз (артқа қайту мен сипау қатпауы үшін)
