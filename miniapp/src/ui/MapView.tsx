@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as MLMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { loadMaplibre } from "./maplibre";
 import { fmt } from "../mocks/offers";
 import { CITY_CENTER, kindEmoji, kindTint, lngLat, type Venue } from "../mocks/venues";
 import s from "./MapView.module.css";
@@ -27,7 +28,7 @@ export function MapView({ venues, shown, sel, onPick, onTapEmpty, me, onReady, p
   // Картаны бір рет құру (кітапхана тек осы бетте жүктеледі)
   useEffect(() => {
     let dead = false;
-    void import("maplibre-gl").then((ml) => {
+    void loadMaplibre().then((ml) => {
       if (dead || !box.current) return;
       const m = new ml.Map({
         container: box.current, style: styleUrl(isDark()), center: CITY_CENTER, zoom: 14, pitch: 0,
@@ -73,7 +74,7 @@ export function MapView({ venues, shown, sel, onPick, onTapEmpty, me, onReady, p
   useEffect(() => {
     const m = map.current;
     if (!m || !me) return;
-    void import("maplibre-gl").then((ml) => {
+    void loadMaplibre().then((ml) => {
       if (!meMarker.current) { const el = document.createElement("div"); el.className = s.me; meMarker.current = new ml.Marker({ element: el }).setLngLat(me).addTo(m); }
       else meMarker.current.setLngLat(me);
     });
