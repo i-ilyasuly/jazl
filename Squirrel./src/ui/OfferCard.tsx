@@ -3,9 +3,10 @@ import { Photo } from "./Photo";
 import { kindPic } from "./Emo";
 import { Link, useViewTransitionState } from "react-router-dom";
 import { setDir } from "../nav";
-import { toggleFav, toggleRestock, useFavs, useRestock } from "../store";
+import { toggleFav, toggleRestock, useFavs, useRestock, useSettings } from "../store";
 import { TgEmoji } from "./TgEmoji";
 import { badgesOf, type Badge } from "./badges";
+import { BadgeIcon } from "./BadgeIcon";
 
 import { discount, fmt, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
@@ -39,7 +40,7 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
       {/* B нұсқасы (Патша, 2026-11-21): сөзсіз, тек эмодзи — жүрекшенің сол жағында, онымен бірдей өлшемде (Krisha үлгісі) */}
       {/* Патша (2026-11-21): ▼% жеңілдік белгісі — жүрекшенің сол жағында; эмодзи белгілер — астыңғы оң жақта */}
       {!ended && <span className={s.discTop}><b>▼ {discount(offer)}%</b></span>}
-      {!ended && badges.length > 0 && <BadgeRow badges={badges} />}
+      {!ended && badges.length > 0 && <Badges badges={badges} />}
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
@@ -77,6 +78,17 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
 // алдымен бір топ ойнайды, біткен соң екіншісі, сосын үзіліс. Жалғыз белгі — ойнап, үзіліс жасайды.
 // Қатар экранда көрінбесе — бәрі тоқтайды.
 const PHASE = 1400, REST = 3000;
+/** Баптаудағы таңдауға қарай: анимациялық эмодзи не дөңгелек иконкалар (Патша, 2026-11-21) */
+function Badges({ badges }: { badges: Badge[] }) {
+  const icons = useSettings().badgeStyle === "icon";
+  if (!icons) return <BadgeRow badges={badges} />;
+  return (
+    <span className={`${s.badges} ${s.iconStack}`}>
+      {/* row-reverse: i = 0 — ең оң жақта; сол жақтағысы үстінде тұрады (krisha.kz сияқты) */}
+      {badges.map((b, i) => <span key={b.emo} title={b.label} aria-label={b.label} style={{ zIndex: i + 1 }}><BadgeIcon name={b.emo} size={30} /></span>)}
+    </span>
+  );
+}
 function BadgeRow({ badges }: { badges: Badge[] }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [tick, setTick] = useState<[number, number]>([0, 0]); // [1-топтың, 2-топтың ойнау саны]

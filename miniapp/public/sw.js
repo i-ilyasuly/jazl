@@ -1,9 +1,12 @@
 // Medeo service worker (Патша, 2026-11-21).
 // 1) Карта: OpenFreeMap (стиль, плиткалар, қаріптер, спрайт) — кэштен; Қарағанды аймағы фонда бір рет алдын ала жүктеледі.
 // 2) Қолданбаның өз файлдары (/assets/ — аттарында хэш бар, ешқашан өзгермейді) — кэштен. Telegram браузер кэшін
-//    тазаласа да, қайта ашқанда желіден қайта жүктелмейді. index.html мен API-ге тимейміз (әрқашан желіден).
+//    тазаласа да, қайта ашқанда желіден қайта жүктелмейді. API-ге тимейміз (әрқашан желіден).
+// 3) Басты бет (index.html): әрқашан алдымен желіден (жаңа нұсқа бірден келеді), желі жоқ болса — соңғы
+//    сақталған нұсқасы. Сонда интернетсіз де қолданба ашылып, соңғы каталогпен «желі жоқ» күйін көрсетеді.
 const MAP = "medeo-map-v1";
 const APP = "medeo-app-v1";
+const SHELL = "medeo-shell-v1";
 const APP_MAX = 400; // ескі нұсқалардың файлдары жиналып қалмасын
 const isMap = (u) => u.hostname === "tiles.openfreemap.org";
 // Telegram анимациялық эмодзилері (біздің сервер арқылы) — бір рет жүктеліп, телефонда сақталады
@@ -19,6 +22,20 @@ const fromCache = (name, req, after) => caches.open(name).then(async (c) => {
   if (res.ok) { await c.put(req, res.clone()); if (after) after(c); }
   return res;
 });
+// Telegram сілтемеге параметр қосады (?tgWebApp…) — бәрі бір кілтпен сақталады
+const shell = async (req) => {
+  const key = new URL("./", req.url).href;
+  const c = await caches.open(SHELL);
+  try {
+    const res = await fetch(req);
+    if (res.ok) await c.put(key, res.clone());
+    return res;
+  } catch (err) {
+    const hit = await c.match(key);
+    if (hit) return hit;
+    throw err;
+  }
+};
 let pruning = false;
 const prune = async (c) => {
   if (pruning) return; pruning = true;
@@ -27,6 +44,7 @@ const prune = async (c) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const u = new URL(e.request.url);
+  if (e.request.mode === "navigate" && u.origin === self.location.origin) { e.respondWith(shell(e.request)); return; }
   if (isMap(u)) e.respondWith(fromCache(MAP, e.request));
   else if (isAsset(u) || isEmoji(u)) e.respondWith(fromCache(APP, e.request, prune));
 });

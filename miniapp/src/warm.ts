@@ -10,8 +10,29 @@ import { preloadTgEmoji } from "./ui/TgEmoji";
 type Conn = { saveData?: boolean; effectiveType?: string; type?: string };
 const conn = () => (navigator as unknown as { connection?: Conn }).connection;
 export const slowNet = () => { const c = conn(); return !!c?.saveData || /2g/.test(c?.effectiveType ?? ""); };
-/** Wi-Fi екені анық болса ғана true (iPhone бұл ақпаратты бермейді — онда false). */
-export const onWifi = () => conn()?.type === "wifi" || conn()?.type === "ethernet";
+/** Үлкен файлдарды (фото, картаның ұсақ плиткалары) алдын ала жүктеуге бола ма (Патша, 2026-11-21).
+ *  Wi-Fi екені анық болса — иә; ұялы желі екені анық болса — жоқ. iPhone желі түрін айтпайды — онда
+ *  қолданба жүктелген кездегі нақты жылдамдыққа қараймыз (≥ 8 Мбит/с болса — иә). */
+export const fastNet = () => {
+  const c = conn();
+  if (c?.type === "wifi" || c?.type === "ethernet") return true;
+  if (c?.type === "cellular" || slowNet()) return false;
+  return measuredMbps() >= 8;
+};
+/** Жүктелген файлдардың уақыты бойынша желі жылдамдығы (Мбит/с). Кэштен келгендері есептелмейді. */
+function measuredMbps() {
+  try {
+    const rs = (performance.getEntriesByType("resource") as PerformanceResourceTiming[])
+      .filter((r) => r.transferSize > 60_000 && r.responseEnd - r.responseStart > 5);
+    // Файлдар кэштен келсе (екінші ашылғаннан бастап) — соңғы өлшенген жылдамдық
+    if (!rs.length) return Number(localStorage.getItem("medeo_mbps") ?? 0) || 0;
+    const bits = rs.reduce((a, r) => a + r.transferSize * 8, 0);
+    const ms = rs.reduce((a, r) => a + (r.responseEnd - r.responseStart), 0);
+    const v = Math.round(bits / ms / 100) / 10;
+    localStorage.setItem("medeo_mbps", String(v));
+    return v;
+  } catch { return 0; }
+}
 
 const kept: HTMLImageElement[] = [];
 export function warmBackground() {
@@ -33,5 +54,5 @@ export function warmBackground() {
   // Сирек беттердің стикерлері — ең соңында, 20 с кейін, тек жақсы желіде (мерекелік, мұңайған, ұйықтаған, телефон, құжат)
   window.setTimeout(() => { for (const n of ["partyhat", "sad", "phone", "reader"] as const) void preloadSticker(n).catch(() => null); void preloadTgEmoji("money").catch(() => null); }, 20000);
   // 7. Алғашқы 6 ұсыныстың үлкен фотосы (ұсыныс беті ашылғанда бірден тұрады) — тек Wi-Fi
-  if (onWifi()) for (const o of offers.slice(0, 6)) { const src = galleryOf(o.id, o.kind)[0]; if (src) { const im = new Image(); im.src = src; kept.push(im); } }
+  if (fastNet()) for (const o of offers.slice(0, 6)) { const src = galleryOf(o.id, o.kind)[0]; if (src) { const im = new Image(); im.src = src; kept.push(im); } }
 }

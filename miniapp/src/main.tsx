@@ -22,7 +22,7 @@ import { NavBar, type TabKey } from "./ui/NavBar";
 import { warmImages } from "./ui/imageCache";
 import { EdgeBack } from "./ui/EdgeBack";
 import { loadCatalog } from "./catalog";
-import { warmBackground, onWifi, slowNet } from "./warm";
+import { warmBackground, fastNet, slowNet } from "./warm";
 import { syncServerPacks } from "./store";
 
 // Алғашқы ашылу жылдамдығы (Патша, 2026-11-18, видео: ~6.5 с): клиент бірден көретін экрандар (Басты, Ұсыныс, Пакеттер, Профиль, Тіркелу)
@@ -373,7 +373,7 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").then(() => {
       if (slowNet()) return;
       // v2: қаріптер мен белгішелер де жүктеледі; Wi-Fi-да — көше деңгейі (z15–16, карта көзі берсе)
-      const wifi = onWifi();
+      const wifi = fastNet();
       let done = false; try { done = localStorage.getItem(wifi ? "medeo_map_pref2w" : "medeo_map_pref2") === "1"; } catch { /* жеке терезе */ }
       if (done) return;
       window.setTimeout(() => {
