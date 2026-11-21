@@ -109,3 +109,9 @@
 /* Патша (2026-11-21): тур жазбасының нұсқағышы — анимациялық 👇 */
 .tip::after { display: none; }
 .tipPoint { position: absolute; bottom: -26px; }
+
+/* Өнімділік (Патша, 2026-11-21: «сипағанда қатады»). Сыну сүзгісі (url(#medeo-lg)) әр кадрда астындағы бетті қайта
+   есептейді — айналдыру кезінде қымбат. Бет айналып жатқанда тек жай бұлыңғырлық қалады, тоқтаған соң сыну қайтады. */
+:global(html.scrolling) .lg, :global(html.scrolling) .lg .activeBg, :global(html.scrolling) .lg .lens {
+  -webkit-backdrop-filter: blur(8px) saturate(150%) !important; backdrop-filter: blur(8px) saturate(150%) !important;
+}

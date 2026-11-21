@@ -1,13 +1,16 @@
 // Басты беттегі жарнамалық виджет: Telegram Wallet-тегі «Доход на SOL» сияқты сырғытылатын градиентті баннерлер.
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useGo } from "../nav";
 import { haptic } from "../telegram";
 import { Sticker, preloadSticker, type StickerName } from "./Sticker";
+import { ActionSheet } from "./ActionSheet";
+import { fmt, isEnded, offers } from "../mocks/offers";
 import s from "./Promo.module.css";
 
 const items = [
   { id: "save", title: "Пакетпен 30%-ға\nдейін үнемде", link: "Ұсыныстарды көру", duck: "bags" as StickerName, cls: s.violet, to: "#offers" },
-  { id: "gift", title: "Досыңа пакет\nсыйла", link: "Сыйлық жіберу", duck: "gift" as StickerName, cls: s.teal, to: "/profile/gifts" },
+  { id: "gift", title: "Досыңа пакет\nсыйла", link: "Сыйлық жіберу", duck: "gift" as StickerName, cls: s.teal, to: "@gift" },
   { id: "map", title: "Жаныңдағы мекемелер\nкартада", link: "Картаны ашу", duck: "city" as StickerName, cls: s.blue, to: "/map" },
 ];
 
@@ -58,8 +61,11 @@ export function Promo() {
     return () => window.clearInterval(t);
   }, []);
   const touch = () => { touched.current = Date.now(); };
+  // Патша (2026-11-21): «Досыңа пакет сыйла» — бірден сыйлайтын пакетті таңдау (бұрын сыйлықтар тарихы ашылатын, бұл қисынсыз)
+  const [giftPick, setGiftPick] = useState(false);
   const open = (to: string) => {
     haptic.tap();
+    if (to === "@gift") { setGiftPick(true); return; }
     if (to.startsWith("#")) document.getElementById(to.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
     else go(to);
   };
@@ -82,6 +88,12 @@ export function Promo() {
           <i className={s.spark} /><i className={`${s.spark} ${s.spark2}`} />
         </button>
       </div>
+      {giftPick && createPortal(
+        <ActionSheet custom title="Қай пакетті сыйлайсың?"
+          actions={[...offers.filter((o) => !isEnded(o.id)).slice(0, 5).map((o) => ({ id: o.id, text: `${o.packName ?? o.title} · ${fmt(o.price)}` })), { id: "@all", text: "Барлық ұсыныстар" }]}
+          onClose={() => setGiftPick(false)}
+          onPick={(id) => { if (id === "@all") document.getElementById("offers")?.scrollIntoView({ behavior: "smooth", block: "start" }); else go("/gift/" + id, "up"); }} />, document.body,
+      )}
       <div className={s.dots}>{items.map((x, i) => <span key={x.id} className={i === at ? s.on : ""} />)}</div>
     </section>
   );

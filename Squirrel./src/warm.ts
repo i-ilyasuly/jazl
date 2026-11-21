@@ -20,6 +20,10 @@ export function warmBackground() {
   warmMaplibre();
   // 6. Жиі шығатын үйрек стикерлері: тізім бітті / желі жоқ / табылмады; басты беттегі баннерлердің үйректері; «Жуырда» парағының үйрегі
   for (const n of ["sleep", "offline", "search", "bags", "gift", "city", "repair"] as const) void preloadSticker(n).catch(() => null);
+  // Telegram анимациялық эмодзилері (Патша, 2026-11-21): басты беттегілері бірден, қалғандары кейін — бәрі фонда,
+  // кішкентай (20–50 КБ), service worker телефонда сақтайды. Көрінген сәтте дайын тұрады.
+  for (const n of ["fire", "rocket", "you", "rich", "thumbs", "partyface", "bell"] as const) void preloadTgEmoji(n).catch(() => null);
+  window.setTimeout(() => { for (const n of ["point_right", "point_up", "point_down", "star", "money", "phone"] as const) void preloadTgEmoji(n).catch(() => null); }, 8000);
   // Пакетке байланысты стикерлер (Патша, 2026-11-21) — тек клиентке керек болатын сәтте:
   // мерзімі аз қалған пакет бар → сағатты үйрек (Пакеттерім) + себетті үйрек (Қайта алу);
   // соңғы бірлігі қалған пакет бар → кубокты үйрек (пакет біткенде).

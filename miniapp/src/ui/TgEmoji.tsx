@@ -4,6 +4,7 @@
 // Ереже: 2 рет ойнайды да тоқтайды, сосын әр 7 с сайын бір рет қайта қимылдайды; экраннан тыс — кідіреді.
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { API_URL } from "../api";
+import { whenVisible } from "./lazyVisible";
 
 export const TG_EMOJI = { point_right: "👉", point_down: "👇", point_up: "👆", bell: "🔔", fire: "🔥", phone: "📱", star: "⭐", money: "💰",
   target: "🎯", rocket: "🚀", pin: "📍", cheap: "🏷️", gem: "💎", sparkles: "✨",
@@ -45,7 +46,8 @@ export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, onc
   useEffect(() => {
     let dead = false; let io: IntersectionObserver | undefined; let t: number | undefined;
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    void preloadTgEmoji(name).then(([m, data]) => {
+    let cancelVis: (() => void) | undefined;
+    const build = () => void preloadTgEmoji(name).then(([m, data]) => {
       if (dead || !box.current) return;
       const a = m.default.loadAnimation({ container: box.current, renderer: "svg", loop: false, autoplay: false, animationData: data }) as unknown as Anim;
       anim.current = a; setReady(true);
@@ -74,7 +76,9 @@ export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, onc
       io.observe(box.current);
       a.play();
     }).catch(() => undefined);
-    return () => { dead = true; io?.disconnect(); window.clearTimeout(t); anim.current?.destroy(); anim.current = null; };
+    // Экранға шыққанда және браузер бос кезде ғана құрамыз; оған дейін кәдімгі эмодзи таңбасы тұрады
+    if (box.current) cancelVis = whenVisible(box.current, build);
+    return () => { dead = true; cancelVis?.(); io?.disconnect(); window.clearTimeout(t); anim.current?.destroy(); anim.current = null; };
   }, [name, once, tap, every]);
   useEffect(() => { if (play !== undefined && anim.current) anim.current.goToAndPlay(0, true); }, [play]);
   return (
