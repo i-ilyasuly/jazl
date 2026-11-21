@@ -11,11 +11,11 @@ export function MainBar({ text, onClick }: { text: string; onClick: () => void }
 }
 
 /** «Өтінім қабылданды» сияқты нәтиже: жасыл белгі 72, тақырып, түсіндірме. */
-import { Sticker } from "./Sticker";
-export function DoneHero({ top, title, text }: { top: number; title: string; text: string }) {
+import { Sticker, type StickerName } from "./Sticker";
+export function DoneHero({ top, title, text, sticker = "party" }: { top: number; title: string; text: string; sticker?: StickerName }) {
   return (
     <div className={s.done} style={{ top: `calc(${top - 48}px + var(--top-shift))` }}>
-      <Sticker name="party" size={120} />
+      <Sticker name={sticker} size={120} />
       <h2 className={s.doneTitle}>{title}</h2>
       <p className={`t-sub2 ${s.doneText}`}>{text}</p>
     </div>

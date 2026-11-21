@@ -5,7 +5,7 @@ import { Tile } from "../ui/Tile";
 import { kindPic } from "../ui/Emo";
 import { Emo } from "../ui/Emo";
 import { useEffect, useRef, useState } from "react";
-import { preloadSticker } from "../ui/Sticker";
+import { Sticker, preloadSticker } from "../ui/Sticker";
 import { syncServerPacks } from "../store";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
@@ -36,7 +36,10 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
         <div className={s.text}>
           <p className="t-headline">{o.title}</p>
           <p className={`t-sub2 ${s.sub}`}>{o.venue} · {o.distance}</p>
-          <span className={`t-cap1 ${s.days} ${soon ? s.daysSoon : ""}`}>{`${pack.daysLeft} күн қалды`}</span>
+          <span className={s.daysRow}>
+            <span className={`t-cap1 ${s.days} ${soon ? s.daysSoon : ""}`}>{`${pack.daysLeft} күн қалды`}</span>
+            {soon && <span className={s.clock}><Sticker name="clock" size={44} /></span>}
+          </span>
         </div>
       </div>
       <hr className={s.sep} />

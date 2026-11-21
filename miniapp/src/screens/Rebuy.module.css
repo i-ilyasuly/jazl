@@ -52,3 +52,6 @@
 :global(:root[data-theme="dark"]) .page { background: var(--surface-page); }
 :global(:root[data-theme="dark"]) .card, :global(:root[data-theme="dark"]) .bar { background: var(--surface-card); }
 :global(:root[data-theme="dark"]) .up { background: rgba(240, 74, 74, 0.24); color: #fff; }
+
+/* Патша (2026-11-21): «тағы алайық» — себетті үйрек */
+.duck { align-self: center; width: 120px; height: 120px; margin: -8px 0 -4px; }

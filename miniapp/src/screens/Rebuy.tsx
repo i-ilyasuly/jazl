@@ -3,6 +3,7 @@
 // Өлшемдер — UI kit шкаласы (17/22, 15/20, 13/16) және 4/8px тор (шет 16, жол 48/68, бұрыш 12/20).
 import { checkoutCard } from "../pay/checkout";
 import { kindPic } from "../ui/Emo";
+import { Sticker } from "../ui/Sticker";
 import { useCallback, useMemo } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
@@ -57,6 +58,7 @@ export function Rebuy() {
       <TelegramChrome mode="back" onBack={back} />
       <h1 className="pageTitle">Қайта алу</h1>
       <div className={s.col}>
+        <span className={s.duck}><Sticker name="shop" size={120} /></span>
         {changed && (
           <div className={`${s.note} ${s.warn} infoBox infoWarn rise`}>
             <p className={s.noteTitle}>{`Баға өзгерді: ${fmt(o.price).replace(" ₸", "")} → ${fmt(price)}`}</p>

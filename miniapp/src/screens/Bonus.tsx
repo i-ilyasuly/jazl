@@ -4,6 +4,7 @@ import { fmt } from "../mocks/offers";
 import { useBonus } from "../pay/bonus";
 import { Group, Note, Row, SubPage } from "../ui/SubPage";
 import { Tile } from "../ui/Tile";
+import { Sticker } from "../ui/Sticker";
 import s from "./Bonus.module.css";
 
 const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
@@ -14,6 +15,7 @@ export function Bonus() {
   return (
     <SubPage title="Medeo бонусы" variant="roomy">
       <div className={`${s.hero} rise`}>
+        <Sticker name="partyhat" size={112} />
         <span className={s.label}>Қолжетімді</span>
         <b className={s.sum}>{b ? fmt(b.balance) : "–"}</b>
         {b?.nextExpiry && b.balance > 0 && <span className={s.label}>{`Ең жақын мерзімі: ${dm(b.nextExpiry)}`}</span>}

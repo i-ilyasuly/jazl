@@ -9,7 +9,7 @@ import { useGo } from "../nav";
 import { checkPin, markPinOk, pinServer, pinServerBio, redeem, removePin, savePin, setSettings, unlockApp, useSettings } from "../store";
 import { openScanner } from "../scanFlow";
 import { biometricAuth, haptic, inTelegram, tg, useBackButton, useHideNativeButtons } from "../telegram";
-import { Sticker } from "../ui/Sticker";
+import { Sticker, preloadSticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import finger from "../assets/icons/keyLeft.svg";
 import erase from "../assets/icons/keyRight.svg";
@@ -43,6 +43,8 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
   const [error, setError] = useState("");
   const [tries, setTries] = useState(MAX_TRIES);
   const [shake, setShake] = useState(0);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { void preloadSticker("lock").catch(() => null); }, []); // орнатылды көрінісі кешікпесін
   // Құлып экранында «Жабу» — Mini App-ты жабады (артқа өтуге болмайды)
   const back = useCallback(() => { if (unlocking) { if (inTelegram) tg?.close?.(); return; } go(-1, "back"); }, [go, unlocking]);
   useBackButton(back, !unlocking);
@@ -70,12 +72,12 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
       else { fail("Тым көп қате әрекет. Кейінірек қайталап көр"); setTimeout(() => (paying ? go("/scan/state/limit", "up", { replace: true }) : back()), 1400); }
     } else if (step === "new") { setFirst(code); next("repeat"); }
     else if (code === first) {
-      haptic.success(); savePin(code, old || undefined); setSettings({ lock: true });
+      haptic.success(); savePin(code, old || undefined); setSettings({ lock: true }); setSaved(true);
       setTimeout(async () => {
         // PIN қойылған соң биометрияны да қосуды ұсынамыз (екеуі бірге жұмыс істейді)
         if (!st.bio && (await biometricAuth("Medeo төлемдерін биометриямен растау")) === "ok") setSettings({ bio: true });
         back();
-      }, 350);
+      }, 1600); // «PIN орнатылды» көрінісі (құлыпты үйрек) бір сәт тұрады
     } else { fail("Кодтар сәйкес келмеді. Қайта ойлап тап"); setTimeout(() => { setStep("new"); setFirst(""); }, 420); }
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -93,6 +95,13 @@ export function Pin({ lock }: { lock?: boolean } = {}) {
   return (
     <div className={`${s.page} ${unlocking ? s.lock : ""}`}>
       <TelegramChrome mode="close" onBack={back} />
+      {saved && (
+        <div className={s.saved}>
+          <Sticker name="lock" size={140} />
+          <h2 className={s.savedTitle}>PIN орнатылды</h2>
+          <p className="t-sub2">Енді әр төлем PIN-мен расталады</p>
+        </div>
+      )}
       {/* Figma: «PIN / 3 Қолданба құлыпталған» — сейф ұстаған үйрек, «4 Қате код» — ойланған үйрек (146,96 120×120) */}
       {step === "old" && <Sticker key={error ? "think" : "lock"} name={error ? "think" : "lock"} className={s.sticker} />}
       <h1 key={step} className={s.title}>{unlocking ? "Қолданба құлыпталған" : scanning || confirming ? "Растаңыз" : paying ? "Төлемді растаңыз" : titles[step]}</h1>

@@ -13,6 +13,7 @@ import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { UseSheet } from "../ui/UseSheet";
 import { detailsOf, discount, findOffer, fmt, hasSampleIncludes, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
+import { Sticker } from "../ui/Sticker";
 import { lngLat, venues } from "../mocks/venues";
 import { HowSheet } from "../ui/HowSheet";
 import { LinkSheet, type LinkRow } from "../ui/LinkSheet";
@@ -182,6 +183,7 @@ function OfferView({ id }: { id?: string }) {
       <TelegramChrome mode="back" onBack={back} />
       <div className={`${s.photo} ${ended ? s.photoEnded : ""} ${springing ? s.spring : ""}`} style={{ viewTransitionName: "offer-photo", height: 412 + pull }} onTransitionEnd={() => setSpringing(false)}>
         <Gallery photos={photos} fallback={kindPic[offer.kind]} kind={offer.kind} />
+        {ended && <span className={s.endedDuck}><Sticker name="sad" size={150} /></span>}
       </div>
 
       {loading ? <OfferSkeleton /> : (
