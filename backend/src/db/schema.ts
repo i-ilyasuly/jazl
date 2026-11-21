@@ -2,7 +2,7 @@
 // бір дерекқорда қатар тұра алады. Ақша — теңгемен бүтін сан (тиынсыз). Уақыт — timestamptz (UTC).
 // Логикасы мен ID ережесі: Drive «14 Бэкенд логикасы».
 import { sql } from "drizzle-orm";
-import { bigint, boolean, customType, doublePrecision, index, integer, jsonb, pgSchema, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, bigserial, boolean, customType, doublePrecision, index, integer, jsonb, pgSchema, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const app = pgSchema("app");
 
@@ -475,3 +475,13 @@ export const feedback = app.table("feedback", {
   packId: uuid("pack_id").references(() => packs.id),
   createdAt: created(),
 }, (t) => [index("feedback_kind").on(t.kind, t.createdAt)]);
+
+/** Мини апп оқиғалары (0028): open | view | buy_start | error. Пилот воронкасы мен қате бақылау үшін; 180 күн сақталады. */
+export const clientEvents = app.table("client_events", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  userId: uuid("user_id").references(() => users.id),
+  kind: text("kind").notNull(),
+  ref: text("ref"),
+  meta: jsonb("meta"),
+  createdAt: created(),
+}, (t) => [index("client_events_kind").on(t.kind, t.createdAt)]);

@@ -1,6 +1,6 @@
 import { StrictMode, Suspense, lazy, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation } from "react-router-dom";
+import { createHashRouter, Navigate, Outlet, RouterProvider, ScrollRestoration, useLocation, useRouteError } from "react-router-dom";
 import { loadCards, loadWaits, syncServerLang, useLocked, useOnboarded } from "./store";
 import { Welcome, WelcomeCity, WelcomeLang, WelcomeTerms } from "./screens/Welcome";
 import "./styles/base.css";
@@ -23,6 +23,7 @@ import { warmImages } from "./ui/imageCache";
 import { EdgeBack } from "./ui/EdgeBack";
 import { loadCatalog } from "./catalog";
 import { warmBackground, fastNet, slowNet } from "./warm";
+import { reportError, track } from "./track";
 import { syncServerPacks } from "./store";
 
 // Алғашқы ашылу жылдамдығы (Патша, 2026-11-18, видео: ~6.5 с): клиент бірден көретін экрандар (Басты, Ұсыныс, Пакеттер, Профиль, Тіркелу)
@@ -221,9 +222,16 @@ function fit() {
 fit();
 window.addEventListener("resize", fit);
 
+// Бет салынып жатқанда қате шықса: ақ бет не ағылшынша қате орнына — «Қате орын алды» беті, қате серверге жіберіледі
+function RouteError() {
+  const err = useRouteError();
+  useEffect(() => { reportError(err, "render"); }, [err]);
+  return <AppError />;
+}
 const router = createHashRouter([
   {
     element: <Shell />,
+    errorElement: <RouteError />,
     children: [
       { path: "/", element: <Home /> },
       { path: "/offer/:id", element: <OfferPage /> },
@@ -363,6 +371,7 @@ afterLoad(() => {
 // Өнімділік (Патша, 2026-11-21): бет айналып жатқанда <html>-ге .scrolling класы — қымбат әсерлер (шынының сынуы) уақытша өшеді
 { let t: number | undefined; addEventListener("scroll", () => { const r = document.documentElement; if (!r.classList.contains("scrolling")) { r.classList.add("scrolling"); dispatchEvent(new Event("medeo:scroll-start")); } clearTimeout(t); t = window.setTimeout(() => { r.classList.remove("scrolling"); dispatchEvent(new Event("medeo:scroll-end")); }, 180); }, { passive: true, capture: true }); }
 // B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
+track("open"); // пилот воронкасының бірінші қадамы
 void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
 void loadStaff();

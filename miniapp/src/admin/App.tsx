@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 import { Route, Routes } from "react-router-dom";
 import { Split, useDesk } from "./Desk";
 import { AGate, APin } from "./Entry";
-import { AAttention, APulse } from "./Pulse";
+import { AAttention, APulse, AErrors } from "./Pulse";
 import { AApp, AAppDone, AApps, ABranches, ANotes, ATeam, AVenue, AVenues } from "./Venues";
 import { AOffer, AOffers } from "./Offers";
 import { AComplaint, AComplaintSent, AComplaints } from "./Complaints";
@@ -25,6 +25,7 @@ export default function AdminApp() {
       <Route path="pin/upgrade" element={<APin upgrade />} />
       <Route path="pulse" element={<APulse />} />
       <Route path="attention" element={<AAttention />} />
+      <Route path="errors" element={<AErrors />} />
       <Route path="venues" element={sp(<AVenues />, undefined, "Мекемені таңдаңыз")} />
       <Route path="venues/:id" element={sp(<AVenues />, <AVenue />)} />
       <Route path="venues/:id/notes" element={<ANotes />} />
