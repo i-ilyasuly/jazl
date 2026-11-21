@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { loadMaplibre } from "./maplibre";
 import { CITY_CENTER } from "../mocks/venues";
 import { askLocation, haptic, useBackButton } from "../telegram";
 import s from "./PinPicker.module.css";
@@ -18,7 +19,7 @@ export function PinPicker({ start, onPick, onClose }: { start?: [number, number]
   useBackButton(onClose);
   useEffect(() => {
     let dead = false;
-    void import("maplibre-gl").then((ml) => {
+    void loadMaplibre().then((ml) => {
       if (dead || !box.current) return;
       const m = new ml.Map({ container: box.current, style: styleUrl(), center: start ?? CITY_CENTER, zoom: start ? 17 : 13.5, attributionControl: { compact: true } });
       map.current = m;
