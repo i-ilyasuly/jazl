@@ -35,7 +35,7 @@ function Preview({ kind }: { kind: "emoji" | "icon" }) {
   return (
     <span style={{ display: "flex", flexDirection: "row-reverse", alignItems: "center", width: 40, justifyContent: "center", flex: "none" }}>
       {SAMPLE.map((n, i) => kind === "icon"
-        ? <span key={n} style={{ zIndex: i + 1, marginRight: i ? -8 : 0, display: "flex", position: "relative" }}><BadgeIcon name={n} size={22} /></span>
+        ? <span key={n} style={{ marginRight: i ? 2 : 0, display: "flex" }}><BadgeIcon name={n} size={18} /></span>
         : <span key={n} style={{ fontSize: 15, lineHeight: 1, marginRight: i ? -3 : 0 }}>{({ fire: "🔥", top: "🔝", rocket: "🚀" } as Record<string, string>)[n]}</span>)}
     </span>
   );
