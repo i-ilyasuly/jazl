@@ -22,6 +22,7 @@ import { NavBar, type TabKey } from "./ui/NavBar";
 import { warmImages } from "./ui/imageCache";
 import { EdgeBack } from "./ui/EdgeBack";
 import { loadCatalog } from "./catalog";
+import { warmBackground, onWifi, slowNet } from "./warm";
 import { syncServerPacks } from "./store";
 
 // Алғашқы ашылу жылдамдығы (Патша, 2026-11-18, видео: ~6.5 с): клиент бірден көретін экрандар (Басты, Ұсыныс, Пакеттер, Профиль, Тіркелу)
@@ -349,10 +350,14 @@ const router = createHashRouter([
 // Суреттерді алдын ала жылыту, қалған беттерді алдын ала жүктеу — алғашқы экран салынып болған соң, бос уақытта
 // (бұрын бірден басталып, шрифт пен негізгі файлмен желі үшін таласатын).
 const idle = (cb: () => void, ms: number) => ("requestIdleCallback" in window ? window.requestIdleCallback(cb, { timeout: ms }) : setTimeout(cb, ms));
-window.addEventListener("load", () => {
+// main.tsx boot.ts-тен кейін (тіл дайын болған соң) жүктеледі — сол кезде бет «load» оқиғасы өтіп кеткен болуы мүмкін.
+// Бұрын осы себепті фондық жүктеу мен service worker кейде мүлдем іске қосылмайтын (2026-11-21).
+const afterLoad = (cb: () => void) => (document.readyState === "complete" ? cb() : window.addEventListener("load", cb, { once: true }));
+afterLoad(() => {
   idle(warmImages, 1200);
   setTimeout(() => idle(() => { for (const load of pageLoaders) void load().catch(() => undefined); }, 3000), 1500);
-}, { once: true });
+  setTimeout(() => idle(warmBackground, 4000), 4000); // карта бағдарламасы, стикерлер, фотолар — беттерден кейін
+});
 // B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
 void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
@@ -360,15 +365,16 @@ void loadStaff();
 void loadCards(); syncServerLang(); idle(() => void loadWaits(), 4000); // «Хабарла» тізімі // сақталған карталар (сервер болса) // C2: мекеме қызметкері болса — Профильде «Мекеме бөлімі»
 // Патша (2026-11-21): карта кэші — service worker; Қарағанды картасы фонда бір рет алдын ала жүктеледі (тек Wi-Fi/жақсы желіде)
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").then((reg) => {
-      const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-      if (conn?.saveData || /2g/.test(conn?.effectiveType ?? "")) return;
-      let done = false; try { done = localStorage.getItem("medeo_map_pref") === "1"; } catch { /* жеке терезе */ }
+  afterLoad(() => {
+    navigator.serviceWorker.register("./sw.js").then(() => {
+      if (slowNet()) return;
+      // v2: қаріптер мен белгішелер де жүктеледі; Wi-Fi-да — көше деңгейі (z15–16, карта көзі берсе)
+      const wifi = onWifi();
+      let done = false; try { done = localStorage.getItem(wifi ? "medeo_map_pref2w" : "medeo_map_pref2") === "1"; } catch { /* жеке терезе */ }
       if (done) return;
       window.setTimeout(() => {
-        (reg.active ?? navigator.serviceWorker.controller)?.postMessage({ type: "prefetch-map", styles: ["https://tiles.openfreemap.org/styles/liberty", "https://tiles.openfreemap.org/styles/dark"], bbox: [72.95, 49.74, 73.25, 49.9] });
-        try { localStorage.setItem("medeo_map_pref", "1"); } catch { /* */ }
+        void navigator.serviceWorker.ready.then((r) => r.active?.postMessage({ type: "prefetch-map", styles: ["https://tiles.openfreemap.org/styles/liberty", "https://tiles.openfreemap.org/styles/dark"], bbox: [72.95, 49.74, 73.25, 49.9], deep: wifi }));
+        try { localStorage.setItem("medeo_map_pref2", "1"); if (wifi) localStorage.setItem("medeo_map_pref2w", "1"); } catch { /* */ }
       }, 8000);
     }).catch(() => {});
   });

@@ -10,12 +10,28 @@ import { venues } from "./mocks/venues";
 interface SrvVenue { slug: string; name: string; kind: OfferKind; rating: number | null; reviewsCount: number; trust?: number | null; branches: { id: string; address: string }[] }
 interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown; composition?: string | null; compositionRu?: string | null; packName?: string | null; packNameRu?: string | null; bonus?: string | null; bonusRu?: string | null; perk?: string | null; perkRu?: string | null; portion?: Offer["portion"] | null } | null; limit?: Offer["limit"]; saleUntil?: string | null; rules?: { planOnly?: boolean; offPeak?: { days: number[]; from: string; to: string; pct: number } } | null; sizes?: { units: number; price: number }[] | null }
 
-export const catalogState: { source: "mock" | "server"; venues: number; offers: number; error?: string; ms?: number; branches: { venue: string; slug: string; branchId: string; address: string }[] } = { source: "mock", venues: 0, offers: 0, branches: [] };
+export const catalogState: { source: "mock" | "cache" | "server"; venues: number; offers: number; error?: string; ms?: number; branches: { venue: string; slug: string; branchId: string; address: string }[] } = { source: "mock", venues: 0, offers: 0, branches: [] };
+
+type Catalog = { venues: SrvVenue[]; offers: SrvOffer[] };
+// Патша (2026-11-21): соңғы каталог телефонда сақталады. Келесі ашылғанда бірден сол көрінеді (үлгі деректер
+// жыпылықтамайды), жаңасы серверден фонда келіп, үстінен жазылады.
+const KEY = "medeo_catalog_v1";
+function readCache(): Catalog | null { try { const r = localStorage.getItem(KEY); return r ? (JSON.parse(r) as Catalog) : null; } catch { return null; } }
+function writeCache(j: Catalog) { try { localStorage.setItem(KEY, JSON.stringify(j)); } catch { /* орын жоқ / жеке терезе */ } }
 
 export async function loadCatalog() {
   const t0 = performance.now();
   try {
-    const j = await api<{ venues: SrvVenue[]; offers: SrvOffer[] }>("/v1/catalog", {}, 4000);
+    const j = await api<Catalog>("/v1/catalog", {}, 4000);
+    applyCatalog(j, t0, "server");
+    writeCache(j);
+  } catch (e) {
+    Object.assign(catalogState, { source: catalogState.source === "cache" ? "cache" : "mock", error: (e as Error).message, ms: Math.round(performance.now() - t0) });
+  }
+}
+
+function applyCatalog(j: Catalog, t0: number, source: "cache" | "server") {
+  {
     const vName = new Map(j.venues.map((v) => [v.slug, v.name]));
     for (const v of j.venues) { const m = venues.find((x) => x.id === v.slug); if (m) { m.name = v.name; m.rating = v.rating ?? m.rating; m.reviews = v.reviewsCount; m.trust = v.trust ?? null; m.address = v.branches[0]?.address ?? m.address; } }
     const lists = [offers, moreOffers, categoryOffers, endedOffers];
@@ -47,9 +63,10 @@ export async function loadCatalog() {
       if (found) Object.assign(found, patch);
       else (o.status === "ended" ? endedOffers : moreOffers).push({ id: o.slug, distance: "", favorite: false, rating: 0, ratingCount: 0, address: "", hours: "", buyers: 0, ...patch } as Offer);
     }
-    Object.assign(catalogState, { source: "server", venues: j.venues.length, offers: j.offers.length, ms: Math.round(performance.now() - t0), error: undefined,
+    Object.assign(catalogState, { source, venues: j.venues.length, offers: j.offers.length, ms: Math.round(performance.now() - t0), error: undefined,
       branches: j.venues.flatMap((v) => v.branches.map((b) => ({ venue: v.name, slug: v.slug, branchId: b.id, address: b.address }))) });
-  } catch (e) {
-    Object.assign(catalogState, { source: "mock", error: (e as Error).message, ms: Math.round(performance.now() - t0) });
   }
 }
+
+// Модуль жүктелгенде (React салынбай тұрып) сақталған каталогты бірден қолданамыз
+{ const c = readCache(); if (c) { try { applyCatalog(c, performance.now(), "cache"); } catch { /* ескі пішім — елемейміз */ } } }
