@@ -2,6 +2,7 @@
 // суретіне сәйкес келетін дәл сол анимация. Файл мен ойнатқыш керек кезде ғана жүктеледі.
 import { useEffect, useRef, useState } from "react";
 import { whenVisible } from "./lazyVisible";
+import { getSettings, subscribeSettings } from "../store";
 
 export type StickerName = "egg" | "search" | "love" | "cry" | "sleep" | "stop" | "shop" | "wait" | "think" | "empty" | "lock" | "offline" | "party" | "phone" | "gift" | "hello" | "bags" | "archive" | "clean" | "sad" | "repair"
   // Мекеме бөлімі (Figma «Стикер кітапханасы (мекеме)»; design/sticker-packs: HalloDuck, UtyaDuck)
@@ -13,10 +14,15 @@ let player: Promise<Lottie> | null = null;
 const cache = new Map<string, Promise<object>>();
 // Өнімділік (Патша, 2026-11-21): бет айналып жатқанда барлық Lottie анимациясы (стикерлер мен Telegram эмодзилері — бір ойнатқыш)
 // бір сәтке тоқтайды, айналу біткенде жалғасады. Әйтпесе әр кадрда SVG қайта салынып, айналдыру қатады.
+// Баптау: Профиль → Анимациялар өшірулі болса — ойнатқыш толық тоқтатылады (бәрі бір кадрда тұрады)
+const motionOn = () => getSettings().motion !== false;
+const applyMotion = () => { document.documentElement.classList.toggle("no-motion", !motionOn()); const p = motionOn() ? player : (player ??= import("lottie-web/build/player/lottie_light")); void p?.then((m) => { const l = m.default as unknown as { freeze(): void; unfreeze(): void }; if (motionOn()) l.unfreeze(); else l.freeze(); }); };
+subscribeSettings(applyMotion); queueMicrotask(applyMotion);
+export const ensureMotionState = applyMotion;
 addEventListener("medeo:scroll-start", () => { void player?.then((m) => (m.default as unknown as { freeze(): void }).freeze()); });
 // Mini App жасырылса (басқа чатқа өтсе) — бәрі тоқтайды
-addEventListener("visibilitychange", () => { void player?.then((m) => { const l = m.default as unknown as { freeze(): void; unfreeze(): void }; if (document.hidden) l.freeze(); else l.unfreeze(); }); });
-addEventListener("medeo:scroll-end", () => { void player?.then((m) => (m.default as unknown as { unfreeze(): void }).unfreeze()); });
+addEventListener("visibilitychange", () => { void player?.then((m) => { const l = m.default as unknown as { freeze(): void; unfreeze(): void }; if (document.hidden || !motionOn()) l.freeze(); else l.unfreeze(); }); });
+addEventListener("medeo:scroll-end", () => { if (motionOn()) void player?.then((m) => (m.default as unknown as { unfreeze(): void }).unfreeze()); });
 /** Стикерді (ойнатқышымен бірге) алдын ала жүктеп қояды: кейін көрсеткенде орны бос тұрмайды.
  *  Мысалы, бағалау парағы ашылғанда — жұлдыз қойылғаннан кейінгі «love» стикері (Патша, 2026-11-16). */
 export function preloadSticker(name: StickerName) {

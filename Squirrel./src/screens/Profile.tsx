@@ -17,6 +17,7 @@ import gift from "../assets/icons/p_gift.svg";
 import bell from "../assets/icons/p_bell.svg";
 import lock from "../assets/icons/p_lock.svg";
 import globe from "../assets/icons/p_globe.svg";
+import motionIco from "../assets/icons/p_motion.svg";
 import city from "../assets/icons/p_city.svg";
 import ask from "../assets/icons/p_ask.svg";
 import how from "../assets/icons/p_how.svg";
@@ -45,6 +46,7 @@ const groups: { header?: string; rows: RowDef[] }[] = [
   { rows: [
     { icon: globe, title: "Тіл", sub: "Қазақша", to: "/profile/language" },
     { icon: city, title: "Қала", sub: "Қарағанды", to: "/profile/city" },
+    { icon: motionIco, title: "Анимациялар", sub: "Қосулы", to: "/profile/motion" },
   ] },
   { header: "Көмек", rows: [
     { icon: ask, title: "Сұрақ қою", to: "/profile/ask" },
@@ -72,7 +74,7 @@ export function Profile() {
   const bonus = useBonus();
   const withBonus = groups.map((g, i) => (i !== 1 || !hasServer() ? g : { ...g, rows: [...g.rows.slice(0, 2), { icon: "", tile: "💰", title: "Medeo бонусы", sub: "Қайтқан ақша", value: bonus ? fmt(bonus.balance) : undefined, to: "/profile/bonus" }, ...g.rows.slice(2)] }));
   const all: typeof groups = top.length ? [{ rows: top }, ...withBonus] : withBonus;
-  const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (getLang() === "ru" ? "Русский" : "Қазақша") : r.sub);
+  const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (getLang() === "ru" ? "Русский" : "Қазақша") : r.to === "/profile/motion" ? (st.motion !== false ? "Қосулы" : "Өшірулі") : r.sub);
   const [how, setHow] = useState(false);
   const [ask, setAsk] = useState(false);
   // Figma «Сұрақ қою / Ескерту диалогы» 13886:39249: алдымен ЖҚС ұсынылады

@@ -76,3 +76,6 @@
 /* Бір реттік / басқандағы режим: бір цикл ғана (қимыл алғашқы ~1 с-та, қалғаны — тыныштық) */
 .tgm.tgm-once, .tgm.tgm-tap { animation-duration: 5.5s; animation-iteration-count: 1; }
 @media (prefers-reduced-motion: reduce) { .tgm { animation: none !important; } }
+
+/* Профиль → Анимациялар өшірулі: өзіміздің эмодзи қимылдары да тоқтайды */
+.no-motion .tgm { animation: none !important; }

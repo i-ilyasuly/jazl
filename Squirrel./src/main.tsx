@@ -73,6 +73,7 @@ const SystemStatus = _screens_SystemStatus("SystemStatus");
 const _screens_ServerReceipt = lz(() => import("./screens/ServerReceipt"));
 const ServerReceipt = _screens_ServerReceipt("ServerReceipt");
 const _screens_Security = lz(() => import("./screens/Security"));
+const Motion = lz(() => import("./screens/Motion"))("Motion");
 const Security = _screens_Security("Security");
 const _screens_Choice = lz(() => import("./screens/Choice"));
 const City = _screens_Choice("City"), Language = _screens_Choice("Language");
@@ -263,6 +264,7 @@ const router = createHashRouter([
       { path: "/profile/notifications", element: <Notifications /> },
       { path: "/profile/receipt/:id", element: <Receipt /> },
       { path: "/profile/security", element: <Security /> },
+      { path: "/profile/motion", element: <Motion /> },
       { path: "/profile/haptics", element: <HapticTest /> },
       { path: "/profile/fonts", element: <FontTest /> },
       { path: "/profile/system", element: <SystemStatus /> },
