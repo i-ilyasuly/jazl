@@ -113,3 +113,8 @@
 .infoSoon .text { min-width: 0; }
 .infoSoon .text > p { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .clock { position: absolute; right: -10px; top: -12px; width: 92px; height: 92px; pointer-events: none; }
+
+/* Патша (2026-11-21): Telegram анимациялық эмодзилері */
+.renewPoint { margin: -6px -14px -6px -12px; }
+.tip::before { display: none; } /* үшбұрыштың орнына — жоғары нұсқаған саусақ */
+.tipPoint { position: absolute; right: 36px; top: -20px; }

@@ -6,6 +6,7 @@ import { kindPic } from "../ui/Emo";
 import { Emo } from "../ui/Emo";
 import { useEffect, useRef, useState } from "react";
 import { Sticker, preloadSticker } from "../ui/Sticker";
+import { TgEmoji, preloadTgEmoji } from "../ui/TgEmoji";
 import { syncServerPacks } from "../store";
 import { demoEmpty, useMock } from "../mocks/useMock";
 import { EmptyState } from "../ui/EmptyState";
@@ -48,6 +49,7 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
         <button className={`t-sub2 w-600 ${s.use}`} disabled={pack.left < 1} onClick={(e) => { e.stopPropagation(); haptic.medium(); onUse(pack); }}>Қолдану</button>
         {hint && (
           <div className={s.tip} role="note" onClick={(e) => e.stopPropagation()}>
+            <TgEmoji name="point_up" size={32} tilt={14} className={s.tipPoint} style={{ position: "absolute" }} />
             <p>Мекемеде «Қолдану» батырмасын бас да, кассадағы QR-ды сканерле</p>
             <button onClick={() => { haptic.tap(); onHint?.(); }}>Түсінікті</button>
           </div>
@@ -57,6 +59,8 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
         <div className={`${s.renew} infoBox infoOk`}>
           <span className={s.renewBar} />
           <p className={`t-sub2 ${s.renewText}`}>Қайта алсаң, қалған бірлік <b>келесі айға көшеді</b></p>
+          {/* Патша (2026-11-21): «Қайта алу» батырмасына қарай қиғаш нұсқаған саусақ (Telegram анимациялық эмодзиі) */}
+          <TgEmoji name="point_right" size={30} tilt={-18} className={s.renewPoint} />
           <button className={`t-sub2 w-600 ${s.renewBtn}`} onClick={(e) => { e.stopPropagation(); haptic.medium(); go("/rebuy/" + pack.id); }}>Қайта алу</button>
         </div>
       )}
@@ -84,7 +88,7 @@ export function Packs() {
   const [rating, setRating] = useState<{ act: Activity; stars: number } | null>(null);
   const hidden = useRateHidden();
   const pending = acts.find((a) => a.action === "rate" && !hidden.includes(a.id));
-  useEffect(() => { if (pending) void preloadSticker("love"); }, [pending]);
+  useEffect(() => { if (pending) { void preloadSticker("love"); void preloadTgEmoji("star").catch(() => null); } }, [pending]);
   useEffect(() => { void syncServerPacks(); }, []); // қалған бірліктер сервердегі санмен бірдей болсын // бағалау шақыруы көрінсе — стикер алдын ала жүктеледі
   // Алғашқы кіру көрсеткіші: бір рет көрсетіледі («Түсінікті» басылғанша). Демо: ?hint=1
   const [hint, setHint] = useState(false);

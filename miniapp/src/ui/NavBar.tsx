@@ -11,6 +11,7 @@ import qrIcon from "../assets/icons/navQr.svg";
 import packsIcon from "../assets/icons/navPacks.svg";
 import { ensureLiquidGlass } from "./liquidGlass";
 import s from "./NavBar.module.css";
+import { TgEmoji, preloadTgEmoji } from "./TgEmoji";
 
 const tabs = [
   { key: "home", label: "Басты", icon: homeIcon, to: "/" },
@@ -89,7 +90,7 @@ export function NavBar({ active }: { active: TabKey }) {
   useEffect(() => {
     if (/[?&]tips=1/.test(window.location.hash)) { setTip(0); return; }
     let live = true;
-    void kv.get("medeo_nav_hints").then((v) => { if (live && !v) setTip(0); });
+    void kv.get("medeo_nav_hints").then((v) => { if (live && !v) { void preloadTgEmoji("point_down").catch(() => null); setTip(0); } });
     return () => { live = false; };
   }, []);
   const nextTip = () => { haptic.tap(); if (tip + 1 < tips.length) setTip(tip + 1); else { setTip(-1); kv.set("medeo_nav_hints", "1"); } };
@@ -119,6 +120,8 @@ export function NavBar({ active }: { active: TabKey }) {
         <div key={tip} className={s.tip} role="note" style={{ left: shown.left, ["--caret" as string]: `${50 + shown.tab * 94 - shown.left - 6}px` }}>
           <p>{shown.text}</p>
           <button onClick={nextTip}>Түсінікті</button>
+          {/* Патша (2026-11-21): үшбұрыштың орнына — табқа қарай төмен нұсқаған саусақ (Telegram анимациялық эмодзиі) */}
+          <TgEmoji name="point_down" size={32} className={s.tipPoint} style={{ position: "absolute", left: "calc(var(--caret) - 10px)" }} />
         </div>
       )}
     </nav>
