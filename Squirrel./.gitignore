@@ -5,3 +5,4 @@ dist
 *.tsbuildinfo
 i18n/work/
 i18n/keys.json
+e2e-fail-*.png
