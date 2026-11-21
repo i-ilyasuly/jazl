@@ -8,8 +8,11 @@ import type { Config } from "../config.js";
 import { botToken, tgApi } from "../bot/api.js";
 
 /** Рұқсат етілген эмодзилер ғана (кез келгенін сұратып, серверді жүктемеу үшін) */
-export const EMOJI: Record<string, string> = {
-  point_right: "👉", point_down: "👇", point_up: "👆", bell: "🔔", fire: "🔥", phone: "📱", star: "⭐", money: "💰",
+/** Әр атауға бір не бірнеше үміткер: жиынтықта біріншісі болмаса — келесісі алынады */
+export const EMOJI: Record<string, string[]> = {
+  point_right: ["👉"], point_down: ["👇"], point_up: ["👆"], bell: ["🔔"], fire: ["🔥"], phone: ["📱"], star: ["⭐"], money: ["💰"],
+  // Патша (2026-11-21): «ТОП» белгісі және басты беттегі сұрыптау батырмалары
+  target: ["🎯"], pin: ["📍", "🗺"], cheap: ["🏷", "💸", "🤑"], gem: ["💎", "👍"], sparkles: ["✨", "🆕"],
 };
 const SET = "AnimatedEmojies";
 const MAX = 600_000; // ашылған JSON шегі
@@ -29,7 +32,8 @@ export function emojiRoutes(cfg: Config, f: typeof fetch = fetch) {
       if (!r.ok) throw new Error("set");
       set = { at: Date.now(), stickers: ((r.result as { stickers?: Sticker[] })?.stickers ?? []) };
     }
-    const st = set.stickers.find((s) => s.is_animated !== false && s.emoji && plain(s.emoji) === plain(want));
+    let st: Sticker | undefined;
+    for (const w of want) { st = set.stickers.find((s) => s.is_animated !== false && s.emoji && plain(s.emoji) === plain(w)); if (st) break; }
     if (!st) return null;
     const fr = await tg("getFile", { file_id: st.file_id });
     const path = (fr.result as { file_path?: string } | undefined)?.file_path;

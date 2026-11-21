@@ -62,3 +62,6 @@
 :global(:root[data-theme="dark"]) .tag_top { background: rgba(92, 180, 244, 0.2); color: #8cc8f6; }
 /* 7-тармақ: дана бағасы сызылған ескі бағадан ажырасын — қараңғырақ, ескі баға көмескі */
 .unit { color: var(--text-strong) !important; opacity: 0.72; }
+
+/* Патша (2026-11-21): белгідегі анимациялық эмодзи (🔥 Ыстық, 🎯 ТОП) мәтінмен бір сызықта, ортасында */
+.promoTag { display: inline-flex; align-items: center; gap: 3px; vertical-align: -4px; padding-left: 5px; }
