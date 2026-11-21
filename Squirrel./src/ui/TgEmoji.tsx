@@ -7,7 +7,7 @@ import { API_URL } from "../api";
 import { whenVisible } from "./lazyVisible";
 
 export const TG_EMOJI = { point_right: "👉", point_down: "👇", point_up: "👆", bell: "🔔", fire: "🔥", phone: "📱", star: "⭐", money: "💰",
-  target: "🎯", rocket: "🚀", pin: "📍", cheap: "🏷️", gem: "💎", sparkles: "✨",
+  target: "🎯", rocket: "🚀", top: "🔝", hourglass: "⏳", new: "🆕", zap: "⚡", pin: "📍", cheap: "🏷️", gem: "💎", sparkles: "✨",
   you: "🫵", rich: "🤑", thumbs: "👍", partyface: "🥳" } as const;
 export type TgEmojiName = keyof typeof TG_EMOJI;
 

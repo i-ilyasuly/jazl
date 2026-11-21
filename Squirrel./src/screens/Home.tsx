@@ -35,7 +35,7 @@ const sorts = [
   { key: "near", label: "Жақын", emo: "you" },
   { key: "cheap", label: "Арзан", emo: "rich" },
   { key: "best", label: "Тиімді", emo: "thumbs" },
-  { key: "new", label: "Жаңа", emo: "partyface" },
+  { key: "new", label: "Жаңа", emo: "new" },
 ] as const;
 type SortKey = (typeof sorts)[number]["key"];
 const km = (d: string) => parseFloat(d.replace(",", ".")) || 99;
