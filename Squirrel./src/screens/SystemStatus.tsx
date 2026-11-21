@@ -36,7 +36,7 @@ export function SystemStatus() {
         <Row title="Байланыс" right={health === null ? wait : health.ok ? ok(`жұмыс істейді · ${health.ms} мс`) : bad("жауап жоқ")} />
       </Group>
       <Group header="Каталог (B1)" i={1}>
-        <Row title="Дереккөз" right={cat.source === "server" ? ok("сервер") : bad("үлгі деректер")} />
+        <Row title="Дереккөз" right={cat.source === "server" ? ok("сервер") : cat.source === "cache" ? ok("сақталған") : bad("үлгі деректер")} />
         <Row title="Мекемелер" right={<b className="t-text">{cat.venues || "—"}</b>} />
         <Row title="Ұсыныстар" right={<b className="t-text">{cat.offers || "—"}</b>} />
       </Group>

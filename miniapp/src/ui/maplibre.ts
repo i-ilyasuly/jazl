@@ -4,3 +4,5 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 
 let p: Promise<typeof import("maplibre-gl")> | null = null;
 export const loadMaplibre = () => (p ??= import("maplibre-gl").then((ml) => { ml.setWorkerUrl(workerUrl); return ml; }));
+/** Фонда: кітапхананы да, воркер файлын да алдын ала жүктеп қояды (кэшке түседі) — «Картада» басқанда күту болмайды. */
+export const warmMaplibre = () => { void loadMaplibre().catch(() => undefined); void fetch(workerUrl).catch(() => undefined); };
