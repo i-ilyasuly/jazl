@@ -14,7 +14,7 @@ export const EMOJI: Record<string, string[]> = {
   // Патша (2026-11-21): «ТОП» белгісі және басты беттегі сұрыптау батырмалары
   target: ["🎯"], pin: ["📍", "🗺"], cheap: ["🏷", "💸", "🤑"], gem: ["💎", "👍"], sparkles: ["✨", "🆕"],
   // Патша (2026-11-21, 09:32): сұрыптау батырмалары түпкілікті — Жақын 🫵, Арзан 🤑, Тиімді 👍, Жаңа 🥳
-  rocket: ["🚀"], // ТОП белгісі (🎯 анимациясыз шықты)
+  rocket: ["🚀", "🔝"], // ТОП белгісі (🎯 анимациясыз шықты); 🚀 жиынтықта болмаса — 🔝
   you: ["🫵", "👉"], rich: ["🤑"], thumbs: ["👍"], partyface: ["🥳", "🎉"],
 };
 const SET = "AnimatedEmojies";
@@ -25,9 +25,9 @@ type Sticker = { emoji?: string; file_id: string; is_animated?: boolean };
 export function emojiRoutes(cfg: Config, f: typeof fetch = fetch) {
   const app = new Hono();
   const tg = tgApi(cfg, f);
-  const cache = new Map<string, string>();
+  const cache = new Map<string, { json: string; emoji: string }>();
   let set: { at: number; stickers: Sticker[] } | null = null;
-  const load = async (slug: string): Promise<string | null> => {
+  const load = async (slug: string): Promise<{ json: string; emoji: string } | null> => {
     const want = EMOJI[slug]; if (!want) return null;
     const hit = cache.get(slug); if (hit) return hit;
     if (!set || Date.now() - set.at > 86_400_000) {
@@ -46,8 +46,9 @@ export function emojiRoutes(cfg: Config, f: typeof fetch = fetch) {
     const raw = Buffer.from(await res.arrayBuffer());
     const json = (raw[0] === 0x1f && raw[1] === 0x8b ? gunzipSync(raw, { maxOutputLength: MAX }) : raw).toString("utf8");
     JSON.parse(json); // жарамды Lottie екенін тексеру
-    cache.set(slug, json);
-    return json;
+    const hit2 = { json, emoji: st.emoji ?? "" };
+    cache.set(slug, hit2);
+    return hit2;
   };
   app.get("/:slug", async (c) => {
     const slug = c.req.param("slug");
@@ -55,7 +56,8 @@ export function emojiRoutes(cfg: Config, f: typeof fetch = fetch) {
     try {
       const j = await load(slug);
       if (!j) return c.json({ ok: false, error: "not_found" }, 404);
-      return c.body(j, 200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=2592000, immutable" });
+      // X-Emoji: нақты қай эмодзи берілгені (үміткерлердің қайсысы табылғанын тексеру үшін)
+      return c.body(j.json, 200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=2592000, immutable", "X-Emoji": encodeURIComponent(j.emoji) });
     } catch {
       return c.json({ ok: false, error: "unavailable" }, 502);
     }

@@ -10,7 +10,7 @@ import { useParams } from "react-router-dom";
 import { fmt } from "../mocks/offers";
 import { useGo } from "../nav";
 import { findVenue, venues } from "../mocks/venues";
-import { carryOf, CARRY_DAYS, getPack, offerOf, packState, rateActivityOf, usePacks, type Activity , refundPack, setAutoRenew, useDefaultMethod, useMethods } from "../store";
+import { syncServerPacks, carryOf, CARRY_DAYS, getPack, offerOf, packState, rateActivityOf, usePacks, type Activity , refundPack, setAutoRenew, useDefaultMethod, useMethods } from "../store";
 import { offPeakPrice } from "../offpeak";
 import { Switch } from "../ui/SubPage";
 import { haptic, inTelegram, nativePick, useBackButton, useBottomButtons } from "../telegram";
@@ -34,6 +34,10 @@ export function PackPage() {
   const [rating, setRating] = useState<Activity | null>(null);
   const [toast, setToast] = useState("");
   const [askRefund, setAskRefund] = useState(false);
+  // Хабарламадан ашылғанда пакет әлі серверден келмеген болуы мүмкін — күтеміз; табылмаса, Пакеттерім бетіне
+  const [lookedUp, setLookedUp] = useState(false);
+  useEffect(() => { if (!pack) void syncServerPacks().catch(() => null).finally(() => setLookedUp(true)); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!pack && lookedUp) go("/packs", "fade", { replace: true }); }, [pack, lookedUp, go]);
   const sheet = extending || Boolean(rating);
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back, !sheet);
@@ -71,7 +75,7 @@ export function PackPage() {
     if (pack.left <= 1) void preloadSticker("trophy").catch(() => null);
     if (pack.daysLeft <= 3 || pack.left <= 1) void preloadSticker("shop").catch(() => null);
   }, [pack?.left, pack?.daysLeft]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!pack) return null;
+  if (!pack) return <div className={s.page}><TelegramChrome mode="back" onBack={back} /><span className={s.wait} aria-label="Жүктелуде" /></div>;
   const o = offerOf(pack);
   const state = packState(pack);
   const soon = state === "soon";

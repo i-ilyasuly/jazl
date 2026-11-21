@@ -19,10 +19,23 @@ export function Promo() {
   const go = useGo();
   const ref = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
-  // Патша (2026-11-21): баннерлер өздігінен ауысады (5 с сайын). Қолмен сырғытқанда — 10 с кідіреді.
+  // Патша (2026-11-21): баннерлер өздігінен ауысады (8 с сайын). Қолмен сырғытқанда — 10 с кідіреді.
   // Шексіз айналым: соңында біріншінің көшірмесі тұрады. 3-тен кейін әдеттегідей алға жылжып көшірмеге келеді де,
   // байқатпай нағыз біріншіге секіреді — артқа қарай зымырап қайтпайды. Діріл тек қолмен ауыстырғанда.
   const touched = useRef(0);
+  // Келе жатқан баннер сол жаққа жеткенде серіппедей сәл асып барып, кері оралады (Патша, 2026-11-21).
+  // Скролл-снап анимация кезінде өшіріледі, әйтпесе браузер оны өз орнына тартып, серіппе көрінбейді.
+  const slide = (el: HTMLDivElement, to: number) => {
+    const from = el.scrollLeft, d = to - from, T = 900, t0 = performance.now();
+    const spring = (x: number) => 1 - Math.exp(-7 * x) * Math.cos(8 * x); // ~6% (≈25 px) асып барып, тынышталады
+    el.style.scrollSnapType = "none";
+    const tick = (now: number) => {
+      const x = Math.min(1, (now - t0) / T);
+      el.scrollLeft = from + d * (x < 1 ? spring(x) : 1);
+      if (x < 1 && Date.now() - touched.current > 300) requestAnimationFrame(tick); else { el.style.scrollSnapType = ""; onScroll(); }
+    };
+    requestAnimationFrame(tick);
+  };
   const step = () => { const c = ref.current?.firstElementChild as HTMLElement | null; return c ? c.offsetWidth + 12 : 1; };
   const settle = useRef(0);
   const onScroll = () => {
@@ -40,8 +53,8 @@ export function Promo() {
       const el = ref.current; if (!el || document.hidden || Date.now() - touched.current < 10000) return;
       const r = el.getBoundingClientRect(); if (r.bottom < 0 || r.top > window.innerHeight) return; // экраннан тыс — ауыстырмаймыз
       const next = Math.min(Math.round(el.scrollLeft / step()) + 1, items.length);
-      el.scrollTo({ left: next * step(), behavior: "smooth" });
-    }, 5000);
+      slide(el, next * step());
+    }, 8000); // Патша (2026-11-21): 8 с сайын
     return () => window.clearInterval(t);
   }, []);
   const touch = () => { touched.current = Date.now(); };
