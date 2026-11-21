@@ -5,6 +5,7 @@ import { preloadSticker } from "./ui/Sticker";
 import { offers } from "./mocks/offers";
 import { galleryOf } from "./mocks/photos";
 import { allPacks } from "./store";
+import { preloadTgEmoji } from "./ui/TgEmoji";
 
 type Conn = { saveData?: boolean; effectiveType?: string; type?: string };
 const conn = () => (navigator as unknown as { connection?: Conn }).connection;
@@ -23,10 +24,10 @@ export function warmBackground() {
   // мерзімі аз қалған пакет бар → сағатты үйрек (Пакеттерім) + себетті үйрек (Қайта алу);
   // соңғы бірлігі қалған пакет бар → кубокты үйрек (пакет біткенде).
   const ps = allPacks().filter((p) => p.left > 0);
-  if (ps.some((p) => p.daysLeft <= 3)) for (const n of ["clock", "shop"] as const) void preloadSticker(n).catch(() => null);
+  if (ps.some((p) => p.daysLeft <= 3)) { for (const n of ["clock", "shop"] as const) void preloadSticker(n).catch(() => null); void preloadTgEmoji("point_right").catch(() => null); }
   if (ps.some((p) => p.left <= 1)) void preloadSticker("trophy").catch(() => null);
   // Сирек беттердің стикерлері — ең соңында, 20 с кейін, тек жақсы желіде (мерекелік, мұңайған, ұйықтаған, телефон, құжат)
-  window.setTimeout(() => { for (const n of ["partyhat", "sad", "phone", "reader"] as const) void preloadSticker(n).catch(() => null); }, 20000);
+  window.setTimeout(() => { for (const n of ["partyhat", "sad", "phone", "reader"] as const) void preloadSticker(n).catch(() => null); void preloadTgEmoji("money").catch(() => null); }, 20000);
   // 7. Алғашқы 6 ұсыныстың үлкен фотосы (ұсыныс беті ашылғанда бірден тұрады) — тек Wi-Fi
   if (onWifi()) for (const o of offers.slice(0, 6)) { const src = galleryOf(o.id, o.kind)[0]; if (src) { const im = new Image(); im.src = src; kept.push(im); } }
 }

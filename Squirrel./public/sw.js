@@ -6,6 +6,8 @@ const MAP = "medeo-map-v1";
 const APP = "medeo-app-v1";
 const APP_MAX = 400; // ескі нұсқалардың файлдары жиналып қалмасын
 const isMap = (u) => u.hostname === "tiles.openfreemap.org";
+// Telegram анимациялық эмодзилері (біздің сервер арқылы) — бір рет жүктеліп, телефонда сақталады
+const isEmoji = (u) => u.hostname.endsWith(".run.app") && u.pathname.startsWith("/v1/emoji/");
 const isAsset = (u) => u.origin === self.location.origin && u.pathname.includes("/assets/");
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
@@ -26,7 +28,7 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const u = new URL(e.request.url);
   if (isMap(u)) e.respondWith(fromCache(MAP, e.request));
-  else if (isAsset(u)) e.respondWith(fromCache(APP, e.request, prune));
+  else if (isAsset(u) || isEmoji(u)) e.respondWith(fromCache(APP, e.request, prune));
 });
 
 // Қарағанды: плиткалар (z11–14; Wi-Fi-да — карта көзінде бар болса z15–16), қаріптер, белгішелер. Бір-бірлеп, телефонды қинамай.

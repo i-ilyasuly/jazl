@@ -5,6 +5,7 @@ import { useBonus } from "../pay/bonus";
 import { Group, Note, Row, SubPage } from "../ui/SubPage";
 import { Tile } from "../ui/Tile";
 import { Sticker } from "../ui/Sticker";
+import { TgEmoji } from "../ui/TgEmoji";
 import s from "./Bonus.module.css";
 
 const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
@@ -23,7 +24,7 @@ export function Bonus() {
       <Note i={1}>Пакет мерзімі өтіп, бірліктер пайдаланылмай қалса, ақшаң күймейді: күту кезеңі (3 күн) біткен соң қалған бірліктің құны осында бонус болып түседі. Бонус 12 ай жарамды, кез келген мекемеде келесі сатып алуда бағадан шегеріледі.</Note>
       {b && b.items.length > 0 && <Group i={2}>
         {b.items.map((x) => (
-          <Row key={x.id} inset={68} left={<Tile e={x.left === 0 || x.expired ? "↩" : "💰"} size={36} />} dim={x.expired}
+          <Row key={x.id} inset={68} left={x.left === 0 || x.expired ? <Tile e="↩" size={36} /> : <TgEmoji name="money" size={36} tilt={15} />} dim={x.expired}
             title={x.title ?? "Medeo бонусы"}
             sub={[x.venue, x.expired ? `мерзімі өтті ${dm(x.expiresAt)}` : x.left === 0 ? "толық жұмсалды" : `${x.units ? x.units + " бірліктен · " : ""}${dm(x.expiresAt)} дейін`].filter(Boolean).join(" · ")}
             right={<span className={s.amount}>{x.left > 0 && x.left < x.amount ? `${fmt(x.left)} / ${fmt(x.amount)}` : `+${fmt(x.amount)}`}</span>} />

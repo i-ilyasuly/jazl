@@ -4,7 +4,7 @@ import { kindPic } from "./Emo";
 import { Link, useViewTransitionState } from "react-router-dom";
 import { setDir } from "../nav";
 import { toggleFav, toggleRestock, useFavs, useRestock } from "../store";
-import bell from "../assets/icons/favBell.svg";
+import { TgEmoji } from "./TgEmoji";
 import { discount, fmt, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";
@@ -32,7 +32,7 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
       <p className={s.title}>{offer.packName ?? offer.title}</p>
-      <p className={s.venue}>{!ended && offer.promo && <span className={`${s.promoTag} ${s["tag_" + offer.promo]}`}>{offer.promo === "hot" ? "Ыстық" : "ТОП"}</span>}{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
+      <p className={s.venue}>{!ended && offer.promo && <span className={`${s.promoTag} ${s["tag_" + offer.promo]}`}>{offer.promo === "hot" && <TgEmoji name="fire" size={16} style={{ margin: "-2px 2px -3px -2px", verticalAlign: "-3px" }} />}{offer.promo === "hot" ? "Ыстық" : "ТОП"}</span>}{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
@@ -56,7 +56,7 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
       {ended ? <>
         <span className={`t-cap1 ${s.over}`}>{soldOut ? "Таусылды" : "Аяқталды"}</span>
         <button className={`t-sub2 w-600 ${s.notify} ${waiting ? s.waiting : ""}`} onClick={(e) => { e.preventDefault(); void notify(); }}>
-          <img src={bell} width={20} height={20} alt="" className={waiting ? s.ring : undefined} />{waiting ? "Қосылды" : "Хабарла"}
+          <TgEmoji name="bell" size={22} tilt={-10} play={waiting} />{waiting ? "Қосылды" : "Хабарла"}
         </button>
       </> : <>
         {/* Squirrel.: үш түрлі түсті белгінің орнына — бір жасыл белгі (жеңілдік + үнем), дана бағасы жай мәтін */}

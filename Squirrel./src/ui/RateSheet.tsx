@@ -10,6 +10,7 @@ import { Sticker, preloadSticker } from "./Sticker";
 import burger from "../assets/icons/sheetBurger.svg";
 import scissors from "../assets/icons/offerScissors.svg";
 import s from "./RateSheet.module.css";
+import { TgEmoji } from "./TgEmoji";
 
 const LABEL = ["Бағаңды таңда", "Өте нашар", "Нашар", "Орташа", "Жақсы", "Тамаша!"];
 const BAD: Record<OfferKind, string[]> = {
@@ -72,7 +73,7 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
           <h2 className={`t-title3 w-700 ${s.center}`}>Рахмет!</h2>
           <p className={`t-sub2 ${s.muted} ${s.center}`}>Бағаң мекемеге жеткізіледі. Ол Medeo сапасын жақсартуға көмектеседі.</p>
         </> : <>
-          <h2 className="t-title3 w-700">Қалай болды?</h2>
+          <h2 className="t-title3 w-700" style={{ display: "flex", alignItems: "center", gap: 6 }}>Қалай болды?<TgEmoji name="star" size={30} tilt={12} play={stars} /></h2>
           <div className={s.item}>
             <span className={s.icon}><img src={kindPic[o.kind]} width={40} height={40} alt="" style={{ objectFit: "contain" }} /></span>
             <span className={s.itemText}><span className="t-text w-600">{title}</span><span className={`t-cap1 ${s.muted}`}>{sub}</span></span>

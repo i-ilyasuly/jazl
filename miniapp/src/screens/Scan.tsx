@@ -13,12 +13,14 @@ import { applyServerUse, getPack, hasPin, offerOf, pinFresh, redeem, redeemOnSer
 import { scanEarly, scanStates, type ScanKind } from "./ScanState";
 import { haptic, inTelegram, tg, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
+import { TgEmoji, preloadTgEmoji } from "../ui/TgEmoji";
 import frame from "../assets/icons/scanFrame.svg";
 import flash from "../assets/icons/flash.svg";
 import gallery from "../assets/icons/gallery.svg";
 import s from "./Scan.module.css";
 
 export function Scan() {
+  useEffect(() => { void preloadTgEmoji("phone").catch(() => null); }, []); // сканер жабылса — «QR оқылмады ма?» көрінісі дайын
   const [params] = useSearchParams();
   const packs = usePacks();
   const go = useGo();
@@ -172,6 +174,7 @@ export function Scan() {
       {/* Telegram-да камера көрінісін нативті сканердің өзі көрсетеді; мына жасанды нұсқа тек браузер үшін */}
       {native && nativeClosed && !found && (
         <div className={s.closedBox}>
+          <TgEmoji name="phone" size={72} tilt={-20} />
           <h1 className={s.closedTitle}>QR оқылмады ма?</h1>
           <p className={`t-text ${s.closedText}`}>Қайта сканерле немесе кассир экранындағы 6 таңбалы кодты енгіз.</p>
         </div>
