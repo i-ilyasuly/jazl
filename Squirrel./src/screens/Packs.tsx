@@ -31,15 +31,14 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
   const soon = pack.daysLeft <= 3;
   return (
     <article className={`${s.card} ${hint ? s.hinted : ""} rise`} style={{ ["--i" as string]: i }} onClick={() => go("/pack/" + pack.id)}>
-      <div className={s.info}>
+      <div className={`${s.info} ${soon ? s.infoSoon : ""}`}>
+        {/* Патша (2026-11-21): мерзімі аз қалса — оң жақтағы бос орында сағатты үйрек, орнына сай өлшемде */}
+        {soon && <span className={s.clock}><Sticker name="clock" size={92} /></span>}
         <span className={s.thumb}><img src={kindPic[o.kind]} width={60} height={60} alt="" decoding="sync" style={{ objectFit: "contain" }} /></span>
         <div className={s.text}>
           <p className="t-headline">{o.title}</p>
           <p className={`t-sub2 ${s.sub}`}>{o.venue} · {o.distance}</p>
-          <span className={s.daysRow}>
-            <span className={`t-cap1 ${s.days} ${soon ? s.daysSoon : ""}`}>{`${pack.daysLeft} күн қалды`}</span>
-            {soon && <span className={s.clock}><Sticker name="clock" size={44} /></span>}
-          </span>
+          <span className={`t-cap1 ${s.days} ${soon ? s.daysSoon : ""}`}>{`${pack.daysLeft} күн қалды`}</span>
         </div>
       </div>
       <hr className={s.sep} />
