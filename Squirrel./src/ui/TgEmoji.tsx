@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { API_URL } from "../api";
 
 export const TG_EMOJI = { point_right: "👉", point_down: "👇", point_up: "👆", bell: "🔔", fire: "🔥", phone: "📱", star: "⭐", money: "💰",
-  target: "🎯", pin: "📍", cheap: "🏷️", gem: "💎", sparkles: "✨" } as const;
+  target: "🎯", pin: "📍", cheap: "🏷️", gem: "💎", sparkles: "✨",
+  you: "🫵", rich: "🤑", thumbs: "👍", partyface: "🥳" } as const;
 export type TgEmojiName = keyof typeof TG_EMOJI;
 
 type Lottie = typeof import("lottie-web/build/player/lottie_light");
@@ -26,12 +27,14 @@ export function preloadTgEmoji(name: TgEmojiName) {
 
 type Anim = { destroy(): void; play(): void; pause(): void; goToAndPlay(v: number, f: boolean): void; goToAndStop(v: number, f: boolean): void; totalFrames: number; addEventListener(e: string, f: () => void): void };
 
-export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, once = false }: {
+export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, once = false, tap = false }: {
   name: TgEmojiName; size?: number; tilt?: number; className?: string; style?: CSSProperties;
   /** Сырттан ойнату (мысалы, батырма басылғанда): мән өзгерген сайын бір рет ойнайды */
   play?: unknown;
   /** Бір рет ойнап, соңғы кадрда тоқтайды (мысалы, бағалау жұлдыздары) */
   once?: boolean;
+  /** Өзі ойнамайды: тыныш тұрады, тек `play` өзгергенде (басылғанда) бір рет ойнайды (Патша, 2026-11-21) */
+  tap?: boolean;
 }) {
   const box = useRef<HTMLSpanElement>(null);
   const anim = useRef<Anim | null>(null);
@@ -43,7 +46,7 @@ export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, onc
       if (dead || !box.current) return;
       const a = m.default.loadAnimation({ container: box.current, renderer: "svg", loop: false, autoplay: false, animationData: data }) as unknown as Anim;
       anim.current = a; setReady(true);
-      if (still) { a.goToAndStop(0, true); return; }
+      if (still || tap) { a.goToAndStop(0, true); return; }
       let runs = 0; let visible = true;
       a.addEventListener("complete", () => {
         runs++;
@@ -56,7 +59,7 @@ export function TgEmoji({ name, size = 32, tilt = 0, className, style, play, onc
       a.play();
     }).catch(() => undefined);
     return () => { dead = true; io?.disconnect(); window.clearTimeout(t); anim.current?.destroy(); anim.current = null; };
-  }, [name, once]);
+  }, [name, once, tap]);
   useEffect(() => { if (play !== undefined && anim.current) anim.current.goToAndPlay(0, true); }, [play]);
   return (
     <span aria-hidden className={className} style={{ display: "inline-block", position: "relative", width: size, height: size, rotate: tilt ? `${tilt}deg` : undefined, flex: "none", pointerEvents: "none", ...style }}>

@@ -30,10 +30,12 @@ const soon = [
 // Сұрыптау (Патша, 2026-11-21, 8-тармақ). Бэкендте — сервер жағында сұрыпталып, беттеліп келеді.
 const sorts = [
   // Патша (2026-11-21): иконкалардың орнына Telegram анимациялық эмодзилері
-  { key: "near", label: "Жақын", emo: "pin" },
-  { key: "cheap", label: "Арзан", emo: "cheap" },
-  { key: "best", label: "Тиімді", emo: "gem" },
-  { key: "new", label: "Жаңа", emo: "sparkles" },
+  // Түпкілікті таңдау (Патша, 2026-11-21, 09:32): Жақын 🫵, Арзан 🤑, Тиімді 👍, Жаңа 🥳.
+  // Бет ашылғанда қимылдамайды — тек батырма басылғанда бір рет ойнайды.
+  { key: "near", label: "Жақын", emo: "you" },
+  { key: "cheap", label: "Арзан", emo: "rich" },
+  { key: "best", label: "Тиімді", emo: "thumbs" },
+  { key: "new", label: "Жаңа", emo: "partyface" },
 ] as const;
 type SortKey = (typeof sorts)[number]["key"];
 const km = (d: string) => parseFloat(d.replace(",", ".")) || 99;
@@ -72,7 +74,8 @@ export function Home() {
     io.observe(el); return () => io.disconnect();
   }); // eslint-disable-line react-hooks/exhaustive-deps
   if (loading || !data) return <HomeSkeleton />;
-  const pickSort = (k: SortKey) => { if (k === sort) return; haptic.select(); setSort(k); setCount(PAGE); document.getElementById("offers")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  const [taps, setTaps] = useState<Partial<Record<SortKey, number>>>({}); // әр батырманың басылу саны → эмодзиі бір рет ойнайды
+  const pickSort = (k: SortKey) => { setTaps((t) => ({ ...t, [k]: (t[k] ?? 0) + 1 })); if (k === sort) return; haptic.select(); setSort(k); setCount(PAGE); document.getElementById("offers")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
   return (
     <div className={s.page}>
       <button className="topSearch pinned" onClick={() => go("/search")} aria-label="Іздеу" style={{ viewTransitionName: "top-search" }}>
@@ -111,7 +114,7 @@ export function Home() {
         <div className={s.sorts} role="radiogroup" aria-label="Сұрыптау">
           {sorts.map((x) => (
             <button key={x.key} role="radio" aria-checked={sort === x.key} className={`${s.sort} ${sort === x.key ? s.sortOn : ""}`} onClick={() => pickSort(x.key)}>
-              <TgEmoji name={x.emo} size={22} />{x.label}
+              <TgEmoji name={x.emo} size={22} tap play={taps[x.key] ?? 0} />{x.label}
             </button>
           ))}
         </div>

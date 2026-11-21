@@ -13,6 +13,8 @@ export const EMOJI: Record<string, string[]> = {
   point_right: ["👉"], point_down: ["👇"], point_up: ["👆"], bell: ["🔔"], fire: ["🔥"], phone: ["📱"], star: ["⭐"], money: ["💰"],
   // Патша (2026-11-21): «ТОП» белгісі және басты беттегі сұрыптау батырмалары
   target: ["🎯"], pin: ["📍", "🗺"], cheap: ["🏷", "💸", "🤑"], gem: ["💎", "👍"], sparkles: ["✨", "🆕"],
+  // Патша (2026-11-21, 09:32): сұрыптау батырмалары түпкілікті — Жақын 🫵, Арзан 🤑, Тиімді 👍, Жаңа 🥳
+  you: ["🫵", "👉"], rich: ["🤑"], thumbs: ["👍"], partyface: ["🥳", "🎉"],
 };
 const SET = "AnimatedEmojies";
 const MAX = 600_000; // ашылған JSON шегі
