@@ -107,7 +107,9 @@ const inDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n)
 
 export const usePacks = () => useSyncExternalStore(subscribe, () => packs);
 export const offerOf = (p: Pack): Offer => findOffer(p.offerId);
-export const getPack = (id?: string) => packs.find((p) => p.id === id);
+// Бот хабарламасының батырмасы (pk_<серверлік id>) серверлік толық id-мен келеді — жергілікті id-мен де, серверлікпен де табамыз
+// (Патша, 2026-11-21: хабарламадан ашқанда бет бос қалатын).
+export const getPack = (id?: string) => (id ? packs.find((p) => p.id === id || p.serverId === id) : undefined);
 export const allPacks = () => packs;
 
 /** Келесі сатып алудың қосымша таңдауы (сатып алу парағы қояды): бос сағат жеңілдігі */

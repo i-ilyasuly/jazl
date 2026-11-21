@@ -8,7 +8,7 @@ import { TgEmoji } from "./TgEmoji";
 
 // Жарнама белгісінің екі нұсқасы — Патша салыстырып таңдайды (2026-11-21): "text" — 🔥 Ыстық / 🚀 ТОП (қазіргі),
 // "icon" — тек эмодзи, жүрекшенің қасында. Салыстыру үшін: localStorage medeo_tag_style = "icon" | "text".
-const TAG_STYLE: "text" | "icon" = (() => { try { const v = localStorage.getItem("medeo_tag_style"); if (v === "icon" || v === "text") return v; } catch { /* */ } return "text"; })();
+const TAG_STYLE: "text" | "icon" = (() => { try { const v = localStorage.getItem("medeo_tag_style"); if (v === "icon" || v === "text") return v; } catch { /* */ } return "icon"; })(); // Патша таңдады: B (2026-11-21)
 import { discount, fmt, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";

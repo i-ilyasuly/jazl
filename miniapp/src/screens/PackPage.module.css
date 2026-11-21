@@ -74,3 +74,7 @@
 
 /* Пакет толық пайдаланылды (Патша, 2026-11-21): кубокты үйрек */
 .trophy { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 14px; text-align: center; }
+
+/* Хабарламадан ашылғанда пакет серверден келгенше */
+.wait { position: absolute; left: 50%; top: 45%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; border: 3px solid rgba(34, 154, 240, 0.2); border-top-color: #229af0; animation: pkspin 0.8s linear infinite; }
+@keyframes pkspin { to { transform: rotate(360deg); } }

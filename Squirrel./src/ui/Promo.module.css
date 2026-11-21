@@ -26,3 +26,6 @@
 .dots { display: flex; position: static; justify-content: center; gap: 6px; padding-top: 8px; }
 .dots span { width: 6px; height: 6px; border-radius: 3px; background: var(--text-secondary); opacity: 0.35; transition: width 0.25s ease, opacity 0.25s ease; }
 .dots .on { width: 16px; opacity: 0.9; background: var(--action); }
+
+/* Серіппе соңғы (көшірме) баннерде де көрінуі үшін — оң жақта сәл бос орын */
+.track::after { content: ""; flex: none; width: 28px; }

@@ -35,7 +35,8 @@ describe("GET /v1/emoji/:slug", () => {
     expect(r.status).toBe(200);
   });
   it("бірінші үміткер жоқ болса — келесісін алады (🏷 жоқ → 💸)", async () => {
-    const { f } = fake(); expect((await emojiRoutes(cfg, f).request("/cheap")).status).toBe(200);
+    const { f } = fake(); const r = await emojiRoutes(cfg, f).request("/cheap");
+    expect(r.status).toBe(200); expect(decodeURIComponent(r.headers.get("X-Emoji") ?? "")).toBe("💸");
   });
   it("жаңа сұрыптау эмодзилері рұқсат тізімінде", () => { expect(Object.keys(EMOJI)).toEqual(expect.arrayContaining(["you", "rich", "thumbs", "partyface"])); });
   it("рұқсат етілмеген не жиынтықта жоқ эмодзи — 404", async () => {
