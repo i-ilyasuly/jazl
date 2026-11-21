@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Photo } from "./Photo";
 import { kindPic } from "./Emo";
 import { Link, useViewTransitionState } from "react-router-dom";
 import { setDir } from "../nav";
 import { toggleFav, toggleRestock, useFavs, useRestock } from "../store";
 import { TgEmoji } from "./TgEmoji";
-import { badgesOf } from "./badges";
+import { badgesOf, type Badge } from "./badges";
 
 import { discount, fmt, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
@@ -39,11 +39,7 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
       {/* B нұсқасы (Патша, 2026-11-21): сөзсіз, тек эмодзи — жүрекшенің сол жағында, онымен бірдей өлшемде (Krisha үлгісі) */}
       {/* Патша (2026-11-21): ▼% жеңілдік белгісі — жүрекшенің сол жағында; эмодзи белгілер — астыңғы оң жақта */}
       {!ended && <span className={s.discTop}><b>▼ {discount(offer)}%</b></span>}
-      {!ended && badges.length > 0 && (
-        <span className={s.badges}>
-          {badges.map((b) => <span key={b.emo} title={b.label} aria-label={b.label}><TgEmoji name={b.emo} size={26} every={b.paid ? 5000 : 8000} /></span>)}
-        </span>
-      )}
+      {!ended && badges.length > 0 && <BadgeRow badges={badges} />}
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
@@ -74,5 +70,42 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
         <span className={s.unit}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
       </>}
     </Link>
+  );
+}
+
+// Патша (2026-11-21): белгілер кезектесіп ойнайды. Оң жақтан санағанда 2-, 4-, 6-сы бір топ, 1-, 3-, 5-і екінші топ:
+// алдымен бір топ ойнайды, біткен соң екіншісі, сосын үзіліс. Жалғыз белгі — ойнап, үзіліс жасайды.
+// Қатар экранда көрінбесе — бәрі тоқтайды.
+const PHASE = 1400, REST = 3000;
+function BadgeRow({ badges }: { badges: Badge[] }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [tick, setTick] = useState<[number, number]>([0, 0]); // [1-топтың, 2-топтың ойнау саны]
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    let t: number | undefined; let seen = false; let step = 0;
+    const groups = badges.length > 1 ? 2 : 1;
+    const run = () => {
+      if (!seen || document.hidden) { t = undefined; return; }
+      const g = step % (groups + 1); // 0..groups-1 — топ ойнайды, groups — үзіліс
+      if (g < groups) setTick((x) => (g === 0 ? [x[0] + 1, x[1]] : [x[0], x[1] + 1]));
+      step++;
+      t = window.setTimeout(run, g < groups ? PHASE : REST);
+    };
+    const io = new IntersectionObserver(([e]) => {
+      seen = e.isIntersecting;
+      if (seen && t === undefined) t = window.setTimeout(run, 500);
+      if (!seen) { window.clearTimeout(t); t = undefined; step = 0; }
+    }, { threshold: 0.6 });
+    io.observe(el);
+    return () => { io.disconnect(); window.clearTimeout(t); };
+  }, [badges.length]);
+  return (
+    <span ref={ref} className={s.badges}>
+      {badges.map((b, i) => {
+        // row-reverse: i = 0 — ең оң жақтағы (1-ші). 2-, 4-, 6-сы (i тақ) — бірінші топ
+        const group = badges.length > 1 && i % 2 === 0 ? 1 : 0;
+        return <span key={b.emo} title={b.label} aria-label={b.label}><TgEmoji name={b.emo} size={26} tap play={tick[group]} /></span>;
+      })}
+    </span>
   );
 }
