@@ -36,7 +36,7 @@ export function catalogRoutes(db: Db) {
       venues: vs.map((v) => ({ slug: v.slug, name: v.name, kind: v.kind, city: v.city, rating: v.rating, reviewsCount: v.reviewsCount, acceptsPreorder: v.acceptsPreorder, about: v.about, trust: trust(v),
         branches: bs.filter((b) => b.venueId === v.id).map((b) => ({ id: b.id, address: b.address, lat: b.lat, lng: b.lng, hours: b.hours, allowsCourier: b.allowsCourier })) })),
       offers: os.map((o) => ({ slug: o.slug, venueSlug: slugOf.get(o.venueId), title: o.title, titleRu: o.titleRu, kind: o.kind, unitName: o.unitName, units: o.units, price: o.price,
-        regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, sizes: o.sizes, details: o.details, photos: o.photos, promoted: o.promoted, status: o.status, rules: rulesOut(o.rules), limit: limitOut(o), saleUntil: (o.rules as { saleUntil?: string | null } | null)?.saleUntil ?? null })),
+        regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, sizes: o.sizes, details: o.details, photos: o.photos, promoted: o.promoted, status: o.status, rules: rulesOut(o.rules), limit: limitOut(o), saleUntil: (o.rules as { saleUntil?: string | null } | null)?.saleUntil ?? null, createdAt: o.createdAt })),
     });
   });
   return r;

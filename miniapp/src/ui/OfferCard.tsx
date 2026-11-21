@@ -5,10 +5,8 @@ import { Link, useViewTransitionState } from "react-router-dom";
 import { setDir } from "../nav";
 import { toggleFav, toggleRestock, useFavs, useRestock } from "../store";
 import { TgEmoji } from "./TgEmoji";
+import { badgesOf } from "./badges";
 
-// Жарнама белгісінің екі нұсқасы — Патша салыстырып таңдайды (2026-11-21): "text" — 🔥 Ыстық / 🚀 ТОП (қазіргі),
-// "icon" — тек эмодзи, жүрекшенің қасында. Салыстыру үшін: localStorage medeo_tag_style = "icon" | "text".
-const TAG_STYLE: "text" | "icon" = (() => { try { const v = localStorage.getItem("medeo_tag_style"); if (v === "icon" || v === "text") return v; } catch { /* */ } return "icon"; })(); // Патша таңдады: B (2026-11-21)
 import { discount, fmt, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";
@@ -32,13 +30,20 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
   const notify = async () => { if (waiting) return toggleRestock(offer.id); if (await askWriteAccess()) { haptic.success(); toggleRestock(offer.id); } };
   const to = `/offer/${offer.id}`;
   const moving = useViewTransitionState(to);
+  const badges = badgesOf(offer);
   return (
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
-      <p className={`${s.title} ${!ended && offer.promo && TAG_STYLE === "icon" ? s.titleIcon : ""}`}>{offer.packName ?? offer.title}</p>
-      <p className={s.venue}>{!ended && offer.promo && TAG_STYLE === "text" && <span className={`${s.promoTag} ${s["tag_" + offer.promo]}`}><TgEmoji name={offer.promo === "hot" ? "fire" : "rocket"} size={16} every={5000} />{offer.promo === "hot" ? "Ыстық" : "ТОП"}</span>}{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
+      <p className={`${s.title} ${!ended ? s.titleIcon : ""}`}>{offer.packName ?? offer.title}</p>
+      <p className={s.venue}>{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
       {/* B нұсқасы (Патша, 2026-11-21): сөзсіз, тек эмодзи — жүрекшенің сол жағында, онымен бірдей өлшемде (Krisha үлгісі) */}
-      {!ended && offer.promo && TAG_STYLE === "icon" && <span className={s.promoIcon} title={offer.promo === "hot" ? "Ыстық" : "ТОП"}><TgEmoji name={offer.promo === "hot" ? "fire" : "rocket"} size={28} every={5000} /></span>}
+      {/* Патша (2026-11-21): ▼% жеңілдік белгісі — жүрекшенің сол жағында; эмодзи белгілер — астыңғы оң жақта */}
+      {!ended && <span className={s.discTop}><b>▼ {discount(offer)}%</b></span>}
+      {!ended && badges.length > 0 && (
+        <span className={s.badges}>
+          {badges.map((b) => <span key={b.emo} title={b.label} aria-label={b.label}><TgEmoji name={b.emo} size={26} every={b.paid ? 5000 : undefined} once={!b.paid} /></span>)}
+        </span>
+      )}
       <button
         className={s.fav}
         aria-label={fav ? "Таңдаулыдан алу" : "Таңдаулыға қосу"}
@@ -67,7 +72,6 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
       </> : <>
         {/* Squirrel.: үш түрлі түсті белгінің орнына — бір жасыл белгі (жеңілдік + үнем), дана бағасы жай мәтін */}
         <span className={s.unit}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
-        <span className={s.saving}><b>▼ {discount(offer)}%</b></span>
       </>}
     </Link>
   );

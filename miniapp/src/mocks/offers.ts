@@ -41,6 +41,8 @@ export interface Offer {
   hours: string;
   /** Ақылы жарнама (Kolesa/Krisha үлгісі): «hot» — сары фон (Ыстық ұсыныс), «top» — көк фон (ТОП). Бэкендте: мекеме жарнама пакетін сатып алғанда, мерзімі біткенде алынады. */
   promo?: "hot" | "top";
+  /** Ұсыныс қосылған күн (сервер) — «🆕 Жаңа» белгісі үшін */
+  createdAt?: string;
 }
 
 export const offers: Offer[] = [
