@@ -332,8 +332,8 @@ void kv.get("medeo_notice_prefs").then((v) => { if (v) { try { prefs = { ...pref
 void kv.get("medeo_read").then((v) => { if (v) { const ids = v.split(","); notices = notices.map((n) => ({ ...n, read: ids.includes(n.id) })); count(); emit(); } });
 
 // ── Баптаулар: қауіпсіздік, тіл, қала ───────────────────────────────────────
-export interface Settings { lock: boolean; bio: boolean; autolock: string; onCard: boolean; onMethods: boolean; onOpen: boolean; lang: "tg" | "kk" | "ru"; astanaNotify: boolean; geo: "unknown" | "granted" | "denied"; /** Стикер мен эмодзи анимациялары (Патша, 2026-11-21) */ motion: boolean }
-let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true, onMethods: true, onOpen: true, lang: "tg", astanaNotify: false, geo: "unknown", motion: true };
+export interface Settings { lock: boolean; bio: boolean; autolock: string; onCard: boolean; onMethods: boolean; onOpen: boolean; lang: "tg" | "kk" | "ru"; astanaNotify: boolean; geo: "unknown" | "granted" | "denied"; /** Стикер мен эмодзи анимациялары (Патша, 2026-11-21) */ motion: boolean; /** Карточка белгілері: анимациялық эмодзи не иконка */ badgeStyle: "emoji" | "icon" }
+let settings: Settings = { lock: false, bio: false, autolock: "1", onCard: true, onMethods: true, onOpen: true, lang: "tg", astanaNotify: false, geo: "unknown", motion: true, badgeStyle: "emoji" };
 export const useSettings = () => useSyncExternalStore(subscribe, () => settings);
 export const getSettings = () => settings;
 export function setSettings(patch: Partial<Settings>) { settings = { ...settings, ...patch }; emit(); kv.set("medeo_settings", JSON.stringify(settings)); }
