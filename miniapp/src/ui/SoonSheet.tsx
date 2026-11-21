@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toggleSoon, useSoon } from "../store";
 import { askWriteAccess, haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { Confirm } from "./Confirm";
+import { Sticker } from "./Sticker";
 import s from "./SoonSheet.module.css";
 
 export function SoonSheet({ pct, onClose }: { pct: number; venues?: number; onClose: () => void }) {
@@ -23,6 +24,8 @@ export function SoonSheet({ pct, onClose }: { pct: number; venues?: number; onCl
       <div className={s.scrim} onClick={close} />
       <div className={s.sheet}>
         <span className={s.grabber} />
+        {/* Патша (2026-11-21): «дайындап жатырмыз» — сызба ұстаған үйрек */}
+        <span className={s.duck}><Sticker name="repair" size={132} /></span>
         <div className={s.card}>
           <span className={s.fill} style={{ width: `${pct}%` }} />
           <p className={s.cardTitle}>Жаңа санат</p>
