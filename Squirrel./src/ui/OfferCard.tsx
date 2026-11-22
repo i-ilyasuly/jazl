@@ -84,7 +84,8 @@ function Badges({ badges }: { badges: Badge[] }) {
   if (!icons) return <BadgeRow badges={badges} />;
   return (
     <span className={`${s.badges} ${s.iconStack}`}>
-      {badges.map((b) => <span key={b.emo} title={b.label} aria-label={b.label}><BadgeIcon name={b.emo} size={28} /></span>)}
+      {/* row-reverse: i = 0 — ең оң жақта; сол жақтағысы үстінде тұрады */}
+      {badges.map((b, i) => <span key={b.emo} title={b.label} aria-label={b.label} style={{ zIndex: i + 1 }}><BadgeIcon name={b.emo} size={32} ring /></span>)}
     </span>
   );
 }
