@@ -218,6 +218,13 @@
       "when": 1795400000000,
       "tag": "0030_metrics",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795410000000,
+      "tag": "0031_bi",
+      "breakpoints": true
     }
   ]
 }
