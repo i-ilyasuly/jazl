@@ -4,6 +4,7 @@ import { categoryOffers, moreOffers, offers } from "../mocks/offers";
 const feed = [offers[0], categoryOffers[1], offers[1], moreOffers[1], offers[2], categoryOffers[3], moreOffers[0], categoryOffers[0], categoryOffers[2], categoryOffers[4]];
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
+import { useSettings } from "../store";
 import { haptic } from "../telegram";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { OfferCard } from "../ui/OfferCard";
@@ -14,6 +15,7 @@ import { SoonSheet } from "../ui/SoonSheet";
 import { Promo } from "../ui/Promo";
 import { Sticker } from "../ui/Sticker";
 import { TgEmoji } from "../ui/TgEmoji";
+import { BadgeIcon } from "../ui/BadgeIcon";
 import { EmptyState } from "../ui/EmptyState";
 import { discount } from "../mocks/offers";
 import artFood from "../assets/tiles/food.webp";
@@ -32,10 +34,11 @@ const sorts = [
   // Патша (2026-11-21): иконкалардың орнына Telegram анимациялық эмодзилері
   // Түпкілікті таңдау (Патша, 2026-11-21, 09:32): Жақын 🫵, Арзан 🤑, Тиімді 👍, Жаңа 🥳.
   // Бет ашылғанда қимылдамайды — тек батырма басылғанда бір рет ойнайды.
-  { key: "near", label: "Жақын", emo: "you" },
-  { key: "cheap", label: "Арзан", emo: "rich" },
-  { key: "best", label: "Тиімді", emo: "thumbs" },
-  { key: "new", label: "Жаңа", emo: "new" },
+  // Иконкалар режимінде (Патша, 2026-11-22) — карточка белгілерімен бір жүйедегі дөңгелек иконкалар (`icon`)
+  { key: "near", label: "Жақын", emo: "you", icon: "near" },
+  { key: "cheap", label: "Арзан", emo: "rich", icon: "cheap" },
+  { key: "best", label: "Тиімді", emo: "thumbs", icon: "best" },
+  { key: "new", label: "Жаңа", emo: "new", icon: "new" },
 ] as const;
 type SortKey = (typeof sorts)[number]["key"];
 const km = (d: string) => parseFloat(d.replace(",", ".")) || 99;
@@ -44,6 +47,7 @@ const PAGE = 10; // Алғашқыда ~10 ұсыныс қана жүктеле�
 export function Home() {
   const [sheet, setSheet] = useState<(typeof soon)[number] | null>(null);
   const go = useGo();
+  const icons = useSettings().badgeStyle === "icon";
   const { data, loading } = useMock("home", feed);
   const [sort, setSort] = useState<SortKey>("near");
   const [count, setCount] = useState(PAGE);
@@ -114,7 +118,7 @@ export function Home() {
         <div className={s.sorts} role="radiogroup" aria-label="Сұрыптау">
           {sorts.map((x) => (
             <button key={x.key} role="radio" aria-checked={sort === x.key} className={`${s.sort} ${sort === x.key ? s.sortOn : ""}`} onClick={() => pickSort(x.key)}>
-              <TgEmoji name={x.emo} size={22} tap play={taps[x.key] ?? 0} />{x.label}
+              {icons ? <BadgeIcon name={x.icon} size={20} /> : <TgEmoji name={x.emo} size={22} tap play={taps[x.key] ?? 0} />}{x.label}
             </button>
           ))}
         </div>

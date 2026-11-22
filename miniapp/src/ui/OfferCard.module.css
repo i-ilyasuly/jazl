@@ -68,9 +68,10 @@
 
 /* B нұсқасы: жарнама эмодзиі жүрекшенің сол жағында, онымен бірдей өлшемде және аралықта */
 .promoIcon { position: absolute; right: 50px; top: 6px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-/* Иконка нұсқасы: Профиль тізіміндегідей бөлек шаршы иконкалар, арасы 4px (Патша, 2026-11-21) */
-.iconStack { gap: 4px; }
-.iconStack > span { width: 28px; height: 28px; }
+/* Иконка нұсқасы (Патша, 2026-11-22): дөңгелектер krisha.kz сияқты бір-біріне 8px кіріп тұрады, сол жақтағысы үстінде */
+.iconStack { gap: 0; }
+.iconStack > span { width: 32px; height: 32px; position: relative; }
+.iconStack > span + span { margin-right: -8px; }
 .titleIcon { max-width: calc(100% - 116px); }
 /* Патша (2026-11-21): ▼% белгісі — Ыстық/ТОП сияқты жеңіл фон, үйлесімді жасыл мәтін */
 .saving { background: #dcf5e3; color: #18773a; }
