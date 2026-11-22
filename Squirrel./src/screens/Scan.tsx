@@ -138,17 +138,18 @@ export function Scan() {
       tg?.MainButton?.showProgress?.(false);
       const qr = params.get("qr") ?? "";
       let srvLeft: number | undefined;
+      let live = ""; // жапсырма: тірі растау экраны (уақыт, мерзім)
       const finish = (err?: ScanKind) => {
         tg?.MainButton?.hideProgress?.();
         if (err) { setBusy(false); haptic.error(); toState(err); return; }
         if (srvLeft !== undefined) applyServerUse(packId, srvLeft, units); else redeem(packId, units);
-        haptic.success(); go(`/paid/${packId}?u=${units}`, "up", { replace: true });
+        haptic.success(); go(`/paid/${packId}?u=${units}${live}`, "up", { replace: true });
       };
       if (demoKind) { setTimeout(() => finish(demoKind), 1600); return; }
       // B3: пакет серверде болса — бірлік серверде шегеріледі (QR мекемені анықтайды); қате болса — тиісті күй беті
       void redeemOnServer(packId, qr, units).then((r) => {
         if (!r) { setTimeout(() => finish(), 1200); return; }
-        if (r.ok) { srvLeft = r.left; finish(); return; }
+        if (r.ok) { srvLeft = r.left; if (r.confirm) live = `&at=${encodeURIComponent(r.confirm.at)}&until=${encodeURIComponent(r.confirm.until)}`; finish(); return; }
         if (r.error === "units_mismatch") { finish("amount"); return; }
         // Көп филиал: пакет мекеменің тек кейбір филиалдарында жүреді — жарамды мекенжайларды көрсетеміз
         if (r.error === "other_branch") { tg?.MainButton?.hideProgress?.(); go(`/scan/state/otherbranch?b=${encodeURIComponent((r.branches ?? []).join("\n"))}`, "up", { replace: true }); return; }

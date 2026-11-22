@@ -17,6 +17,7 @@ import { leftValueSql } from "../value.js";
 import { pushRefund } from "../refund.js";
 import { approve, bankOf, posName, type AppData } from "./apply.js";
 import { decideComplaint } from "./complaints.js";
+import { stickerUrl } from "./sticker.js";
 
 type Row = Record<string, unknown>;
 /** Мекемеге төленетін тапсырыс күйлері: орындалды не клиент келмеді (бірлік жұмсалды, мекеме уақытын бөлді) */
@@ -266,6 +267,29 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, venues: list.map((v) => ({ ...v, kindName: kindName[v.kind as string] })), applications: apps.map((a) => ({ ...a, kindName: kindName[a.kind as string] ?? "—" })) });
   });
 
+  // Мекеме жапсырмалары (Патша, 2026-11-22): әр филиалдың тұрақты QR-ы, сканер/қолдану саны (30 күн), жапсырма режимі
+  r.get("/admin/venues/:id/stickers", async (c) => {
+    const id = c.req.param("id");
+    const [v] = await rows<{ name: string; sticker_enabled: boolean }>(sql`select name, sticker_enabled from app.venues where id = ${id}`);
+    if (!v) return c.json({ ok: false, error: "not_found" }, 404);
+    // Кодсыз филиалдар (миграциядан кейін қосылғандар) — код береміз
+    await db.execute(sql`update app.branches set sticker_code = upper(substr(md5(random()::text || id::text), 1, 6)) where venue_id = ${id} and sticker_code is null`);
+    const list = await rows<{ id: string; address: string; active: boolean; code: string; scans30: number; uses30: number }>(sql`
+      select b.id, b.address, b.active, b.sticker_code as code,
+        (select count(*) from app.sticker_scans s where s.branch_id = b.id and s.created_at > now() - interval '30 days')::int as scans30,
+        (select count(*) from app.redemptions r where r.branch_id = b.id and r.cancelled_at is null and r.created_at > now() - interval '30 days')::int as uses30
+      from app.branches b where b.venue_id = ${id} order by b.created_at`);
+    return c.json({ ok: true, venue: { id, name: v.name, enabled: v.sticker_enabled }, branches: list.map((b) => ({ ...b, url: stickerUrl(cfg, b.code) })) });
+  });
+  r.post("/admin/venues/:id/stickers", async (c) => {
+    const b = z.object({ enabled: z.boolean() }).safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const id = c.req.param("id");
+    const res = await db.update(venues).set({ stickerEnabled: b.data.enabled }).where(eq(venues.id, id)).returning({ name: venues.name });
+    if (!res[0]) return c.json({ ok: false, error: "not_found" }, 404);
+    await log(c, b.data.enabled ? "Жапсырма режимі қосылды" : "Жапсырма режимі өшірілді", res[0].name);
+    return c.json({ ok: true, enabled: b.data.enabled });
+  });
   r.get("/admin/venues/:id", async (c) => {
     const id = c.req.param("id");
     const [v] = await rows<Row & { fee_pct: number | null }>(sql`select v.*, v.reviews_count as reviews from app.venues v where v.id = ${id}`);

@@ -12,6 +12,7 @@ import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
 import { branches, offers, orders, packEvents, packs, qrSessions, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
+import { stickerUrl } from "./sticker.js";
 import { makeDynamicQr, makeSessionQr, parseQr } from "../qr.js";
 import { branchStatus } from "../hours.js";
 import { inOffPeak, type OffPeakT } from "../offpeak.js";
@@ -75,11 +76,20 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
   // Кассир сеансы: пакет (ұсыныс), дана, мерзім, қолданылған ба
   const sessionOf = async (id: string) => (await db.select({ s: qrSessions, o: offers }).from(qrSessions).leftJoin(offers, eq(qrSessions.offerId, offers.id)).where(eq(qrSessions.id, id)).limit(1))[0];
 
+  /** Жапсырма коды → филиал және мекемеде жапсырма режимі қосулы ма */
+  const stickerBranch = async (code: string) => {
+    const [x] = await db.select({ id: branches.id, en: venues.stickerEnabled }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.stickerCode, code)).limit(1);
+    return x ? { branchId: x.id, enabled: x.en } : undefined;
+  };
+
   r.post("/qr/resolve", async (c) => {
     const raw = String((await c.req.json().catch(() => ({})))?.qr ?? "");
     const q = parseQr(raw, verifyKeys(cfg));
     if (!q) return c.json({ ok: false, error: "not_medeo_qr" }, 400);
     if (q.kind === "static" && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
+    const stk = q.kind === "sticker" ? await stickerBranch(q.code) : undefined;
+    if (q.kind === "sticker" && !stk) return c.json({ ok: false, error: "branch_not_found" }, 404);
+    if (stk && !stk.enabled && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
     let branchId: string; let units: number | null = null; let offer: { slug: string; title: string } | null = null; let valid = true; let expired = false;
     if (q.kind === "session") {
       const ss = q.valid ? await sessionOf(q.sessionId) : undefined;
@@ -88,10 +98,11 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
       if (ss.s.cancelledAt) return c.json({ ok: false, error: "qr_cancelled" }, 409);
       branchId = ss.s.branchId; units = ss.s.units; offer = ss.o ? { slug: ss.o.slug, title: ss.o.title } : null;
       expired = q.expired || ss.s.expiresAt.getTime() < Date.now();
-    } else { branchId = q.branchId; if (q.kind === "dynamic") { units = q.units; valid = q.valid; expired = q.expired; } }
+    } else if (q.kind === "sticker") { branchId = stk!.branchId; }
+    else { branchId = q.branchId; if (q.kind === "dynamic") { units = q.units; valid = q.valid; expired = q.expired; } }
     const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, branchId)).limit(1);
     if (!br) return c.json({ ok: false, error: "branch_not_found" }, 404);
-    return c.json({ ok: true, kind: q.kind === "session" ? "dynamic" : q.kind, venue: { slug: br.v.slug, name: br.v.name }, branch: { id: br.b.id, address: br.b.address },
+    return c.json({ ok: true, kind: q.kind === "session" ? "dynamic" : q.kind === "sticker" ? "static" : q.kind, sticker: q.kind === "sticker", venue: { slug: br.v.slug, name: br.v.name }, branch: { id: br.b.id, address: br.b.address },
       units, offer, amount: q.kind === "amount" ? q.amount : null, valid, expired });
   });
 
@@ -117,10 +128,13 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const ss = q.kind === "session" ? await sessionOf(q.sessionId) : undefined;
     if (q.kind === "session" && !ss) return c.json({ ok: false, error: "bad_qr" }, 400);
     if (q.kind === "static" && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
+    const stk = q.kind === "sticker" ? await stickerBranch(q.code) : undefined;
+    if (q.kind === "sticker" && !stk) return c.json({ ok: false, error: "branch_not_found" }, 404);
+    if (stk && !stk.enabled && cfg.PAYMENTS_MODE !== "test") return c.json({ ok: false, error: "static_qr_disabled" }, 400);
     const units = b.data.units;
     if (q.kind === "dynamic" && units !== q.units) return c.json({ ok: false, error: "units_mismatch", expectedUnits: q.units }, 409);
     if (ss && units !== ss.s.units) return c.json({ ok: false, error: "units_mismatch", expectedUnits: ss.s.units }, 409);
-    const branchId = ss ? ss.s.branchId : (q as { branchId: string }).branchId;
+    const branchId = ss ? ss.s.branchId : stk ? stk.branchId : (q as { branchId: string }).branchId;
     const prev = await db.select().from(redemptions).where(and(eq(redemptions.packId, b.data.packId), eq(redemptions.idempotencyKey, b.data.idempotencyKey))).limit(1);
     if (prev[0]) { const [rc] = await db.select({ id: receipts.id, no: receipts.no }).from(receipts).where(and(eq(receipts.packId, b.data.packId), eq(receipts.kind, "use"), sql`${receipts.internal}->>'redemptionId' = ${prev[0].id}`)).limit(1); return c.json({ ok: true, repeated: true, receipt: rc ? { id: rc.id, no: "MD-" + rc.no } : null }); }
     const [br] = await db.select({ b: branches, v: venues }).from(branches).innerJoin(venues, eq(branches.venueId, venues.id)).where(eq(branches.id, branchId)).limit(1);
@@ -155,10 +169,11 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
         const now = new Date();
         const [rc] = await tx.insert(receipts).values({ kind: "use", userId: user.id, packId: p.id, venueId: br.v.id, branchId, total: p.amount,
           public: { title: units > 1 ? `${units} бірлік пайдаланылды` : "Бірлік пайдаланылды", status: "Расталды", dateLocal: almaty(now), seller: { name: br.v.name, address: br.b.address, bin: null },
-            item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : "Кассадағы Medeo QR", extra: ss && ss.s.extra ? { amount: ss.s.extra, note: "кассада бөлек төленеді" } : null },
+            item: { title: p.title, units, unitName: p.unitName, pricePerUnit: p.unitPrice }, left: p.left, via: q.kind === "amount" ? "Банк терминалының QR-ы" : q.kind === "sticker" ? "Мекеме жапсырмасы" : "Кассадағы Medeo QR", extra: ss && ss.s.extra ? { amount: ss.s.extra, note: "кассада бөлек төленеді" } : null },
           internal: { version: 1, redemptionId: rd.id, ...meta(c, user), item: { title: p.title, units, unitName: p.unitName, packSlug: p.slug },
             fulfillment: { type: "scan", slot: null, code: null, branchId, qr: q.kind, qrAmount: q.kind === "amount" ? q.amount : null, sessionId: ss?.s.id ?? null, cashierId: ss?.s.createdBy ?? null, extra: ss?.s.extra ?? 0 }, status: { current: "done", history: [{ status: "done", at: now }] }, unitsLeftAfter: p.left, rating: null } }).returning();
-        return { left: p.left, units, receipt: { id: rc.id, no: "MD-" + rc.no }, rid: rd.id };
+        // Жапсырмамен қолданғанда клиент кассирге «тірі растау» экранын көрсетеді: уақыты мен мерзімі (5 мин) серверден
+        return { left: p.left, units, receipt: { id: rc.id, no: "MD-" + rc.no }, rid: rd.id, ...(q.kind === "sticker" ? { confirm: { at: now.toISOString(), until: new Date(now.getTime() + 5 * 60_000).toISOString(), venue: br.v.name, address: br.b.address } } : {}) };
       });
       const { rid, ...res } = out;
       await notify?.used(rid, res.receipt.no);
@@ -317,7 +332,9 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const vs = await staffVenues(c.get("user").id);
     const [br] = await db.select().from(branches).where(eq(branches.id, c.req.param("id"))).limit(1);
     if (!br || !vs.includes(br.venueId)) return c.json({ ok: false, error: "not_found" }, 404);
-    return c.json({ ok: true, qr: branchQr(cfg, br.id), address: br.address });
+    // Жапсырма (Патша, 2026-11-22): тұрақты қысқа сілтеме — мекеме режимі қосулы болса ғана басып шығаруға береміз
+    const [v] = await db.select({ en: venues.stickerEnabled }).from(venues).where(eq(venues.id, br.venueId)).limit(1);
+    return c.json({ ok: true, qr: branchQr(cfg, br.id), address: br.address, sticker: v?.en && br.stickerCode ? stickerUrl(cfg, br.stickerCode) : null });
   });
 
   return r;
