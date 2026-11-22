@@ -73,3 +73,23 @@ d("Метрикалар", () => {
     expect((await app.request("/v1/admin/metrics", { headers: h(961) })).status).toBe(403);
   });
 });
+
+d("Looker Studio көріністері (bi)", () => {
+  const cfg = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test" });
+  let dbh: ReturnType<typeof createDb>;
+  beforeAll(async () => { await runMigrations(URL!, "disable"); dbh = createDb(cfg); });
+  afterAll(async () => { await dbh?.pool.end(); });
+  it("барлық көрініс оқылады, жеке дерек бағандары жоқ, looker_ro тек bi-ді көреді", async () => {
+    const views = (await dbh.pool.query("select table_name from information_schema.views where table_schema = 'bi' order by 1")).rows.map((r) => r.table_name);
+    expect(views.length).toBeGreaterThanOrEqual(15);
+    for (const v of views) await dbh.pool.query(`select * from bi.${v} limit 5`);
+    const cols = (await dbh.pool.query("select column_name from information_schema.columns where table_schema = 'bi'")).rows.map((r) => r.column_name);
+    for (const bad of ["first_name", "last_name", "username", "phone", "telegram_id", "pin_hash", "text", "photo_url"]) expect(cols).not.toContain(bad);
+    const c = await dbh.pool.connect();
+    try {
+      await c.query("set role looker_ro");
+      expect((await c.query("select count(*) from bi.daily")).rows[0].count).toBeDefined();
+      await expect(c.query("select * from app.users limit 1")).rejects.toThrow(/permission denied/);
+    } finally { await c.query("reset role"); c.release(); }
+  });
+});
