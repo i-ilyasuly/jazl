@@ -65,6 +65,8 @@ export const venues = app.table("venues", {
   /** Сенімділік (соңғы 90 күн): орындалған тапсырма үлесі, %; reliabilityN — неше жағдайдан есептелді (20-дан аз болса белгі көрсетілмейді) */
   reliability: smallint("reliability"),
   reliabilityN: integer("reliability_n").notNull().default(0),
+  /** Жапсырма QR-ымен (тұрақты, кассирсіз) бірлік жұмсауға рұқсат (0029, Патша 2026-11-22: пилот) */
+  stickerEnabled: boolean("sticker_enabled").notNull().default(false),
   createdAt: created(),
 }, (t) => [uniqueIndex("venues_slug").on(t.slug)]);
 
@@ -84,8 +86,10 @@ export const branches = app.table("branches", {
   closedUntil: timestamp("closed_until", { withTimezone: true }),
   closedReason: text("closed_reason"),
   holidays: jsonb("holidays"),
+  /** Мекеме жапсырмасының тұрақты қысқа коды (0029): QR = <API>/b/<код> → қазір Mini App, кейін қосымша */
+  stickerCode: text("sticker_code").default(sql`upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))`),
   createdAt: created(),
-}, (t) => [index("branches_venue").on(t.venueId)]);
+}, (t) => [index("branches_venue").on(t.venueId), uniqueIndex("branches_sticker_code").on(t.stickerCode)]);
 
 /** Мекеменің персоналы: иесі, менеджер, кассир — мекеме бөлімі осы арқылы ашылады. */
 export const venueStaff = app.table("venue_staff", {
@@ -485,3 +489,10 @@ export const clientEvents = app.table("client_events", {
   meta: jsonb("meta"),
   createdAt: created(),
 }, (t) => [index("client_events_kind").on(t.kind, t.createdAt)]);
+
+/** Жапсырма сканерлеулері (0029): …/b/<код> ашылған сайын бір жол; жеке дерек жоқ */
+export const stickerScans = app.table("sticker_scans", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  branchId: uuid("branch_id").notNull().references(() => branches.id),
+  createdAt: created(),
+}, (t) => [index("sticker_scans_branch").on(t.branchId, t.createdAt)]);

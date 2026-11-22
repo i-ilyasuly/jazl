@@ -14,6 +14,7 @@ import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
 import { emojiRoutes } from "./routes/emoji.js";
 import { eventRoutes } from "./routes/events.js";
+import { stickerRoutes } from "./routes/sticker.js";
 import { purchaseRoutes, receiptFileRoutes } from "./routes/purchases.js";
 import { devQrRoutes, usageRoutes } from "./routes/usage.js";
 import { b4Routes } from "./routes/b4.js";
@@ -98,6 +99,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
   });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db));
+  app.route("/", stickerRoutes(cfg, db)); // мекеме жапсырмасы: /b/<код> → Mini App (кейін қосымша)
   app.route("/v1/emoji", emojiRoutes(cfg)); // Telegram анимациялық эмодзилері (ашық, кіру талап етілмейді)
 
   // Аутентификация: Authorization: tma <initData>. Пайдаланушы бірінші рет кірсе — жазылады, әйтпесе деректері жаңарады.

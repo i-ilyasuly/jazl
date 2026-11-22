@@ -1,6 +1,8 @@
 // Figma «03 · Мекемелер» (14063:9710): Мекемелер (іздеу, сүзгі), Өтінімдер, Өтінім беті, Қайтару себебі, Өтінім бекітілді,
 // Мекеме картасы, Комиссияны өзгерту, Мекемені тоқтату, Ішкі жазбалар.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { drawSticker, stickerPng, type StickerData } from "./sticker";
+import { Switch } from "../ui/SubPage";
 import { useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { haptic, nativeAlert, openExternal } from "../telegram";
@@ -91,6 +93,7 @@ export function AVenue() {
   const rows = [
     { e: "a:fee", t: "Комиссия", r: `${x.feePct}%`, on: () => setSheet("fee") },
     { e: "a:branches", t: "Филиалдар", r: String(x.branches), on: () => go(`/a/venues/${id}/branches`) },
+    { e: "a:branches", t: "Жапсырмалар (QR)", r: "", on: () => go(`/a/venues/${id}/stickers`) },
     { e: "a:offers", t: "Ұсыныстар", r: `${x.offers} белсенді`, on: () => go(`/a/offers?venue=${id}&tab=active`) },
     { e: "a:team", t: "Команда", r: `${x.team} адам`, on: () => go(`/a/venues/${id}/team`) },
     { e: "a:complaints", t: "Шағымдар тарихы", r: String(x.complaints), on: () => go(`/a/complaints?venue=${id}&tab=done`) },
@@ -343,6 +346,55 @@ export function AAppDone() {
         <p className={v.stateText}>Мекемеге хабарлама жіберілді. Енді ол ұсыныс құра алады; алғашқы ұсынысы модерацияға түседі.</p>
       </div>
       <Buttons main={{ text: "Келесі өтінім", onClick: () => void next() }} second={{ text: "Мекеме картасы", onClick: () => d?.application.venueId && go(`/a/venues/${d.application.venueId}`, "fade", { replace: true }) }} />
+    </VPage>
+  );
+}
+
+// ── Мекеме жапсырмалары (Патша, 2026-11-22): әр филиалға тұрақты QR, басып шығаруға PNG ──
+type StickerRow = { id: string; address: string; active: boolean; code: string; scans30: number; uses30: number; url: string };
+function StickerPreview({ data }: { data: StickerData }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => { if (ref.current) void drawSticker(ref.current, data, 620); }, [data]);
+  return <canvas ref={ref} style={{ width: "100%", height: "auto", display: "block", borderRadius: 16, boxShadow: "0 2px 12px rgba(0,0,0,.08)" }} />;
+}
+export function AStickers() {
+  const { id = "" } = useParams();
+  const [d, , reload] = useCached<{ venue: { id: string; name: string; enabled: boolean }; branches: StickerRow[] }>(`a:st:${id}`, () => A(`/venues/${id}/stickers`));
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
+  const toggle = async (on: boolean) => {
+    setBusy(true);
+    try { await post(`/venues/${id}/stickers`, { enabled: on }); haptic.success(); reload(); } catch { haptic.error(); nativeAlert("Сақталмады, қайталап көріңіз"); } finally { setBusy(false); }
+  };
+  const save = async (b: StickerRow) => {
+    const blob = await stickerPng({ url: b.url, venue: d!.venue.name, address: b.address, code: b.code });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `squirrel-${b.code}.png`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+  return (
+    <VPage title="Жапсырмалар" back>
+      {!d ? <Sk h={200} /> : <>
+        <div className={v.card}>
+          <div className={v.row}>
+            <span className={v.rowText}><span className={v.rowTitle}>Жапсырма арқылы қолдану</span><span className={v.rowSub} style={{ whiteSpace: "normal" }}>{d.venue.enabled ? "Қосулы: клиент жапсырманы сканерлеп, бірлікті өзі қолдана алады" : "Өшірулі: сканерлесе де қолдану рұқсат етілмейді"}</span></span>
+            <Switch on={d.venue.enabled} onChange={(x) => { if (!busy) { haptic.select(); void toggle(x); } }} />
+          </div>
+        </div>
+        {d.branches.length === 0 ? <Empty>Филиал жоқ</Empty> : d.branches.map((b) => (
+          <div key={b.id} className={v.card} style={{ padding: 0 }}>
+            <button className={v.row} onClick={() => { haptic.select(); setOpen(open === b.id ? null : b.id); }}>
+              <Tile e="a:branches" size={36} />
+              <span className={v.rowText}><span className={v.rowTitle}>{b.address}</span><span className={v.rowSub}>{`${b.code} · 30 күнде: ${b.scans30} сканер, ${b.uses30} қолдану${b.active ? "" : " · филиал өшірулі"}`}</span></span>
+              <i className={v.arrow} />
+            </button>
+            {open === b.id && <div style={{ padding: "4px 16px 16px", display: "grid", gap: 12 }}>
+              <StickerPreview data={{ url: b.url, venue: d.venue.name, address: b.address, code: b.code }} />
+              <button className={v.btn} onClick={() => { haptic.select(); void save(b); }}>PNG жүктеу · A6, 300 dpi</button>
+            </div>}
+          </div>
+        ))}
+        <Note>QR ішінде — біздің сервердегі қысқа сілтеме (/b/код). Ол бүгін Telegram мини аппқа, кейін қосымшаға бағыттайды — жапсырманы қайта басып шығару керек емес. Домен алынған соң STICKER_BASE_URL қойылады, ескі жапсырмалар да жұмыс істей береді.</Note>
+      </>}
     </VPage>
   );
 }

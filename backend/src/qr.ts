@@ -6,6 +6,9 @@
 //      …br_<branchId>&amount=<теңге>  немесе  MDB1:<branchId> (бұрынғы JZQ*/JZB1 — басылған плакаттар үшін әлі оқылады)?amount=<теңге>
 //    Сома 1 бірлік бағасына еселі болмаса — «сома сәйкес емес»; 2 есе болса — клиент «+» басып 2 дана таңдауы керек.
 // Тұрақты QR (сомасыз br_<id>) — тек сынақ режимінде.
+// 3) Мекеме жапсырмасы (Патша, 2026-11-22): <сервер>/b/<код> не t.me/<бот>?startapp=b_<код> — филиалдың тұрақты коды.
+//    Тұрақты болғандықтан тек жапсырма режимі қосылған мекемеде (venues.sticker_enabled) қабылданады; кассир клиенттің
+//    «тірі растау» экранын көреді.
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const QR_TTL_SEC = 30;
@@ -15,7 +18,8 @@ export type ParsedQr =
   | { kind: "session"; sessionId: string; exp: number; valid: boolean; expired: boolean }
   | { kind: "dynamic"; branchId: string; units: number; exp: number; valid: boolean; expired: boolean }
   | { kind: "amount"; branchId: string; amount: number }
-  | { kind: "static"; branchId: string };
+  | { kind: "static"; branchId: string }
+  | { kind: "sticker"; code: string };
 
 const sign = (secret: string, branchId: string, units: number, exp: number) =>
   createHmac("sha256", secret).update(`jzq2:${branchId}:${units}:${exp}`).digest("hex").slice(0, 16);
@@ -48,6 +52,8 @@ export function parseQr(raw: string, secretOrKeys: string | string[], now = Math
     const valid = okAny((k) => sign(k, branchId.toLowerCase(), units, exp), sig.toLowerCase());
     return { kind: "dynamic", branchId: branchId.toLowerCase(), units, exp, valid, expired: now > exp + GRACE_SEC };
   }
+  const st = t.match(/^https?:\/\/[^/\s]+\/b\/([A-Za-z0-9]{4,8})\/?(?:[?#].*)?$/) ?? t.match(/[?&]startapp=b_([A-Za-z0-9]{4,8})(?:&|$)/);
+  if (st) return { kind: "sticker", code: st[1].toUpperCase() };
   const b = t.match(/(?:^(?:MD|JZ)B1:|startapp=br_)([0-9a-f-]{36})/i);
   if (!b) return null;
   const amount = Number(t.match(/[?&]amount=(\d{2,7})/)?.[1] ?? 0);
