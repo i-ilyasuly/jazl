@@ -14,6 +14,7 @@ const card: [number, number, number, number, number][] = [
 export function HomeSkeleton() {
   return (
     <div className={s.page} aria-busy>
+      <div className="topVeil" aria-hidden />
       <div className="topSearch pinned"><img src={searchIcon} alt="" /><span>Іздеу...</span></div>
       <header className={s.top}>
         <TelegramChrome mode="close" />

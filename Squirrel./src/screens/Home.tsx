@@ -82,6 +82,7 @@ export function Home() {
   const pickSort = (k: SortKey) => { setTaps((t) => ({ ...t, [k]: (t[k] ?? 0) + 1 })); if (k === sort) return; haptic.select(); setSort(k); setCount(PAGE); document.getElementById("offers")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
   return (
     <div className={s.page}>
+      <div className="topVeil" aria-hidden />
       <button className="topSearch pinned" onClick={() => go("/search")} aria-label="Іздеу" style={{ viewTransitionName: "top-search" }}>
         <img src={searchIcon} alt="" /><span>Іздеу...</span>
       </button>

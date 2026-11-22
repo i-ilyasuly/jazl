@@ -28,6 +28,7 @@ export function Favorites() {
   const total = live.length + ended.length;
   return (
     <div className={s.page}>
+      <div className="topVeil" aria-hidden />
       <button className="topSearch pinned" onClick={() => go("/search")} aria-label="Іздеу">
           <img src={searchIcon} alt="" /><span>Іздеу...</span>
         </button>

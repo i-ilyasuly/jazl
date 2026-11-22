@@ -83,3 +83,7 @@
 
 /* Патша (2026-11-21, 1): сұрыптау батырмаларының дөңгелектігі азайды */
 .sort { border-radius: 10px; }
+
+/* UX 2 (Патша, 2026-11-23): «Картада» навигация панелінен 14 px жоғары, айқын көлеңкемен — фоннан бөлініп тұрады */
+.map { bottom: calc(111px + var(--safe-b, 0px)); box-shadow: inset 1.5px 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.98), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5), 0 2px 6px rgba(17, 26, 38, 0.14), 0 8px 24px rgba(17, 26, 38, 0.18) !important; }
+:global(:root[data-theme="dark"]) .map { box-shadow: inset 1.5px 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.4), inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 2px 6px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45) !important; }

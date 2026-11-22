@@ -126,6 +126,7 @@ export function Packs() {
   };
   return (
     <div className={s.page}>
+      <div className="topVeil" aria-hidden />
       <button className="topSearch pinned" onClick={() => go("/search")} aria-label="Іздеу"><img src={searchIcon} alt="" /><span>Іздеу...</span></button>
       <header className={s.top}>
         <TelegramChrome mode="close" />
