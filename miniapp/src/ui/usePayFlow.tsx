@@ -9,7 +9,7 @@ import { cardOf, failText, hasServer, pendingPay, type CheckoutCard, type Checko
 type Paid = Extract<CheckoutResult, { status: "paid" }>;
 import { BuySheet, type BuyStep } from "./BuySheet";
 
-interface Sheet { offer: Offer; start: BuyStep; done: () => void }
+interface Sheet { offer: Offer; start: BuyStep; done: (r?: Paid) => void; charge?: (card: CheckoutCard) => Promise<CheckoutResult> }
 
 export function usePayFlow() {
   const methods = useMethods();
@@ -22,9 +22,11 @@ export function usePayFlow() {
 
   /** offer — төленетін нәрсе (атауы, бағасы); done — төлем өткеннен кейін (картада — сервер жауабымен).
    *  charge — нақты карта төлемі (сервер бар, карта сақталған не бір реттік болса): қайта алу, сыйлық, ұзарту өздерінің сұрауын береді. */
-  const pay = (offer: Offer, done: (r?: Paid) => void, charge?: (card: CheckoutCard) => Promise<CheckoutResult>) => {
+  const pay = (offer: Offer, done: (r?: Paid) => void, charge?: (card: CheckoutCard) => Promise<CheckoutResult>, opts?: { confirm?: boolean }) => {
     if (busy) return;
     haptic.medium();
+    // Сыйлық (Патша, 2026-11-22): өзіне сатып алғандағыдай — төлем парағы, тәсілді таңдау (Kaspi, карта), сосын төлем
+    if (opts?.confirm) { setSheet({ offer, start: "sum", done, charge }); return; }
     if (method?.id === "kaspi") { setSheet({ offer, start: saved ? "wait" : "kaspi", done }); return; }
     const cardBody = charge && method?.card && hasServer() ? cardOf(method) : null;
     if (charge && cardBody) {
@@ -51,8 +53,8 @@ export function usePayFlow() {
   const pickMethod = (offer: Offer) => { haptic.tap(); setSheet({ offer, start: "method", done: () => undefined }); };
 
   const node = sheet && (
-    <BuySheet offer={sheet.offer} start={sheet.start} onClose={() => setSheet(null)}
-      onPaid={() => { const d = sheet.done; setSheet(null); d(); }} />
+    <BuySheet offer={sheet.offer} start={sheet.start} charge={sheet.charge} onClose={() => setSheet(null)}
+      onPaid={(r) => { const d = sheet.done; setSheet(null); d(r); }} />
   );
   return { method, pay, pickMethod, busy, sheetOpen: Boolean(sheet), node };
 }

@@ -8,7 +8,7 @@ import { fmt, saving, type Offer } from "../mocks/offers";
 import { useGo } from "../nav";
 import { offPeakPrice, winLabel } from "../offpeak";
 import { adoptPurchase, setBuyExtra, setDefaultMethod, setKaspiPhone, useDefaultMethod, useKaspiPhone, useMethods } from "../store";
-import { cardOf, checkoutBonus, checkoutCard, hasServer } from "../pay/checkout";
+import { cardOf, checkoutBonus, checkoutCard, hasServer, pendingPay, type CheckoutCard, type CheckoutResult } from "../pay/checkout";
 import { loadBonus, setBonusNext, useBonus } from "../pay/bonus";
 import { Switch } from "./SubPage";
 import { askPhone, haptic, inTelegram, openExternal, tg, useBackButton, useBottomButtons } from "../telegram";
@@ -41,7 +41,9 @@ const mask = (d: string) => {
   return r;
 };
 
-export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Offer; onClose: () => void; onPaid: () => void; start?: BuyStep }) {
+type Paid = Extract<CheckoutResult, { status: "paid" }>;
+/** charge — сыйлық сияқты «өзіңе емес» төлем: карта сұрауын шақырушы береді, бонус пен бос сағат жеңілдігі көрсетілмейді (Патша, 2026-11-22) */
+export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { offer: Offer; onClose: () => void; onPaid: (r?: Paid) => void; start?: BuyStep; charge?: (card: CheckoutCard) => Promise<CheckoutResult> }) {
   const go = useGo();
   const methods = useMethods();
   const def = useDefaultMethod();
@@ -59,13 +61,13 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
   const newPrice = Math.round(offer.price * 1.08 / 100) * 100;
   // Бос сағат жеңілдігі (мекеме қосса): арзанырақ, бірақ келу уақыты тек терезеде
   const [cheap, setCheap] = useState(false);
-  const base = cheap && offer.offPeak ? offPeakPrice(offer.price, offer.offPeak.pct) : offer.price;
+  const base = cheap && offer.offPeak && !charge ? offPeakPrice(offer.price, offer.offPeak.pct) : offer.price;
   const price = step === "price" ? newPrice : base;
-  const extra = cheap && offer.offPeak ? { offPeak: true } : {};
+  const extra = cheap && offer.offPeak && !charge ? { offPeak: true } : {};
   // Medeo бонусы: бағадан шегеріледі (әдепкі — қосулы), қалғаны таңдалған тәсілмен төленеді
   const bonus = useBonus(true);
   const [useB, setUseB] = useState(true);
-  const bonusUse = useB && hasServer() ? Math.min(bonus?.balance ?? 0, price) : 0;
+  const bonusUse = useB && hasServer() && !charge ? Math.min(bonus?.balance ?? 0, price) : 0;
   const cash = price - bonusUse;
 
   const close = useMemo(() => () => { haptic.soft(); setClosing(true); setTimeout(onClose, 220); }, [onClose]);
@@ -91,6 +93,22 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
     }
     // Карта (сақталған не бір реттік) және сервер бар: нақты төлем ағыны — бірден өтеді / банк растауы / өтпеді
     const cardBody = m?.card && hasServer() ? cardOf(m) : null;
+    if (m && cardBody && charge) {
+      setBusy(true); tg?.MainButton?.showProgress?.(false);
+      void charge(cardBody).then((r) => {
+        tg?.MainButton?.hideProgress?.(); setBusy(false);
+        if (r.status === "paid") { haptic.success(); onPaid(r); return; }
+        if (r.status === "action_required") {
+          pendingPay.set(r.paymentId, (x) => onPaid(x));
+          const q = `?label=${encodeURIComponent(m.title)}&back=1`;
+          if (r.confirmUrl.startsWith("app:")) go(r.confirmUrl.slice(4) + q, "up");
+          else { openExternal(r.confirmUrl); go(`/pay/3ds/${r.paymentId}${q}&wait=1`, "up"); }
+          return;
+        }
+        haptic.error(); go(`/pay/fail/${offer.id}?r=${encodeURIComponent(r.reason)}`, "up", { replace: true });
+      });
+      return;
+    }
     if (m && cardBody) {
       setBonusNext(false); setBusy(true); tg?.MainButton?.showProgress?.(false);
       void checkoutCard(offer.id, cardBody, { ...(bonusUse ? { useBonus: true } : {}), ...extra }).then((r) => {
@@ -172,14 +190,14 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum" }: { offer: Off
           <hr className={s.sep} />
           <div className={`${s.row} ${s.muted}`}><span>Бөлек баға</span><s className="w-600">{fmt(offer.oldPrice)}</s></div>
           <div className={s.row}><span className={s.muted}>Үнем</span><span className={`w-600 ${s.green}`}>−{fmt(cheap ? offer.oldPrice - base : saving(offer))}</span></div>
-          {offer.offPeak && (
+          {offer.offPeak && !charge && (
             <div className={s.row} style={{ gap: 12 }}>
               <span className={s.itemText} style={{ flex: 1, minWidth: 0, whiteSpace: "normal" }}><span className={s.muted}>{`Бос сағатта · −${offer.offPeak.pct}%`}</span><span className={s.itemSub}>{`${winLabel(offer.offPeak)} · тек алдын ала жазылумен`}</span></span>
               <Switch on={cheap} onChange={(v) => { haptic.select(); setCheap(v); }} />
             </div>
           )}
           <div className={s.row}><span>Жиыны</span><span className={s.total}>{fmt(base)}</span></div>
-          {(bonus?.balance ?? 0) > 0 && hasServer() && <>
+          {(bonus?.balance ?? 0) > 0 && hasServer() && !charge && <>
             <div className={s.row}><span className={s.muted}>{`Squirrel бонусы · ${fmt(bonus!.balance)}`}</span><span className={s.method}>{useB && <span className={`w-600 ${s.green}`}>−{fmt(bonusUse)}</span>}<Switch on={useB} onChange={(v) => { haptic.select(); setUseB(v); }} /></span></div>
             {useB && <div className={s.row}><span>Төленеді</span><span className={s.total}>{fmt(cash)}</span></div>}
           </>}
