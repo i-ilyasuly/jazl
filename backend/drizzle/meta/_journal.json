@@ -225,6 +225,13 @@
       "when": 1795410000000,
       "tag": "0031_bi",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795420000000,
+      "tag": "0032_bi_facts",
+      "breakpoints": true
     }
   ]
 }
