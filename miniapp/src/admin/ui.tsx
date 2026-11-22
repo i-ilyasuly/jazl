@@ -107,6 +107,8 @@ export function pinError(e: unknown): string {
   if (b.error === "bad_pin") return `Қате PIN. ${b.left ?? 0} әрекет қалды`;
   if (b.error === "locked") return `PIN бұғатталды: ${b.until ? new Date(b.until).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "15 минут"}-ге дейін күтіңіз`;
   if (b.error === "admin_session") { setToken(""); return "Сеанс бітті"; }
+  if (b.error === "overlap") return "Бұл кезеңге аударым бұрын тіркелген. Күндерді тексеріңіз";
+  if (b.error === "bad_request") return "Деректер дұрыс емес: сома мен күндерді тексеріңіз";
   return "Сақталмады. Қайталап көріңіз";
 }
 

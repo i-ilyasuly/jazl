@@ -39,7 +39,7 @@ export function VHistory() {
       </div>
       <div className={s.card} style={{ background: "var(--hl-blue-bg)", display: "grid", gridTemplateColumns: "1fr 1.4fr 0.8fr", padding: "12px 16px", gap: 4 }}>
         <span className={s.stat} style={{ padding: 0, background: "none" }}><span className={s.statLabel}>Қолданулар</span><b className={s.lead} style={{ fontSize: 20 }}>{data ? data.summary.count : "–"}</b></span>
-        <span className={s.stat} style={{ padding: 0, background: "none" }}><span className={s.statLabel}>Түскен сома</span><b className={s.lead} style={{ fontSize: 20 }}>{data ? money(data.summary.amount) : "–"}</b></span>
+        <span className={s.stat} style={{ padding: 0, background: "none" }}><span className={s.statLabel}>Есептелді</span><b className={s.lead} style={{ fontSize: 20 }}>{data ? money(data.summary.amount) : "–"}</b></span>
         <span className={s.stat} style={{ padding: 0, background: "none", textAlign: "right" }}><span className={s.statLabel}>Қайтару</span><b className={s.lead} style={{ fontSize: 20 }}>{data ? data.summary.refunds : "–"}</b></span>
       </div>
       {data === null ? <><Sk h={20} w={140} /><Sk h={180} /></> : groups.length === 0 ? <div className={s.card}><div className={s.row}><span className={s.rowSub}>Бұл кезеңде қолдану болған жоқ</span></div></div>
@@ -178,7 +178,7 @@ export function VOrder() {
         <div className={s.kv}><span>Филиал</span><b>{o.branch}</b></div>
         <div className={s.kv}><span>Код (клиент айтады)</span><b style={{ color: "var(--link)" }}>{o.code}</b></div>
       </div>
-      <Note tone="ok">Төлем: «Medeo алдын ала төленген». Мекеме шотына: <b>{money(o.venueAmount)}</b></Note>
+      <Note tone="ok">Төлем: «Medeo алдын ала төленген». Мекеме үлесі (аударымға есептеледі): <b>{money(o.venueAmount)}</b></Note>
       {!closed && <Buttons main={{ text: busy ? "…" : o.status === "sent" ? "Қабылдау" : o.status === "accepted" ? "Дайын" : "Берілді", onClick: () => void act(), shine: true, disabled: busy }} second={{ text: "Клиент келмеді", onClick: () => void missed() }} />}
       {closed && <Buttons main={{ text: "Тапсырыстарға", onClick: () => go("/v/orders", "back") }} />}
     </VPage>

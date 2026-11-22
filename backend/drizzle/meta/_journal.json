@@ -232,6 +232,13 @@
       "when": 1795420000000,
       "tag": "0032_bi_facts",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795430000000,
+      "tag": "0033_venue_payouts",
+      "breakpoints": true
     }
   ]
 }

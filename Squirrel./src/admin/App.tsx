@@ -6,7 +6,7 @@ import { Split, useDesk } from "./Desk";
 import { AGate, APin } from "./Entry";
 import { AAttention, APulse, AErrors } from "./Pulse";
 import { AFinance, AMetrics } from "./Metrics";
-import { AApp, AAppDone, AApps, ABranches, ANotes, AStickers, ATeam, AVenue, AVenues } from "./Venues";
+import { AApp, AAppDone, AApps, ABranches, ANotes, APayouts, AStickers, ATeam, AVenue, AVenues } from "./Venues";
 import { AOffer, AOffers } from "./Offers";
 import { AComplaint, AComplaintSent, AComplaints } from "./Complaints";
 import { APack, APacks } from "./Packs";
@@ -34,6 +34,7 @@ export default function AdminApp() {
       <Route path="venues/:id/notes" element={<ANotes />} />
       <Route path="venues/:id/branches" element={<ABranches />} />
       <Route path="venues/:id/stickers" element={<AStickers />} />
+      <Route path="venues/:id/payouts" element={<APayouts />} />
       <Route path="venues/:id/team" element={<ATeam />} />
       <Route path="apps" element={sp(<AApps />, undefined, "Өтінімді таңдаңыз")} />
       <Route path="apps/:id" element={sp(<AApps />, <AApp />)} />

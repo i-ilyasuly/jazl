@@ -100,7 +100,7 @@ export function VHome() {
 
       <div className={s.stats}>
         <div className={s.stat}>
-          <span className={s.statLabel}>Түскен сома</span>
+          <span className={s.statLabel}>Бүгін есептелді</span>
           <span className={s.statNum}>{d ? money(d.revenueToday) : <Sk w={110} h={28} />}</span>
           {pct !== null && <span className={`${s.up} ${pct < 0 ? s.down : ""}`}>{pct >= 0 ? "▲" : "▼"} {Math.abs(pct)}%</span>}
         </div>
@@ -153,7 +153,7 @@ export function VCashier() {
       </button>
       <div className={s.stats}>
         <div className={s.stat}><span className={s.statLabel}>Бүгін қолдану</span><span className={s.statNum}>{d ? d.cashierToday : <Sk w={40} h={28} />}</span></div>
-        <div className={s.stat}><span className={s.statLabel}>Түскен сома</span><span className={s.statNum}>{d ? money(d.cashierRevenue) : <Sk w={110} h={28} />}</span></div>
+        <div className={s.stat}><span className={s.statLabel}>Бүгін есептелді</span><span className={s.statNum}>{d ? money(d.cashierRevenue) : <Sk w={110} h={28} />}</span></div>
       </div>
       <div className={s.sectionHead}><h2 className={s.sectionTitle}>Соңғы төлемдер</h2><button className={s.link} onClick={() => go("/v/history")}>Тарих</button></div>
       <div className={s.card}>
