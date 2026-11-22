@@ -61,7 +61,7 @@ export function GiftSend() {
     const list = await sendGiftsBulk(o.id, count, msg.trim(), anon, r?.gifts?.map((x) => x.code), flow.method?.title, z?.units);
     if (!list.length) { haptic.error(); setSnack("Сыйлықтар жасалмады. Қайталап көр."); return; }
     haptic.success(); setLinks(list);
-  }, giftCharge()), [flow, gift, o.id, count, msg, anon]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, giftCharge(), { confirm: true }), [flow, gift, o.id, count, msg, anon]); // eslint-disable-line react-hooks/exhaustive-deps
   const copyAll = useCallback(() => { if (!links) return; void copyText(links.map((l, i) => `${i + 1}. ${l}`).join("\n")); haptic.success(); setSnack(`${links.length} сілтеме көшірілді`); }, [links]);
   // Төлем → сыйлық жасалады → Telegram-ның контакт/чат тізімі ашылады → сыйлық беті
   const send = useCallback(() => {
@@ -78,7 +78,7 @@ export function GiftSend() {
         if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");
       } else await shareGift(gid, o.title);
       go("/profile/gift/" + gid, "fade", { replace: true });
-    }, giftCharge(userOk ? user : undefined));
+    }, giftCharge(userOk ? user : undefined), { confirm: true });
   }, [flow, gift, o.id, o.title, msg, anon, go, to, user, userOk, bulk, payBulk]); // eslint-disable-line react-hooks/exhaustive-deps
   // «Сілтеме»: төлем → сілтеме көшіріледі (кез келген мессенджерге жіберуге болады)
   const byLink = useCallback(() => flow.pay(gift, async (r) => {
@@ -86,7 +86,7 @@ export function GiftSend() {
     await waitGift(gid);
     try { await navigator.clipboard.writeText(giftLink(gid)); haptic.success(); setSnack("Сілтеме көшірілді"); } catch { await shareGift(gid, o.title); }
     window.setTimeout(() => go("/profile/gift/" + gid, "fade", { replace: true }), 900);
-  }, giftCharge()), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, giftCharge(), { confirm: true }), [flow, gift, o.id, o.title, msg, anon, go]); // eslint-disable-line react-hooks/exhaustive-deps
   const main = useMemo(() => links ? { text: "Барлығын көшіру", shine: true, onClick: copyAll }
     : { text: bulk ? `${count} сыйлық · ${fmt(o.price * count)}` : `Сыйлау · ${fmt(o.price)}`, shine: true, onClick: send }, [o.price, send, bulk, count, links, copyAll]);
   const second = useMemo(() => links ? { text: "Сыйлықтарым", position: "left" as const, onClick: () => go("/profile/gifts", "fade", { replace: true }) }
