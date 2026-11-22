@@ -36,9 +36,13 @@ export const users = app.table("users", {
   bioHash: text("bio_hash"),
   /** Клиенттің бот хабарландыру баптаулары (Figma «Хабарландырулар»): { expiry, rating, offers, promo } */
   notify: jsonb("notify"),
+  /** Қайдан келді (0030): бірінші ашқандағы start_param түрі (venue, offer, gift, b, ad, ref…; бос болса — direct) және коды, платформа */
+  source: text("source"),
+  sourceRef: text("source_ref"),
+  firstPlatform: text("first_platform"),
   createdAt: created(),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("users_telegram_id").on(t.telegramId)]);
+}, (t) => [uniqueIndex("users_telegram_id").on(t.telegramId), index("users_created").on(t.createdAt)]);
 
 export const venues = app.table("venues", {
   id: id(),
@@ -496,3 +500,34 @@ export const stickerScans = app.table("sticker_scans", {
   branchId: uuid("branch_id").notNull().references(() => branches.id),
   createdAt: created(),
 }, (t) => [index("sticker_scans_branch").on(t.branchId, t.createdAt)]);
+
+/** Ұсыныс бағасының тарихы (0030): дерекқор триггері баға, көлем, күй өзгерген сайын жазады */
+export const offerPriceLog = app.table("offer_price_log", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  offerId: uuid("offer_id").notNull().references(() => offers.id, { onDelete: "cascade" }),
+  price: integer("price").notNull(),
+  units: smallint("units").notNull(),
+  regularUnitPrice: integer("regular_unit_price").notNull(),
+  sizes: jsonb("sizes"),
+  status: text("status").notNull(),
+  createdAt: created(),
+}, (t) => [index("offer_price_log_offer").on(t.offerId, t.createdAt)]);
+
+/** Күндік сурет (0030): кейін қайта есептелмейтін қор көрсеткіштері (міндеттеме, белсенді пакеттер…) — әр тикте бүгінгі күн жаңарады */
+export const metricsDaily = app.table("metrics_daily", {
+  day: text("day").primaryKey(),
+  data: jsonb("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Қаржы жазбалары (0030, Басқарудан қолмен): marketing — жарнама шығыны (CAC), cost — басқа шығын (burn), cash — қолдағы ақша (runway) */
+export const financeEntries = app.table("finance_entries", {
+  id: id(),
+  kind: text("kind").notNull(),
+  category: text("category").notNull(),
+  amount: integer("amount").notNull(),
+  day: text("day").notNull(),
+  note: text("note"),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: created(),
+}, (t) => [index("finance_entries_day").on(t.kind, t.day)]);

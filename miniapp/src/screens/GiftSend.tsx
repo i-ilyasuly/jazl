@@ -4,6 +4,7 @@
 // Mini App контактілер тізімін өзі оқи алмайды: таңдау тек Telegram терезесінде. «Сілтеме» — төлеп, сілтемені көшіру.
 import { checkoutCard, type CheckoutCard } from "../pay/checkout";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { track } from "../track";
 import { useLocation, useParams } from "react-router-dom";
 import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
@@ -32,6 +33,7 @@ export function GiftSend() {
   const o0 = findOffer(id);
   const z = units ? o0.sizes?.find((x) => x.units === units) : undefined;
   const o = z ? { ...o0, ...z, title: o0.title.replace(/· \d+ /, `· ${z.units} `) } : o0;
+  useEffect(() => { track("gift_start", o0.id); }, [o0.id]); // сыйлық воронкасы (метрикалар)
   const sized = z ? { units: z.units } : {};
   const go = useGo();
   const flow = usePayFlow();

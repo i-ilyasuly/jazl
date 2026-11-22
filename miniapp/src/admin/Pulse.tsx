@@ -167,6 +167,7 @@ export function APulse() {
             <div className={v.stat}><span className={v.statLabel}>Қолданылды</span><span className={v.statNum}>{p ? p.units : "–"}</span>{p && <Growth v={p.unitsGrowth} />}</div>
           </div>
           {chart}
+          <button className={v.btn} style={{ background: "var(--surface-white)", color: "var(--link)" }} onClick={() => { haptic.tap(); go("/a/metrics"); }}>Барлық метрикалар: GMV, retention, LTV/CAC, runway…</button>
           <RetentionCard />
           <FunnelCard />
           <div className={v.sectionHead}><h2 className={v.sectionTitle}>Тірі лента</h2></div>
@@ -211,6 +212,7 @@ export function APulse() {
           <div key={w.d} className={`${v.barCol} ${i === arr.length - 1 && w.sales ? v.max : ""}`}><i style={{ height: `${Math.max(12, (w.sales / max) * 100)}%` }} /><span>{p ? DOW[new Date(w.d + "T12:00:00").getDay()] : ""}</span></div>
         ))}</div>
       </div>
+      <button className={v.btn} style={{ background: "var(--surface-white)", color: "var(--link)" }} onClick={() => { haptic.tap(); go("/a/metrics"); }}>Барлық метрикалар: GMV, retention, LTV/CAC, runway…</button>
       <RetentionCard />
       <FunnelCard />
       <div className={v.sectionHead}><h2 className={v.sectionTitle}>Тірі лента</h2></div>

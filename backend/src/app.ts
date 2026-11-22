@@ -29,6 +29,7 @@ import { pinGuard, pinRoutes } from "./routes/pin.js";
 import { getSettings, refreshFees, setSetting } from "./settings.js";
 import { refreshVenueScores } from "./venueScore.js";
 import { autoRenewTick } from "./autoRenew.js";
+import { snapshot } from "./metrics.js";
 import { localMediaRoutes } from "./media.js";
 import { makeNotifier, noopSender, telegramSender, type Sender } from "./notify.js";
 
@@ -94,6 +95,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     await refreshVenueScores(db, cfg, notify).catch((e) => console.error("venueScore", e)); // сенімділік, комиссия деңгейі
     const renewed = await autoRenewTick(db, cfg, notify).catch((e) => { console.error("autoRenew", e); return 0; }); // автожаңарту
     const cardsDone = await cards?.sweep().catch((e) => { console.error("packCards", e); return null; }); // пакет карталары: жаңалары және өзгерген күйлер
+    await snapshot(db).catch((e) => console.error("metrics snapshot", e)); // күндік сурет (метрикалар)
     await setSetting(db, "lastTick", new Date().toISOString()).catch(() => null);
     return c.json({ ok: true, sent, renewed, cards: cardsDone ?? null });
   });
@@ -102,6 +104,12 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
   app.route("/", stickerRoutes(cfg, db)); // мекеме жапсырмасы: /b/<код> → Mini App (кейін қосымша)
   app.route("/v1/emoji", emojiRoutes(cfg)); // Telegram анимациялық эмодзилері (ашық, кіру талап етілмейді)
 
+  // Клиент қайдан келді (0030, метрикалар): тек БІРІНШІ кіргенде жазылады. ad_<код> — жарнама сілтемесі, ref_<код> — шақыру.
+  const sourceOf = (sp?: string) => {
+    if (!sp) return { source: "direct" };
+    const m = sp.match(/^([a-z]{1,10})_([\w-]{1,60})/);
+    return m ? { source: m[1], sourceRef: m[2] } : { source: "other", sourceRef: sp.slice(0, 60) };
+  };
   // Аутентификация: Authorization: tma <initData>. Пайдаланушы бірінші рет кірсе — жазылады, әйтпесе деректері жаңарады.
   // Техникалық жұмыстар (Figma 13 «Техникалық жұмыстар»): MAINTENANCE=1 болса, API 503 қайтарады — мини апп арнайы бетті көрсетеді
   app.use("/v1/*", async (c, next) => {
@@ -135,6 +143,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     const [row] = await db.insert(users).values({
       telegramId: u.id, firstName: u.first_name, lastName: u.last_name, username: u.username, photoUrl: u.photo_url,
       lang: u.language_code === "ru" ? "ru" : "kk",
+      ...sourceOf(r.startParam),
     }).onConflictDoUpdate({
       target: users.telegramId,
       set: { firstName: u.first_name, lastName: u.last_name ?? null, username: u.username ?? null, photoUrl: u.photo_url ?? null, lastSeenAt: sql`now()` },

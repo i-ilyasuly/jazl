@@ -5,6 +5,7 @@
 // браузерде Figma-дағы сканер экраны көрсетіліп, QR оқылғаны еліктеледі.
 import { Emo } from "../ui/Emo";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { track } from "../track";
 import { useSearchParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { catalogState } from "../catalog";
@@ -34,6 +35,8 @@ export function Scan() {
   }, [qr]);
   const [qrInfo, setQrInfo] = useState<QrInfo | { error: string } | null>(null);
   useEffect(() => { if (qr) void resolveQr(qr).then(setQrInfo); }, [qr]);
+  // Сканер метрикасы: QR түрі ғана (мазмұны жіберілмейді)
+  useEffect(() => { if (qr) track("scan", undefined, { via: /\/b\/|startapp=b_/.test(qr) ? "sticker" : /^(MD|JZ)Q3/i.test(qr) ? "session" : /^(MD|JZ)Q2/i.test(qr) ? "dynamic" : "other" }); }, [qr]);
   const info = qrInfo && "venue" in qrInfo ? qrInfo : null;
   const qrVenue = info?.venue.name ?? (qrLocal.branchId ? catalogState.branches.find((b) => b.branchId === qrLocal.branchId)?.venue : undefined);
   const wanted = getPack(params.get("pack") ?? undefined);
