@@ -48,7 +48,7 @@ function Lines({ list }: { list: OfferDetails["about"] }) {
 function About({ list, text, open, onToggle }: { list: OfferDetails["about"]; text?: string; open: boolean; onToggle: () => void }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [long, setLong] = useState(true);
-  useLayoutEffect(() => { const el = ref.current; if (el) setLong(el.scrollHeight > 90); }, [list, text]);
+  useLayoutEffect(() => { const el = ref.current; if (el) setLong(el.scrollHeight > el.clientHeight + 2); }, [list, text]);
   // Мекеме өзі жазған сипаттама бар болса — сол (клиент тілінде), әйтпесе санат үлгісі
   const body = text ? <Rich text={text} /> : <Lines list={list} />;
   // Squirrel. (13): ішкі көк қорап жоқ — жай мәтін, ұзын болса астында «Толығырақ» сілтемесі
@@ -56,8 +56,21 @@ function About({ list, text, open, onToggle }: { list: OfferDetails["about"]; te
   return (
     <div className={`${s.about} ${open ? s.aboutOpen : ""}`} role="button" tabIndex={0} aria-expanded={open} onClick={onToggle} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}>
       <span ref={ref} className={s.aboutText}>{body}</span>
-      {!open && <span className={s.aboutFade} />}
       <span className={s.more}>{open ? "Жасыру" : "Толығырақ"}</span>
+    </div>
+  );
+}
+
+/** Ашылмалы тармақ: тақырып + қысқа түсініктеме көрінеді, толық мәтін басқанда тегіс ашылады */
+function Fold({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+  const [on, setOn] = useState(false);
+  return (
+    <div className={`${s.fold} ${on ? s.foldOn : ""}`}>
+      <button className={s.foldHead} aria-expanded={on} onClick={() => { haptic.tap(); setOn(!on); }}>
+        <span className={s.foldText}><span className={s.foldTitle}>{title}</span>{sub && <span className={s.foldSub}>{sub}</span>}</span>
+        <i className={s.foldChev} aria-hidden />
+      </button>
+      <div className={s.foldBody}><div className={s.foldInner}>{children}</div></div>
     </div>
   );
 }
@@ -213,16 +226,14 @@ function OfferView({ id }: { id?: string }) {
           {/* Бағадан бұрын контекст (Хормози): клиент әдетте қанша төлейтінін көрсетіп, сосын пакет бағасы */}
           <div className={s.priceRow}>
             <div>
-              {/* Squirrel. (11): жеңілдіксіз баға — бағаның үстінде, көмескі (карточкадағыдай) */}
-              <p className={s.oldTop}><s>{fmt(offer.oldPrice)}</s></p>
-              <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}>{fmt(offer.price)}</span></p>
-              {/* Squirrel. (20): мерзімі бағаның қасында — «Шарттарды» ашпай-ақ көрінеді */}
+              {/* UX 5 (Патша, 2026-11-23): негізгі баға мен ескі баға бір қатарда; мерзімі — оқылатын өлшемде */}
+              <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}>{fmt(offer.price)}</span><s className={s.oldInline}>{fmt(offer.oldPrice)}</s></p>
               {!ended && <p className={s.validity}>{`${d.days ?? 30} күн жарамды`}</p>}
             </div>
             <div className={s.badges} style={ended ? { visibility: "hidden" } : undefined}>
-              {/* Squirrel.: бір жасыл белгі (жеңілдік + үнем) және дана бағасы жай мәтін — бағамен таласпайды */}
+              {/* Жасыл белгі (жеңілдік) және дана бағасы сұр капсулада — бағамен таласпайды */}
               <span className={`${s.badge} ${s.green}`}><b>▼ {discount(offer)}%</b></span>
-              <span className={s.unitText}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
+              <span className={s.unitPill}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
               {/* Патша (2026-11-21): әлеуметтік дәлел — дана бағасының астында */}
               {offer.buyers > 0 && <span className={s.buyersLine}><span className={s.buyersIco} aria-hidden />{`${offer.buyers} адам алды`}</span>}
             </div>
@@ -248,42 +259,23 @@ function OfferView({ id }: { id?: string }) {
         </section>
 
 
-        {/* Мекеменің өз еркімен (Патша, 2026-11-19): пакетке қоса сыйлық және пакет иесінің артықшылығы */}
-        {!ended && (base.bonus || base.perk) && (
-          <section className={`${s.block} ${s.blk}`}>
-            <h2 className={s.blockTitle}>Мекемеден қосымша</h2>
-            <dl className={s.params}>
-              {base.bonus && <div><dt>Пакетке қоса</dt><dd>{base.bonus}</dd></div>}
-              {base.perk && <div><dt>Пакет иесіне</dt><dd>{base.perk}</dd></div>}
-            </dl>
-          </section>
-        )}
-
-        {/* Құрамы — мекеме өзі жазады (Патша, 2026-11-18). Жоқ болса — тек үлгі ұсыныстарда бұрынғы тізім */}
-        {base.composition ? (
-          <section className={`${s.block} ${s.blk}`}>
-            <h2 className={s.blockTitle}>{base.kind === "hair" ? "Қызметке не кіреді" : "Құрамы"}</h2>
-            <p className={s.composition}>{base.composition}</p>
-          </section>
-        ) : hasSampleIncludes(base.id) && (
-          <section className={`${s.block} ${s.blk}`}>
-            <h2 className={s.blockTitle}>Пакетке не кіреді</h2>
-            <ul className={s.bullets}>{d.includes.map((x, i) => <li key={i}><Segs list={[x]} /></li>)}</ul>
-          </section>
-        )}
-
+        {/* UX 3, 6 (Патша, 2026-11-23): «Құрамы», «Мекемеден қосымша» және «Шарттары» — бір карточка, бір жолдық бөлек карточкалар жоқ.
+            Мерзімі мұнда қайталанбайды: ол бағаның астында тұр. */}
         <section className={`${s.block} ${s.blk}`}>
-        <h2 className={s.blockTitle}>Шарттары</h2>
-        <dl className={s.params}>
-          <div><dt>Бірлік</dt><dd>{`${offer.units} ${offer.unitWord}, әрқайсысы бөлек`}</dd></div>
-          {base.portion && <div><dt>{base.kind === "hair" ? "Ұзақтығы" : "Порция"}</dt><dd>{base.kind === "hair" ? portionText(base.portion) : `${portionText(base.portion)}, бір ${offer.unitWord}`}</dd></div>}
-          <div><dt>Мерзімі</dt><dd>{`${d.days ?? 30} күн, сатып алған сәттен`}</dd></div>
-          {base.saleUntil && !ended && <div><dt>Сатылым</dt><dd>{`${saleDate(base.saleUntil)} дейін сатылады`}</dd></div>}
-          {d.duration && !(base.kind === "hair" && base.portion) && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
-          {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
-          <div><dt>Қолдану тәсілі</dt><dd>{base.planOnly ? "Тек алдын ала жоспар бойынша: әр келуге күн мен уақыт таңдайсың" : d.use}</dd></div>
-          {base.offPeak && <div><dt>Бос сағат</dt><dd>{`Мекеменің бос уақытында келсең — тағы −${base.offPeak.pct}%: ${winLabel(base.offPeak)}. Сатып алғанда таңдайсың.`}</dd></div>}
-        </dl>
+          <h2 className={s.blockTitle}>Пакет шарттары</h2>
+          {base.composition ? <p className={s.composition}>{base.composition}</p>
+            : hasSampleIncludes(base.id) && <ul className={s.bullets}>{d.includes.map((x, i) => <li key={i}><Segs list={[x]} /></li>)}</ul>}
+          <dl className={`${s.params} ${base.composition || hasSampleIncludes(base.id) ? s.paramsSep : ""}`}>
+            <div><dt>Бірлік</dt><dd>{`${offer.units} ${offer.unitWord}, әрқайсысы бөлек`}</dd></div>
+            {base.portion && <div><dt>{base.kind === "hair" ? "Ұзақтығы" : "Порция"}</dt><dd>{base.kind === "hair" ? portionText(base.portion) : `${portionText(base.portion)}, бір ${offer.unitWord}`}</dd></div>}
+            {d.duration && !(base.kind === "hair" && base.portion) && <div><dt>Ұзақтығы</dt><dd>{d.duration}</dd></div>}
+            {d.service ? <div><dt>Қызмет</dt><dd>{d.service}</dd></div> : <div><dt>Алу</dt><dd>{d.take}</dd></div>}
+            <div><dt>Қолдану</dt><dd>{base.planOnly ? "Тек алдын ала жоспар бойынша: әр келуге күн мен уақыт таңдайсың" : d.use}</dd></div>
+            {!ended && base.bonus && <div><dt>Пакетке қоса</dt><dd>{base.bonus}</dd></div>}
+            {!ended && base.perk && <div><dt>Пакет иесіне</dt><dd>{base.perk}</dd></div>}
+            {base.offPeak && <div><dt>Бос сағат</dt><dd>{`Мекеменің бос уақытында келсең — тағы −${base.offPeak.pct}%: ${winLabel(base.offPeak)}. Сатып алғанда таңдайсың.`}</dd></div>}
+            {base.saleUntil && !ended && <div><dt>Сатылым</dt><dd>{`${saleDate(base.saleUntil)} дейін сатылады`}</dd></div>}
+          </dl>
         </section>
 
         <section className={`${s.block} ${s.blk}`} style={{ position: "relative" }}>
@@ -291,25 +283,25 @@ function OfferView({ id }: { id?: string }) {
           <About list={d.about} text={base.about} open={open} onToggle={() => { haptic.tap(); setOpen(!open); }} />
         </section>
 
-        {/* Medeo кепілдігі (Патша, 2026-11-18): тәуекел клиентте емес — бар ережелерді бір жерде, бағаның жанында ашық айтамыз */}
-        {!ended && (
-          <section className={`${s.block} ${s.blk} ${s.guarantee}`}>
-            <h2 className={s.blockTitle}>Squirrel кепілдігі</h2>
-            <ul className={s.gList}>
-              <li><b>Ақшаң күймейді.</b> Мерзімінде қолданылмаған бірліктің құны Squirrel бонусы болып қайтады — 12 ай жарамды.</li>
-              <li><b>Ойыңнан айнысаң.</b> Бір бірлік те қолданбасаң, 14 күн ішінде ақшаның бәрі қайтарылады.</li>
-              <li><b>Мекеме кінәлі болса.</b> Жабылып қалса не қабылдамаса, пайдаланылмаған бірліктердің ақшасы толық қайтарылады.</li>
-              <li><b>Ұмытып кетпейсің.</b> Мерзімі бітерден 3 күн бұрын бот еске салады.</li>
-            </ul>
-            <button className={s.gLink} onClick={() => { haptic.tap(); go("/legal/refund"); }}>Қайтару ережесі</button>
-          </section>
-        )}
-
+        {/* UX 3 (Патша, 2026-11-23): кепілдік пен ережелер бір блокта; қысқа тақырыптар көрінеді, толығы — ашылмалы тізімде */}
         <section className={`${s.blk} ${s.rules}`}>
+          <h2 className={`${s.blockTitle} ${s.rulesTitle}`}>Squirrel кепілдігі</h2>
+          <Fold title="Ақшаң күймейді" sub="Қолданылмаған бірлік бонус болып қайтады">
+            <p>Мерзімінде қолданылмаған бірліктің құны Squirrel бонусы болып қайтады — 12 ай жарамды. Мерзімі бітерден 3 күн бұрын бот еске салады.</p>
+            <button className={s.gLink} onClick={() => { haptic.tap(); go("/rules/carry"); }}>Мерзімі және көшіру ережесі</button>
+          </Fold>
+          <Fold title="Ақшаны қайтару" sub="14 күн ішінде не мекеме кінәлі болса">
+            <p><b>Ойыңнан айнысаң.</b> Бір бірлік те қолданбасаң, 14 күн ішінде ақшаның бәрі қайтарылады.</p>
+            <p><b>Мекеме кінәлі болса.</b> Жабылып қалса не қабылдамаса, пайдаланылмаған бірліктердің ақшасы толық қайтарылады.</p>
+            <span className={s.foldLinks}>
+              <button className={s.gLink} onClick={() => { haptic.tap(); go("/legal/refund"); }}>Қайтару ережесі</button>
+              <button className={s.gLink} onClick={() => { haptic.tap(); go("/profile/faq"); }}>Сұрақтар мен мәселелер</button>
+            </span>
+          </Fold>
+          {offer.kind === "hair" && <Fold title="Жазылу және бас тарту" sub="2 сағат қалғанға дейін тегін">
+            <p>Жазылуға 2 сағат қалғанға дейін уақытты тегін ауыстырып не бас тарта аласың. Кейін бас тартсаң не келмесең, пакеттен бір рет жұмсалады.</p>
+          </Fold>}
           <button className={s.rule} onClick={() => { haptic.tap(); setSheet("how"); }}><span>Қалай қолданамын?</span><i className={s.chev} /></button>
-          {offer.kind === "hair" && <button className={s.rule} onClick={() => { haptic.tap(); nativeAlert("Жазылуға 2 сағат қалғанға дейін уақытты тегін ауыстырып не бас тарта аласың. Кейін бас тартсаң не келмесең, пакеттен бір рет жұмсалады."); }}><span>Жазылу және бас тарту</span><i className={s.chev} /></button>}
-          <button className={s.rule} onClick={() => { haptic.tap(); go("/rules/carry"); }}><span>Мерзімі және көшіру</span><i className={s.chev} /></button>
-          <button className={s.rule} onClick={() => { haptic.tap(); go("/profile/faq"); }}><span>Қайтару және мәселелер</span><i className={s.chev} /></button>
         </section>
 
         <section className={`${s.block} ${s.blk}`}>
@@ -325,8 +317,9 @@ function OfferView({ id }: { id?: string }) {
             </button>
             <p className={s.open}><span className={s.openDot} />{offer.hours}</p>
             <div className={s.actions}>
-              <button className={s.chipBtn} onClick={() => { haptic.tap(); setSheet("route"); }}>Бағыт</button>
-              <button className={s.chipBtn} onClick={() => { haptic.tap(); setSheet("contact"); }}>Байланыс</button>
+              {/* UX 7: екінші дәрежелі — сұр фон, қара мәтін, иконка; негізгі «Төлеу / Тағы алу» батырмасымен шатаспайды */}
+              <button className={s.chipBtn} onClick={() => { haptic.tap(); setSheet("route"); }}><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M20.5 3.5 3.8 10.4c-.8.3-.7 1.4.1 1.6l6.6 1.5 1.5 6.6c.2.8 1.3.9 1.6.1z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>Бағыт</button>
+              <button className={s.chipBtn} onClick={() => { haptic.tap(); setSheet("contact"); }}><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M6.6 3.5h2.6l1.4 4.1-2 1.5a12 12 0 0 0 6.3 6.3l1.5-2 4.1 1.4v2.6c0 1-.8 1.8-1.8 1.8A16.9 16.9 0 0 1 4.8 5.3c0-1 .8-1.8 1.8-1.8z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>Байланыс</button>
             </div>
           </div>
         </section>
