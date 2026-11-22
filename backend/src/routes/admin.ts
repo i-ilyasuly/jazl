@@ -9,7 +9,8 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
-import { adminLog, admins, users, venueApplications, venueNotes, venues } from "../db/schema.js";
+import { adminLog, admins, financeEntries, users, venueApplications, venueNotes, venues } from "../db/schema.js";
+import { metricsReport, snapshot } from "../metrics.js";
 import { validateLoginWidget } from "../auth/telegram.js";
 import { adminPrefDefaults, type Notifier } from "../notify.js";
 import { getSettings, refreshFees, setSetting, SETTING_DEFAULTS, type Settings } from "../settings.js";
@@ -237,6 +238,29 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     } });
   });
   r.get("/admin/attention", async (c) => c.json({ ok: true, attention: await attention() }));
+  // Метрикалар (Патша, 2026-11-22): барлық стартап көрсеткіштері бір жерде (src/metrics.ts)
+  r.get("/admin/metrics", async (c) => {
+    const days = [7, 30, 90, 365].includes(Number(c.req.query("days"))) ? Number(c.req.query("days")) : 30;
+    await snapshot(db).catch(() => null); // бүгінгі күндік сурет
+    return c.json({ ok: true, metrics: await metricsReport(db, Number(cfg.MEDEO_FEE_PCT), days) });
+  });
+  // Қаржы жазбалары: жарнама шығыны (CAC), басқа шығын (burn), қолдағы ақша (runway) — қолмен енгізіледі
+  const Fin = z.object({ kind: z.enum(["marketing", "cost", "cash"]), category: z.string().trim().min(1).max(40), amount: z.number().int().min(0).max(1_000_000_000), day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), note: z.string().max(200).optional() });
+  r.get("/admin/finance", async (c) => c.json({ ok: true, entries: await rows(sql`select id, kind, category, amount, to_char(day, 'YYYY-MM-DD') as day, note, created_at as at from app.finance_entries order by day desc, created_at desc limit 200`) }));
+  r.post("/admin/finance", async (c) => {
+    const b = Fin.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [row] = await db.insert(financeEntries).values({ ...b.data, note: b.data.note ?? null, createdBy: c.get("user").id }).returning({ id: financeEntries.id });
+    await log(c, "finance_add", row.id, b.data);
+    return c.json({ ok: true, id: row.id });
+  });
+  r.post("/admin/finance/:id/delete", async (c) => {
+    const id = c.req.param("id");
+    if (!/^[0-9a-f-]{36}$/.test(id)) return c.json({ ok: false, error: "bad_request" }, 400);
+    await db.delete(financeEntries).where(sql`${financeEntries.id} = ${id}`);
+    await log(c, "finance_delete", id);
+    return c.json({ ok: true });
+  });
   // Сәтсіз қайтарулар (провайдер қабылдамаған): тізім және «Қайта жіберу» (src/refund.ts)
   r.get("/admin/refunds/failed", async (c) => {
     const list = await rows<Row>(sql`select p.id, p.amount, p.refunded, p.refund_status, p.refund_failure, p.meta->>'lastRefund' as last, p.meta->>'refundAt' as at, u.first_name, u.last_name from app.payments p join app.users u on u.id = p.user_id

@@ -3,7 +3,7 @@
 // Сатып алу мен қолдану серверде өзі жазылады. Жеке дерек жіберілмейді: тек бет жолы (параметрлерсіз), қате мәтіні, нұсқа.
 import { api } from "./api";
 
-type Ev = { k: "open" | "view" | "buy_start" | "error"; ref?: string; m?: Record<string, string | number | boolean> };
+type Ev = { k: "open" | "view" | "buy_start" | "error" | "search" | "share" | "gift_start" | "scan"; ref?: string; m?: Record<string, string | number | boolean> };
 const queue: Ev[] = [];
 let timer: number | undefined;
 const inTg = () => Boolean((window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData);

@@ -10,6 +10,7 @@ import { MainBar } from "../ui/MainBar";
 import { OfferCard } from "../ui/OfferCard";
 import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
+import { track } from "../track";
 import searchIcon from "../assets/icons/search.svg";
 import clock from "../assets/icons/sClock.svg";
 import remove from "../assets/icons/sRemove.svg";
@@ -47,6 +48,8 @@ export function Search() {
   }, [query, sort, filters, pass]);
   // Нәтиже шыққан сұраныс 1,2 секундтан кейін «соңғы іздеулерге» түседі
   useEffect(() => { if (!query || !found.length) return; const t = setTimeout(() => addRecent(query), 1200); return () => clearTimeout(t); }, [query, found.length]);
+  // Сұраныс метрикасы: адам не іздейді, нені таппайды (1,5 с тоқтаған соң бір рет; тек сұраныс мәтіні мен нәтиже саны)
+  useEffect(() => { if (query.length < 2) return; const t = setTimeout(() => track("search", query.slice(0, 40), { n: found.length }), 1500); return () => clearTimeout(t); }, [query, found.length]);
   const venues = new Set(found.map((o) => o.venue)).size;
   const pick = (v: string) => { haptic.select(); setQ(v.toLowerCase()); };
   return (

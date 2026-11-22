@@ -373,7 +373,8 @@ afterLoad(() => {
 // Өнімділік (Патша, 2026-11-21): бет айналып жатқанда <html>-ге .scrolling класы — қымбат әсерлер (шынының сынуы) уақытша өшеді
 { let t: number | undefined; addEventListener("scroll", () => { const r = document.documentElement; if (!r.classList.contains("scrolling")) { r.classList.add("scrolling"); dispatchEvent(new Event("medeo:scroll-start")); } clearTimeout(t); t = window.setTimeout(() => { r.classList.remove("scrolling"); dispatchEvent(new Event("medeo:scroll-end")); }, 180); }, { passive: true, capture: true }); }
 // B1: каталог серверден фонда жүктеледі; келгенде беттер жаңа деректермен қайта салынады (күтпейміз)
-track("open"); // пилот воронкасының бірінші қадамы
+// пилот воронкасының бірінші қадамы; sp — қай сілтемемен ашты (түрі ғана, кодсыз), платформа және нұсқа (метрикалар, 2026-11-22)
+track("open", undefined, { sp: (window.Telegram?.WebApp?.initDataUnsafe?.start_param ?? "").split("_")[0].slice(0, 20) || "direct", platform: String((window.Telegram?.WebApp as { platform?: string } | undefined)?.platform ?? ""), ver: String(import.meta.env.VITE_APP_VERSION ?? "web") });
 void loadCatalog().then(() => window.dispatchEvent(new Event("medeo:catalog")));
 void syncServerPacks(); // B2: басқа құрылғыда сатып алынған пакеттер
 void loadStaff();

@@ -5,6 +5,7 @@ import { Route, Routes } from "react-router-dom";
 import { Split, useDesk } from "./Desk";
 import { AGate, APin } from "./Entry";
 import { AAttention, APulse, AErrors } from "./Pulse";
+import { AFinance, AMetrics } from "./Metrics";
 import { AApp, AAppDone, AApps, ABranches, ANotes, AStickers, ATeam, AVenue, AVenues } from "./Venues";
 import { AOffer, AOffers } from "./Offers";
 import { AComplaint, AComplaintSent, AComplaints } from "./Complaints";
@@ -26,6 +27,8 @@ export default function AdminApp() {
       <Route path="pulse" element={<APulse />} />
       <Route path="attention" element={<AAttention />} />
       <Route path="errors" element={<AErrors />} />
+      <Route path="metrics" element={<AMetrics />} />
+      <Route path="finance" element={<AFinance />} />
       <Route path="venues" element={sp(<AVenues />, undefined, "Мекемені таңдаңыз")} />
       <Route path="venues/:id" element={sp(<AVenues />, <AVenue />)} />
       <Route path="venues/:id/notes" element={<ANotes />} />

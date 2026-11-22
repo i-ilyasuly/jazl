@@ -9,4 +9,4 @@ const used = Object.fromEntries(Object.keys(keys).filter((k) => k in ru).sort().
 const missing = Object.keys(keys).filter((k) => !(k in ru));
 fs.writeFileSync(path.join(D, "../src/i18n/ru.ts"), "// АВТОМАТТЫ ТҮРДЕ ЖАСАЛАДЫ (node i18n/build-ru.mjs). Өзгерту — i18n/ru.json-да.\nexport const RU: Record<string, string> = " + JSON.stringify(used, null, 0).replace(/","/g, '",\n"') + ";\n");
 console.log("ru.ts:", Object.keys(used).length, "аударма; аударылмаған:", missing.length);
-if (missing.length) { console.log(missing.slice(0, 30).map((k) => "  • " + k).join("\n")); console.log("  (аудармасы жоқ мәтін қазақша көрсетіледі)"); }
+if (missing.length) { console.log(missing.slice(0, Number(process.env.N ?? 30)).map((k) => "  • " + k).join("\n")); console.log("  (аудармасы жоқ мәтін қазақша көрсетіледі)"); }
