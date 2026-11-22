@@ -60,7 +60,8 @@ export const V = {
   verify: (code: string) => post<{ order: { no: number; title: string; customer: string } }>("/v1/venue/orders/verify", { code }),
   offers: (vid: string) => api<{ offers: VOffer[] }>(`/v1/venue/${vid}/offers`).then((r) => r.offers),
   offerStatus: (vid: string, id: string, status: "active" | "paused") => post(`/v1/venue/${vid}/offers/${id}/status`, { status }),
-  report: (vid: string, period: "week" | "month" | "all") => api<{ report: { today: number; total: number; bars: { label: string; amount: number }[]; days: { date: string; count: number; amount: number; status: string }[]; testMode: boolean } }>(`/v1/venue/${vid}/report?period=${period}`).then((r) => r.report),
+  report: (vid: string, period: "week" | "month" | "all") => api<{ report: VReportData }>(`/v1/venue/${vid}/report?period=${period}`).then((r) => r.report),
+  insights: (vid: string, period: "week" | "month" | "all") => api<{ insights: VInsights }>(`/v1/venue/${vid}/insights?period=${period}`).then((r) => r.insights),
   qr: (branchId: string, offerId: string, units: number, extra: number) => post<{ session: { id: string; code: string; codeExp: string; expiresAt: string; payload: string; exp: number } }>("/v1/venue/qr", { branchId, offerId, units, extra }).then((r) => r.session),
   qrState: (id: string) => api<QrState>(`/v1/venue/qr/${id}`),
   qrCancel: (id: string) => post(`/v1/venue/qr/${id}/cancel`),
@@ -103,3 +104,19 @@ const MON = ["қаңтар", "ақпан", "наурыз", "сәуір", "мам
 export const dayMonth = (d: string | Date) => { const x = new Date(new Date(d).toLocaleString("en-US", tz)); return `${x.getDate()} ${MON[x.getMonth()]}`; };
 export const isToday = (d: string) => new Date(d).toLocaleDateString("ru-RU", tz) === new Date().toLocaleDateString("ru-RU", tz);
 export const dayKey = (d: string) => new Date(d).toLocaleDateString("sv-SE", tz);
+
+export interface VReportData {
+  today: number; total: number; prevTotal: number | null; feePct: number; testMode: boolean;
+  bars: { label: string; amount: number }[];
+  days: { date: string; count: number; amount: number; status: "paid" | "pending" }[];
+  money: { earned: number; paid: number; due: number; paidThrough: string | null };
+  payouts: { id: string; amount: number; from: string; to: string; paidAt: string; ref: string | null }[];
+}
+export interface VInsights {
+  period: string; days: number; feePct: number;
+  customers: { buyers: number; buyersPrev: number | null; newBuyers: number; newPrev: number | null; returning: number; visitors: number; visitorsPrev: number | null; everBuyers: number; repeatRate: number | null };
+  money: { packs: number; packsPrev: number | null; prepaid: number; prepaidPrev: number | null; liability: number; unitsLeft: number; activePacks: number; expiredUnits: number; expiredValue: number };
+  rating: { all: number | null; reviews: number; period: number | null; periodReviews: number };
+  offers: { id: string; title: string; packs: number; prepaid: number; uses: number; utilization: number | null; repeatRate: number | null }[];
+  load: { hours: number[]; weekdays: number[]; total: number };
+}

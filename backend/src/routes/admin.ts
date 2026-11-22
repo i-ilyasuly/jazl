@@ -4,12 +4,13 @@
 import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { Hono, type Context } from "hono";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
-import { adminLog, admins, financeEntries, users, venueApplications, venueNotes, venues } from "../db/schema.js";
+import { adminLog, admins, financeEntries, users, venueApplications, venueNotes, venuePayouts, venues } from "../db/schema.js";
+import { accrued, almatyDayStart, balance, payoutsOf } from "../venueMoney.js";
 import { metricsReport, snapshot } from "../metrics.js";
 import { validateLoginWidget } from "../auth/telegram.js";
 import { adminPrefDefaults, type Notifier } from "../notify.js";
@@ -385,6 +386,45 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const b = z.object({ text: z.string().trim().min(2).max(1000) }).safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     await db.insert(venueNotes).values({ venueId: c.req.param("id"), adminId: c.get("user").id, text: b.data.text });
+    return c.json({ ok: true });
+  });
+  // Мекемеге аударымдар (0033): тізім, жиынтық және келесі аударымның ұсынылатын кезеңі (соңғы аударылған күннен кешеге дейін)
+  r.get("/admin/venues/:id/payouts", async (c) => {
+    const id = c.req.param("id");
+    const list = await payoutsOf(db, id, 100);
+    const bal = await balance(db, id);
+    const day0 = almatyDayStart();
+    const toDay = new Date(day0 - 86400_000 + 5 * 3600_000).toISOString().slice(0, 10); // кеше (Алматы)
+    const fromDay = bal.paidThrough ? new Date(Date.parse(bal.paidThrough) + 86400_000).toISOString().slice(0, 10) : null;
+    const suggest = fromDay && fromDay > toDay ? null : { from: fromDay, to: toDay,
+      amount: await accrued(db, id, fromDay ? new Date(Date.parse(fromDay) - 5 * 3600_000) : null, new Date(day0)) };
+    return c.json({ ok: true, balance: bal, payouts: list, suggest });
+  });
+  const Payout = z.object({ amount: z.number().int().min(1).max(1_000_000_000), from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), ref: z.string().trim().max(80).optional(), note: z.string().trim().max(200).optional(), pin: z.string() });
+  r.post("/admin/venues/:id/payouts", async (c) => {
+    const b = Payout.safeParse(await c.req.json().catch(() => null));
+    if (!b.success || b.data.from > b.data.to) return c.json({ ok: false, error: "bad_request" }, 400);
+    const bad = await danger(c, b.data.pin); if (bad) return bad;
+    const [v] = await db.select().from(venues).where(eq(venues.id, c.req.param("id"))).limit(1);
+    if (!v) return c.json({ ok: false, error: "not_found" }, 404);
+    const overlap = (await rows<{ n: number }>(sql`select count(*)::int as n from app.venue_payouts where venue_id = ${v.id} and period_from <= ${b.data.to}::date and period_to >= ${b.data.from}::date`))[0].n;
+    if (overlap) return c.json({ ok: false, error: "overlap" }, 409);
+    const [row] = await db.insert(venuePayouts).values({ venueId: v.id, amount: b.data.amount, periodFrom: b.data.from, periodTo: b.data.to, paidAt: b.data.paidAt,
+      ref: b.data.ref || null, note: b.data.note || null, createdBy: c.get("user").id }).returning({ id: venuePayouts.id });
+    await log(c, "Мекемеге аударым", `${v.name} · ${b.data.amount} ₸ · ${b.data.from}…${b.data.to}`, { venueId: v.id, payoutId: row.id, amount: b.data.amount });
+    await notify?.toVenue(v.id, `💸 Medeo сізге ${b.data.amount.toLocaleString("ru-RU")} ₸ аударды (${b.data.from} — ${b.data.to} кезеңі)${b.data.ref ? `. Құжат: ${b.data.ref}` : ""}.`);
+    return c.json({ ok: true, id: row.id });
+  });
+  r.post("/admin/venues/:id/payouts/:pid/delete", async (c) => {
+    const b = z.object({ pin: z.string() }).safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const bad = await danger(c, b.data.pin); if (bad) return bad;
+    const pid = c.req.param("pid");
+    if (!/^[0-9a-f-]{36}$/.test(pid)) return c.json({ ok: false, error: "bad_request" }, 400);
+    const del = await db.delete(venuePayouts).where(and(eq(venuePayouts.id, pid), eq(venuePayouts.venueId, c.req.param("id")))).returning({ amount: venuePayouts.amount });
+    if (!del.length) return c.json({ ok: false, error: "not_found" }, 404);
+    await log(c, "Аударым жойылды", `${del[0].amount} ₸`, { venueId: c.req.param("id"), payoutId: pid });
     return c.json({ ok: true });
   });
   r.get("/admin/venues/:id/branches", async (c) => c.json({ ok: true, branches: await rows(sql`select id, address, active, is_247, closed_until from app.branches where venue_id = ${c.req.param("id")} order by created_at`) }));

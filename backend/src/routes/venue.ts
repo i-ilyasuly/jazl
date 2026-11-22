@@ -18,6 +18,8 @@ import { OffPeak, offPeakPrice } from "../offpeak.js";
 import { limitsOf, soldThisMonth } from "../limits.js";
 import { branches, offers, packs, qrSessions, redemptions, staffInvites, users, venueStaff, venues } from "../db/schema.js";
 import { makeSessionQr } from "../qr.js";
+import { accrued, almatyDayStart, balance, dayPaid, payoutsOf } from "../venueMoney.js";
+import { leftValueSql } from "../value.js";
 import { branchStatus } from "../hours.js";
 import { MAX_BYTES, MediaError, mediaStore, type MediaKind } from "../media.js";
 
@@ -593,8 +595,89 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     else if (period === "month") bars = Array.from({ length: 4 }, (_, i) => { let s = 0; for (let k = 0; k < 7; k++) s += byDay.get(dayKey(new Date(now - ((3 - i) * 7 + (6 - k)) * 86400_000)))?.amount ?? 0; return { label: `${i + 1}-апта`, amount: s }; });
     else { const m = new Map<string, number>(); for (const [k, v] of byDay) m.set(k.slice(0, 7), (m.get(k.slice(0, 7)) ?? 0) + v.amount);
       bars = Array.from({ length: 6 }, (_, i) => { const d = new Date(); d.setMonth(d.getMonth() - (5 - i)); const k = d.toISOString().slice(0, 7); return { label: k, amount: m.get(k) ?? 0 }; }); }
-    const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 14).map(([date, v]) => ({ date, ...v, status: "paid" as const }));
-    return c.json({ ok: true, report: { today: byDay.get(dayKey(new Date()))?.amount ?? 0, total: bars.reduce((s, b) => s + b.amount, 0), bars, days, feePct: cfg.MEDEO_FEE_PCT, testMode: cfg.PAYMENTS_MODE === "test" } });
+    // Күн күйі — нақты аударым тіркелгенде ғана «Аударылды» (бұрын бәрі қатаң «Түсті» еді — мекемені адастыратын)
+    const pays = await payoutsOf(db, venueId, 200);
+    const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 14).map(([date, v]) => ({ date, ...v, status: dayPaid(date, pays) ? "paid" as const : "pending" as const }));
+    // Өткен кезең (салыстыру үшін): апта — алдыңғы 7 күн, ай — алдыңғы 28 күн (графиктегі 4 аптамен бірдей ұзындық)
+    const len = period === "week" ? 7 : 28, day0 = almatyDayStart();
+    const prev = period === "all" ? null : await accrued(db, venueId, new Date(day0 - (2 * len - 1) * 86400_000), new Date(day0 - (len - 1) * 86400_000));
+    const total = bars.reduce((s, b) => s + b.amount, 0);
+    return c.json({ ok: true, report: { today: byDay.get(dayKey(new Date()))?.amount ?? 0, total, prevTotal: prev, bars, days, feePct: feeFor(db, venueId, cfg.MEDEO_FEE_PCT),
+      testMode: cfg.PAYMENTS_MODE === "test", money: await balance(db, venueId), payouts: pays.slice(0, 5) } });
+  });
+
+  // ── 09б · Талдау (тек иесі, Патша 2026-11-23): «Squirrel. маған не берді» — клиенттер, алдын ала ақша, ұсыныстар, жүктеме ──
+  r.get("/venue/:venueId/insights", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner"]))) return deny(c);
+    const period = c.req.query("period") === "month" ? "month" : c.req.query("period") === "all" ? "all" : "week";
+    const len = period === "week" ? 7 : period === "month" ? 30 : 365;
+    const from = sql`${DAY} - (${len - 1} * interval '1 day')`, prevFrom = sql`${DAY} - (${2 * len - 1} * interval '1 day')`;
+    const fee = feeFor(db, venueId, cfg.MEDEO_FEE_PCT);
+    const sold = sql.raw(`p.status <> 'pending_payment' and p.source <> 'carry' and p.price_paid > 0`);
+    const left = leftValueSql("p");
+    const one = async <T>(q: ReturnType<typeof sql>) => (await db.execute(q)).rows[0] as T;
+    const all = async <T>(q: ReturnType<typeof sql>) => (await db.execute(q)).rows as T[];
+    const x = await one<{ buyers: number; buyers_prev: number; new_b: number; new_prev: number; visitors: number; visitors_prev: number; ever: number; repeaters: number;
+        packs: number; packs_prev: number; prepaid: number; prepaid_prev: number; liability: number; units_left: number; active: number; expired_units: number; expired_value: number;
+        rating: number | null; reviews: number; rating_period: number | null; reviews_period: number }>(sql`
+      with vp as (select p.*, o.venue_id from app.packs p join app.offers o on o.id = p.offer_id where o.venue_id = ${venueId}),
+      firsts as (select user_id, min(created_at) as first_at from vp p where ${sold} group by user_id),
+      used as (select p.user_id, r.created_at from app.redemptions r join app.packs p on p.id = r.pack_id join app.branches b on b.id = r.branch_id where b.venue_id = ${venueId} and r.cancelled_at is null
+               union all select od.user_id, od.created_at from app.orders od join app.branches b on b.id = od.branch_id where b.venue_id = ${venueId} and od.status not in ('cancelled','failed'))
+      select
+        (select count(distinct user_id) from vp p where ${sold} and p.created_at >= ${from})::int as buyers,
+        (select count(distinct user_id) from vp p where ${sold} and p.created_at >= ${prevFrom} and p.created_at < ${from})::int as buyers_prev,
+        (select count(*) from firsts where first_at >= ${from})::int as new_b,
+        (select count(*) from firsts where first_at >= ${prevFrom} and first_at < ${from})::int as new_prev,
+        (select count(distinct user_id) from used where created_at >= ${from})::int as visitors,
+        (select count(distinct user_id) from used where created_at >= ${prevFrom} and created_at < ${from})::int as visitors_prev,
+        (select count(*) from firsts)::int as ever,
+        (select count(*) from (select user_id from vp p where ${sold} group by user_id having count(*) >= 2) q)::int as repeaters,
+        (select count(*) from vp p where ${sold} and p.created_at >= ${from})::int as packs,
+        (select count(*) from vp p where ${sold} and p.created_at >= ${prevFrom} and p.created_at < ${from})::int as packs_prev,
+        (select coalesce(sum(p.price_paid), 0) from vp p where ${sold} and p.created_at >= ${from})::int as prepaid,
+        (select coalesce(sum(p.price_paid), 0) from vp p where ${sold} and p.created_at >= ${prevFrom} and p.created_at < ${from})::int as prepaid_prev,
+        (select coalesce(sum(${left}), 0) from vp p where p.status = 'active' and p.valid_until > now())::int as liability,
+        (select coalesce(sum(p.units_left), 0) from vp p where p.status = 'active' and p.valid_until > now())::int as units_left,
+        (select count(*) from vp p where p.status = 'active' and p.valid_until > now() and p.units_left > 0)::int as active,
+        (select coalesce(sum(b.units), 0) from app.bonuses b join vp p on p.id = b.pack_id where b.created_at >= ${from})::int as expired_units,
+        (select coalesce(sum(b.amount), 0) from app.bonuses b join vp p on p.id = b.pack_id where b.created_at >= ${from})::int as expired_value,
+        (select rating from app.venues where id = ${venueId})::float as rating,
+        (select reviews_count from app.venues where id = ${venueId})::int as reviews,
+        (select avg(stars) from app.ratings rt where rt.venue_id = ${venueId} and rt.created_at >= ${from})::float as rating_period,
+        (select count(*) from app.ratings rt where rt.venue_id = ${venueId} and rt.created_at >= ${from})::int as reviews_period`);
+    const offersRows = await all<{ id: string; title: string; packs: number; prepaid: number; units_sold: number; units_used: number; buyers: number; repeaters: number; uses: number }>(sql`
+      select o.id, split_part(o.title, ' · ', 1) as title,
+        count(p.id) filter (where ${sold} and p.created_at >= ${from})::int as packs,
+        coalesce(sum(p.price_paid) filter (where ${sold} and p.created_at >= ${from}), 0)::int as prepaid,
+        coalesce(sum(p.units_total) filter (where ${sold}), 0)::int as units_sold,
+        coalesce(sum(p.units_total - p.units_left) filter (where ${sold}), 0)::int as units_used,
+        count(distinct p.user_id) filter (where ${sold})::int as buyers,
+        (select count(*) from (select p2.user_id from app.packs p2 where p2.offer_id = o.id and p2.status <> 'pending_payment' and p2.source <> 'carry' and p2.price_paid > 0 group by p2.user_id having count(*) >= 2) q)::int as repeaters,
+        (select count(*) from app.redemptions r join app.packs p3 on p3.id = r.pack_id where p3.offer_id = o.id and r.cancelled_at is null and r.created_at >= ${from})::int as uses
+      from app.offers o left join app.packs p on p.offer_id = o.id
+      where o.venue_id = ${venueId} and o.status in ('active','paused','ended')
+      group by o.id, o.title order by prepaid desc, packs desc limit 30`);
+    const load = await all<{ dow: number; h: number; n: number }>(sql`
+      select extract(isodow from t at time zone 'Asia/Almaty')::int as dow, extract(hour from t at time zone 'Asia/Almaty')::int as h, count(*)::int as n from (
+        select r.created_at as t from app.redemptions r join app.branches b on b.id = r.branch_id where b.venue_id = ${venueId} and r.cancelled_at is null and r.created_at >= ${from}
+        union all select od.created_at from app.orders od join app.branches b on b.id = od.branch_id where b.venue_id = ${venueId} and od.status not in ('cancelled','failed') and od.created_at >= ${from}) u
+      group by 1, 2`);
+    const hours = Array.from({ length: 24 }, (_, h) => load.filter((l) => l.h === h).reduce((s, l) => s + l.n, 0));
+    const weekdays = Array.from({ length: 7 }, (_, d) => load.filter((l) => l.dow === d + 1).reduce((s, l) => s + l.n, 0));
+    const share = (v: number) => Math.round((v * (100 - fee)) / 100);
+    const pctOf = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : null);
+    return c.json({ ok: true, insights: { period, days: len, feePct: fee,
+      customers: { buyers: x.buyers, buyersPrev: period === "all" ? null : x.buyers_prev, newBuyers: x.new_b, newPrev: period === "all" ? null : x.new_prev,
+        returning: Math.max(0, x.buyers - x.new_b), visitors: x.visitors, visitorsPrev: period === "all" ? null : x.visitors_prev,
+        everBuyers: x.ever, repeatRate: pctOf(x.repeaters, x.ever) },
+      money: { packs: x.packs, packsPrev: period === "all" ? null : x.packs_prev, prepaid: share(x.prepaid), prepaidPrev: period === "all" ? null : share(x.prepaid_prev),
+        liability: share(x.liability), unitsLeft: x.units_left, activePacks: x.active, expiredUnits: x.expired_units, expiredValue: share(x.expired_value) },
+      rating: { all: x.rating, reviews: x.reviews, period: x.rating_period == null ? null : Math.round(x.rating_period * 10) / 10, periodReviews: x.reviews_period },
+      offers: offersRows.map((o) => ({ id: o.id, title: o.title, packs: o.packs, prepaid: share(o.prepaid), uses: o.uses,
+        utilization: pctOf(o.units_used, o.units_sold), repeatRate: pctOf(o.repeaters, o.buyers) })),
+      load: { hours, weekdays, total: hours.reduce((a, b) => a + b, 0) } } });
   });
 
   // ── 05 · Кассир: QR сеансы ───────────────────────────────────

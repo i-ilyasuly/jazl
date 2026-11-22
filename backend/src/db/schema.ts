@@ -520,6 +520,20 @@ export const metricsDaily = app.table("metrics_daily", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Мекемеге аударым (0033, Басқарудан PIN-мен): қай кезеңнің (period_from..period_to) есептелген ақшасы аударылды */
+export const venuePayouts = app.table("venue_payouts", {
+  id: id(),
+  venueId: uuid("venue_id").notNull().references(() => venues.id),
+  amount: integer("amount").notNull(),
+  periodFrom: text("period_from").notNull(),
+  periodTo: text("period_to").notNull(),
+  paidAt: text("paid_at").notNull(),
+  ref: text("ref"),
+  note: text("note"),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: created(),
+}, (t) => [index("venue_payouts_venue").on(t.venueId, t.periodTo)]);
+
 /** Қаржы жазбалары (0030, Басқарудан қолмен): marketing — жарнама шығыны (CAC), cost — басқа шығын (burn), cash — қолдағы ақша (runway) */
 export const financeEntries = app.table("finance_entries", {
   id: id(),

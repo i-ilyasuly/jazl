@@ -94,6 +94,7 @@ export function AVenue() {
     { e: "a:fee", t: "Комиссия", r: `${x.feePct}%`, on: () => setSheet("fee") },
     { e: "a:branches", t: "Филиалдар", r: String(x.branches), on: () => go(`/a/venues/${id}/branches`) },
     { e: "a:branches", t: "Жапсырмалар (QR)", r: "", on: () => go(`/a/venues/${id}/stickers`) },
+    { e: "a:fee", t: "Аударымдар", r: "", on: () => go(`/a/venues/${id}/payouts`) },
     { e: "a:offers", t: "Ұсыныстар", r: `${x.offers} белсенді`, on: () => go(`/a/offers?venue=${id}&tab=active`) },
     { e: "a:team", t: "Команда", r: `${x.team} адам`, on: () => go(`/a/venues/${id}/team`) },
     { e: "a:complaints", t: "Шағымдар тарихы", r: String(x.complaints), on: () => go(`/a/complaints?venue=${id}&tab=done`) },
@@ -396,5 +397,63 @@ export function AStickers() {
         <Note>QR ішінде — біздің сервердегі қысқа сілтеме (/b/код). Ол бүгін Telegram мини аппқа, кейін қосымшаға бағыттайды — жапсырманы қайта басып шығару керек емес. Домен алынған соң STICKER_BASE_URL қойылады, ескі жапсырмалар да жұмыс істей береді.</Note>
       </>}
     </VPage>
+  );
+}
+
+// ── Мекемеге аударымдар (0033, Патша 2026-11-23): есептелді / аударылды / күтуде; аударымды PIN-мен тіркеу, қате болса жою ──
+interface PayoutsData { balance: { earned: number; paid: number; due: number; paidThrough: string | null }; payouts: { id: string; amount: number; from: string; to: string; paidAt: string; ref: string | null; note: string | null }[];
+  suggest: { from: string | null; to: string; amount: number } | null }
+const todayKz = () => new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10);
+const isDay = (x: string) => /^\d{4}-\d{2}-\d{2}$/.test(x);
+export function APayouts() {
+  const { id = "" } = useParams();
+  const [d, , reload] = useCached<PayoutsData>(`a:payouts:${id}`, () => A(`/venues/${id}/payouts`));
+  const [add, setAdd] = useState(false);
+  const [del, setDel] = useState<string | null>(null);
+  const b = d?.balance;
+  return (
+    <VPage title="Аударымдар" back>
+      <div className={v.stats}>
+        <div className={v.stat}><span className={v.statLabel}>Есептелді</span><span className={v.statNum}>{b ? money(b.earned) : "–"}</span><span className={v.statSub}>Клиенттер қолданған бірліктер, комиссиясыз</span></div>
+        <div className={v.stat}><span className={v.statLabel}>Аударылды</span><span className={v.statNum}>{b ? money(b.paid) : "–"}</span><span className={v.statSub}>{b?.paidThrough ? `${dayMonth(b.paidThrough)} күніне дейін` : "Әлі жоқ"}</span></div>
+      </div>
+      <div className={v.stat}><span className={v.statLabel}>Аударуды күтуде</span><span className={v.statNum} style={{ color: b && b.due > 0 ? "#1f8a3b" : undefined }}>{b ? money(b.due) : "–"}</span>
+        {d?.suggest && <span className={v.statSub}>{`Ұсынылатын кезең: ${d.suggest.from ? dayMonth(d.suggest.from) : "басынан"} — ${dayMonth(d.suggest.to)} · ${money(d.suggest.amount)}`}</span>}</div>
+      <Note>Аударымды банк арқылы жібергеннен кейін ғана тіркеңіз. Мекеме иесіне хабар барады, «Есеп» бетінде сол күндер «Аударылды» болады.</Note>
+      {!d ? <Sk h={120} /> : d.payouts.length === 0 ? <Empty>Аударым әлі тіркелмеген</Empty> : <div className={v.card}>{d.payouts.map((p) => (
+        <button key={p.id} className={v.row} onClick={() => { haptic.tap(); setDel(p.id); }}>
+          <Tile e="a:fee" size={36} />
+          <span className={v.rowText}><span className={v.rowTitle}>{`${money(p.amount)} · ${dayMonth(p.paidAt)}`}</span><span className={v.rowSub}>{`${dayMonth(p.from)} — ${dayMonth(p.to)}${p.ref ? ` · ${p.ref}` : ""}${p.note ? ` · ${p.note}` : ""}`}</span></span>
+        </button>))}</div>}
+      <Buttons main={{ text: "Аударымды тіркеу", onClick: () => setAdd(true) }} />
+      {add && d && <PayoutSheet id={id} d={d} onClose={() => setAdd(false)} done={() => void reload()} />}
+      {del && <PinSheet text="Бұл аударым жазбасын жою (қате тіркелген болса)." onClose={() => setDel(null)} run={async (pin) => { await post(`/venues/${id}/payouts/${del}/delete`, { pin }); void reload(); }} />}
+    </VPage>
+  );
+}
+function PayoutSheet({ id, d, onClose, done }: { id: string; d: PayoutsData; onClose: () => void; done: () => void }) {
+  const sg = d.suggest;
+  const [amount, setAmount] = useState(String(sg?.amount ?? d.balance.due));
+  const [from, setFrom] = useState(sg?.from ?? (d.payouts.length ? "" : "2026-01-01"));
+  const [to, setTo] = useState(sg?.to ?? todayKz());
+  const [paidAt, setPaidAt] = useState(todayKz());
+  const [ref, setRef] = useState("");
+  const [note, setNote] = useState("");
+  const [pin, setPin] = useState(false);
+  const sum = Number(amount.replace(/\s/g, ""));
+  const ok = sum > 0 && isDay(from) && isDay(to) && isDay(paidAt) && from <= to;
+  if (pin) return <PinSheet text={`${money(sum)} аударымын тіркеу (${from} — ${to}).`} onClose={onClose}
+    run={async (p) => { await post(`/venues/${id}/payouts`, { amount: sum, from, to, paidAt, ref: ref.trim() || undefined, note: note.trim() || undefined, pin: p }); done(); }} />;
+  return (
+    <Sheet title="Аударымды тіркеу" onClose={onClose}>
+      <Field label="Сома, ₸" value={amount} onChange={(x) => setAmount(x.replace(/[^\d\s]/g, ""))} />
+      <Field label="Кезең басы (ЖЖЖЖ-АА-КК)" value={from} onChange={setFrom} placeholder="2026-11-01" />
+      <Field label="Кезең соңы" value={to} onChange={setTo} />
+      <Field label="Аударылған күн" value={paidAt} onChange={setPaidAt} />
+      <Field label="Төлем құжатының нөмірі" value={ref} onChange={setRef} max={80} placeholder="ПП-123" />
+      <Field label="Ескертпе (міндетті емес)" value={note} onChange={setNote} max={200} />
+      {sg && sum !== sg.amount && <Note tone="warn">{`Кезеңнің есептелген сомасы ${money(sg.amount)}. Айырмашылық болса, ескертпеге себебін жазыңыз.`}</Note>}
+      <Buttons main={{ text: "Тіркеу", disabled: !ok, onClick: () => (ok ? setPin(true) : (haptic.error(), nativeAlert("Сома мен күндерді тексеріңіз."))) }} second={{ text: "Бас тарту", onClick: onClose }} />
+    </Sheet>
   );
 }
