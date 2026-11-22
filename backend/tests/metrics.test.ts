@@ -81,7 +81,9 @@ d("Looker Studio көріністері (bi)", () => {
   afterAll(async () => { await dbh?.pool.end(); });
   it("барлық көрініс оқылады, жеке дерек бағандары жоқ, looker_ro тек bi-ді көреді", async () => {
     const views = (await dbh.pool.query("select table_name from information_schema.views where table_schema = 'bi' order by 1")).rows.map((r) => r.table_name);
-    expect(views.length).toBeGreaterThanOrEqual(15);
+    expect(views.length).toBeGreaterThanOrEqual(17);
+    const facts = (await dbh.pool.query("select fact, count(*)::int as n from bi.facts group by 1")).rows;
+    expect(facts.map((r) => r.fact)).toEqual(expect.arrayContaining(["user", "pack", "event", "finance", "snapshot"]));
     for (const v of views) await dbh.pool.query(`select * from bi.${v} limit 5`);
     const cols = (await dbh.pool.query("select column_name from information_schema.columns where table_schema = 'bi'")).rows.map((r) => r.column_name);
     for (const bad of ["first_name", "last_name", "username", "phone", "telegram_id", "pin_hash", "text", "photo_url"]) expect(cols).not.toContain(bad);
