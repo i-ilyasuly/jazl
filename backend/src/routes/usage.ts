@@ -5,7 +5,7 @@ import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { onPackChanged } from "../bot/packCard.js";
 import { createHash, randomInt } from "node:crypto";
 import { Hono, type Context } from "hono";
-import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
@@ -14,7 +14,7 @@ import type { Notifier } from "../notify.js";
 import { branches, offers, orders, packEvents, packs, qrSessions, receipts, redemptions, users, venueStaff, venues } from "../db/schema.js";
 import { stickerUrl } from "./sticker.js";
 import { makeDynamicQr, makeSessionQr, parseQr } from "../qr.js";
-import { branchStatus } from "../hours.js";
+import { branchStatus, todayHours } from "../hours.js";
 import { inOffPeak, type OffPeakT } from "../offpeak.js";
 import { takeValue, unitPrice as unitPriceOf } from "../value.js";
 
@@ -203,10 +203,14 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
         const [v] = await tx.select().from(venues).where(eq(venues.id, p.venueId));
         if (d.type === "now" && !v.acceptsPreorder) throw new UseError("no_preorder");
         const only = Array.isArray(p.onlyBranches) && p.onlyBranches.length ? p.onlyBranches : null;
-        const [br] = d.branchId ? await tx.select().from(branches).where(and(eq(branches.id, d.branchId), eq(branches.venueId, v.id)))
-          : await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true), only ? inArray(branches.id, only) : undefined)).orderBy(branches.createdAt).limit(1);
+        // Патша (2026-11-23): клиент филиалды өзі таңдайды (әдепкі — ең жақын ашығы). Таңдамаса (ескі нұсқа) — ашық тұрған біріншісі
+        const cand = d.branchId ? await tx.select().from(branches).where(and(eq(branches.id, d.branchId), eq(branches.venueId, v.id), eq(branches.active, true)))
+          : await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true), only ? inArray(branches.id, only) : undefined)).orderBy(branches.createdAt);
+        const br = d.branchId ? cand[0] : cand.find((x) => branchStatus(x, at ?? new Date()).open) ?? cand[0];
         if (!br) throw new UseError("branch_not_found", 404);
         await assertBranch(tx, only, br.id);
+        // Филиал сол уақытта жабық болса (қазір не жоспарланған слотта) — тапсырыс жіберілмейді, бірлік қайтады
+        if (!branchStatus(br, at ?? new Date()).open) throw new UseError("branch_closed", 409, { address: br.address });
         const code = String(randomInt(1000, 10000));
         const [o] = await tx.insert(orders).values({ type: d.type, packId: p.id, userId: user.id, branchId: br.id, scheduledAt: at, code, courier: d.courier ?? false, idempotencyKey: d.idempotencyKey, amount: p.amount, feePct: p.feePct }).returning();
         await tx.insert(packEvents).values({ packId: p.id, type: d.type === "plan" ? "plan" : "order", unitsDelta: -1, meta: { orderId: o.id, orderNo: o.no, scheduledAt: at } });
@@ -225,6 +229,17 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
       void onPackChanged(d.packId);
       return c.json({ ok: true, repeated: false, ...out });
     } catch (e) { return fail(c, e); }
+  });
+
+  // Тапсырыс/жоспар бетіне: пакет жарамды филиалдар (ұсыныс ережесі «тек кейбір филиалдар» ескеріледі), бүгінгі күйі мен жұмыс уақыты.
+  // Қашықтықты клиент өзі есептейді (орналасу телефоннан шықпайды).
+  r.get("/packs/:id/branches", async (c) => {
+    const [row] = (await db.execute(sql`select o.venue_id, o.rules->'branches' as only from app.packs p join app.offers o on o.id = p.offer_id where p.id = ${c.req.param("id")} and p.user_id = ${c.get("user").id}`)).rows as { venue_id: string; only: string[] | null }[];
+    if (!row) return c.json({ ok: false, error: "pack_not_found" }, 404);
+    const only = Array.isArray(row.only) && row.only.length ? row.only : null;
+    const bs = await db.select().from(branches).where(and(eq(branches.venueId, row.venue_id), eq(branches.active, true), only ? inArray(branches.id, only) : undefined)).orderBy(branches.createdAt);
+    return c.json({ ok: true, branches: bs.map((b) => { const st = branchStatus(b);
+      return { id: b.id, address: b.address, lat: b.lat, lng: b.lng, phone: b.phone, courier: b.allowsCourier, open: st.open, kind: st.kind, until: st.until, reason: st.reason ?? null, today: todayHours(b), hours: b.is247 ? "247" : b.hours, holidays: b.holidays ?? [] }; }) });
   });
 
   r.get("/orders", async (c) => {
@@ -256,13 +271,24 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
 
   // ── Мекеме персоналы (кассир, менеджер, иесі) ─────────────────────
   const staffVenues = async (userId: string) => (await db.select({ venueId: venueStaff.venueId }).from(venueStaff).where(and(eq(venueStaff.userId, userId), eq(venueStaff.status, "active")))).map((x) => x.venueId);
+  /** Патша (2026-11-23): филиалға бекітілген кассир/менеджер тек өз филиалының тапсырысын көреді және береді; иесі — барлығын.
+   *  Қайтарады: SQL шарты (orders → branches қосылған сұрауға) не null (қызметкер емес). */
+  const staffScope = async (userId: string) => {
+    const rows = await db.select({ venueId: venueStaff.venueId, branchId: venueStaff.branchId, role: venueStaff.role }).from(venueStaff).where(and(eq(venueStaff.userId, userId), eq(venueStaff.status, "active")));
+    if (!rows.length) return null;
+    const whole = rows.filter((x) => x.role === "owner" || !x.branchId).map((x) => x.venueId);
+    const only = rows.filter((x) => x.role !== "owner" && x.branchId).map((x) => x.branchId!);
+    const parts = [whole.length ? inArray(branches.venueId, whole) : undefined, only.length ? inArray(branches.id, only) : undefined].filter(Boolean);
+    return { cond: parts.length === 1 ? parts[0]! : or(...parts)!, allows: (b: { id: string; venueId: string }) => whole.includes(b.venueId) || only.includes(b.id) };
+  };
 
   r.get("/venue/orders", async (c) => {
-    const vs = await staffVenues(c.get("user").id);
-    if (!vs.length) return c.json({ ok: false, error: "not_staff" }, 403);
+    const sc = await staffScope(c.get("user").id);
+    if (!sc) return c.json({ ok: false, error: "not_staff" }, 403);
+    const only = c.req.query("branch"); // иесінің сүзгісі
     const rows = await db.select({ o: orders, off: offers, u: users, b: branches }).from(orders).innerJoin(packs, eq(orders.packId, packs.id)).innerJoin(offers, eq(packs.offerId, offers.id))
       .innerJoin(users, eq(orders.userId, users.id)).innerJoin(branches, eq(orders.branchId, branches.id))
-      .where(and(inArray(branches.venueId, vs), inArray(orders.status, ["sent", "accepted", "ready"]), gt(orders.createdAt, new Date(Date.now() - 7 * 86400_000)))).orderBy(orders.scheduledAt, orders.createdAt);
+      .where(and(sc.cond, only ? eq(branches.id, only) : undefined, inArray(orders.status, ["sent", "accepted", "ready"]), gt(orders.createdAt, new Date(Date.now() - 7 * 86400_000)))).orderBy(orders.scheduledAt, orders.createdAt);
     // Figma «Тапсырыстар» (14010:8161): мекеме тапсырыс кодын көреді — клиент айтқан кодпен салыстырады
     return c.json({ ok: true, orders: rows.map((x) => ({ id: x.o.id, no: x.o.no, type: x.o.type, status: x.o.status, scheduledAt: x.o.scheduledAt, courier: x.o.courier, title: x.off.title, customer: x.u.firstName, username: x.u.username, branch: x.b.address, branchId: x.b.id, createdAt: x.o.createdAt, code: x.o.code, slug: x.off.slug, doneAt: x.o.doneAt })) });
   });
@@ -271,9 +297,9 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
   r.post("/venue/orders/:id/status", async (c) => {
     const b = Status.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
-    const vs = await staffVenues(c.get("user").id);
+    const sc = await staffScope(c.get("user").id);
     const [row] = await db.select({ o: orders, b: branches }).from(orders).innerJoin(branches, eq(orders.branchId, branches.id)).where(eq(orders.id, c.req.param("id"))).limit(1);
-    if (!row || !vs.includes(row.b.venueId)) return c.json({ ok: false, error: "not_found" }, 404);
+    if (!row || !sc?.allows(row.b)) return c.json({ ok: false, error: "not_found" }, 404);
     await db.update(orders).set({ status: b.data.status }).where(eq(orders.id, row.o.id));
     if (b.data.status === "ready" && row.o.status !== "ready") await notify?.orderReady(row.o.id);
     return c.json({ ok: true });
@@ -285,11 +311,11 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const b = Verify.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const staff = c.get("user");
-    const vs = await staffVenues(staff.id);
-    if (!vs.length) return c.json({ ok: false, error: "not_staff" }, 403);
+    const sc = await staffScope(staff.id);
+    if (!sc) return c.json({ ok: false, error: "not_staff" }, 403);
     const [row] = await db.select({ o: orders, off: offers, u: users }).from(orders).innerJoin(branches, eq(orders.branchId, branches.id)).innerJoin(packs, eq(orders.packId, packs.id))
       .innerJoin(offers, eq(packs.offerId, offers.id)).innerJoin(users, eq(orders.userId, users.id))
-      .where(and(inArray(branches.venueId, vs), eq(orders.code, b.data.code), inArray(orders.status, ["sent", "accepted", "ready"]))).orderBy(desc(orders.createdAt)).limit(1);
+      .where(and(sc.cond, eq(orders.code, b.data.code), inArray(orders.status, ["sent", "accepted", "ready"]))).orderBy(desc(orders.createdAt)).limit(1);
     if (!row) return c.json({ ok: false, error: "code_not_found" }, 404);
     await db.update(orders).set({ status: "done", doneAt: new Date(), doneBy: staff.id }).where(eq(orders.id, row.o.id));
     await db.execute(sql`update app.receipts set internal = jsonb_set(jsonb_set(internal, '{status,current}', '"done"'), '{status,history}', (internal->'status'->'history') || jsonb_build_object('status','done','at', now(), 'by', ${staff.id}::text)) where internal->>'orderId' = ${row.o.id}`);
@@ -299,22 +325,22 @@ export function usageRoutes(cfg: Config, db: Db, notify?: Notifier) {
   // Кассирге соңғы қолданулар (30 мин) және 10 минут ішінде бас тарту — клиент қате мекеме/дана растаса
   const CANCEL_MS = 10 * 60_000;
   r.get("/venue/redemptions", async (c) => {
-    const vs = await staffVenues(c.get("user").id);
-    if (!vs.length) return c.json({ ok: false, error: "not_staff" }, 403);
+    const sc = await staffScope(c.get("user").id);
+    if (!sc) return c.json({ ok: false, error: "not_staff" }, 403);
     const rows = await db.select({ rd: redemptions, off: offers, u: users, b: branches }).from(redemptions).innerJoin(branches, eq(redemptions.branchId, branches.id))
       .innerJoin(packs, eq(redemptions.packId, packs.id)).innerJoin(offers, eq(packs.offerId, offers.id)).innerJoin(users, eq(packs.userId, users.id))
-      .where(and(inArray(branches.venueId, vs), gt(redemptions.createdAt, new Date(Date.now() - 30 * 60_000)))).orderBy(desc(redemptions.createdAt));
+      .where(and(sc.cond, gt(redemptions.createdAt, new Date(Date.now() - 30 * 60_000)))).orderBy(desc(redemptions.createdAt));
     return c.json({ ok: true, redemptions: rows.map((x) => ({ id: x.rd.id, units: x.rd.units, title: x.off.title, customer: x.u.firstName, username: x.u.username, branchId: x.b.id, at: x.rd.createdAt, cancelled: Boolean(x.rd.cancelledAt),
       canCancel: !x.rd.cancelledAt && Date.now() - x.rd.createdAt.getTime() < CANCEL_MS })) });
   });
   r.post("/venue/redemptions/:id/cancel", async (c) => {
     const staff = c.get("user");
-    const vs = await staffVenues(staff.id);
+    const sc = await staffScope(staff.id);
     try {
       const out = await db.transaction(async (tx) => {
-        const res = await tx.execute(sql`select r.*, b.venue_id as "venueId" from app.redemptions r join app.branches b on b.id = r.branch_id where r.id = ${c.req.param("id")} for update of r`);
-        const rd = res.rows[0] as { id: string; pack_id: string; units: number; created_at: Date; cancelled_at: Date | null; venueId: string } | undefined;
-        if (!rd || !vs.includes(rd.venueId)) throw new UseError("not_found", 404);
+        const res = await tx.execute(sql`select r.*, b.venue_id as "venueId", b.id as "bId" from app.redemptions r join app.branches b on b.id = r.branch_id where r.id = ${c.req.param("id")} for update of r`);
+        const rd = res.rows[0] as { id: string; pack_id: string; units: number; created_at: Date; cancelled_at: Date | null; venueId: string; bId: string } | undefined;
+        if (!rd || !sc?.allows({ id: rd.bId, venueId: rd.venueId })) throw new UseError("not_found", 404);
         if (rd.cancelled_at) throw new UseError("already_cancelled");
         if (Date.now() - new Date(rd.created_at).getTime() > CANCEL_MS) throw new UseError("too_late");
         await tx.update(redemptions).set({ cancelledAt: new Date(), cancelledBy: staff.id }).where(eq(redemptions.id, rd.id));

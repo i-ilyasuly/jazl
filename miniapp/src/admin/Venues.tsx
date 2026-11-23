@@ -401,16 +401,27 @@ export function AStickers() {
 }
 
 // ── Мекемеге аударымдар (0033, Патша 2026-11-23): есептелді / аударылды / күтуде; аударымды PIN-мен тіркеу, қате болса жою ──
-interface PayoutsData { balance: { earned: number; paid: number; due: number; paidThrough: string | null }; payouts: { id: string; amount: number; from: string; to: string; paidAt: string; ref: string | null; note: string | null }[];
-  suggest: { from: string | null; to: string; amount: number } | null }
+// Ақша алушы (0034): франшиза желісінде әр заңды тұлғаның өз филиалдары, өз қалдығы — аударым алушы бойынша тіркеледі
+interface Payee { id: string; legalName: string; bin: string | null; iban: string | null; bank: string | null; contractNo: string | null; isMain: boolean }
+interface Group { payee: Payee | null; branches: { id: string; address: string }[]; earned: number; paid: number; due: number; paidThrough: string | null; suggest: PayoutsData["suggest"] }
+interface PayoutsData { balance: { earned: number; paid: number; due: number; paidThrough: string | null }; payouts: { id: string; amount: number; from: string; to: string; paidAt: string; ref: string | null; note: string | null; payeeId: string | null }[];
+  suggest: { from: string | null; to: string; amount: number } | null; groups?: Group[] }
+interface PayeesData { payees: Payee[]; branches: { id: string; address: string; payeeId: string | null; active: boolean }[] }
 const todayKz = () => new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10);
 const isDay = (x: string) => /^\d{4}-\d{2}-\d{2}$/.test(x);
+const ibanMask = (x: string | null) => (x ? `${x.slice(0, 4)} •••• ${x.slice(-4)}` : "IBAN жоқ");
 export function APayouts() {
   const { id = "" } = useParams();
   const [d, , reload] = useCached<PayoutsData>(`a:payouts:${id}`, () => A(`/venues/${id}/payouts`));
-  const [add, setAdd] = useState(false);
+  const [pd, , reloadP] = useCached<PayeesData>(`a:payees:${id}`, () => A(`/venues/${id}/payees`));
+  const [add, setAdd] = useState<Group | "all" | null>(null);
+  const [edit, setEdit] = useState<Payee | "new" | null>(null);
   const [del, setDel] = useState<string | null>(null);
   const b = d?.balance;
+  const groups = d?.groups ?? [];
+  const many = groups.length > 1;
+  const nameOf = (pid: string | null) => { const ps = pd?.payees ?? []; return (pid ? ps.find((p) => p.id === pid) : ps.find((p) => p.isMain))?.legalName ?? null; };
+  const refresh = () => { void reload(); void reloadP(); };
   return (
     <VPage title="Аударымдар" back>
       <div className={v.stats}>
@@ -418,22 +429,85 @@ export function APayouts() {
         <div className={v.stat}><span className={v.statLabel}>Аударылды</span><span className={v.statNum}>{b ? money(b.paid) : "–"}</span><span className={v.statSub}>{b?.paidThrough ? `${dayMonth(b.paidThrough)} күніне дейін` : "Әлі жоқ"}</span></div>
       </div>
       <div className={v.stat}><span className={v.statLabel}>Аударуды күтуде</span><span className={v.statNum} style={{ color: b && b.due > 0 ? "#1f8a3b" : undefined }}>{b ? money(b.due) : "–"}</span>
-        {d?.suggest && <span className={v.statSub}>{`Ұсынылатын кезең: ${d.suggest.from ? dayMonth(d.suggest.from) : "басынан"} — ${dayMonth(d.suggest.to)} · ${money(d.suggest.amount)}`}</span>}</div>
-      <Note>Аударымды банк арқылы жібергеннен кейін ғана тіркеңіз. Мекеме иесіне хабар барады, «Есеп» бетінде сол күндер «Аударылды» болады.</Note>
+        {!many && d?.suggest && <span className={v.statSub}>{`Ұсынылатын кезең: ${d.suggest.from ? dayMonth(d.suggest.from) : "басынан"} — ${dayMonth(d.suggest.to)} · ${money(d.suggest.amount)}`}</span>}</div>
+
+      <div className={v.sectionHead}><h2 className={v.blueHead}>Ақша алушылар</h2></div>
+      {!d || !pd ? <Sk h={90} /> : <div className={v.card}>
+        {groups.map((g, i) => (
+          <div key={g.payee?.id ?? "none" + i} className={v.row} style={{ ["--inset" as string]: "16px", alignItems: "flex-start" }}>
+            <Tile e={g.payee?.isMain ? "a:iban" : "a:settle"} size={36} />
+            <button className={v.rowText} style={{ textAlign: "left" }} disabled={!g.payee} onClick={() => { if (g.payee) { haptic.tap(); setEdit(g.payee); } }}>
+              <span className={v.rowTitle} style={{ whiteSpace: "normal" }}>{g.payee ? `${g.payee.legalName}${g.payee.isMain ? " · негізгі" : ""}` : "Алушы белгіленбеген"}</span>
+              <span className={v.rowSub} style={{ whiteSpace: "normal" }}>{g.payee ? `${g.payee.bin ? "БСН " + g.payee.bin + " · " : ""}${ibanMask(g.payee.iban)}${g.payee.bank ? " · " + g.payee.bank : ""}${g.payee.contractNo ? " · шарт " + g.payee.contractNo : ""}` : "Филиалдарды алушыға бекітіңіз"}</span>
+              <span className={v.rowSub} style={{ whiteSpace: "normal" }}>{g.branches.length ? g.branches.map((x) => x.address).join(", ") : "Филиал бекітілмеген"}</span>
+              {many && <span className={v.rowSub}>{`Күтуде ${money(g.due)} · Аударылды ${money(g.paid)}${g.paidThrough ? ` (${dayMonth(g.paidThrough)} дейін)` : ""}`}</span>}
+            </button>
+            {many && g.payee && g.due > 0 && <button className={v.chip} style={{ alignSelf: "center", background: "var(--thumb-bg)", color: "var(--link)", fontWeight: 600 }} onClick={() => { haptic.tap(); setAdd(g); }}>Аудару</button>}
+          </div>
+        ))}
+        {groups.length === 0 && <div className={v.row}><span className={v.rowSub}>Алушы әлі қосылмаған</span></div>}
+      </div>}
+      <Buttons main={{ text: "Алушы қосу (франчайзи)", onClick: () => { haptic.tap(); setEdit("new"); } }} />
+      <Note>Франшиза желісінде әр филиал өз заңды тұлғасына (ЖШС/ЖК) бекітіледі. Бекітілмеген филиалдың үлесі негізгі алушыға есептеледі.</Note>
+
+      <div className={v.sectionHead}><h2 className={v.blueHead}>Тіркелген аударымдар</h2></div>
       {!d ? <Sk h={120} /> : d.payouts.length === 0 ? <Empty>Аударым әлі тіркелмеген</Empty> : <div className={v.card}>{d.payouts.map((p) => (
         <button key={p.id} className={v.row} onClick={() => { haptic.tap(); setDel(p.id); }}>
           <Tile e="a:fee" size={36} />
-          <span className={v.rowText}><span className={v.rowTitle}>{`${money(p.amount)} · ${dayMonth(p.paidAt)}`}</span><span className={v.rowSub}>{`${dayMonth(p.from)} — ${dayMonth(p.to)}${p.ref ? ` · ${p.ref}` : ""}${p.note ? ` · ${p.note}` : ""}`}</span></span>
+          <span className={v.rowText}><span className={v.rowTitle}>{`${money(p.amount)} · ${dayMonth(p.paidAt)}`}</span><span className={v.rowSub}>{`${many && nameOf(p.payeeId) ? nameOf(p.payeeId) + " · " : ""}${dayMonth(p.from)} — ${dayMonth(p.to)}${p.ref ? ` · ${p.ref}` : ""}${p.note ? ` · ${p.note}` : ""}`}</span></span>
         </button>))}</div>}
-      <Buttons main={{ text: "Аударымды тіркеу", onClick: () => setAdd(true) }} />
-      {add && d && <PayoutSheet id={id} d={d} onClose={() => setAdd(false)} done={() => void reload()} />}
-      {del && <PinSheet text="Бұл аударым жазбасын жою (қате тіркелген болса)." onClose={() => setDel(null)} run={async (pin) => { await post(`/venues/${id}/payouts/${del}/delete`, { pin }); void reload(); }} />}
+      <Note>Аударымды банк арқылы жібергеннен кейін ғана тіркеңіз. Мекеме иесіне хабар барады, «Есеп» бетінде сол күндер «Аударылды» болады.</Note>
+      {!many && <Buttons main={{ text: "Аударымды тіркеу", onClick: () => setAdd("all") }} />}
+      {add && d && <PayoutSheet id={id} d={d} group={add === "all" ? null : add} onClose={() => setAdd(null)} done={refresh} />}
+      {edit && pd && <PayeeSheet id={id} pd={pd} payee={edit === "new" ? null : edit} onClose={() => setEdit(null)} done={refresh} />}
+      {del && <PinSheet text="Бұл аударым жазбасын жою (қате тіркелген болса)." onClose={() => setDel(null)} run={async (pin) => { await post(`/venues/${id}/payouts/${del}/delete`, { pin }); refresh(); }} />}
     </VPage>
   );
 }
-function PayoutSheet({ id, d, onClose, done }: { id: string; d: PayoutsData; onClose: () => void; done: () => void }) {
-  const sg = d.suggest;
-  const [amount, setAmount] = useState(String(sg?.amount ?? d.balance.due));
+
+/** Алушыны қосу/өзгерту: заңды атауы, БСН, IBAN, шарт нөмірі, негізгі ме, қай филиалдар */
+function PayeeSheet({ id, pd, payee, onClose, done }: { id: string; pd: PayeesData; payee: Payee | null; onClose: () => void; done: () => void }) {
+  const [name, setName] = useState(payee?.legalName ?? "");
+  const [bin, setBin] = useState(payee?.bin ?? "");
+  const [iban, setIban] = useState(payee?.iban ?? "");
+  const [contract, setContract] = useState(payee?.contractNo ?? "");
+  const [main, setMain] = useState(payee?.isMain ?? pd.payees.length === 0);
+  const [sel, setSel] = useState<string[]>(() => pd.branches.filter((b) => payee && b.payeeId === payee.id).map((b) => b.id));
+  const [pin, setPin] = useState<"save" | "del" | null>(null);
+  const binOk = !bin || /^\d{12}$/.test(bin.trim());
+  const ibanOk = !iban || /^KZ\d{2}[0-9A-Z]{16}$/i.test(iban.replace(/\s/g, ""));
+  const ok = name.trim().length >= 2 && binOk && ibanOk;
+  const other = (b: PeerBranch) => b.payeeId && b.payeeId !== payee?.id ? pd.payees.find((p) => p.id === b.payeeId)?.legalName ?? null : null;
+  if (pin === "save") return <PinSheet text={`«${name.trim()}» алушысын сақтау (${sel.length} филиал).`} onClose={onClose}
+    run={async (p) => { await post(`/venues/${id}/payees`, { ...(payee ? { id: payee.id } : {}), legalName: name.trim(), bin: bin.trim(), iban: iban.replace(/\s/g, "").toUpperCase() || undefined, contractNo: contract.trim() || undefined, isMain: main, branchIds: sel, pin: p }); done(); }} />;
+  if (pin === "del" && payee) return <PinSheet text={`«${payee.legalName}» алушысын жою. Оның филиалдары негізгі алушыға өтеді.`} onClose={onClose}
+    run={async (p) => { await post(`/venues/${id}/payees/${payee.id}/delete`, { pin: p }); done(); }} />;
+  return (
+    <Sheet title={payee ? "Алушыны өзгерту" : "Жаңа алушы"} onClose={onClose}>
+      <Field label="Заңды атауы" value={name} onChange={setName} max={120} placeholder="ЖШС «Мысал»" />
+      <Field label="БСН / ЖСН (12 сан)" value={bin} onChange={(x) => setBin(x.replace(/\D/g, "").slice(0, 12))} />
+      <Field label="IBAN" value={iban} onChange={(x) => setIban(x.toUpperCase().replace(/[^0-9A-Z ]/g, "").slice(0, 24))} placeholder="KZ00 0000 0000 0000 0000" />
+      <Field label="Агенттік шарт нөмірі" value={contract} onChange={setContract} max={60} placeholder="АГ-12" />
+      <div className={v.card} style={{ padding: 0 }}>
+        <div className={v.row} style={{ ["--inset" as string]: "16px" }}><span className={v.rowText}><span className={v.rowTitle}>Негізгі алушы</span><span className={v.rowSub}>Бекітілмеген филиалдар осыған есептеледі</span></span><Switch on={main} onChange={setMain} /></div>
+      </div>
+      <p className={v.rowSub} style={{ margin: "12px 4px 6px" }}>Филиалдар</p>
+      <div className={v.card} style={{ padding: 0 }}>
+        {pd.branches.map((b) => {
+          const on = sel.includes(b.id); const o = other(b);
+          return <RadioRow key={b.id} on={on} title={b.address} sub={o ? `Қазір: ${o} — таңдасаңыз, осыған ауысады` : b.active ? undefined : "Өшірулі филиал"} onClick={() => setSel(on ? sel.filter((x) => x !== b.id) : [...sel, b.id])} />;
+        })}
+      </div>
+      {!binOk && <Note tone="warn">БСН 12 саннан тұрады.</Note>}
+      {!ibanOk && <Note tone="warn">IBAN: KZ + 18 таңба.</Note>}
+      <Buttons main={{ text: "Сақтау", disabled: !ok, onClick: () => (ok ? setPin("save") : haptic.error()) }} second={payee && !payee.isMain ? { text: "Жою", onClick: () => setPin("del") } : { text: "Бас тарту", onClick: onClose }} />
+    </Sheet>
+  );
+}
+type PeerBranch = PayeesData["branches"][number];
+function PayoutSheet({ id, d, group, onClose, done }: { id: string; d: PayoutsData; group: Group | null; onClose: () => void; done: () => void }) {
+  const sg = group ? group.suggest : d.suggest;
+  const [amount, setAmount] = useState(String(sg?.amount ?? (group ? group.due : d.balance.due)));
   const [from, setFrom] = useState(sg?.from ?? (d.payouts.length ? "" : "2026-01-01"));
   const [to, setTo] = useState(sg?.to ?? todayKz());
   const [paidAt, setPaidAt] = useState(todayKz());
@@ -442,10 +516,11 @@ function PayoutSheet({ id, d, onClose, done }: { id: string; d: PayoutsData; onC
   const [pin, setPin] = useState(false);
   const sum = Number(amount.replace(/\s/g, ""));
   const ok = sum > 0 && isDay(from) && isDay(to) && isDay(paidAt) && from <= to;
-  if (pin) return <PinSheet text={`${money(sum)} аударымын тіркеу (${from} — ${to}).`} onClose={onClose}
-    run={async (p) => { await post(`/venues/${id}/payouts`, { amount: sum, from, to, paidAt, ref: ref.trim() || undefined, note: note.trim() || undefined, pin: p }); done(); }} />;
+  if (pin) return <PinSheet text={`${group?.payee ? `«${group.payee.legalName}» шотына ` : ""}${money(sum)} аударымын тіркеу (${from} — ${to}).`} onClose={onClose}
+    run={async (p) => { await post(`/venues/${id}/payouts`, { amount: sum, from, to, paidAt, ref: ref.trim() || undefined, note: note.trim() || undefined, ...(group?.payee ? { payeeId: group.payee.id } : {}), pin: p }); done(); }} />;
   return (
-    <Sheet title="Аударымды тіркеу" onClose={onClose}>
+    <Sheet title={group?.payee ? `Аударым · ${group.payee.legalName}` : "Аударымды тіркеу"} onClose={onClose}>
+      {group?.payee && <Note>{`${ibanMask(group.payee.iban)}${group.payee.bank ? " · " + group.payee.bank : ""} · филиалдар: ${group.branches.map((x) => x.address).join(", ") || "—"}`}</Note>}
       <Field label="Сома, ₸" value={amount} onChange={(x) => setAmount(x.replace(/[^\d\s]/g, ""))} />
       <Field label="Кезең басы (ЖЖЖЖ-АА-КК)" value={from} onChange={setFrom} placeholder="2026-11-01" />
       <Field label="Кезең соңы" value={to} onChange={setTo} />

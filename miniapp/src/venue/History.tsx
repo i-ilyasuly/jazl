@@ -99,6 +99,11 @@ export function VOrders() {
   const go = useGo();
   const me = useCurrent();
   const [list, setList] = useState<VOrder[] | null>(null);
+  // Патша (2026-11-23): филиалға бекітілген қызметкер тек өз филиалын көреді (сервер шектейді); иесіне — филиал сүзгісі
+  const [only, setOnly] = useState<string | null>(null);
+  const bound = me && me.role !== "owner" && me.branchId ? me.branches.find((b) => b.id === me.branchId) ?? null : null;
+  const multi = Boolean(me && !bound && me.branches.length > 1);
+  const shown = list && only ? list.filter((o) => o.branchId === only) : list;
   useEffect(() => {
     const load = () => V.orders().then((l) => setList(me ? l.filter((o) => me.branches.some((b) => b.id === o.branchId)) : l)).catch(() => setList([]));
     load(); const t = window.setInterval(() => { if (document.visibilityState === "visible") load(); }, 10000);
@@ -110,8 +115,17 @@ export function VOrders() {
         <div><h1 className={s.h1} style={{ maxWidth: 230 }}>Алдын ала тапсырыс</h1><p className={s.muted} style={{ marginTop: 6 }}>Клиент тапсырысы осында келеді</p></div>
         <VSticker name="chef" size={92} at={[300, 90]} />
       </div>
-      {list === null ? <Sk h={80} /> : list.length === 0 ? <div className={s.card}><div className={s.row}><span className={s.rowSub}>Қазір белсенді тапсырыс жоқ</span></div></div>
-        : list.map((o) => {
+      {bound && <p className={s.muted} style={{ margin: "0 4px 4px" }}>{`Сіздің филиал: ${bound.address}`}</p>}
+      {multi && list && (
+        <div className={s.chips} role="tablist" aria-label="Филиал">
+          {[{ id: null as string | null, address: "Барлығы" }, ...me!.branches].map((b) => {
+            const n = b.id ? list.filter((o) => o.branchId === b.id).length : list.length;
+            return <button key={b.id ?? "all"} role="tab" aria-selected={only === b.id} className={`${s.chip} ${only === b.id ? s.chipOn : ""}`} onClick={() => { haptic.select(); setOnly(b.id); }}>{b.address}{n > 0 && <b>{n}</b>}</button>;
+          })}
+        </div>
+      )}
+      {shown === null ? <Sk h={80} /> : shown.length === 0 ? <div className={s.card}><div className={s.row}><span className={s.rowSub}>{only ? "Бұл филиалда белсенді тапсырыс жоқ" : "Қазір белсенді тапсырыс жоқ"}</span></div></div>
+        : shown.map((o) => {
           const [t, c] = orderPill[o.status] ?? ["", "tag"];
           const at = o.scheduledAt ?? o.createdAt;
           return (

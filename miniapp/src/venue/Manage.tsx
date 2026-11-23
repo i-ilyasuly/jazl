@@ -125,6 +125,21 @@ export function VReport() {
         <span className={s.heroLabel} style={{ fontSize: 13 }}>{m ? `Есептелді ${money(m.earned)} · Аударылды ${money(m.paid)}` : "\u00a0"}</span>
         <span className={s.heroPill}>{!r ? "…" : r.testMode ? "Сынақ режимі" : m?.paidThrough ? `${dayMonth(m.paidThrough)} күніне дейін аударылды` : "Әлі аударым болған жоқ"}</span>
       </div>
+      {/* Франшиза (0034): әр заңды тұлғаға өз филиалдарының үлесі бөлек аударылады */}
+      {r && (r.payees?.length ?? 0) > 1 && <>
+        <div className={s.sectionHead}><h2 className={s.blueHead}>Алушылар</h2></div>
+        <div className={s.card}>
+          {r.payees!.map((p, i) => (
+            <div key={i} className={s.row} style={{ ["--inset" as string]: "16px" }}>
+              <span className={s.rowText}>
+                <span className={s.rowTitle}>{p.name ?? "Алушы белгіленбеген"}{p.iban4 ? ` · •••${p.iban4}` : ""}</span>
+                <span className={s.rowSub}>{`${p.branches.length ? p.branches.join(", ") : "Филиал жоқ"}${p.paidThrough ? ` · ${dayMonth(p.paidThrough)} дейін аударылды` : ""}`}</span>
+              </span>
+              <b className={s.lead}>{money(p.due)}</b>
+            </div>
+          ))}
+        </div>
+      </>}
       <div className={s.seg}>
         {([["week", "Апта"], ["month", "Ай"], ["all", "Барлығы"]] as const).map(([k, t]) => <button key={k} className={`${s.segBtn} ${period === k ? s.segOn : ""}`} onClick={() => { haptic.select(); setPeriod(k); }}>{t}</button>)}
       </div>

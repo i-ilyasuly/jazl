@@ -637,7 +637,8 @@ let orders: Order[] = [
 let orderNo = 105;
 export const useOrders = () => useSyncExternalStore(subscribe, () => orders);
 export const getOrder = (id?: string) => orders.find((o) => o.id === id);
-export function placeOrder(packId: string, branch: string, time: string): Order | null {
+/** branchId — сервердегі филиал (клиент таңдаған; бұрын жіберілмей, сервер мекеменің бірінші филиалын алатын) */
+export function placeOrder(packId: string, branch: string, time: string, branchId?: string): Order | null {
   const p = getPack(packId);
   if (!p || p.left < 1) return null;
   const o = offerOf(p);
@@ -650,7 +651,7 @@ export function placeOrder(packId: string, branch: string, time: string): Order 
     history: [{ emoji: "🛍️", title: `Тапсырыс №${no}`, sub: `бүгін, ${hh} • ${branch}`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
   emit();
   // B3: серверде тапсырыс — нөмір мен код серверден келеді (кассир соны тексереді)
-  if (p.serverId) void api<{ order: { id: string; no: number; code: string } }>("/v1/orders", { method: "POST", body: JSON.stringify({ packId: p.serverId, type: "now", idempotencyKey: newKey() }) }, 12000)
+  if (p.serverId) void api<{ order: { id: string; no: number; code: string } }>("/v1/orders", { method: "POST", body: JSON.stringify({ packId: p.serverId, type: "now", ...(branchId ? { branchId } : {}), idempotencyKey: newKey() }) }, 12000)
     .then((j) => { orders = orders.map((x) => (x.id === order.id ? { ...x, serverId: j.order.id, no: j.order.no, code: j.order.code } : x)); emit(); }).catch(() => undefined);
   return order;
 }
@@ -666,7 +667,7 @@ export function finishOrder(id: string) { orders = orders.map((o) => (o.id === i
 // ── Шаштараз: жазылу (Figma «22 · Шаштараз: жазылу») ──────────────────────
 // Жазылу расталғанда пакеттен 1 рет брондалады. 2 сағаттан ертерек бас тартса — қайтарылады;
 // кеш бас тартса не келмесе — жұмсалады. Бэкенд қосылғанда: POST /bookings, PATCH /bookings/:id.
-export interface Booking { id: string; packId: string; venue: string; service: string; master?: string; at: number; status: "ok" | "cancelled" | "missed"; serverId?: string; code?: string }
+export interface Booking { id: string; packId: string; venue: string; service: string; master?: string; at: number; status: "ok" | "cancelled" | "missed"; serverId?: string; code?: string; address?: string }
 export const FREE_CANCEL_MS = 2 * 3600_000;
 const kkMonths = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
 export const dayStart = (off: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return d.getTime(); };
@@ -690,17 +691,17 @@ let bookNo = 5;
 export const useBookings = () => useSyncExternalStore(subscribe, () => bookings);
 export const getBooking = (id?: string) => bookings.find((b) => b.id === id);
 export const freeCancel = (b: Booking) => b.at - Date.now() > FREE_CANCEL_MS;
-export function book(packId: string, at: number): Booking | null {
+export function book(packId: string, at: number, branch?: { id?: string; address: string }): Booking | null {
   const p = getPack(packId);
   if (!p || p.left < 1) return null;
   const o = offerOf(p);
-  const b: Booking = { id: "bk" + bookNo++, packId, venue: o.venue, service: o.title.split(" · ")[0], at, status: "ok" };
+  const b: Booking = { id: "bk" + bookNo++, packId, venue: o.venue, service: o.title.split(" · ")[0], at, status: "ok", address: branch?.address };
   bookings = [...bookings, b].sort((x, y) => x.at - y.at);
   packs = packs.map((x) => x.id !== packId ? x : { ...x, left: x.left - 1,
-    history: [{ emoji: "📅", title: `${o.kind === "hair" ? "Жазылу" : "Жоспар"}: ${bookLabel(at)}`, sub: `${o.venue} • расталды`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
+    history: [{ emoji: "📅", title: `${o.kind === "hair" ? "Жазылу" : "Жоспар"}: ${bookLabel(at)}`, sub: `${branch?.address ?? o.venue} • расталды`, right: `Қалды: ${x.left - 1}` }, ...x.history] });
   emit();
   // B3: серверде жоспар (type: plan, scheduledAt)
-  if (p.serverId) void api<{ order: { id: string; code: string } }>("/v1/orders", { method: "POST", body: JSON.stringify({ packId: p.serverId, type: "plan", scheduledAt: new Date(at).toISOString(), idempotencyKey: newKey() }) }, 12000)
+  if (p.serverId) void api<{ order: { id: string; code: string } }>("/v1/orders", { method: "POST", body: JSON.stringify({ packId: p.serverId, type: "plan", scheduledAt: new Date(at).toISOString(), ...(branch?.id ? { branchId: branch.id } : {}), idempotencyKey: newKey() }) }, 12000)
     .then((j) => { bookings = bookings.map((x) => (x.id === b.id ? { ...x, serverId: j.order.id, code: j.order.code } : x)); emit(); }).catch(() => undefined);
   return b;
 }

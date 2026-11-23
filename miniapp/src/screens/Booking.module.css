@@ -76,3 +76,7 @@
 :global(:root[data-theme="dark"]) .calNav { background: var(--surface-page); }
 :global(:root[data-theme="dark"]) .chevL, :global(:root[data-theme="dark"]) .chevR { border-color: #fff; }
 :global(:root[data-theme="dark"]) .slot.busy { background: rgba(255, 255, 255, 0.06); }
+/* Филиал таңдау (Патша, 2026-11-23) */
+.branchHead { margin: 0 4px 8px; color: var(--text-strong); }
+.branchWrap { margin-bottom: 16px; }
+.kv b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

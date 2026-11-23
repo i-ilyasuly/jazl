@@ -10,7 +10,7 @@ import type { Env } from "../app.js";
 import { devToolsFor, type Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import type { Notifier } from "../notify.js";
-import { branches, venueApplications, venueDocs, venueStaff, venues } from "../db/schema.js";
+import { branches, venueApplications, venueDocs, venuePayees, venueStaff, venues } from "../db/schema.js";
 import { MediaError, mediaStore, type MediaKind } from "../media.js";
 
 /** Қазақстан БСН/ЖСН бақылау саны (12 сан): салмақ 1..11, қалдық 10 болса — 3..11,1,2 */
@@ -168,7 +168,9 @@ export async function approve(db: Db, a: typeof venueApplications.$inferSelect) 
   return db.transaction(async (tx) => {
     const [v] = await tx.insert(venues).values({ slug: `${translit(d.name ?? "venue")}-${randomInt(1000, 10000)}`, name: d.name!, kind: d.kind!, city: "karaganda", about: d.about ?? null,
       logoUrl: d.logoUrl ?? null, coverUrl: d.coverUrl ?? null, gallery: d.gallery ?? [], status: "active" }).returning();
-    for (const b of d.branches ?? []) await tx.insert(branches).values({ venueId: v.id, address: b.address, hours: { days: Array.from({ length: 7 }, () => ({ on: true, open: b.open, close: b.close })) } });
+    // Негізгі ақша алушы (0034) — өтінімдегі заңды тұлға; франшиза филиалдарына Басқару кейін бөлек алушы қосады
+    const [pe] = await tx.insert(venuePayees).values({ venueId: v.id, legalName: d.legalName || d.name!, bin: d.bin || null, iban: d.iban ? d.iban.replace(/\s/g, "").toUpperCase() : null, bank: d.iban ? bankOf(d.iban)?.[0] ?? null : null, isMain: true }).returning({ id: venuePayees.id });
+    for (const b of d.branches ?? []) await tx.insert(branches).values({ venueId: v.id, address: b.address, payeeId: pe.id, hours: { days: Array.from({ length: 7 }, () => ({ on: true, open: b.open, close: b.close })) } });
     await tx.insert(venueStaff).values({ venueId: v.id, userId: a.userId, role: "owner" }).onConflictDoNothing();
     await tx.update(venueApplications).set({ status: "approved", venueId: v.id, decidedAt: new Date() }).where(eq(venueApplications.id, a.id));
     await tx.execute(sql`select 1`);

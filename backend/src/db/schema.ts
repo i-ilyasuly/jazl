@@ -92,6 +92,8 @@ export const branches = app.table("branches", {
   holidays: jsonb("holidays"),
   /** Мекеме жапсырмасының тұрақты қысқа коды (0029): QR = <API>/b/<код> → қазір Mini App, кейін қосымша */
   stickerCode: text("sticker_code").default(sql`upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))`),
+  /** Ақша алушы (0034): франшиза филиалы — өз заңды тұлғасы. Бос — мекеменің негізгі алушысы */
+  payeeId: uuid("payee_id"),
   createdAt: created(),
 }, (t) => [index("branches_venue").on(t.venueId), uniqueIndex("branches_sticker_code").on(t.stickerCode)]);
 
@@ -530,6 +532,8 @@ export const venuePayouts = app.table("venue_payouts", {
   paidAt: text("paid_at").notNull(),
   ref: text("ref"),
   note: text("note"),
+  /** Кімге аударылды (0034). Бос — мекеменің негізгі алушысы (ескі жазбалар) */
+  payeeId: uuid("payee_id"),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: created(),
 }, (t) => [index("venue_payouts_venue").on(t.venueId, t.periodTo)]);
@@ -545,3 +549,16 @@ export const financeEntries = app.table("finance_entries", {
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: created(),
 }, (t) => [index("finance_entries_day").on(t.kind, t.day)]);
+
+/** Ақша алушы — заңды тұлға (0034, Патша 2026-11-23): мекемеде бірнеше (франшиза), біреуі негізгі (is_main) */
+export const venuePayees = app.table("venue_payees", {
+  id: id(),
+  venueId: uuid("venue_id").notNull().references(() => venues.id),
+  legalName: text("legal_name").notNull(),
+  bin: text("bin"),
+  iban: text("iban"),
+  bank: text("bank"),
+  contractNo: text("contract_no"),
+  isMain: boolean("is_main").notNull().default(false),
+  createdAt: created(),
+}, (t) => [index("venue_payees_venue").on(t.venueId)]);

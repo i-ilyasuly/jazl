@@ -9,15 +9,15 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
-import { adminLog, admins, financeEntries, users, venueApplications, venueNotes, venuePayouts, venues } from "../db/schema.js";
-import { accrued, almatyDayStart, balance, payoutsOf } from "../venueMoney.js";
+import { adminLog, admins, branches, financeEntries, users, venueApplications, venueNotes, venuePayees, venuePayouts, venues } from "../db/schema.js";
+import { accrued, almatyDayStart, balance, balances, payeesOf, payoutsOf } from "../venueMoney.js";
 import { metricsReport, snapshot } from "../metrics.js";
 import { validateLoginWidget } from "../auth/telegram.js";
 import { adminPrefDefaults, type Notifier } from "../notify.js";
 import { getSettings, refreshFees, setSetting, SETTING_DEFAULTS, type Settings } from "../settings.js";
 import { leftValueSql } from "../value.js";
 import { pushRefund } from "../refund.js";
-import { approve, bankOf, posName, type AppData } from "./apply.js";
+import { approve, bankOf, posName, validBin, validIban, type AppData } from "./apply.js";
 import { decideComplaint } from "./complaints.js";
 import { stickerUrl } from "./sticker.js";
 
@@ -389,32 +389,97 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true });
   });
   // Мекемеге аударымдар (0033): тізім, жиынтық және келесі аударымның ұсынылатын кезеңі (соңғы аударылған күннен кешеге дейін)
+  // Аударымдар алушы бойынша (0034): франшиза желісінде әр заңды тұлғаның өз қалдығы, өз ұсынылатын кезеңі
   r.get("/admin/venues/:id/payouts", async (c) => {
     const id = c.req.param("id");
     const list = await payoutsOf(db, id, 100);
     const bal = await balance(db, id);
     const day0 = almatyDayStart();
     const toDay = new Date(day0 - 86400_000 + 5 * 3600_000).toISOString().slice(0, 10); // кеше (Алматы)
-    const fromDay = bal.paidThrough ? new Date(Date.parse(bal.paidThrough) + 86400_000).toISOString().slice(0, 10) : null;
-    const suggest = fromDay && fromDay > toDay ? null : { from: fromDay, to: toDay,
-      amount: await accrued(db, id, fromDay ? new Date(Date.parse(fromDay) - 5 * 3600_000) : null, new Date(day0)) };
-    return c.json({ ok: true, balance: bal, payouts: list, suggest });
+    const suggestFor = async (paidThrough: string | null, branchIds?: string[]) => {
+      const fromDay = paidThrough ? new Date(Date.parse(paidThrough) + 86400_000).toISOString().slice(0, 10) : null;
+      return fromDay && fromDay > toDay ? null : { from: fromDay, to: toDay,
+        amount: await accrued(db, id, fromDay ? new Date(Date.parse(fromDay) - 5 * 3600_000) : null, new Date(day0), branchIds) };
+    };
+    const gs = await balances(db, id);
+    const groups = await Promise.all(gs.map(async (g) => ({ ...g, suggest: await suggestFor(g.paidThrough, g.branches.map((b) => b.id)) })));
+    return c.json({ ok: true, balance: bal, payouts: list, suggest: await suggestFor(bal.paidThrough), groups });
   });
   const Payout = z.object({ amount: z.number().int().min(1).max(1_000_000_000), from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), ref: z.string().trim().max(80).optional(), note: z.string().trim().max(200).optional(), pin: z.string() });
+    paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), ref: z.string().trim().max(80).optional(), note: z.string().trim().max(200).optional(), payeeId: z.string().uuid().optional(), pin: z.string() });
   r.post("/admin/venues/:id/payouts", async (c) => {
     const b = Payout.safeParse(await c.req.json().catch(() => null));
     if (!b.success || b.data.from > b.data.to) return c.json({ ok: false, error: "bad_request" }, 400);
     const bad = await danger(c, b.data.pin); if (bad) return bad;
     const [v] = await db.select().from(venues).where(eq(venues.id, c.req.param("id"))).limit(1);
     if (!v) return c.json({ ok: false, error: "not_found" }, 404);
-    const overlap = (await rows<{ n: number }>(sql`select count(*)::int as n from app.venue_payouts where venue_id = ${v.id} and period_from <= ${b.data.to}::date and period_to >= ${b.data.from}::date`))[0].n;
+    const ps = await payeesOf(db, v.id);
+    // Алушы: көрсетілгені (осы мекеменікі болуы керек), болмаса негізгісі
+    const pe = b.data.payeeId ? ps.find((p) => p.id === b.data.payeeId) : ps.find((p) => p.isMain);
+    if (b.data.payeeId && !pe) return c.json({ ok: false, error: "bad_payee" }, 400);
+    if (ps.length > 1 && !b.data.payeeId) return c.json({ ok: false, error: "payee_required" }, 400);
+    const same = pe ? (pe.isMain ? sql`and (payee_id = ${pe.id} or payee_id is null)` : sql`and payee_id = ${pe.id}`) : sql``;
+    const overlap = (await rows<{ n: number }>(sql`select count(*)::int as n from app.venue_payouts where venue_id = ${v.id} ${same} and period_from <= ${b.data.to}::date and period_to >= ${b.data.from}::date`))[0].n;
     if (overlap) return c.json({ ok: false, error: "overlap" }, 409);
-    const [row] = await db.insert(venuePayouts).values({ venueId: v.id, amount: b.data.amount, periodFrom: b.data.from, periodTo: b.data.to, paidAt: b.data.paidAt,
+    const [row] = await db.insert(venuePayouts).values({ venueId: v.id, payeeId: pe?.id ?? null, amount: b.data.amount, periodFrom: b.data.from, periodTo: b.data.to, paidAt: b.data.paidAt,
       ref: b.data.ref || null, note: b.data.note || null, createdBy: c.get("user").id }).returning({ id: venuePayouts.id });
-    await log(c, "Мекемеге аударым", `${v.name} · ${b.data.amount} ₸ · ${b.data.from}…${b.data.to}`, { venueId: v.id, payoutId: row.id, amount: b.data.amount });
-    await notify?.toVenue(v.id, `💸 Medeo сізге ${b.data.amount.toLocaleString("ru-RU")} ₸ аударды (${b.data.from} — ${b.data.to} кезеңі)${b.data.ref ? `. Құжат: ${b.data.ref}` : ""}.`);
+    await log(c, "Мекемеге аударым", `${v.name}${pe ? " · " + pe.legalName : ""} · ${b.data.amount} ₸ · ${b.data.from}…${b.data.to}`, { venueId: v.id, payoutId: row.id, payeeId: pe?.id ?? null, amount: b.data.amount });
+    await notify?.toVenue(v.id, `💸 Medeo ${ps.length > 1 && pe ? `«${pe.legalName}» шотына ` : "сізге "}${b.data.amount.toLocaleString("ru-RU")} ₸ аударды (${b.data.from} — ${b.data.to} кезеңі)${b.data.ref ? `. Құжат: ${b.data.ref}` : ""}.`);
     return c.json({ ok: true, id: row.id });
+  });
+
+  // Ақша алушылар (заңды тұлғалар) және филиалдарды бөлу
+  r.get("/admin/venues/:id/payees", async (c) => {
+    const id = c.req.param("id");
+    const bs = await rows(sql`select id, address, payee_id as "payeeId", active from app.branches where venue_id = ${id} order by created_at`);
+    return c.json({ ok: true, payees: await payeesOf(db, id), branches: bs });
+  });
+  const PayeeBody = z.object({ id: z.string().uuid().optional(), legalName: z.string().trim().min(2).max(120), bin: z.string().trim().regex(/^\d{12}$/).optional().or(z.literal("")),
+    iban: z.string().trim().max(40).optional(), contractNo: z.string().trim().max(60).optional(), isMain: z.boolean().optional(), branchIds: z.array(z.string().uuid()).max(500), pin: z.string() }).strict();
+  r.post("/admin/venues/:id/payees", async (c) => {
+    const b = PayeeBody.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const d = b.data;
+    const iban = d.iban ? d.iban.replace(/\s/g, "").toUpperCase() : "";
+    if (d.bin && !validBin(d.bin)) return c.json({ ok: false, error: "bad_bin" }, 400);
+    if (iban && !validIban(iban)) return c.json({ ok: false, error: "bad_iban" }, 400);
+    const bad = await danger(c, d.pin); if (bad) return bad;
+    const venueId = c.req.param("id");
+    const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
+    if (!v) return c.json({ ok: false, error: "not_found" }, 404);
+    const ps = await payeesOf(db, venueId);
+    if (d.id && !ps.some((p) => p.id === d.id)) return c.json({ ok: false, error: "not_found" }, 404);
+    const main = d.isMain ?? (d.id ? ps.find((p) => p.id === d.id)!.isMain : ps.length === 0);
+    const id = await db.transaction(async (tx) => {
+      if (main) await tx.update(venuePayees).set({ isMain: false }).where(eq(venuePayees.venueId, venueId));
+      const vals = { legalName: d.legalName, bin: d.bin || null, iban: iban || null, bank: iban ? bankOf(iban)?.[0] ?? null : null, contractNo: d.contractNo || null, isMain: main };
+      const pid = d.id ? (await tx.update(venuePayees).set(vals).where(eq(venuePayees.id, d.id)).returning({ id: venuePayees.id }))[0].id
+        : (await tx.insert(venuePayees).values({ venueId, ...vals }).returning({ id: venuePayees.id }))[0].id;
+      // Тізімнен алынған филиалдар — негізгі алушыға (payee_id бос), тізімдегілер — осы алушыға
+      await tx.execute(sql`update app.branches set payee_id = null where venue_id = ${venueId} and payee_id = ${pid}`);
+      if (d.branchIds.length) await tx.execute(sql`update app.branches set payee_id = ${pid} where venue_id = ${venueId} and id in ${d.branchIds}`);
+      return pid;
+    });
+    await log(c, d.id ? "Алушы өзгертілді" : "Алушы қосылды", `${v.name} · ${d.legalName}`, { venueId, payeeId: id, branches: d.branchIds.length });
+    return c.json({ ok: true, id });
+  });
+  r.post("/admin/venues/:id/payees/:pid/delete", async (c) => {
+    const b = z.object({ pin: z.string() }).safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const bad = await danger(c, b.data.pin); if (bad) return bad;
+    const venueId = c.req.param("id"), pid = c.req.param("pid");
+    if (!/^[0-9a-f-]{36}$/.test(pid)) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [pe] = await db.select().from(venuePayees).where(and(eq(venuePayees.id, pid), eq(venuePayees.venueId, venueId))).limit(1);
+    if (!pe) return c.json({ ok: false, error: "not_found" }, 404);
+    if (pe.isMain) return c.json({ ok: false, error: "main_payee" }, 409);
+    const [n] = await rows<{ n: number }>(sql`select count(*)::int as n from app.venue_payouts where payee_id = ${pid}`);
+    if (n.n) return c.json({ ok: false, error: "has_payouts" }, 409);
+    await db.transaction(async (tx) => {
+      await tx.update(branches).set({ payeeId: null }).where(eq(branches.payeeId, pid));
+      await tx.delete(venuePayees).where(eq(venuePayees.id, pid));
+    });
+    await log(c, "Алушы жойылды", pe.legalName, { venueId, payeeId: pid });
+    return c.json({ ok: true });
   });
   r.post("/admin/venues/:id/payouts/:pid/delete", async (c) => {
     const b = z.object({ pin: z.string() }).safeParse(await c.req.json().catch(() => null));

@@ -109,6 +109,11 @@ export function pinError(e: unknown): string {
   if (b.error === "admin_session") { setToken(""); return "Сеанс бітті"; }
   if (b.error === "overlap") return "Бұл кезеңге аударым бұрын тіркелген. Күндерді тексеріңіз";
   if (b.error === "bad_request") return "Деректер дұрыс емес: сома мен күндерді тексеріңіз";
+  if (b.error === "bad_bin") return "БСН дұрыс емес (12 сан, бақылау саны сәйкес емес)";
+  if (b.error === "bad_iban") return "IBAN дұрыс емес (KZ + 18 таңба)";
+  if (b.error === "payee_required") return "Алушыны таңдаңыз";
+  if (b.error === "main_payee") return "Негізгі алушыны жоюға болмайды — алдымен басқасын негізгі етіңіз";
+  if (b.error === "has_payouts") return "Бұл алушыға аударым тіркелген — жоюға болмайды";
   return "Сақталмады. Қайталап көріңіз";
 }
 

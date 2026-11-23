@@ -40,3 +40,15 @@ export function branchStatus(b: BranchTime, now = new Date()): { open: boolean; 
   if (d.on && inRange(p.min, d.open, d.close) && !(m(d.close) <= m(d.open) && p.min < m(d.close))) return { open: true, kind: "open", until: d.close };
   return { open: false, kind: "closed", until: d.on && p.min < m(d.open) ? d.open : null };
 }
+
+/** Бүгінгі жұмыс уақыты клиентке көрсету үшін: "09:00–22:00", "24/7", null (жабық не белгісіз) */
+export function todayHours(b: BranchTime, now = new Date()): string | null {
+  if (b.is247) return "24/7";
+  const p = parts(now);
+  const hol = ((b.holidays as Holiday[] | null) ?? []).find((x) => x.from <= p.date && p.date <= x.to);
+  if (hol) return hol.closed || !hol.open || !hol.close ? null : `${hol.open}–${hol.close}`;
+  const week = weekOf(b.hours);
+  if (!week) { const d = (b.hours as { daily?: [string, string] } | null)?.daily; return Array.isArray(d) ? `${d[0]}–${d[1]}` : null; }
+  const d = week[p.dow];
+  return d.on ? `${d.open}–${d.close}` : null;
+}

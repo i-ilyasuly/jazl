@@ -376,7 +376,10 @@ export async function finalizePurchase(db: Db, cfg: Config, paymentId: string): 
     const [pk0] = await tx.select().from(packs).where(eq(packs.id, ids[0]));
     const [{ o, v }] = await tx.select({ o: offers, v: venues }).from(offers).innerJoin(venues, eq(offers.venueId, venues.id)).where(eq(offers.id, pk0.offerId));
     const [user] = await tx.select().from(users).where(eq(users.id, pay.userId));
-    const [branch] = await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true))).limit(1);
+    // Пакет бүкіл мекемеге (не ұсыныс ережесіндегі филиалдарға) жарайды — қай филиалда жұмсалатыны сатып алғанда белгісіз.
+    // Түбіртекке филиал тек мекемеде жалғыз филиал болса жазылады (бұрын кездейсоқ «біріншісі» жазылатын)
+    const act = await tx.select().from(branches).where(and(eq(branches.venueId, v.id), eq(branches.active, true))).limit(2);
+    const branch = act.length === 1 ? act[0] : undefined;
     const now = pay.createdAt;
     const validUntil = new Date(Date.now() + o.validDays * 86400_000);
     const regularTotal = o.regularUnitPrice * units;

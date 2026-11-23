@@ -7,7 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useGo } from "../nav";
 import { confirmSpend } from "../scanFlow";
-import { branches, getPack, offerOf, placeOrder, usePacks } from "../store";
+import { getPack, offerOf, placeOrder, usePacks } from "../store";
+import { spanOf, usePackBranches } from "../branchPick";
+import { BranchCard, BranchSheet } from "../ui/BranchPicker";
 import { haptic, inTelegram, tg, useBottomButtons } from "../telegram";
 import { SubPage } from "../ui/SubPage";
 import s from "./Order.module.css";
@@ -30,13 +32,14 @@ export function Order() {
   const pack = getPack(packId);
   const o = pack ? offerOf(pack) : null;
   const hair = o?.kind === "hair";
-  const list = useMemo(() => (o ? branches(o.venue, o.address) : []), [o]);
-  const [branch, setBranch] = useState(list.find((b) => b.open)?.id ?? "");
+  // Патша (2026-11-23): клиент филиалды өзі таңдайды, әдепкі — ең жақын ашығы; тапсырыс тек сол филиалға жіберіледі
+  const br = usePackBranches(pack);
+  const list = br.list;
+  const b = br.chosen;
   const [picking, setPicking] = useState(false);
   const [day, setDay] = useState(0);
   // Уақыттар филиалдың жұмыс уақытымен шектеледі: «Қазір» — жабылуға 30 мин қалғанға дейін, слоттар — жабылудан 30 мин бұрын
-  const hoursOf = (id: string) => (list.find((x) => x.id === id)?.hours ?? "09:00–22:00").split("–").map((h) => { const [a, m] = h.split(":").map(Number); return a * 60 + m; });
-  const [openM, closeM] = hoursOf(branch);
+  const [openM, closeM] = spanOf(b) ?? [9 * 60, 22 * 60];
   const mins = (t: string) => { const [a, m] = t.split(":").map(Number); return a * 60 + m; };
   const nowM = new Date().getHours() * 60 + new Date().getMinutes();
   const times = useMemo(() => {
@@ -49,9 +52,8 @@ export function Order() {
   useEffect(() => { if (!times.includes(time)) setTime(times[0] ?? ""); }, [times]); // eslint-disable-line react-hooks/exhaustive-deps
   // Бүгін уақыт қалмаса — бірден ертеңге ауысамыз
   useEffect(() => { if (day === 0 && times.length === 0) setDay(1); }, [day, times.length]);
-  const nowOk = times.includes("now");
+  const nowOk = times.includes("now") && Boolean(b?.open);
   const [sending, setSending] = useState(false);
-  const b = list.find((x) => x.id === branch);
   // Figma 23 «Тапсырыс: мерзім алу уақытынан ерте бітеді» (14043:12912): мерзімнен кейінгі күндер сызылған,
   // таңдалса — ескерту және «Жалғастыру» өшік. Демо: ?order=late (пакет мерзімі 2 күннен кейін бітеді)
   const days = 4;
@@ -64,8 +66,10 @@ export function Order() {
     if (!pack || hair) return;
     if (pack.left < 1) go(`/order/state/nounits/${pack.id}`, "up", { replace: true });
     else if (demo() === "noaccept") go(`/order/state/noaccept/${pack.id}`, "up", { replace: true });
-    else if (demo() === "closed" || list.every((x) => !x.open)) go(`/order/state/closed/${pack.id}`, "up", { replace: true });
+    else if (demo() === "closed") go(`/order/state/closed/${pack.id}`, "up", { replace: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Барлық филиал жабық болса (тізім келгеннен кейін) — «Мекеме жабық» беті
+  useEffect(() => { if (pack && !hair && !br.loading && list.length && list.every((x) => !x.open)) go(`/order/state/closed/${pack.id}`, "up", { replace: true }); }, [br.loading, list.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = useMemo(() => ({ text: hair ? "Жазылу" : "Тапсырыс беру", shine: true, onClick: () => {
     if (!pack || !b || sending) return;
@@ -79,7 +83,7 @@ export function Order() {
     setTimeout(() => {
       tg?.MainButton?.hideProgress?.();
       const label = "≈15 мин";
-      const order = placeOrder(pack.id, b.address, label);
+      const order = placeOrder(pack.id, b.address, label, b.server ? b.id : undefined);
       if (!order) { haptic.error(); go(`/order/state/nounits/${pack.id}`, "up", { replace: true }); return; }
       if (demo() === "fail") { haptic.error(); go(`/order/state/fail/${pack.id}?o=${order.id}`, "up", { replace: true }); return; }
       haptic.success();
@@ -99,19 +103,15 @@ export function Order() {
         <span className={s.packText}><b>{o.title}</b><small>{`Шегеріледі: 1 бірлік • Қалады: ${pack.left - 1} / ${pack.total}`}</small></span>
       </div>
 
-      <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 1 }}>{hair ? "Қай салон" : "Қайда"}</h2>
-      <button className={`${s.card} ${s.branch} rise`} style={{ ["--i" as string]: 1 }} onClick={() => { haptic.tap(); setPicking(true); }} disabled={list.length < 2}>
-        <Tile e="📍" size={44} />
-        <span className={s.packText}><small>{`${o.venue} · филиал`}</small><b>{b?.address}</b></span>
-        {list.length > 1 && <i className={s.chev} />}
-      </button>
+      <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 1 }}>{hair ? "Қай салон" : "Қайдан аласың"}</h2>
+      <BranchCard venue={o.venue} b={b} count={list.length} nearestId={br.nearestId} loading={br.loading} onOpen={() => setPicking(true)} />
 
       {/* Патша (2026-11-17): «Тапсырыс» басылғанда — «Қазір» не «Күнін таңдау» (күнтізбе → жоспар ағыны) */}
       <h2 className={`${s.h2} rise`} style={{ ["--i" as string]: 2 }}>Қашан аласың</h2>
       <div className={`${s.whenList} rise`} style={{ ["--i" as string]: 2 }}>
         <button className={`${s.when} ${s.whenOn}`} disabled={!nowOk}>
           <Tile e="🛍" size={40} />
-          <span className={s.packText}><b>Қазір · ≈15 мин</b><small>{nowOk ? "Дайын болғанда барып аласың не курьер жібересің" : "Мекеме қазір қабылдамайды — күнін таңда"}</small></span>
+          <span className={s.packText}><b>Қазір · ≈15 мин</b><small>{nowOk ? `Дайын болғанда ${b?.address ?? "филиалдан"} мекенжайынан аласың` : b && !b.open ? "Бұл филиал қазір жабық — басқасын не күнін таңда" : "Мекеме қазір қабылдамайды — күнін таңда"}</small></span>
           <span className={`${s.radio} ${nowOk ? s.radioOn : ""}`} />
         </button>
         <button className={s.when} onClick={() => { haptic.tap(); go("/book/" + pack.id, "forward"); }}>
@@ -128,22 +128,7 @@ export function Order() {
         <i>”</i>
       </p>
 
-      {picking && (
-        <div className={s.root}>
-          <div className={s.scrim} onClick={() => { haptic.soft(); setPicking(false); }} />
-          <div className={s.sheet}>
-            <span className={s.grabber} />
-            <h2 className={s.sheetTitle}>Филиал таңда</h2>
-            {list.map((x) => (
-              <button key={x.id} className={`${s.bRow} ${branch === x.id ? s.bOn : ""}`} disabled={!x.open} onClick={() => { haptic.select(); setBranch(x.id); setTimeout(() => setPicking(false), 180); }}>
-                <span className={s.packText}><b>{x.address}</b><small>Бүгін {x.hours} • <span className={x.open ? s.green : s.red}>{x.open ? "ашық" : "уақытша жабық"}</span></small></span>
-                <span className={s.km}>{`${x.km.toFixed(1).replace(".", ",")} км`}</span>
-                <span className={s.radio} />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {picking && <BranchSheet list={list} value={b?.id ?? null} nearestId={br.nearestId} hasKm={br.hasKm} onPick={br.choose} onLocate={br.findNearest} onClose={() => setPicking(false)} />}
 
       {sending && (
         <div className={s.root}>
