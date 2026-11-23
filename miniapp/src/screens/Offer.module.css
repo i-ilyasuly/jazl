@@ -223,7 +223,7 @@ button.link:active, .link button:active { opacity: 0.55; }
 .old { display: none; }
 .validity { margin-top: 2px; font-size: 15px; line-height: 20px; color: var(--text-strong); opacity: 0.72; }
 .buyersLine { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 15px; line-height: 20px; color: var(--hint); }
-.buyersIco { width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5'/%3E%3Cpath d='M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5'/%3E%3Cpath d='M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2'/%3E%3C/svg%3E") center / contain no-repeat; }
+.buyersIco { width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5'/%3E%3Cpath d='M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5'/%3E%3Cpath d='M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2'/%3E%3C/svg%3E") center / contain no-repeat; }
 /* 13: сипаттама — жай мәтін + «Толығырақ» */
 .about { position: relative; width: 100%; }
 .aboutText { display: block; color: var(--text-strong); font-size: 17px; line-height: 22px; max-height: 88px; overflow: hidden; transition: max-height 0.3s ease; }
@@ -293,3 +293,19 @@ button.link:active, .link button:active { opacity: 0.55; }
 /* 7: «Бағыт» / «Байланыс» — екінші дәрежелі: сұр фон, қара мәтін, иконка */
 .chipBtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #f2f3f5; color: var(--text-strong); font-weight: 500; }
 :global(:root[data-theme="dark"]) .chipBtn { background: rgba(255, 255, 255, 0.08); color: var(--text-strong); }
+
+/* ===== UX аудит 2 (Патша, 2026-11-23) ===== */
+/* 1: ескі баға негізгі бағамен бір төменгі сызықта (baseline), арасы 12 px; сызығы түзу, біркелкі қалыңдықта */
+.priceLine { align-items: baseline; }
+.oldInline { align-self: baseline; margin: 0 0 0 12px; text-decoration: none; position: relative; display: inline-block; }
+.oldInline::after { content: ""; position: absolute; left: -1px; right: -1px; top: 50%; height: 1.5px; margin-top: -0.5px; background: currentColor; border-radius: 1px; }
+/* 2, 3: екі капсула бір бағанда — енi бірдей, оң және сол шеттері бір сызықта; биіктігі, шегінісі, радиусы бірдей */
+.badges { display: grid; grid-auto-rows: auto; justify-items: stretch; align-items: start; gap: 8px; }
+.badges > .badge, .badges > .unitPill { display: flex; align-items: center; justify-content: center; height: 28px; padding: 4px 10px; border-radius: 8px; font-size: 15px; line-height: 20px; }
+.badges > .buyersLine { justify-content: flex-end; }
+/* 5: «Бөлісу» мен «Таңдаулы» — бейтарап қою түс (көк тек сілтеме мен басты батырмада); басылған жүрек — қызыл сурет */
+.titleActs .ico { background: var(--text-strong); }
+.act:active { background: var(--fill-press, rgba(17, 26, 38, 0.06)); }
+/* 5: адамдар иконкасы қалыңырақ, жұлдыз — сары, жолмен бірдей өлшемде */
+.buyersIco { width: 17px; height: 17px; -webkit-mask-size: contain; mask-size: contain; filter: none; }
+.starIco { display: inline-block; vertical-align: -2px; color: #f5a623; }

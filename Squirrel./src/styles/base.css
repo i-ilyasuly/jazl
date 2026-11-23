@@ -90,3 +90,6 @@ button.topSearch:active { transform: scale(0.98); }
 
 /* Medeo Басқару десктопта: бет толық енге жайылады (сол жақта мәзір) */
 :root[data-desk] .app { max-width: none; }
+
+/* Теңге белгісі ірі бағада: сандардан 18% кіші, сол төменгі сызықта (ui/Money.tsx) */
+.cur { font-size: 0.82em; font-weight: inherit; }

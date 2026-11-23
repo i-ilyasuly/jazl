@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Money } from "./Money";
 import { Photo } from "./Photo";
 import { kindPic } from "./Emo";
 import { Link, useViewTransitionState } from "react-router-dom";
@@ -59,8 +60,8 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
       </div>
       {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
       {/* Squirrel.: бағаның үстінде — жеңілдіксіз бағасы, көмескі әрі сызылған */}
-      {!ended && <s className={s.oldPrice}>{fmt(offer.sizes && offer.sizes.length > 1 ? [...offer.sizes].sort((a, b) => a.price - b.price)[0].oldPrice : offer.oldPrice)}</s>}
-      <p className={s.price}>{offer.sizes && offer.sizes.length > 1 ? `${fmt(Math.min(...offer.sizes.map((x) => x.price)))}-дан` : fmt(offer.price)}</p>
+      {!ended && <s className={s.oldPrice}><Money n={offer.sizes && offer.sizes.length > 1 ? [...offer.sizes].sort((a, b) => a.price - b.price)[0].oldPrice : offer.oldPrice} /></s>}
+      <p className={s.price}>{offer.sizes && offer.sizes.length > 1 ? <Money n={Math.min(...offer.sizes.map((x) => x.price))} suffix="-дан" /> : <Money n={offer.price} />}</p>
       {ended ? <>
         <span className={`t-cap1 ${s.over}`}>{soldOut ? "Таусылды" : "Аяқталды"}</span>
         <button className={`t-sub2 w-600 ${s.notify} ${waiting ? s.waiting : ""}`} onClick={(e) => { e.preventDefault(); void notify(); }}>
