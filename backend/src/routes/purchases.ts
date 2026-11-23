@@ -238,7 +238,7 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   const size = units === o.units ? { units, price: o.price } : ((o.sizes as Sizes) ?? []).find((x) => x.units === units);
   if (!size) return err("bad_size", 400);
   // Бос сағат: тек мекеме қосқан «Тек жоспар бойынша» ұсыныста. Терезе пакетке сатып алған сәттегідей жазылады.
-  const rules = (o.rules ?? {}) as { offPeak?: OffPeakT; planOnly?: boolean };
+  const rules = (o.rules ?? {}) as { offPeak?: OffPeakT; planOnly?: boolean; installment?: number[] | null };
   let price = size.price; let offPeak: OffPeakT | null = null;
   if (body.offPeak) {
     if (!rules.offPeak || !rules.planOnly) return err("no_off_peak");
@@ -304,7 +304,8 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   let res: Awaited<ReturnType<typeof provider.charge>>;
   try {
     res = await provider.charge({ paymentId: created.id, orderNo: created.no, amount: created.amount, description: `Medeo · ${o.title}${count > 1 ? ` × ${count}` : ""}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
-      card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save, hosted: card!.hosted, qr: card!.qr }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
+      card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save, hosted: card!.hosted, qr: card!.qr },
+      ...(cfg.HALYK_INSTALLMENT === "on" && card!.hosted && !card!.qr && rules.installment?.length ? { installment: rules.installment } : {}), returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
   } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
   if (res.status === "action_required" && opts.background) res = { status: "failed", externalId: res.externalId, reason: "3ds_required" };
   if (res.status === "failed") {

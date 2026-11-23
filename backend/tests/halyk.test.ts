@@ -151,4 +151,12 @@ describe("Halyk ePay", () => {
     expect((await halykProvider(cfg(fakeBank({ status: "BLOCKED", amount: 6000 }).f)).check!("100000123"))?.status).toBe("pending");
     expect((await halykProvider(cfg(fakeBank({ status: "REJECT", amount: 6000 }).f)).check!("100000123"))?.status).toBe("failed");
   });
+
+  it("бөліп төлеу: мекеме қосқан айлар банк бетіне installmentConditions болып кетеді; берілмесе — жоқ", async () => {
+    const { f } = fakeBank({ status: "NEW", amount: 6000 });
+    const p = halykProvider(cfg(f));
+    const q = async (inst?: number[]) => new URLSearchParams(LZString.decompressFromEncodedURIComponent(((await p.charge({ ...input, card: { hosted: true }, installment: inst })) as { confirmUrl: string }).confirmUrl.split("params=")[1])!);
+    expect((await q([3, 6, 12])).get("installmentConditions")).toBe(encodeParams([3, 6, 12]));
+    expect((await q()).get("installmentConditions")).toBeNull();
+  });
 });

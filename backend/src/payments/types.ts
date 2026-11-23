@@ -22,6 +22,8 @@ export interface ChargeInput {
   /** hosted — карта банктің қорғалған бетінде енгізіледі (клиент confirmUrl-ға өтеді) */
   /** qr — «Halyk арқылы төлеу»: карта жоқ, клиент банк қосымшасында (Homebank) растайды */
   card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; qr?: boolean };
+  /** Бөліп төлеу айлары (мекеме қосқан, банк беті ұсынады): [3, 6, 12] */
+  installment?: number[];
   /** 3-D Secure біткен соң клиент оралатын мекенжай */
   returnUrl: string;
 }

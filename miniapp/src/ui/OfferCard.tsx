@@ -9,7 +9,7 @@ import { TgEmoji } from "./TgEmoji";
 import { badgesOf, type Badge } from "./badges";
 import { BadgeIcon } from "./BadgeIcon";
 
-import { discount, fmt, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
+import { discount, fmt, instLabel, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";
 import heart from "../assets/icons/heart.svg";
@@ -57,6 +57,8 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
         </span>
         {left != null && <span className={`t-cap1 ${s.left} ${left > 10 ? s.leftCalm : ""}`}>{`Қалды ${left} / ${offer.limit!.monthly}`}</span>}
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
+        {/* Бөліп төлеу (Патша, 2026-11-24): «0-0-12» — суреттің төменгі оң бұрышында, сары капсулада (Қазақстанда таныс белгі) */}
+        {!ended && instLabel(offer) && <span className={`t-cap1 ${s.inst}`} aria-label={`Бөліп төлеу ${instLabel(offer)}`}>{instLabel(offer)}</span>}
       </div>
       {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
       {/* Squirrel.: бағаның үстінде — жеңілдіксіз бағасы, көмескі әрі сызылған */}

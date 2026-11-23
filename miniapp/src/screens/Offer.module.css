@@ -309,3 +309,12 @@ button.link:active, .link button:active { opacity: 0.55; }
 /* 5: адамдар иконкасы қалыңырақ, жұлдыз — сары, жолмен бірдей өлшемде */
 .buyersIco { width: 17px; height: 17px; -webkit-mask-size: contain; mask-size: contain; filter: none; }
 .starIco { display: inline-block; vertical-align: -2px; color: #f5a623; }
+
+/* Бөліп төлеу (Патша, 2026-11-24) */
+.instRow { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #fff8e1; }
+.instChip { flex: none; height: 28px; padding: 4px 8px; border-radius: 6px; background: #ffe08a; color: #6b4000; font-size: 15px; line-height: 20px; font-weight: 700; }
+.instText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.instText b { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text-strong); }
+.instText span { font-size: 14px; line-height: 18px; color: var(--text-secondary); }
+:global(:root[data-theme="dark"]) .instRow { background: rgba(255, 184, 0, 0.1); }
+:global(:root[data-theme="dark"]) .instChip { background: rgba(255, 184, 0, 0.24); color: #ffcf5a; }

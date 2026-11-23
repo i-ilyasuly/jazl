@@ -285,8 +285,12 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
       monthlyLimit: z.number().int().min(1).max(100_000).nullable().optional(),
       perUserLimit: z.number().int().min(1).max(100).nullable().optional(),
       /** Сатылым соңы (Патша, 2026-11-19): «2026-11-30» — сол күн қоса сатылады, кейін ұсыныс «аяқталды». null — мерзімсіз */
-      saleUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional() }).transform((r) => {
-      const x = r.planOnly ? { ...r, preorder: true } : r;
+      saleUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+      /** Бөліп төлеу (Патша, 2026-11-24, 11.4-құжат): мекеме қосады, қанша айға — өзі таңдайды (3/6/12/24). null не бос — өшірулі */
+      installment: z.array(z.union([z.literal(3), z.literal(6), z.literal(12), z.literal(24)])).max(4).nullable().optional() }).transform((r) => {
+      const inst = r.installment?.length ? [...new Set(r.installment)].sort((a, b) => a - b) : null;
+      const r1 = { ...r, installment: inst };
+      const x = r1.planOnly ? { ...r1, preorder: true } : r1;
       return x.planOnly && x.offPeak ? x : { ...x, offPeak: undefined };
     }),
     publish: z.boolean().default(false),
