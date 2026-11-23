@@ -22,9 +22,11 @@ import { checkLimits } from "../limits.js";
 
 /** Карта: сақталған (id), жаңа картаның криптограммасы (сынақ провайдері) не банктің қорғалған беті (hosted — Halyk т.б.). save — картаны сақтау */
 export const CardBody = z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional(),
-  hosted: z.boolean().optional(), provider: z.enum(["halyk"]).optional() }).strict();
+  hosted: z.boolean().optional(), provider: z.enum(["halyk"]).optional(),
+  /** «Halyk арқылы төлеу»: QR → Homebank (hosted + provider halyk бірге) */
+  qr: z.boolean().optional() }).strict();
 type CardIn = z.infer<typeof CardBody>;
-export type ResolvedCard = { provider: PaymentProvider; card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; id?: string; label?: string } };
+export type ResolvedCard = { provider: PaymentProvider; card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; qr?: boolean; id?: string; label?: string } };
 /** Төлем қай провайдер арқылы өтеді: сақталған карта — өз провайдері (сол банкте сақталған); банк беті — таңдалған hosted провайдер; әйтпесе — PAYMENTS_PROVIDER */
 export async function resolveCard(db: Db, cfg: Config, userId: string, b: CardIn): Promise<ResolvedCard | { error: string; status: 400 | 404 }> {
   const r = await resolveCardRaw(db, cfg, userId, b);
@@ -43,6 +45,7 @@ async function resolveCardRaw(db: Db, cfg: Config, userId: string, b: CardIn): P
   if (b.hosted) {
     const provider = hostedProviders(cfg).find((p) => !b.provider || p.name === b.provider);
     if (!provider) return { error: "provider_unavailable", status: 400 };
+    if (b.qr) return provider.qr ? { provider, card: { hosted: true, qr: true, label: "Halyk · Homebank" } } : { error: "provider_unavailable", status: 400 };
     return { provider, card: { hosted: true, save: b.save ?? false, label: "Банк картасы" } };
   }
   if (b.cryptogram) return { provider: paymentProvider(cfg), card: { cryptogram: b.cryptogram, save: b.save ?? false } };
@@ -104,7 +107,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     if (r.type === "repeated") return c.json(...(await paymentReply(db, user.id, r.pay, true)));
     if (r.type === "error") return c.json({ ok: false, error: r.code, ...(r.extra ?? {}) }, r.status);
     if (r.type === "failed") return c.json({ ok: false, error: "payment_failed", reason: r.reason, paymentId: r.paymentId }, 402);
-    if (r.type === "action") return c.json({ ok: true, status: "action_required", paymentId: r.paymentId, confirmUrl: r.confirmUrl }, 202);
+    if (r.type === "action") return c.json({ ok: true, status: "action_required", paymentId: r.paymentId, confirmUrl: r.confirmUrl, ...(r.qr ? { qr: r.qr } : {}) }, 202);
     return c.json({ ok: true, repeated: false, status: "paid", paymentId: r.paymentId, carried: r.out.carried, gift: r.out.gift, gifts: r.out.gifts, ...(await packAndReceipt(db, user.id, r.out.packId)) });
   });
 
@@ -212,7 +215,7 @@ export type StartResult =
   | { type: "repeated"; pay: typeof payments.$inferSelect }
   | { type: "error"; code: string; status: 400 | 404 | 409; extra?: Record<string, unknown> }
   | { type: "failed"; paymentId: string; reason?: string }
-  | { type: "action"; paymentId: string; confirmUrl?: string }
+  | { type: "action"; paymentId: string; confirmUrl?: string; qr?: string }
   | { type: "paid"; paymentId: string; out: Exclude<Awaited<ReturnType<typeof finalizePurchase>>, { error: string }> };
 
 /** Сатып алу екі кезеңмен: (1) төлем мен пакет(тер) «күтуде» жасалады, провайдерден төлем сұралады;
@@ -301,7 +304,7 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   let res: Awaited<ReturnType<typeof provider.charge>>;
   try {
     res = await provider.charge({ paymentId: created.id, orderNo: created.no, amount: created.amount, description: `Medeo · ${o.title}${count > 1 ? ` × ${count}` : ""}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
-      card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save, hosted: card!.hosted }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
+      card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save, hosted: card!.hosted, qr: card!.qr }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
   } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
   if (res.status === "action_required" && opts.background) res = { status: "failed", externalId: res.externalId, reason: "3ds_required" };
   if (res.status === "failed") {
@@ -311,8 +314,8 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   }
   await db.update(payments).set({ externalId: res.externalId, status: res.status === "paid" ? "created" : "pending" }).where(eq(payments.id, created.id));
   if (res.status === "action_required") {
-    await db.execute(sql`update app.payments set meta = meta || ${JSON.stringify({ confirmUrl: res.confirmUrl })}::jsonb where id = ${created.id}`);
-    return { type: "action", paymentId: created.id, confirmUrl: res.confirmUrl };
+    await db.execute(sql`update app.payments set meta = meta || ${JSON.stringify({ confirmUrl: res.confirmUrl, ...(res.qr ? { qr: res.qr } : {}) })}::jsonb where id = ${created.id}`);
+    return { type: "action", paymentId: created.id, confirmUrl: res.confirmUrl, qr: res.qr };
   }
   if (res.card) await saveCard(db, provider.name, user.id, res.card);
   const out = await finalizePurchase(db, cfg, created.id);
@@ -346,7 +349,8 @@ export async function paymentReply(db: Db, userId: string, pay: typeof payments.
     return [{ ok: true, repeated, status: "paid", paymentId: pay.id, kind, gift: g ? { code: g.code } : null, ...(giftList ? { gifts: giftList } : {}), ...(await packAndReceipt(db, userId, pay.packId)) }, 200];
   }
   if (pay.status === "failed") return [{ ok: false, repeated, error: "payment_failed", reason: pay.failure, paymentId: pay.id }, 402];
-  return [{ ok: true, repeated, status: "action_required", paymentId: pay.id, amount: pay.amount, confirmUrl: (pay.meta as { confirmUrl?: string } | null)?.confirmUrl ?? null }, 202];
+  const m = pay.meta as { confirmUrl?: string; qr?: string } | null;
+  return [{ ok: true, repeated, status: "action_required", paymentId: pay.id, amount: pay.amount, confirmUrl: m?.confirmUrl ?? null, ...(m?.qr ? { qr: m.qr } : {}) }, 202];
 }
 
 /** Сақталған карта: бір провайдер токені — бір жол (қайта сақталса — жаңартылады, өшірілгені қайта көрінеді) */

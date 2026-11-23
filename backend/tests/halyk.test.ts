@@ -4,23 +4,27 @@ import LZString from "lz-string";
 import { encodeParams, halykProvider } from "../src/payments/halyk.js";
 
 type Call = { url: string; method: string; body: string };
-function fakeBank(state: { status: string; amount: number; cardID?: string }) {
+function fakeBank(state: { status: string; amount: number; cardID?: string; qrOff?: boolean; qrStatus?: string }) {
   const calls: Call[] = [];
   const f = (async (input: string | URL, init?: RequestInit) => {
     const url = String(input); const body = init?.body instanceof URLSearchParams ? init.body.toString() : String(init?.body ?? "");
     calls.push({ url, method: init?.method ?? "GET", body });
     const json = (j: unknown, status = 200) => new Response(JSON.stringify(j), { status, headers: { "Content-Type": "application/json" } });
     if (url.includes("/oauth2/token")) return json({ access_token: "TOKEN_" + calls.length, expires_in: 1200, scope: "payment", token_type: "Bearer" });
+    // NONE — банкте транзакция әлі жоқ (QR генерацияланған, төленбеген): сынақ ортасында расталды — resultCode 102
+    if (url.includes("/check-status/payment/transaction/") && state.status === "NONE") return json({ resultCode: "102", transaction: { id: "" } });
     if (url.includes("/check-status/payment/transaction/")) return json({ resultCode: "100", transaction: { id: "tx-1", invoiceID: url.split("/").pop(), amount: state.amount, statusName: state.status, cardID: state.cardID, cardMask: "440563...5096", cardType: "VISA", reasonCode: "0" } });
     if (url.includes("/charge")) { state.status = "CHARGE"; return json({ code: 0, message: "success" }); }
     if (url.includes("/cancel")) { state.status = "CANCEL"; return json({ code: 0 }); }
     if (url.includes("/refund")) { state.status = "REFUND"; return json({ code: 0, message: "success" }); }
     if (url.includes("/payments/cards/auth")) return json({ status: "CHARGE", code: 0 });
+    if (url.endsWith("/payment/qr/generate")) return state.qrOff ? json({ code: 219, message: "pay_qr_local disabled" }, 400) : json({ qrcode: "000201QRDATA", homebankLink: "https://homebank.kz/qr?x=1", onlinebankLink: "", status: "NEW", billNumber: 1 });
+    if (url.endsWith("/qr")) return json({ status: state.qrStatus ?? "NEW", amount: state.amount });
     return json({}, 404);
   }) as typeof fetch;
   return { f, calls };
 }
-const cfg = (f: typeof fetch, env: "test" | "prod" = "prod") => ({ env, clientId: "cid", clientSecret: "csecret", terminalId: "term-1", publicUrl: "https://api.example.com", hashKey: "k", fetch: f });
+const cfg = (f: typeof fetch, env: "test" | "prod" = "prod", qr = false) => ({ env, qr, clientId: "cid", clientSecret: "csecret", terminalId: "term-1", publicUrl: "https://api.example.com", hashKey: "k", fetch: f });
 const input = { paymentId: "p1", orderNo: 100000123, amount: 6000, description: "Medeo · Донер", user: { id: "u-uuid", telegramId: 5 }, returnUrl: "https://t.me/bot?startapp=pay_p1" };
 
 describe("Halyk ePay", () => {
@@ -93,5 +97,58 @@ describe("Halyk ePay", () => {
   it("банк 5xx берсе — қате лақтырылады (қайтару «белгісіз» болып қалады, екі рет жіберілмейді)", async () => {
     const f = (async (u: string | URL) => String(u).includes("oauth2") ? new Response(JSON.stringify({ access_token: "t", expires_in: 100 }), { status: 200 }) : new Response("x", { status: 502 })) as typeof fetch;
     await expect(halykProvider(cfg(f)).refund!("100000123", 3000)).rejects.toThrow();
+  });
+
+  it("Halyk QR: өшірулі болса — бас тартады; қосулы — Homebank сілтемесі мен QR, токен invoiceID+amount-пен, күй check-status арқылы", async () => {
+    const off = fakeBank({ status: "NEW", amount: 6000 });
+    await expect(halykProvider(cfg(off.f)).charge({ ...input, card: { hosted: true, qr: true } })).rejects.toThrow("qr_unavailable");
+    const state = { status: "NEW", amount: 6000 };
+    const { f, calls } = fakeBank(state);
+    const p = halykProvider(cfg(f, "prod", true));
+    expect(p.qr).toBe(true);
+    const r = await p.charge({ ...input, card: { hosted: true, qr: true } });
+    expect(r).toMatchObject({ status: "action_required", externalId: "100000123", confirmUrl: "https://homebank.kz/qr?x=1", qr: "000201QRDATA" });
+    const tok = new URLSearchParams(calls[0].body);
+    expect(tok.get("invoiceID")).toBe("100000123"); expect(tok.get("amount")).toBe("6000"); expect(tok.get("currency")).toBe("KZT");
+    const gen = calls.find((x) => x.url.endsWith("/payment/qr/generate"))!;
+    expect(JSON.parse(gen.body)).toMatchObject({ accountId: "u-uuid", language: "ru" });
+    expect(JSON.parse(gen.body).postLink).toMatch(/^https:\/\/api\.example\.com\/payments\/webhook\/halyk\?inv=100000123&h=[0-9a-f]{32}$/);
+    expect(gen.body).not.toContain("payerPhone"); expect(gen.body).not.toContain("payerEmail");
+    expect((await p.check!("100000123"))?.status).toBe("pending");
+    state.status = "AUTH"; // Homebank-те расталды → ұсталды → біз charge жасаймыз
+    expect(await p.check!("100000123")).toMatchObject({ status: "paid", amount: 6000 });
+  });
+
+  it("Halyk QR: банк 219 (pay_qr_local өшірулі) — өтпеді; клиент Homebank-ті жапса (CLOSED) — өтпеді, ақша алынбайды", async () => {
+    const a = fakeBank({ status: "NEW", amount: 6000, qrOff: true });
+    expect(await halykProvider(cfg(a.f, "prod", true)).charge({ ...input, card: { hosted: true, qr: true } })).toMatchObject({ status: "failed", reason: "provider_error" });
+    const st = { status: "NONE", amount: 6000, qrStatus: "SCANNED" };
+    const b = fakeBank(st);
+    const p = halykProvider(cfg(b.f, "prod", true));
+    await p.charge({ ...input, card: { hosted: true, qr: true } });
+    expect((await p.check!("100000123"))?.status).toBe("pending");
+    st.qrStatus = "CLOSED";
+    expect(await p.check!("100000123")).toMatchObject({ status: "failed", reason: "declined" });
+    expect(b.calls.some((x) => x.url.includes("/charge"))).toBe(false);
+  });
+
+  it("Halyk QR хабарламасы: нөмір мен қолтаңба postLink сілтемесінде — жадсыз (сервер қайта қосылса да) қабылданады; қате/бөтен — жоқ", async () => {
+    const { f, calls } = fakeBank({ status: "CHARGE", amount: 6000 });
+    await halykProvider(cfg(f, "prod", true)).charge({ ...input, card: { hosted: true, qr: true } });
+    const link = new URL(JSON.parse(calls.find((x) => x.url.endsWith("/payment/qr/generate"))!.body).postLink);
+    expect(link.origin + link.pathname).toBe("https://api.example.com/payments/webhook/halyk");
+    const q = Object.fromEntries(link.searchParams);
+    expect(q.inv).toBe("100000123"); expect(q.h).toMatch(/^[0-9a-f]{32}$/);
+    const fresh = halykProvider(cfg(f, "prod", true)); // жаңа экземпляр — жадта ештеңе жоқ
+    expect(await fresh.webhook({ headers: {}, body: "", query: q })).toMatchObject({ externalId: "100000123", status: "paid" });
+    expect(await fresh.webhook({ headers: {}, body: JSON.stringify({ invoiceId: "100000123" }), query: q })).toMatchObject({ status: "paid" });
+    expect(await fresh.webhook({ headers: {}, body: JSON.stringify({ invoiceId: "100000999" }), query: q })).toBeNull();
+    expect(await fresh.webhook({ headers: {}, body: "", query: { inv: "100000123", h: "0".repeat(32) } })).toBeNull();
+    expect(await fresh.webhook({ headers: {}, body: JSON.stringify({ invoiceId: "100000123" }) })).toBeNull();
+  });
+
+  it("белгісіз аралық күй (мыс. BLOCKED) — «өтпеді» емес, күтуде; нақты REJECT — өтпеді", async () => {
+    expect((await halykProvider(cfg(fakeBank({ status: "BLOCKED", amount: 6000 }).f)).check!("100000123"))?.status).toBe("pending");
+    expect((await halykProvider(cfg(fakeBank({ status: "REJECT", amount: 6000 }).f)).check!("100000123"))?.status).toBe("failed");
   });
 });

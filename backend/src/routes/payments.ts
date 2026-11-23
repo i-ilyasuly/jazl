@@ -30,6 +30,15 @@ async function applyEvent(db: Db, cfg: Config, p: PaymentProvider, pay: typeof p
     await db.update(payments).set({ meta: sql`coalesce(${payments.meta}, '{}'::jsonb) || ${JSON.stringify({ amountMismatch: ev.amount })}::jsonb` }).where(eq(payments.id, pay.id));
     return { ok: false, error: "amount_mismatch", status: 409 };
   }
+  // Біз «өтпеді» деп белгілеген төлемге кейін банктен «төленді» келсе: пакет берілмейді (бонус босатылған) — ақшаны клиентке
+  // автоматты қайтарамыз, Басқару көруі үшін белгі қоямыз. Ақша алынып, пакетсіз қалмауы тиіс.
+  if (ev.status === "paid" && pay.status === "failed") {
+    let refunded = false;
+    try { refunded = Boolean(pay.externalId && p.refund && (await p.refund(pay.externalId, Number(ev.amount ?? pay.amount))).ok); } catch (e) { console.error("late paid refund", pay.id, (e as Error).message); }
+    console.error("payment paid after failed", pay.id, refunded ? "refunded" : "REFUND NEEDED");
+    await db.update(payments).set({ meta: sql`coalesce(${payments.meta}, '{}'::jsonb) || ${JSON.stringify({ paidAfterFail: true, autoRefunded: refunded })}::jsonb` }).where(eq(payments.id, pay.id));
+    return { ok: true };
+  }
   if (ev.status === "paid") {
     if (ev.card && pay.userId) await saveCard(db, p.name, pay.userId, ev.card);
     const out = await finalizePayment(db, cfg, pay);
@@ -62,7 +71,7 @@ export function paymentRoutes(cfg: Config, db: Db) {
   });
 
   // Банк бетіндегі төлем тәсілдері (кілттері бапталған провайдерлер): мини апп «Банк картасы · Halyk» тәсілін осыдан біледі
-  r.get("/payments/config", (c) => c.json({ ok: true, hosted: hostedProviders(cfg).map((p) => ({ id: p.name, test: Boolean(p.testMode) })) }));
+  r.get("/payments/config", (c) => c.json({ ok: true, hosted: hostedProviders(cfg).map((p) => ({ id: p.name, test: Boolean(p.testMode), qr: Boolean(p.qr) })) }));
 
   // Төлем күйі: 3-D Secure-ден / банк бетінен оралғанда мини апп осыны сұрайды.
   // Төлем әлі «күтуде» болса және провайдер күйін айта алса — банктен өзіміз сұраймыз (хабарлама келмей қалса да төлем жоғалмайды)
@@ -107,7 +116,7 @@ export function paymentWebhookRoutes(cfg: Config, db: Db) {
     if (!p) return c.json({ ok: false, error: "not_found" }, 404);
     const raw = await c.req.text();
     const headers: Record<string, string> = {}; c.req.raw.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
-    const ev = await p.webhook({ headers, body: raw });
+    const ev = await p.webhook({ headers, body: raw, query: c.req.query() });
     if (!ev) return c.json({ ok: false, error: "bad_signature" }, 401);
     const [pay] = ev.paymentId
       ? await db.select().from(payments).where(and(eq(payments.id, ev.paymentId), eq(payments.provider, p.name))).limit(1)

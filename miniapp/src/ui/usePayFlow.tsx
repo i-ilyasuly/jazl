@@ -5,7 +5,7 @@ import type { Offer } from "../mocks/offers";
 import { useDefaultMethod, useKaspiPhone, useMethods } from "../store";
 import { haptic, nativeAlert, openExternal, tg } from "../telegram";
 import { useGo } from "../nav";
-import { cardOf, failText, hasServer, pendingPay, type CheckoutCard, type CheckoutResult } from "../pay/checkout";
+import { cardOf, failText, hasServer, openBank, pendingPay, type CheckoutCard, type CheckoutResult } from "../pay/checkout";
 type Paid = Extract<CheckoutResult, { status: "paid" }>;
 import { BuySheet, type BuyStep } from "./BuySheet";
 
@@ -39,7 +39,7 @@ export function usePayFlow() {
           pendingPay.set(r.paymentId, (x) => done(x));
           const q = `?label=${encodeURIComponent(method.title)}&back=1`;
           if (r.confirmUrl.startsWith("app:")) go(r.confirmUrl.slice(4) + q, "up");
-          else { openExternal(r.confirmUrl); go(`/pay/3ds/${r.paymentId}${q}&wait=1`, "up"); }
+          else { openBank(r); go(`/pay/3ds/${r.paymentId}${q}&wait=1`, "up"); }
           return;
         }
         haptic.error(); nativeAlert(`Төлем өтпеді. ${failText[r.reason] ?? failText.declined}`);

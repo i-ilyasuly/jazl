@@ -85,7 +85,7 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
       let res: Awaited<ReturnType<typeof provider.charge>>;
       try {
         res = await provider.charge({ paymentId: pay.id, orderNo: pay.no, amount: opt.price, description: `Medeo · мерзімді ұзарту +${opt.days} күн`, user: { id: user.id, telegramId: user.telegramId },
-          card: { token: card.token, cryptogram: card.cryptogram, save: card.save, hosted: card.hosted }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${pay.id}` });
+          card: { token: card.token, cryptogram: card.cryptogram, save: card.save, hosted: card.hosted, qr: card.qr }, returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${pay.id}` });
       } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
       if (res.status === "failed") {
         await db.update(payments).set({ status: "failed", failure: res.reason, externalId: res.externalId ?? null }).where(eq(payments.id, pay.id));
@@ -93,8 +93,8 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
       }
       await db.update(payments).set({ externalId: res.externalId, status: res.status === "paid" ? "created" : "pending" }).where(eq(payments.id, pay.id));
       if (res.status === "action_required") {
-        await db.execute(sql`update app.payments set meta = meta || ${JSON.stringify({ confirmUrl: res.confirmUrl })}::jsonb where id = ${pay.id}`);
-        return c.json({ ok: true, status: "action_required", paymentId: pay.id, confirmUrl: res.confirmUrl }, 202);
+        await db.execute(sql`update app.payments set meta = meta || ${JSON.stringify({ confirmUrl: res.confirmUrl, ...(res.qr ? { qr: res.qr } : {}) })}::jsonb where id = ${pay.id}`);
+        return c.json({ ok: true, status: "action_required", paymentId: pay.id, confirmUrl: res.confirmUrl, ...(res.qr ? { qr: res.qr } : {}) }, 202);
       }
       if (res.card) await saveCard(db, provider.name, user.id, res.card);
       const out = await finalizeExtend(db, cfg, pay.id);

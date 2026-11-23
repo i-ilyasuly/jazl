@@ -8,7 +8,7 @@ import { fmt, saving, type Offer } from "../mocks/offers";
 import { useGo } from "../nav";
 import { offPeakPrice, winLabel } from "../offpeak";
 import { adoptPurchase, setBuyExtra, setDefaultMethod, setKaspiPhone, useDefaultMethod, useKaspiPhone, useMethods } from "../store";
-import { cardOf, checkoutBonus, checkoutCard, hasServer, pendingPay, type CheckoutCard, type CheckoutResult } from "../pay/checkout";
+import { cardOf, checkoutBonus, checkoutCard, hasServer, openBank, pendingPay, type CheckoutCard, type CheckoutResult } from "../pay/checkout";
 import { loadBonus, setBonusNext, useBonus } from "../pay/bonus";
 import { Switch } from "./SubPage";
 import { askPhone, haptic, inTelegram, openExternal, tg, useBackButton, useBottomButtons } from "../telegram";
@@ -102,7 +102,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
           pendingPay.set(r.paymentId, (x) => onPaid(x));
           const q = `?label=${encodeURIComponent(m.title)}&back=1`;
           if (r.confirmUrl.startsWith("app:")) go(r.confirmUrl.slice(4) + q, "up");
-          else { openExternal(r.confirmUrl); go(`/pay/3ds/${r.paymentId}${q}&wait=1`, "up"); }
+          else { openBank(r); go(`/pay/3ds/${r.paymentId}${q}&wait=1`, "up"); }
           return;
         }
         haptic.error(); go(`/pay/fail/${offer.id}?r=${encodeURIComponent(r.reason)}`, "up", { replace: true });
@@ -117,7 +117,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
         if (r.status === "action_required") {
           const q = `?offer=${encodeURIComponent(offer.id)}&label=${encodeURIComponent(m.title)}`;
           if (r.confirmUrl.startsWith("app:")) go(r.confirmUrl.slice(4) + q, "up", { replace: true }); // сынақ: мини апптағы банк растауы
-          else { openExternal(r.confirmUrl); go(`/pay/3ds/${r.paymentId}${q}&wait=1`, "up", { replace: true }); } // банктің беті → нәтижені күтеміз
+          else { openBank(r); go(`/pay/3ds/${r.paymentId}${q}&wait=1`, "up", { replace: true }); } // банктің беті → нәтижені күтеміз
           return;
         }
         haptic.error(); go(`/pay/fail/${offer.id}?r=${encodeURIComponent(r.reason)}`, "up", { replace: true });
@@ -218,7 +218,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
             {methods.map((x) => (
               <button key={x.id} className={`${s.opt} ${method === x.id ? s.optOn : ""}`} onClick={() => { if (method !== x.id) { haptic.select(); setMethod(x.id); } }}>
                 <Tile e={x.emoji} size={44} />
-                <span className={s.itemText}><span className={s.itemTitle}>{x.title}</span><span className={s.itemSub}>{x.card ? `Қосылған карта · ${x.sub.replace(/.*(\d\d\/\d\d).*/, "$1")}` : x.sub}</span></span>
+                <span className={s.itemText}><span className={s.itemTitle}>{x.title}</span><span className={s.itemSub}>{x.card && !x.hosted ? `Қосылған карта · ${x.sub.replace(/.*(\d\d\/\d\d).*/, "$1")}` : x.sub}</span></span>
                 <span className={`${s.radio} ${method === x.id ? s.radioOn : ""}`} />
               </button>
             ))}
