@@ -8,7 +8,7 @@ import { buyPack, getPack, offerOf, usePacks } from "../store";
 import { useEffect, useRef } from "react";
 import { findOffer, fmt } from "../mocks/offers";
 import { useGo } from "../nav";
-import { inTelegram, openExternal, useBottomButtons } from "../telegram";
+import { inTelegram, openExternal, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Timeline } from "../ui/Timeline";
 import burger from "../assets/icons/cardBurger.svg";
@@ -19,16 +19,20 @@ interface ResultProps {
   title: string; paid: string; cardTitle: string; cardSub: string; kind?: OfferKind;
   total: number; used: number; counter: string; next: string;
   main: { text: string; onClick: () => void }; secondary: { text: string; onClick: () => void };
+  /** Жоғарғы сол жақтағы «Артқа» (Патша, 2026-11-24: «Жабу» бүкіл қосымшаны жабатын — енді артқа, Пакеттерімге) */
   onClose: () => void;
+  /** «Келесі қадам» блогын басу (мысалы, мекемеге бағыт) */
+  nextAction?: { text: string; onClick: () => void };
 }
 
 export function ResultScreen(p: ResultProps) {
   const main = useMemo(() => p.main, [p.main.text, p.main.onClick]); // eslint-disable-line
   const secondary = useMemo(() => ({ ...p.secondary, position: "bottom" as const }), [p.secondary.text, p.secondary.onClick]); // eslint-disable-line
   useBottomButtons(main, secondary);
+  useBackButton(p.onClose);
   return (
     <div className={s.page}>
-      <TelegramChrome mode="close" onBack={p.onClose} />
+      <TelegramChrome mode="back" onBack={p.onClose} />
       <h1 className={s.title}>{p.title}</h1>
       {/* Жасыл белгінің орнында — қуанған балапан (анимациялық стикер) */}
       <Sticker name="party" size={150} className={s.sticker} />
@@ -43,10 +47,15 @@ export function ResultScreen(p: ResultProps) {
         </div>
         <Timeline total={p.total} used={p.used} />
         <p className="t-sub2 w-600">{p.counter}</p>
-        <div className={s.next}>
-          <span className={s.emoji} />
-          <span className={`t-sub2 w-600 ${s.nextText}`}>{p.next}</span>
-        </div>
+        {p.nextAction
+          ? <button type="button" className={`${s.next} ${s.nextBtn}`} onClick={p.nextAction.onClick}>
+              <span className={s.emoji} />
+              <span className={`t-sub2 w-600 ${s.nextText}`}>{p.next}<span className={s.nextLink}>{p.nextAction.text} ›</span></span>
+            </button>
+          : <div className={s.next}>
+              <span className={s.emoji} />
+              <span className={`t-sub2 w-600 ${s.nextText}`}>{p.next}</span>
+            </div>}
       </div>
       {!inTelegram && (
         <>
@@ -65,7 +74,8 @@ export function Success() {
   const done = useRef(false);
   const packId = useRef<string | null>(null);
   useEffect(() => { if (!done.current) { done.current = true; packId.current = buyPack(offer.id); } }, [offer.id]);
-  const close = useCallback(() => go("/", "fade", { replace: true }), [go]);
+  // Артқа → Пакеттерім (жаңа пакет сонда); төлем беттеріне қайтармаймыз
+  const close = useCallback(() => go("/packs", "back", { replace: true }), [go]);
   // «Алғашқы жеңіс» (Патша, 2026-11-18): сатып алған сәтте бірінші қолдануға бір қадам — пакет бетіне (Қолдану / Жоспарлау) және мекемеге бағыт
   const plan = offer.kind === "hair" || Boolean(offer.planOnly);
   const useNow = useCallback(() => go(packId.current ? `/pack/${packId.current}` : "/packs", "forward", { replace: true }), [go]);
@@ -77,7 +87,8 @@ export function Success() {
       cardTitle={offer.packName ?? offer.title} cardSub={`${offer.venue} · ${offer.distance}`} kind={offer.kind}
       total={offer.units} used={0} counter={`${offer.units} / ${offer.units} · 30 күн`}
       next={plan ? `Алғашқы келуіңді қазір жоспарла — ${where}` : `Алғашқысын бүгін-ақ ал: ${where}. Кассада «Medeo» деп айтып, QR-ды сканерле`}
-      main={{ text: plan ? "Уақыт таңдау" : "Қазір қолдану", onClick: useNow }} secondary={{ text: "Бағыт", onClick: route }} onClose={close}
+      main={{ text: plan ? "Уақыт таңдау" : "Қазір қолдану", onClick: useNow }} secondary={{ text: "Пакеттерім", onClick: close }} onClose={close}
+      nextAction={{ text: "Бағыт", onClick: route }}
     />
   );
 }
@@ -120,10 +131,11 @@ function LiveUse(p: { at: string; until: string; units: number; title: string; w
   const main = useMemo(() => ({ text: "Дайын", onClick: p.onDone }), [p.onDone]);
   const sec = useMemo(() => ({ text: "Чекті көру", onClick: p.onReceipt, position: "bottom" as const }), [p.onReceipt]);
   useBottomButtons(main, sec);
+  useBackButton(p.onDone);
   const mm = Math.floor(leftMs / 60000), ss = Math.floor((leftMs % 60000) / 1000);
   return (
     <div className={s.livePage}>
-      <TelegramChrome mode="close" onBack={p.onDone} />
+      <TelegramChrome mode="back" onBack={p.onDone} />
       <div className={`${s.live} ${old ? s.liveOld : ""}`} role="status" aria-live="polite">
         <span className={s.livePill}><i className={s.liveDot} />{old ? "Ескірді" : "Төленді · кассирге көрсетіңіз"}</span>
         {!old && <Sticker name="party" size={96} className={s.liveSticker} />}
