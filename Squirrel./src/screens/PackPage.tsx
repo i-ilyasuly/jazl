@@ -23,6 +23,7 @@ import { Sticker, preloadSticker } from "../ui/Sticker";
 import burger from "../assets/icons/burger36.svg";
 import chev from "../assets/icons/chevRight.svg";
 import qr from "../assets/icons/qr22.svg";
+import { scanOnly } from "../mocks/offers";
 import s from "./PackPage.module.css";
 
 export function PackPage() {
@@ -48,9 +49,10 @@ export function PackPage() {
   // Біткен не мерзімі өткен пакетте жалғыз негізгі әрекет — «Қайта алу»
   const usable = Boolean(pack && pack.left > 0 && !pack.expired);
   const rebuy = useMemo(() => ({ text: "Қайта алу", shine: true, onClick: () => { haptic.medium(); go("/rebuy/" + id); } }), [go, id]);
-  // Патша (2026-11-21): тамақ пен кофеде тапсырыс жоқ — жалғыз негізгі әрекет «Сканерлеу»; шаштаразда «Жазылу + Сканерлеу»
+  // Патша (2026-11-23): тек кофеде жалғыз «Сканерлеу»; тамақта «Тапсырыс беру + Сканерлеу», шаштаразда «Жазылу + Сканерлеу»
+  const quick = pack ? scanOnly(offerOf(pack).kind) && !offerOf(pack).planOnly : false;
   const scanMain = useMemo(() => ({ text: "Сканерлеу", shine: true, onClick: () => { haptic.medium(); go("/scan?pack=" + id, "up"); } }), [go, id]);
-  useBottomButtons(usable ? (hairPack ? order : scanMain) : rebuy, usable && hairPack ? scan : undefined, Boolean(pack) && !sheet);
+  useBottomButtons(usable ? (quick ? scanMain : order) : rebuy, usable && !quick ? scan : undefined, Boolean(pack) && !sheet);
   const onExtended = useCallback((until: string) => { setExtending(false); setToast(`Мерзімі ұзартылды: ${until}`); window.setTimeout(() => setToast(""), 2600); }, []);
   const methods = useMethods(); const defMethod = useDefaultMethod();
   // Автожаңарту картасы: әдепкі тәсіл карта болса — сол, әйтпесе сақталған алғашқы карта
@@ -122,7 +124,7 @@ export function PackPage() {
                 <button className={s.noteLink} onClick={() => go("/rules/carry")}>Көшіру ережесі туралы толығырақ</button></p>
             </div>
           )}
-          {usable && <p className={s.howUse}>{o.kind === "hair" ? <>Алдын ала <b>«Жазылу»</b> арқылы уақыт таңда, не жазылусыз келіп QR сканерле. Жазылусыз келгенде тек бос уақытқа қабылданады.</> : <>Кассада «Medeo бойынша» деп айтып, QR-ды сканерле. Ақша төленбейді — бірлік пакеттен шегеріледі.</>}</p>}
+          {usable && <p className={s.howUse}>{o.kind === "hair" ? <>Алдын ала <b>«Жазылу»</b> арқылы уақыт таңда, не жазылусыз келіп QR сканерле. Жазылусыз келгенде тек бос уақытқа қабылданады.</> : quick ? <>Кассада «Medeo бойынша» деп айтып, QR-ды сканерле. Ақша төленбейді — бірлік пакеттен шегеріледі.</> : <>Кассада «Medeo бойынша» деп айтып, QR-ды сканерле. Не алдын ала <b>«Тапсырыс беру»</b> арқылы қазір не белгілі уақытқа дайындат. Ақша төленбейді — бірлік пакеттен шегеріледі.</>}</p>}
         </section>
 
         <section className={`${s.card} ${s.group} rise`} style={{ ["--i" as string]: 1 }}>
@@ -184,8 +186,8 @@ export function PackPage() {
       {toast && <div className={s.toast} role="status"><Tile e="📅" size={28} />{toast}</div>}
       {!inTelegram && (
         <div className={s.bar}>
-          {usable && hairPack && <button className={`${s.btn} ${s.btn2}`} onClick={scan.onClick}><img src={qr} width={22} height={22} alt="" />Сканерлеу</button>}
-          <button className={`${s.btn} ${s.shine}`} onClick={usable ? (hairPack ? order.onClick : scanMain.onClick) : rebuy.onClick}>{usable ? (hairPack ? order.text : scanMain.text) : rebuy.text}</button>
+          {usable && !quick && <button className={`${s.btn} ${s.btn2}`} onClick={scan.onClick}><img src={qr} width={22} height={22} alt="" />Сканерлеу</button>}
+          <button className={`${s.btn} ${s.shine}`} onClick={usable ? (quick ? scanMain.onClick : order.onClick) : rebuy.onClick}>{usable ? (quick ? scanMain.text : order.text) : rebuy.text}</button>
         </div>
       )}
     </div>

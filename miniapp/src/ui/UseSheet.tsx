@@ -5,6 +5,7 @@ import { Tile } from "./Tile";
 import { useEffect, useMemo, useState } from "react";
 import { useGo } from "../nav";
 import { offerOf, type Pack } from "../store";
+import { scanOnly } from "../mocks/offers";
 import { haptic, inTelegram, useBackButton, useBottomButtons } from "../telegram";
 import { startScan } from "../scanFlow";
 import s from "./UseSheet.module.css";
@@ -21,9 +22,9 @@ export function UseSheet({ pack, onClose }: { pack: Pack; onClose: () => void })
   useBackButton(close);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
-  // Патша (2026-11-21): тамақ пен кофеде тапсырыс пен жоспарлау алынды — тек мекемеде сканерлеу (кассир қабылдайды).
-  // Шаштаразда жазылу қалады; мекеме өзі «тек жоспар бойынша» қойса — сол жол қалады.
-  const direct = !hair && !o.planOnly;
+  // Патша (2026-11-23): тек КОФЕ бірден сканерге өтеді. Тамақта (бургер, донер) — Жоспарлау · Тапсырыс · Сканер,
+  // шаштаразда — Жазылу · Сканер; мекеме «тек жоспар бойынша» қойса — сол жол қалады.
+  const direct = scanOnly(o.kind) && !o.planOnly;
   useEffect(() => { if (direct) { onClose(); startScan(go, pack.id); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // (Бұрынғы ереже, 2026-11-16): тамақ пен кофеге де жоспарлау — күнтізбеден күн мен уақыт; үш жол: Жоспарлау · Тапсырыс · Сканер.
   // «Тек жоспар бойынша» ұсыныс: жалғыз жол — жоспарлау/жазылу (мекеме солай қойған)
