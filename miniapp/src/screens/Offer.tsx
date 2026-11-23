@@ -12,7 +12,7 @@ import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { UseSheet } from "../ui/UseSheet";
-import { detailsOf, discount, findOffer, fmt, hasSampleIncludes, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
+import { detailsOf, discount, findOffer, fmt, hasSampleIncludes, instLabel, instMonthly, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
 import { Sticker } from "../ui/Sticker";
 import { lngLat, venues } from "../mocks/venues";
@@ -239,6 +239,16 @@ function OfferView({ id }: { id?: string }) {
               {offer.buyers > 0 && <span className={s.buyersLine}><span className={s.buyersIco} aria-hidden />{`${offer.buyers} адам алды`}</span>}
             </div>
           </div>
+          {/* Бөліп төлеу (Патша, 2026-11-24): айлық төлем — бағаның астында, сары «0-0-12» белгісімен */}
+          {!ended && instLabel(offer) && (
+            <div className={s.instRow}>
+              <span className={s.instChip}>{instLabel(offer)}</span>
+              <span className={s.instText}>
+                <b>{`Айына ${fmt(instMonthly(offer.price, offer)!)}-ден`}</b>
+                <span>{`Бөліп төлеу: ${offer.installment!.map((m) => `${m} ай`).join(" · ")} · үстемесіз`}</span>
+              </span>
+            </div>
+          )}
           {/* Сату лимиті (Патша, 2026-11-18): қалған орын және бір адамға шек */}
           {!ended && lim && (lim.monthly != null || lim.perUser != null) && (
             <div className={s.limitRow}>
@@ -275,6 +285,7 @@ function OfferView({ id }: { id?: string }) {
             {!ended && base.bonus && <div><dt>Пакетке қоса</dt><dd>{base.bonus}</dd></div>}
             {!ended && base.perk && <div><dt>Пакет иесіне</dt><dd>{base.perk}</dd></div>}
             {base.offPeak && <div><dt>Бос сағат</dt><dd>{`Мекеменің бос уақытында келсең — тағы −${base.offPeak.pct}%: ${winLabel(base.offPeak)}. Сатып алғанда таңдайсың.`}</dd></div>}
+            {!ended && instLabel(base) && <div><dt>Бөліп төлеу</dt><dd>{`${base.installment!.map((m) => `${m}`).join(", ")} айға, бірінші жарнасыз және үстемесіз. «Банк картасы · Halyk» тәсілімен төлегенде банк бетінде таңдайсың.`}</dd></div>}
             {base.saleUntil && !ended && <div><dt>Сатылым</dt><dd>{`${saleDate(base.saleUntil)} дейін сатылады`}</dd></div>}
           </dl>
         </section>

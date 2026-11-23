@@ -12,6 +12,8 @@ export interface Offer {
   planOnly?: boolean;
   /** Бос сағат жеңілдігі (тек planOnly ұсыныста): терезе мен қосымша % */
   offPeak?: { days: number[]; from: string; to: string; pct: number };
+  /** Бөліп төлеу айлары (мекеме қосқан, банк қосулы болса ғана сервер жібереді): [3, 6, 12] → «0-0-12» */
+  installment?: number[];
   /** Пакеттің маркетингтік атауы (мекеме береді, клиент тілінде): карточкада басты орында, тауар атауы (title) астында */
   packName?: string;
   /** Мекеменің өз еркімен: пакетке қоса берілетін сыйлық және пакет иесінің артықшылығы (клиент тілінде) */
@@ -50,7 +52,7 @@ export interface Offer {
 }
 
 export const offers: Offer[] = [
-  { id: "doner", title: "Тауық донері · 4 дана", unitWord: "донер", venue: "Dämdi Doner", distance: "1,2 км", kind: "food", price: 6000, oldPrice: 8000, units: 4, buyers: 48, favorite: true, rating: 4.8, ratingCount: 23, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 09:00–22:00", sizes: [{ units: 4, price: 6000, oldPrice: 8000 }, { units: 8, price: 11000, oldPrice: 16000 }, { units: 12, price: 15600, oldPrice: 24000 }] },
+  { id: "doner", title: "Тауық донері · 4 дана", unitWord: "донер", venue: "Dämdi Doner", distance: "1,2 км", kind: "food", price: 6000, oldPrice: 8000, units: 4, buyers: 48, favorite: true, rating: 4.8, ratingCount: 23, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 09:00–22:00", sizes: [{ units: 4, price: 6000, oldPrice: 8000 }, { units: 8, price: 11000, oldPrice: 16000 }, { units: 12, price: 15600, oldPrice: 24000 }], installment: [3, 6] },
   { id: "haircut", title: "Шаш қию · 4 рет", unitWord: "рет", venue: "Qala Barber", distance: "1,5 км", kind: "hair", price: 12000, oldPrice: 16000, units: 4, buyers: 31, favorite: false, deadline: "2 күн қалды", rating: 4.9, ratingCount: 18, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 10:00–21:00" },
   { id: "latte", promo: "hot", title: "Латте · 12 стакан", unitWord: "стакан", venue: "Coffee Lab", distance: "2,1 км", kind: "coffee", price: 10800, oldPrice: 13200, units: 12, buyers: 27, favorite: false, rating: 4.6, ratingCount: 14, address: "Қарағанды, Ерубаев көшесі 33", hours: "Ашық · бүгін 08:00–22:00" },
 ];
@@ -75,7 +77,7 @@ export const categoryOffers: Offer[] = [
   { id: "cappuccino", promo: "top", title: "Капучино · 12 кесе", unitWord: "кесе", venue: "Taň Coffee", distance: "1,2 км", kind: "coffee", price: 12000, oldPrice: 15600, units: 12, buyers: 48, favorite: true, rating: 4.8, ratingCount: 26, address: "Қарағанды, Бұқар жырау даңғылы 47", hours: "Ашық · бүгін 08:00–22:00" },
   { id: "americano", promo: "hot", title: "Американо · 10 кесе", unitWord: "кесе", venue: "Qala Coffee", distance: "0,9 км", kind: "coffee", price: 10000, oldPrice: 13000, units: 10, buyers: 31, favorite: false, rating: 4.6, ratingCount: 12, address: "Қарағанды, Әлиханов көшесі 5", hours: "Ашық · бүгін 08:00–21:00" },
   { id: "burger-combo", title: "Бургер комбо · 4 дана", unitWord: "комбо", venue: "Bahandi", distance: "1,2 км", kind: "food", price: 10800, oldPrice: 12800, units: 4, buyers: 86, favorite: false, rating: 4.7, ratingCount: 31, address: "Қарағанды, Бұқар жырау даңғылы 59", hours: "Ашық · бүгін 10:00–23:00" },
-  { id: "pizza", promo: "hot", title: "Ірімшікті пицца · 4 дана", unitWord: "пицца", venue: "Dodo Pizza", distance: "2,1 км", kind: "food", price: 16000, oldPrice: 20000, units: 4, buyers: 54, favorite: false, rating: 4.7, ratingCount: 40, address: "Қарағанды, Ермеков көшесі 29", hours: "Ашық · бүгін 10:00–23:00" },
+  { id: "pizza", promo: "hot", title: "Ірімшікті пицца · 4 дана", unitWord: "пицца", venue: "Dodo Pizza", distance: "2,1 км", kind: "food", price: 16000, oldPrice: 20000, units: 4, buyers: 54, favorite: false, rating: 4.7, ratingCount: 40, address: "Қарағанды, Ермеков көшесі 29", hours: "Ашық · бүгін 10:00–23:00", installment: [3, 6, 12] },
   { id: "mens-cut", title: "Ерлердің шашын қию · 4 рет", unitWord: "қию", venue: "Qala Barber", distance: "1,8 км", kind: "hair", price: 10000, oldPrice: 14000, units: 4, buyers: 27, favorite: false, rating: 4.9, ratingCount: 18, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 10:00–21:00" },
 ];
 export const allOffers = () => [...offers, ...moreOffers];
@@ -131,3 +133,8 @@ export const isSoldOut = (o: Offer) => o.limit?.monthly != null && (o.limit.left
 export const portionText = (p?: Offer["portion"]) => p ? `${String(p.value).replace(".", ",")} ${({ g: "г", kg: "кг", ml: "мл", l: "л", cm: "см", pcs: "дана", min: "мин" } as const)[p.unit]}` : "";
 /** Үлгі «Пакетке не кіреді» тізімі бар ма (мекеме құрған жаңа ұсыныста жоқ — онда тек мекеме жазған «Құрамы» көрінеді) */
 export const hasSampleIncludes = (id: string) => id in includesById;
+
+/** Бөліп төлеу (Патша, 2026-11-24): «0-0-12» — бірінші жарна 0, үстеме 0, ең ұзақ мерзім (ай) */
+export const instLabel = (o: Pick<Offer, "installment">) => (o.installment?.length ? `0-0-${Math.max(...o.installment)}` : null);
+/** Ең ұзақ мерзіммен айлық төлем (жоғары қарай дөңгелектеніп) */
+export const instMonthly = (price: number, o: Pick<Offer, "installment">) => (o.installment?.length ? Math.ceil(price / Math.max(...o.installment)) : null);

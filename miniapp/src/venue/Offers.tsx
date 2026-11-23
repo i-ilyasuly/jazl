@@ -21,7 +21,7 @@ import s from "./V.module.css";
 type Size = { units: number; price: number };
 type PortionUnit = "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min";
 interface Draft { title: string; titleRu: string; packName: string; packNameRu: string; bonus: string; bonusRu: string; perk: string; perkRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
-  rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; branches: string[] | null; monthlyLimit?: number | null; perUserLimit?: number | null; saleUntil?: string | null } }
+  rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; installment?: number[] | null; branches: string[] | null; monthlyLimit?: number | null; perUserLimit?: number | null; saleUntil?: string | null } }
 interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu" | "composition" | "compositionRu" | "portion" | "packName" | "packNameRu" | "bonus" | "bonusRu" | "perk" | "perkRu"> { packName?: string; packNameRu?: string; bonus?: string; bonusRu?: string; perk?: string; perkRu?: string; titleRu?: string | null; aboutRu?: string | null; composition?: string; compositionRu?: string; portion?: Draft["portion"]; soldMonth?: number; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 // Санат серверге қазақша сақталады (тілге тәуелсіз мән), ал экранда таңдалған тілде көрінеді: __t(c)
@@ -33,6 +33,32 @@ const saving = (x: Size, reg: number) => Math.max(0, Math.round((1 - x.price / (
 /** Жеңілдік шегі (Medeo ережесі, әдепкі 30%): тым арзан пакет мекемеге де, клиентке де зиян */
 const bigText = (e: unknown) => `Жеңілдік ${(e as { body?: { max?: number } }).body?.max ?? 30}%-дан аспауы керек. Тым арзан пакетте әр клиентке қызмет көрсету мекемеге шығын болады. Бағаны сәл көтеріңіз.`;
 
+
+/** Бөліп төлеу (Патша, 2026-11-24, 11.4-құжат): мекеме қосады және мерзімін таңдайды; банк комиссиясын мекеме біліп тұрып қосады */
+const INST = [3, 6, 12, 24] as const;
+function InstallmentRow({ months, price, onChange }: { months: number[] | null; price: number; onChange: (m: number[] | null) => void }) {
+  const on = Boolean(months?.length);
+  const cur = months?.length ? months : [3, 6];
+  const max = Math.max(...cur);
+  return (
+    <>
+      <div className={s.row}>
+        <Tile e="v:bank" size={36} />
+        <span className={s.rowText}><span className={s.rowTitle}>Бөліп төлеу</span><span className={s.rowSub} style={{ whiteSpace: "normal" }}>Клиент пакетті банк арқылы бірінші жарнасыз және үстемесіз бөліп төлейді. Ақшаны банк бірден толық береді, банк комиссиясы мекемеден ұсталады.</span></span>
+        <Switch on={on} onChange={(v) => { haptic.select(); onChange(v ? cur : null); }} />
+      </div>
+      {on && <div className={s.row} style={{ flexDirection: "column", alignItems: "stretch", gap: 10, paddingTop: 4, paddingBottom: 14 }}>
+        <div className={s.chips} style={{ flexWrap: "wrap" }}>
+          {INST.map((m) => {
+            const sel = cur.includes(m);
+            return <button key={m} className={`${s.chip} ${sel ? s.chipOn : ""}`} onClick={() => { const n = sel ? cur.filter((x) => x !== m) : [...cur, m].sort((a, b) => a - b); if (!n.length) { haptic.warning(); return; } haptic.select(); onChange(n); }}>{`${m} ай`}</button>;
+          })}
+        </div>
+        <span className={`t-cap1 ${s.muted}`}>{`Карточкада: «0-0-${max}» · айына ${money(Math.ceil(price / max))}-ден. Банк қосқанда ғана клиентке көрінеді.`}</span>
+      </div>}
+    </>
+  );
+}
 
 /** Бос сағат: күндер, уақыт аралығы, қосымша жеңілдік (5–30%). Бағасы клиентке сатып алу парағында көрінеді. */
 function OffPeakRow({ w, sizes, onChange }: { w: OffPeak | null; sizes: Size[]; onChange: (w: OffPeak | null) => void }) {
@@ -283,6 +309,7 @@ export function VOfferWizard() {
           </div>
           {/* Бос сағат жеңілдігі (Патша, 2026-11-18): тек «Тек жоспар бойынша» қосулы болса — бос уақытты қосымша жеңілдікпен толтыру */}
           {d.rules.planOnly && <OffPeakRow w={d.rules.offPeak ?? null} sizes={d.sizes} onChange={(w) => up({ rules: { ...d.rules, offPeak: w } })} />}
+          <InstallmentRow months={d.rules.installment ?? null} price={d.sizes[0]?.price ?? 0} onChange={(m) => up({ rules: { ...d.rules, installment: m } })} />
         </div>
         <h2 className={s.blueHead}>Қай филиалдарда</h2>
         <div className={s.chips} style={{ flexWrap: "wrap" }}>

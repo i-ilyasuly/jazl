@@ -8,12 +8,15 @@ import { getSettings } from "../settings.js";
 import { limitsOf, soldThisMonth } from "../limits.js";
 
 /** Клиентке көрінетін ережелер: «Тек жоспар бойынша» және бос сағат терезесі (қалғаны — ішкі) */
-const rulesOut = (r: unknown) => {
-  const x = (r ?? {}) as { planOnly?: boolean; offPeak?: unknown };
-  return x.planOnly ? { planOnly: true, ...(x.offPeak ? { offPeak: x.offPeak } : {}) } : null;
+const rulesOut = (r: unknown, installmentOn: boolean) => {
+  const x = (r ?? {}) as { planOnly?: boolean; offPeak?: unknown; installment?: number[] | null };
+  // Бөліп төлеу — тек банк қосқанда (HALYK_INSTALLMENT=on): әйтпесе клиентке жоқ мүмкіндікті уәде етпейміз
+  const inst = installmentOn && x.installment?.length ? { installment: x.installment } : {};
+  const out = { ...(x.planOnly ? { planOnly: true, ...(x.offPeak ? { offPeak: x.offPeak } : {}) } : {}), ...inst };
+  return Object.keys(out).length ? out : null;
 };
 
-export function catalogRoutes(db: Db) {
+export function catalogRoutes(db: Db, opts: { installment?: boolean } = {}) {
   const r = new Hono();
   r.get("/", async (c) => {
     const vs = await db.select().from(venues).where(eq(venues.status, "active")).orderBy(asc(venues.name));
@@ -36,7 +39,7 @@ export function catalogRoutes(db: Db) {
       venues: vs.map((v) => ({ slug: v.slug, name: v.name, kind: v.kind, city: v.city, rating: v.rating, reviewsCount: v.reviewsCount, acceptsPreorder: v.acceptsPreorder, about: v.about, trust: trust(v),
         branches: bs.filter((b) => b.venueId === v.id).map((b) => ({ id: b.id, address: b.address, lat: b.lat, lng: b.lng, hours: b.hours, allowsCourier: b.allowsCourier })) })),
       offers: os.map((o) => ({ slug: o.slug, venueSlug: slugOf.get(o.venueId), title: o.title, titleRu: o.titleRu, kind: o.kind, unitName: o.unitName, units: o.units, price: o.price,
-        regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, sizes: o.sizes, details: o.details, photos: o.photos, promoted: o.promoted, status: o.status, rules: rulesOut(o.rules), limit: limitOut(o), saleUntil: (o.rules as { saleUntil?: string | null } | null)?.saleUntil ?? null, createdAt: o.createdAt })),
+        regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, sizes: o.sizes, details: o.details, photos: o.photos, promoted: o.promoted, status: o.status, rules: rulesOut(o.rules, Boolean(opts.installment)), limit: limitOut(o), saleUntil: (o.rules as { saleUntil?: string | null } | null)?.saleUntil ?? null, createdAt: o.createdAt })),
     });
   });
   return r;
