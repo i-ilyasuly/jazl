@@ -16,10 +16,10 @@ import { Sticker, type StickerName } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import s from "./PayResult.module.css";
 
-export const scanStates = ["fail", "pending", "limit", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "othervenue", "closed", "planonly", "otherbranch"] as const;
+export const scanStates = ["fail", "pending", "limit", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "othervenue", "closed", "planonly", "otherbranch", "bankqr"] as const;
 export type ScanKind = (typeof scanStates)[number];
 /** QR оқылған бойда белгілі болатын күйлер (төлемге дейін). Қалғаны төлемнен кейін шығады. */
-export const scanEarly: ScanKind[] = ["closed", "othervenue", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "otherbranch"];
+export const scanEarly: ScanKind[] = ["closed", "othervenue", "amount", "notpartner", "nopack", "notqr", "nocam", "offline", "expired", "paidbefore", "desktop", "pinintro", "kyc", "otherbranch", "bankqr"];
 
 interface Copy { sticker: StickerName; title: string; text: string; note?: string; left?: string; main: string }
 const copy: Record<ScanKind, Copy> = {
@@ -41,6 +41,8 @@ const copy: Record<ScanKind, Copy> = {
   closed: { sticker: "sleep", title: "Мекеме қазір жабық", text: "Бұл филиал қазір төлем қабылдамайды. Бірлік жұмсалған жоқ — жұмыс уақытында қайта сканерле.", main: "Түсінікті" },
   planonly: { sticker: "clock", title: "Бұл пакет тек жоспар бойынша", text: "Мекеме бұл ұсынысты тек алдын ала жоспар бойынша қабылдайды. Пакет бетінде «Қолдану» → күн мен уақытты таңда.", main: "Пакеттерге өту" },
   otherbranch: { sticker: "stop", title: "Бұл пакет осы филиалда жүрмейді", text: "Мекеме бұл ұсынысты тек мына филиалдарда қабылдайды. Бірлік жұмсалған жоқ.", main: "Түсінікті" },
+  // Банктің төлем QR-ы, бірақ біздің күтудегі төлем емес (дүкендегі Kaspi/Halyk QR не уақыты өткен)
+  bankqr: { sticker: "search", title: "Бұл — банктің QR коды", text: "Оны банк қосымшасымен (Homebank, Kaspi) сканерле. Компьютерде бастаған төлемің болса, ол 20 минут жарамды — уақыты өтсе, қайта бастап көр.", main: "Түсінікті" },
   othervenue: { sticker: "stop", title: "Бұл QR басқа мекеменікі", text: "Бұл мекемеде белсенді пакетің жоқ. Пакет таңдаған мекеменің кассасындағы QR-ды сканерле.", main: "Түсінікті" },
   kyc: { sticker: "lock", title: "Төлеу үшін жеке басыңды растау керек", text: "Банк талабы бойынша бір рет. Деректер банкте сақталады.", note: "Бұл қадам тек банк-серіктес талап етсе көрсетіледі.", left: "Кейін", main: "Растау" },
 };
@@ -64,7 +66,7 @@ export function ScanState() {
     else if (k === "nopack") home();
     else if (k === "pinintro") go("/profile/pin/create", "forward", { replace: true });
     else if (k === "kyc") go("/kyc", "forward");
-    else if (k === "limit" || k === "notpartner" || k === "paidbefore" || k === "desktop" || k === "otherbranch") close();
+    else if (k === "limit" || k === "notpartner" || k === "paidbefore" || k === "desktop" || k === "otherbranch" || k === "bankqr") close();
     else rescan();
   } }), [c.main, k, go, home, close, rescan]);
   const left = useMemo(() => c.left ? ({ text: c.left, position: "left" as const, onClick: () => {

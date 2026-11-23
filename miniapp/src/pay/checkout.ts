@@ -66,3 +66,14 @@ export function openBank(r: { confirmUrl: string; qr?: string }) {
   if (r.qr && isDesktop()) return;
   try { openExternal(r.confirmUrl); } catch { /* ашылмаса да күту беті ашылады: онда «Homebank-ті қайта ашу» мен күй тексеру бар */ }
 }
+
+/** Банктің төлем QR-ы (EMV: Halyk, Kaspi т.б.) — біздің касса QR-ы емес */
+export const isBankQr = (s: string) => /^000201/.test(s) || /KZ\.HALYKBANK|homebank\.kz\/payments/i.test(s);
+/** Банк QR-ы сканерленді: компьютерде бастаған өз төлеміміз болса — Homebank-ті ашып, күту бетіне өтеміз; әйтпесе — түсіндірме */
+export async function openBankQr(go: (to: string, dir?: "up", opts?: { replace?: boolean }) => void, qr: string, replace = false) {
+  try {
+    const j = await api<{ paymentId: string; confirmUrl: string }>("/v1/payments/qr-lookup", { method: "POST", body: JSON.stringify({ qr }) });
+    try { openExternal(j.confirmUrl); } catch { /* күту бетінде «Homebank-ті қайта ашу» бар */ }
+    go(`/pay/3ds/${j.paymentId}?label=${encodeURIComponent("Halyk арқылы төлеу")}&wait=1`, "up", { replace });
+  } catch { go("/scan/state/bankqr", "up", { replace }); }
+}
