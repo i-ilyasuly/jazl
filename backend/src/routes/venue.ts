@@ -18,7 +18,7 @@ import { OffPeak, offPeakPrice } from "../offpeak.js";
 import { limitsOf, soldThisMonth } from "../limits.js";
 import { branches, offers, packs, qrSessions, redemptions, staffInvites, users, venueStaff, venues } from "../db/schema.js";
 import { makeSessionQr } from "../qr.js";
-import { accrued, almatyDayStart, balance, dayPaid, payoutsOf } from "../venueMoney.js";
+import { accrued, almatyDayStart, balance, balances, dayPaid, payoutsOf } from "../venueMoney.js";
 import { leftValueSql } from "../value.js";
 import { branchStatus } from "../hours.js";
 import { MAX_BYTES, MediaError, mediaStore, type MediaKind } from "../media.js";
@@ -597,13 +597,19 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
       bars = Array.from({ length: 6 }, (_, i) => { const d = new Date(); d.setMonth(d.getMonth() - (5 - i)); const k = d.toISOString().slice(0, 7); return { label: k, amount: m.get(k) ?? 0 }; }); }
     // Күн күйі — нақты аударым тіркелгенде ғана «Аударылды» (бұрын бәрі қатаң «Түсті» еді — мекемені адастыратын)
     const pays = await payoutsOf(db, venueId, 200);
-    const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 14).map(([date, v]) => ({ date, ...v, status: dayPaid(date, pays) ? "paid" as const : "pending" as const }));
+    // Бірнеше алушы (франшиза): күн «аударылды» — филиалы бар әр алушыға сол күн аударылғанда ғана
+    const groups = await balances(db, venueId);
+    const keys = groups.filter((g) => g.branches.length).map((g) => g.payee?.id ?? null);
+    const mainId = groups.find((g) => g.payee?.isMain)?.payee?.id ?? null;
+    const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 14).map(([date, v]) => ({ date, ...v, status: dayPaid(date, pays, keys, mainId) ? "paid" as const : "pending" as const }));
+    // Мекемеге алушының тек атауы мен шоттың соңғы 4 таңбасы көрінеді
+    const payees = groups.length > 1 ? groups.map((g) => ({ name: g.payee?.legalName ?? null, iban4: g.payee?.iban?.slice(-4) ?? null, branches: g.branches.map((b) => b.address), earned: g.earned, paid: g.paid, due: g.due, paidThrough: g.paidThrough })) : [];
     // Өткен кезең (салыстыру үшін): апта — алдыңғы 7 күн, ай — алдыңғы 28 күн (графиктегі 4 аптамен бірдей ұзындық)
     const len = period === "week" ? 7 : 28, day0 = almatyDayStart();
     const prev = period === "all" ? null : await accrued(db, venueId, new Date(day0 - (2 * len - 1) * 86400_000), new Date(day0 - (len - 1) * 86400_000));
     const total = bars.reduce((s, b) => s + b.amount, 0);
     return c.json({ ok: true, report: { today: byDay.get(dayKey(new Date()))?.amount ?? 0, total, prevTotal: prev, bars, days, feePct: feeFor(db, venueId, cfg.MEDEO_FEE_PCT),
-      testMode: cfg.PAYMENTS_MODE === "test", money: await balance(db, venueId), payouts: pays.slice(0, 5) } });
+      testMode: cfg.PAYMENTS_MODE === "test", money: await balance(db, venueId), payouts: pays.slice(0, 5), payees } });
   });
 
   // ── 09б · Талдау (тек иесі, Патша 2026-11-23): «Squirrel. маған не берді» — клиенттер, алдын ала ақша, ұсыныстар, жүктеме ──

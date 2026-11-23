@@ -10,6 +10,8 @@ import { confirmSpend } from "../scanFlow";
 import { atOf, book, bookLabel, cancelBooking, dayWord, freeCancel, getBooking, getPack, moveBooking, offerOf, useBookings, usePacks } from "../store";
 import { haptic, inTelegram, tg, useBackButton, useBottomButtons, type BottomAction } from "../telegram";
 import { Confirm } from "../ui/Confirm";
+import { usePackBranches } from "../branchPick";
+import { BranchCard, BranchSheet } from "../ui/BranchPicker";
 import { Sticker } from "../ui/Sticker";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { Group, SubPage } from "../ui/SubPage";
@@ -154,15 +156,24 @@ export function BookTime() {
     const d = Math.min(1, days - 1); return { day: d, time: busy(d, "14:00") ? (freeTimes(d)[0] ?? "") : "14:00" };
   });
   const back = useCallback(() => go(-1, "back"), [go]);
+  // Филиал (Патша, 2026-11-23): жоспарда да клиент таңдайды, әдепкі — ең жақыны; «Растау» бетіне сол филиал барады
+  const br = usePackBranches(pack);
+  const [picking, setPicking] = useState(false);
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); back(); } }), [back]);
-  const main = useMemo(() => ({ text: "Жалғастыру", disabled: !v.time, onClick: () => { haptic.medium(); go(`/book/${packId}/confirm`, "forward", { state: { at: atOf(v.day, v.time) } }); } }), [go, packId, v]);
+  const main = useMemo(() => ({ text: "Жалғастыру", disabled: !v.time || !br.chosen, onClick: () => { if (br.chosen) br.choose(br.chosen.id); haptic.medium(); go(`/book/${packId}/confirm`, "forward", { state: { at: atOf(v.day, v.time) } }); } }), [go, packId, v, br]);
+  const hairKind = pack ? offerOf(pack).kind === "hair" : false;
   return (
-    <SubPage title={pack && offerOf(pack).kind !== "hair" ? "Жоспарлау" : "Күн мен уақыт"} top={92}>
+    <SubPage title={pack && !hairKind ? "Жоспарлау" : "Күн мен уақыт"} top={92}>
+      {pack && (br.loading || br.list.length > 0) && <>
+        <h2 className={`t-sub2 w-600 ${s.branchHead} rise`}>{hairKind ? "Қай салон" : "Қайдан аласың"}</h2>
+        <div className={s.branchWrap}><BranchCard venue={offerOf(pack).venue} b={br.chosen} count={br.list.length} nearestId={br.nearestId} loading={br.loading} onOpen={() => setPicking(true)} i={0} /></div>
+      </>}
       <SlotPicker days={days} value={v} onChange={setV} />
       {v.time && <p className={`t-text ${s.picked} rise`} style={{ ["--i" as string]: 3 }}>Таңдалған: <span key={v.day + v.time} className={`t-sub2 w-600 ${s.pickedChip}`}>{dayWord(v.day)}, {v.time}</span></p>}
       <p className={`t-cap1 ${s.legend} rise`} style={{ ["--i" as string]: 3 }}>Сызылған күн не уақыт — бос емес. Түсті нүкте — сол күнгі жоспарың.</p>
       {pack?.offPeak && <p className={`t-sub2 ${s.note} infoBox rise`} style={{ ["--i" as string]: 3 }}>{`Бос сағат пакеті (−${pack.offPeak.pct}%): келу уақыты тек ${winLabel(pack.offPeak)}.`}<i>”</i></p>}
-      <Bar left={left} main={main} />
+      {!picking && <Bar left={left} main={main} />}
+      {picking && <BranchSheet list={br.list} value={br.chosen?.id ?? null} nearestId={br.nearestId} hasKm={br.hasKm} onPick={br.choose} onLocate={br.findNearest} onClose={() => setPicking(false)} />}
     </SubPage>
   );
 }
@@ -175,6 +186,8 @@ export function BookConfirm() {
   const at = (useLocation().state as { at?: number } | null)?.at ?? atOf(1, "14:00");
   const pack = getPack(packId);
   const o = pack ? offerOf(pack) : null;
+  const br = usePackBranches(pack);
+  const place = br.chosen;
   const [busyNow, setBusyNow] = useState(false);
   const left = useMemo(() => ({ text: "Артқа", position: "left" as const, onClick: () => { haptic.soft(); go(-1, "back"); } }), [go]);
   const main = useMemo(() => ({ text: "Растау", shine: true, disabled: busyNow, onClick: () => {
@@ -185,15 +198,15 @@ export function BookConfirm() {
     setBusyNow(true); tg?.MainButton?.showProgress?.(false);
     setTimeout(() => {
       tg?.MainButton?.hideProgress?.();
-      const b = book(packId, at);
+      const b = book(packId, at, place ? { id: place.server ? place.id : undefined, address: place.address } : undefined);
       if (!b) { haptic.error(); go(`/order/state/nounits/${packId}`, "up", { replace: true }); return; }
       haptic.success(); go("/book/done/" + b.id, "up", { replace: true });
     }, 900);
     });
-  } }), [busyNow, go, packId, at]);
+  } }), [busyNow, go, packId, at, place]);
   if (!pack || !o) return <SubPage title="Растау"><p className={`t-sub2 ${s.empty}`}>Пакет табылмады</p></SubPage>;
   const hair = o.kind === "hair";
-  const rows: [string, string][] = [["Мекеме", o.venue], [hair ? "Қызмет" : "Өнім", o.title.split(" · ")[0]], ["Күні мен уақыты", bookLabel(at)], [hair ? "Жазылымнан" : "Пакеттен", hair ? "1 рет жұмсалады" : "1 бірлік жұмсалады"]];
+  const rows: [string, string][] = [["Мекеме", o.venue], ...(place ? [[hair ? "Салон" : "Филиал", place.address] as [string, string]] : []), [hair ? "Қызмет" : "Өнім", o.title.split(" · ")[0]], ["Күні мен уақыты", bookLabel(at)], [hair ? "Жазылымнан" : "Пакеттен", hair ? "1 рет жұмсалады" : "1 бірлік жұмсалады"]];
   return (
     <SubPage title="Растау" top={92}>
       <Group i={0}>{rows.map(([k, v]) => <div key={k} className={`t-text ${s.kv}`}><span>{k}</span><b className="t-sub2 w-600">{v}</b></div>)}</Group>
@@ -218,7 +231,7 @@ export function BookDone() {
       <div className={r.body}>
         <Sticker name="party" size={120} className={r.sticker} />
         <h1 className={r.title}>{b && getPack(b.packId) && offerOf(getPack(b.packId)!).kind !== "hair" ? "Жоспарланды" : "Жазылу расталды"}</h1>
-        <p className={r.text}>{`${b ? bookLabel(b.at) : ""}. Ескерту жазылуға 2 сағат қалғанда келеді.`}</p>
+        <p className={r.text}>{`${b ? bookLabel(b.at) : ""}${b?.address ? ` · ${b.address}` : ""}. Ескерту жазылуға 2 сағат қалғанда келеді.`}</p>
       </div>
       <Bar left={left} main={main} />
     </div>
@@ -237,7 +250,7 @@ export function BookingView() {
   const left = useMemo(() => ({ text: "Бас тарту", position: "left" as const, onClick: () => { haptic.warning(); setAsk(true); } }), []);
   const main = useMemo(() => ({ text: "Уақытты ауыстыру", disabled: !free || b?.status !== "ok", onClick: () => { haptic.tap(); go(`/booking/${b?.id}/move`); } }), [go, b, free]);
   if (!b) return <SubPage title="Жазылу"><p className={`t-sub2 ${s.empty}`}>Жазылу табылмады</p></SubPage>;
-  const rows: [string, string, string?][] = [["Мекеме", b.venue], ["Қызмет", b.service], ...(b.master ? [["Шебер", b.master] as [string, string]] : []), ["Мәртебе", b.status === "ok" ? "Расталды" : "Болдырылмады", b.status === "ok" ? s.blue : ""]];
+  const rows: [string, string, string?][] = [["Мекеме", b.venue], ...(b.address ? [["Филиал", b.address] as [string, string]] : []), ["Қызмет", b.service], ...(b.master ? [["Шебер", b.master] as [string, string]] : []), ["Мәртебе", b.status === "ok" ? "Расталды" : "Болдырылмады", b.status === "ok" ? s.blue : ""]];
   return (
     <SubPage title="Жазылу" top={92}>
       <section className={`${s.head} rise`}><b className="t-text w-600">{bookLabel(b.at)}</b><small className="t-sub2">{b.service}</small></section>

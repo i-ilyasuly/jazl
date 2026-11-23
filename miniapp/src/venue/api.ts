@@ -111,6 +111,8 @@ export interface VReportData {
   days: { date: string; count: number; amount: number; status: "paid" | "pending" }[];
   money: { earned: number; paid: number; due: number; paidThrough: string | null };
   payouts: { id: string; amount: number; from: string; to: string; paidAt: string; ref: string | null }[];
+  /** Бірнеше ақша алушы (франшиза, 0034): әр заңды тұлғаның қалдығы */
+  payees?: { name: string | null; iban4: string | null; branches: string[]; earned: number; paid: number; due: number; paidThrough: string | null }[];
 }
 export interface VInsights {
   period: string; days: number; feePct: number;
