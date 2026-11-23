@@ -358,7 +358,8 @@ void kv.get("medeo_favs").then((v) => { if (v !== null) { favs = v ? v.split(","
 
 // ── Төлем тәсілдері ─────────────────────────────────────────────────────────
 export interface PayMethod { id: string; emoji: string; title: string; sub: string; card: boolean; /** серверде сақталған карта */ cardId?: string; /** бір реттік карта (сақталмаған): провайдер криптограммасы */ cryptogram?: string;
-  /** Банктің қорғалған беті (Halyk ePay т.б.): карта сонда енгізіледі, біз оны көрмейміз */ hosted?: string }
+  /** Банктің қорғалған беті (Halyk ePay т.б.): карта сонда енгізіледі, біз оны көрмейміз */ hosted?: string;
+  /** «Halyk арқылы төлеу»: Homebank қосымшасында растау (QR), карта енгізілмейді */ qr?: boolean }
 let methods: PayMethod[] = [
   { id: "kaspi", emoji: "🏦", title: "Kaspi Pay", sub: "Шот Kaspi.kz қосымшасына жіберіледі", card: false },
   { id: "visa4417", emoji: "💳", title: "Visa •• 4417", sub: "Жарамдылық мерзімі 08/28", card: true },
@@ -383,12 +384,14 @@ export async function loadCards() {
   try {
     const [j, conf] = await Promise.all([
       api<{ cards: { id: string; brand: string; last4: string; exp: string }[] }>("/v1/cards"),
-      api<{ hosted: { id: string; test: boolean }[] }>("/v1/payments/config").catch(() => ({ hosted: [] as { id: string; test: boolean }[] })),
+      api<{ hosted: { id: string; test: boolean; qr?: boolean }[] }>("/v1/payments/config").catch(() => ({ hosted: [] as { id: string; test: boolean; qr?: boolean }[] })),
     ]);
     const once = methods.filter((m) => m.cryptogram);
     // Банк беті арқылы төлем (2026-11-18: Halyk ePay, әзірге банктің сынақ ортасы — нақты карта өтпейді, тек сынақ карталары)
     const hosted: PayMethod[] = conf.hosted.map((h) => ({ id: "hosted:" + h.id, emoji: "💳", title: h.test ? "Банк картасы · Halyk (сынақ)" : "Банк картасы", sub: h.test ? "Сынақ режимі: тек банктің сынақ карталары" : "Карта Halyk-тің қорғалған бетінде енгізіледі", card: true, hosted: h.id }));
-    methods = [methods[0], ...hosted, ...j.cards.map((c) => ({ id: "card:" + c.id, emoji: "💳", title: `${c.brand} •• ${c.last4}`, sub: c.exp ? `Жарамдылық мерзімі ${c.exp}` : "Сақталған карта", card: true, cardId: c.id })), ...once];
+    // «Halyk арқылы төлеу» (2026-11-24, 21-құжат): сервер HALYK_QR=on десе ғана — Homebank ашылады, клиент бір рет растайды
+    const viaApp: PayMethod[] = conf.hosted.filter((h) => h.qr).map((h) => ({ id: "qr:" + h.id, emoji: "v:bank", title: h.test ? "Halyk арқылы төлеу (сынақ)" : "Halyk арқылы төлеу", sub: "Homebank қосымшасында растайсыз — карта нөмірі керек емес", card: true, hosted: h.id, qr: true }));
+    methods = [methods[0], ...viaApp, ...hosted, ...j.cards.map((c) => ({ id: "card:" + c.id, emoji: "💳", title: `${c.brand} •• ${c.last4}`, sub: c.exp ? `Жарамдылық мерзімі ${c.exp}` : "Сақталған карта", card: true, cardId: c.id })), ...once];
     if (!methods.some((m) => m.id === defaultMethod)) defaultMethod = "kaspi";
     emit();
   } catch { /* сервер жоқ — үлгі карталар қалады */ }

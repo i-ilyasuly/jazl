@@ -20,7 +20,8 @@ export interface ChargeInput {
   user: { id: string; telegramId: number };
   /** Сақталған картаның токені немесе бір реттік криптограмма (жаңа карта) */
   /** hosted — карта банктің қорғалған бетінде енгізіледі (клиент confirmUrl-ға өтеді) */
-  card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean };
+  /** qr — «Halyk арқылы төлеу»: карта жоқ, клиент банк қосымшасында (Homebank) растайды */
+  card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; qr?: boolean };
   /** 3-D Secure біткен соң клиент оралатын мекенжай */
   returnUrl: string;
 }
@@ -29,7 +30,7 @@ export type ChargeResult =
   /** Бірден өтті (3-D Secure керек болмады не токенмен) */
   | { status: "paid"; externalId: string; card?: CardInfo }
   /** Банк растауы керек: клиент confirmUrl-ды ашады; нәтиже вебхукпен (не confirm сұрауымен) келеді */
-  | { status: "action_required"; externalId: string; confirmUrl: string }
+  | { status: "action_required"; externalId: string; confirmUrl: string; /** QR төлемі: компьютерде көрсетілетін QR мәтіні */ qr?: string }
   /** Өтпеді: себебі клиентке түсінікті мәтінге айналдырылады */
   | { status: "failed"; externalId?: string; reason: FailReason };
 
@@ -49,6 +50,8 @@ export interface PaymentProvider {
   readonly hosted?: boolean;
   /** Банктің сынақ ортасы (ақша жүрмейді) — мини аппта белгі көрсетіледі */
   readonly testMode?: boolean;
+  /** Банк қосымшасы арқылы QR төлемі қосулы (Halyk: HALYK_QR=on) */
+  readonly qr?: boolean;
   /** Төлемнің нақты күйін провайдерден сұрау (хабарлама келмей қалса — мини апп күту бетінде осыны шақырады) */
   check?(externalId: string): Promise<WebhookEvent | null>;
   /** Төлем жасау (жаңа карта криптограммасы не сақталған карта токені) */
@@ -56,7 +59,7 @@ export interface PaymentProvider {
   /** Картаны сақтау (ақша алмай, токенге айналдыру): криптограмма → токен */
   tokenize(cryptogram: string, user: { id: string }): Promise<CardInfo>;
   /** Провайдердің вебхугын тексеру (қолтаңба!) және оқу. Жарамсыз болса — null */
-  webhook(req: { headers: Record<string, string>; body: string }): Promise<WebhookEvent | null>;
+  webhook(req: { headers: Record<string, string>; body: string; /** postLink сілтемесінің параметрлері (Halyk QR: inv, h) */ query?: Record<string, string> }): Promise<WebhookEvent | null>;
   /** Қайтару (толық не жартылай): клиенттің картасына/Kaspi-іне ақшаны қайтару. Нақты провайдер міндетті түрде жүзеге асырады. */
   refund?(externalId: string, amount: number): Promise<{ ok: boolean; reason?: string }>;
 }

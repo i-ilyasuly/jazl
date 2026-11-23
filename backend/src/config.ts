@@ -28,6 +28,8 @@ const Env = z.object({
   HALYK_CLIENT_ID: z.string().optional(),
   HALYK_CLIENT_SECRET: z.string().optional(),
   HALYK_TERMINAL_ID: z.string().optional(),
+  /** «Halyk арқылы төлеу» (QR by API → Homebank): терминалда pay_qr_local қосылған соң ғана on (әйтпесе банк 219 қатесін береді) */
+  HALYK_QR: z.enum(["on", "off"]).default("off"),
   /** Medeo комиссиясы, % (ішкі есеп: мекемеге төленетін соманы есептеу) */
   MEDEO_FEE_PCT: z.coerce.number().default(10),
   /** Мини апп ашылатын бот (чектегі тексеру QR-ы: t.me/<бот>?startapp=rc_<нөмір>) */

@@ -8,13 +8,17 @@
 //      Статус: AUTH (ұсталды) → біз бірден charge жасаймыз; CHARGE — төленді; REFUND — қайтарылған; басқасы — өтпеді.
 //   4) Сақталған карта (cardSave → cardID): /payments/cards/auth, paymentType=cardId — клиентсіз (автожаңарту).
 //   5) Қайтару: /operation/:id/refund?amount= (жартылай да болады, кемінде 10 ₸); AUTH күйінде — толық болса cancel.
+//   6) «Halyk арқылы төлеу» (QR by API, 2026-11-24, 21-құжат): токен (invoiceID+amount) → POST /payment/qr/generate → homebankLink (телефонда
+//      Homebank ашылады) және qrcode (компьютерде экранға). Клиент Homebank-те растайды; нәтиже — сол check-status (PaymentType "QR"),
+//      сондықтан settle/refund бұрынғыдай. QR 20 минутта жабылады (REJECTED). GET /qr (сол токенмен) CLOSED/RETURN/REJECTED-ті ерте көрсетеді.
+//      Терминалда pay_qr_local қосылмаса — 219 қатесі (HALYK_QR=off ұстаймыз).
 // Ескерту: құжатта көрсетілген testepay.homebank.kz / testoauth.homebank.kz жұмыс істемейді — сынақта test-epay-*.epayment.kz.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import LZString from "lz-string";
 import type { CardInfo, ChargeResult, FailReason, PaymentProvider, WebhookEvent } from "./types.js";
 import { PaymentError } from "./types.js";
 
-export interface HalykConfig { env: "test" | "prod"; clientId: string; clientSecret: string; terminalId: string; publicUrl?: string; hashKey: string; hashKeys?: string[]; fetch?: typeof fetch }
+export interface HalykConfig { env: "test" | "prod"; clientId: string; clientSecret: string; terminalId: string; publicUrl?: string; qr?: boolean; hashKey: string; hashKeys?: string[]; fetch?: typeof fetch }
 const HOSTS = {
   test: { oauth: "https://test-epay-oauth.epayment.kz/oauth2/token", api: "https://test-epay-api.epayment.kz", page: "https://test-epay.epayment.kz/payform/" },
   prod: { oauth: "https://epay-oauth.homebank.kz/oauth2/token", api: "https://epay-api.homebank.kz", page: "https://epay.homebank.kz/payform/" },
@@ -27,6 +31,8 @@ export function encodeParams(p: unknown): string {
   if (typeof p !== "object") return String(p);
   return Object.keys(p as object).filter(Boolean).map((k) => k + "=" + encodeURIComponent(encodeParams((p as Record<string, unknown>)[k]))).join("&");
 }
+/** Банктің соңғы «өтпеді» күйлері (check-status statusName) */
+const FAILED = new Set(["REJECT", "REJECTED", "CANCEL", "CANCEL_OLD", "REFUND", "FAILED", "DECLINE", "DECLINED"]);
 type Tx = { id: string; invoiceID: string; amount: number; statusName: string; accountID?: string; cardID?: string; cardMask?: string; cardType?: string; reason?: string; reasonCode?: string };
 
 export function halykProvider(c: HalykConfig): PaymentProvider {
@@ -35,6 +41,8 @@ export function halykProvider(c: HalykConfig): PaymentProvider {
   /** postLink-тегі secret_hash: invoiceId-дің HMAC-ы — хабарлама біздің төлемге қатысты екенін көрсетеді (бірақ күйді бәрібір API-ден аламыз) */
   const hashOf = (invoiceId: string) => createHmac("sha256", c.hashKey).update("halyk:" + invoiceId).digest("hex").slice(0, 32);
   let svc: { token: string; until: number } | null = null;
+  /** QR төлемінің токені (GET /qr тек сол токенмен): invoiceId → токен. Жады ғана — болмаса check-status жеткілікті */
+  const qrTok = new Map<string, { token: string; until: number }>();
   async function oauth(extra: Record<string, string>) {
     const r = await http(H.oauth, { method: "POST", body: new URLSearchParams({ grant_type: "client_credentials", scope: SCOPE, client_id: c.clientId, client_secret: c.clientSecret, terminal: c.terminalId, ...extra }) });
     if (!r.ok) throw new Error("halyk_oauth_" + r.status);
@@ -76,13 +84,28 @@ export function halykProvider(c: HalykConfig): PaymentProvider {
       tx = { ...tx, statusName: "CHARGE" };
     }
     if (tx.statusName === "CHARGE") return { externalId: invoiceId, status: "paid", amount: Number(tx.amount), card: cardOf(tx), accountId: tx.accountID || undefined };
-    if (tx.statusName === "NEW" || tx.statusName === "3D") return { externalId: invoiceId, status: "pending" };
-    return { externalId: invoiceId, status: "failed", reason: reasonOf(tx.reasonCode), accountId: tx.accountID || undefined };
+    // Тек банк нақты «өтпеді» дегенде ғана — өтпеді. Белгісіз аралық күй (QR-да BLOCKED т.б.) — күтуде: клиент әлі растап жатуы мүмкін,
+    // ерте «өтпеді» десек, кейін ақша алынып, пакет берілмей қалар еді
+    if (FAILED.has(tx.statusName)) return { externalId: invoiceId, status: "failed", reason: reasonOf(tx.reasonCode), accountId: tx.accountID || undefined };
+    if (tx.statusName !== "NEW" && tx.statusName !== "3D") console.error("halyk unknown status", invoiceId, tx.statusName);
+    return { externalId: invoiceId, status: "pending" };
   }
+
+  /** QR сессиясы банкте жабылды ма (клиент Homebank-ті жапты / артқа қайтты / 20 мин өтті) — онда төлем болмайды */
+  async function qrClosed(invoiceId: string): Promise<boolean> {
+    const t = qrTok.get(invoiceId);
+    if (!t || t.until < Date.now()) return false;
+    const r = await http(H.api + "/qr", { headers: { Authorization: "Bearer " + t.token } }).catch(() => null);
+    if (!r?.ok) return false;
+    const j = (await r.json().catch(() => ({}))) as { status?: string };
+    return j.status === "REJECTED" || j.status === "CLOSED" || j.status === "RETURN";
+  }
+  const hook = c.publicUrl ? c.publicUrl + "/payments/webhook/halyk" : undefined;
 
   return {
     name: "halyk",
     hosted: true,
+    qr: Boolean(c.qr),
     testMode: c.env === "test",
     async tokenize() { throw new PaymentError("hosted_only"); }, // карта тек банк бетінде (төлеммен бірге) сақталады
     async charge(i): Promise<ChargeResult> {
@@ -106,6 +129,23 @@ export function halykProvider(c: HalykConfig): PaymentProvider {
         }
         return { status: "failed", externalId: invoiceId, reason: "declined" };
       }
+      // «Halyk арқылы төлеу»: QR → Homebank (карта енгізілмейді)
+      if (i.card.qr) {
+        if (!c.qr) throw new PaymentError("qr_unavailable");
+        const t = await oauth({ invoiceID: invoiceId, amount: String(i.amount), currency: "KZT", secret_hash: hashOf(invoiceId) });
+        // Хабарлама сілтемесінде нөмір мен оның қолтаңбасы: сервер қайта қосылса да (жады жоқ) банк хабарламасы қабылданады
+        const qrHook = hook ? `${hook}?inv=${invoiceId}&h=${hashOf(invoiceId)}` : i.returnUrl;
+        const r = await http(H.api + "/payment/qr/generate", { method: "POST", headers: { Authorization: "Bearer " + t.access_token, "Content-Type": "application/json" },
+          body: JSON.stringify({ accountId: i.user.id, postLink: qrHook, failurePostLink: qrHook, description: i.description.slice(0, 120), language: "ru",
+            data: JSON.stringify({ statement: { invoiceID: invoiceId } }) }) });
+        if (r.status >= 500) throw new Error("halyk_qr_" + r.status);
+        const j = (await r.json().catch(() => ({}))) as { qrcode?: string; homebankLink?: string; code?: number; message?: string };
+        if (!r.ok || !j.homebankLink || !j.qrcode) { console.error("halyk qr generate", r.status, j.code ?? "", j.message ?? ""); return { status: "failed", externalId: invoiceId, reason: "provider_error" }; }
+        const now = Date.now();
+        for (const [k, v] of qrTok) if (v.until < now) qrTok.delete(k);
+        qrTok.set(invoiceId, { token: t.access_token, until: now + 20 * 60_000 });
+        return { status: "action_required", externalId: invoiceId, confirmUrl: j.homebankLink, qr: j.qrcode };
+      }
       if (i.card.cryptogram) throw new PaymentError("bad_card"); // ішкі карта формасы — PCI DSS-сіз мүмкін емес
       // Банктің қорғалған беті
       const t = await oauth({ invoiceID: invoiceId, amount: String(i.amount), currency: "KZT", secret_hash: hashOf(invoiceId),
@@ -116,12 +156,21 @@ export function halykProvider(c: HalykConfig): PaymentProvider {
       return { status: "action_required", externalId: invoiceId, confirmUrl: H.page + "?params=" + LZString.compressToEncodedURIComponent(encodeParams(params)) };
     },
     async webhook(req) {
-      let j: { invoiceId?: string; secret_hash?: string };
-      try { j = JSON.parse(req.body); } catch { return null; }
-      if (!j.invoiceId || !/^\d{6,15}$/.test(j.invoiceId) || !(c.hashKeys ?? [c.hashKey]).some((k) => { const w = Buffer.from(createHmac("sha256", k).update("halyk:" + j.invoiceId).digest("hex").slice(0, 32)); const g = Buffer.from(String(j.secret_hash ?? "")); return w.length === g.length && timingSafeEqual(w, g); })) return null;
-      return settle(j.invoiceId, await status(j.invoiceId)); // хабарламаның өзіне емес, банктің API-іне сенеміз
+      let j: { invoiceId?: string; invoiceID?: string; secret_hash?: string } = {};
+      try { j = JSON.parse(req.body); } catch { /* QR хабарламасының пішімі белгісіз — нөмір мен қолтаңба сілтемеде (inv, h) */ }
+      const q = req.query ?? {};
+      const inv = String(j.invoiceId ?? j.invoiceID ?? q.inv ?? "");
+      if (q.inv && inv !== q.inv) return null; // денедегі нөмір сілтемедегіден өзге — бөтен хабарлама
+      const sig = String(j.secret_hash ?? q.h ?? "");
+      if (!/^\d{6,15}$/.test(inv) || !(c.hashKeys ?? [c.hashKey]).some((k) => { const w = Buffer.from(createHmac("sha256", k).update("halyk:" + inv).digest("hex").slice(0, 32)); const g = Buffer.from(sig); return w.length === g.length && timingSafeEqual(w, g); })) return null;
+      return settle(inv, await status(inv)); // хабарламаның өзіне емес, банктің API-іне сенеміз
     },
-    async check(externalId) { return settle(externalId, await status(externalId)); },
+    async check(externalId) {
+      const tx = await status(externalId);
+      // QR: банкте транзакция мүлде жоқ (ақша ұсталмаған), ал QR сессиясы жабылған — клиент қайта бастауы керек
+      if (!tx && (await qrClosed(externalId))) { qrTok.delete(externalId); return { externalId, status: "failed", reason: "declined" }; }
+      return settle(externalId, tx);
+    },
     async refund(externalId, amount) {
       const tx = await status(externalId);
       if (!tx) return { ok: false, reason: "not_found" };
