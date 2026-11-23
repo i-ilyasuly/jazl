@@ -113,4 +113,13 @@ d("Halyk ePay ағыны", () => {
     expect(row.status).toBe("failed");
     expect(row.meta).toMatchObject({ paidAfterFail: true, autoRefunded: true });
   });
+
+  it("компьютердегі QR-ды телефондағы мини апп сканерлесе: өз күтудегі төлемі табылады (Homebank сілтемесі); бөтен не белгісіз QR — жоқ", async () => {
+    const j = await (await post("/v1/purchases", { offerSlug: "doner", method: "card", card: { hosted: true, provider: "halyk", qr: true }, idempotencyKey: key() })).json();
+    const hit = await (await post("/v1/payments/qr-lookup", { qr: "000201HALYKQR" })).json();
+    expect(hit).toMatchObject({ ok: true, paymentId: j.paymentId, confirmUrl: "https://homebank.kz/pay/qr?id=1" });
+    expect((await post("/v1/payments/qr-lookup", { qr: "000201SOMEOTHERSHOPQR" })).status).toBe(404);
+    const other = await app.request("/v1/payments/qr-lookup", { method: "POST", headers: h(1302), body: JSON.stringify({ qr: "000201HALYKQR" }) });
+    expect(other.status).toBe(404);
+  });
 });

@@ -73,6 +73,17 @@ export function paymentRoutes(cfg: Config, db: Db) {
   // Банк бетіндегі төлем тәсілдері (кілттері бапталған провайдерлер): мини апп «Банк картасы · Halyk» тәсілін осыдан біледі
   r.get("/payments/config", (c) => c.json({ ok: true, hosted: hostedProviders(cfg).map((p) => ({ id: p.name, test: Boolean(p.testMode), qr: Boolean(p.qr) })) }));
 
+  // «Halyk арқылы төлеу»: компьютерде көрсетілген QR-ды клиент телефондағы мини апп сканерімен оқыса — сол клиенттің
+  // күтудегі төлемін QR мәтіні бойынша табамыз, мини апп Homebank-ті ашады (2026-11-24, Патша). Тек өз төлемі, 25 минут ішінде.
+  r.post("/payments/qr-lookup", async (c) => {
+    const b = z.object({ qr: z.string().min(10).max(1000) }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [row] = (await db.execute(sql`select id, meta->>'confirmUrl' as url from app.payments where user_id = ${c.get("user").id} and status = 'pending'
+      and meta->>'qr' = ${b.data.qr} and created_at > now() - interval '25 minutes' order by created_at desc limit 1`)).rows as { id: string; url: string | null }[];
+    if (!row?.url) return c.json({ ok: false, error: "not_found" }, 404);
+    return c.json({ ok: true, paymentId: row.id, confirmUrl: row.url });
+  });
+
   // Төлем күйі: 3-D Secure-ден / банк бетінен оралғанда мини апп осыны сұрайды.
   // Төлем әлі «күтуде» болса және провайдер күйін айта алса — банктен өзіміз сұраймыз (хабарлама келмей қалса да төлем жоғалмайды)
   r.get("/payments/:id", async (c) => {

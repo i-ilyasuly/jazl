@@ -3,6 +3,7 @@
 import type { NavigateOptions } from "react-router-dom";
 import { getSettings, hasPin, markPinOk, pinFresh, pinServerBio } from "./store";
 import { biometricAuth, scanQrNative } from "./telegram";
+import { isBankQr, openBankQr } from "./pay/checkout";
 import type { Dir } from "./nav";
 
 type Go = (to: string | number, dir?: Dir, opts?: NavigateOptions) => void;
@@ -25,7 +26,8 @@ export function openScanner(go: Go, packId?: string, replace = false) {
   const r = scanQrNative();
   if (!r) { go(`/scan${packId ? "?pack=" + packId : ""}`, replace ? "forward" : "up", { replace }); return; }
   void r.then((qr) => {
-    if (qr !== false) go(`/scan?${q}via=qr&qr=${encodeURIComponent(qr)}`, "up", { replace });
+    if (qr !== false && isBankQr(qr)) void openBankQr(go, qr, replace); // компьютердегі «Halyk арқылы төлеу» QR-ы → Homebank
+    else if (qr !== false) go(`/scan?${q}via=qr&qr=${encodeURIComponent(qr)}`, "up", { replace });
     else if (replace) go(-1, "back");
   });
 }

@@ -12,6 +12,7 @@ import { catalogState } from "../catalog";
 import { fmt, unitPrice } from "../mocks/offers";
 import { applyServerUse, getPack, hasPin, offerOf, pinFresh, redeem, redeemOnServer, resolveQr, unitLabel, usePacks, useSettings, type QrInfo } from "../store";
 import { scanEarly, scanStates, type ScanKind } from "./ScanState";
+import { isBankQr, openBankQr } from "../pay/checkout";
 import { haptic, inTelegram, tg, useBackButton, useBottomButtons } from "../telegram";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import { TgEmoji, preloadTgEmoji } from "../ui/TgEmoji";
@@ -63,6 +64,7 @@ export function Scan() {
   // QR басқа мекеменікі және онда пакет жоқ; QR мерзімі өткен; Medeo QR емес — бірден тиісті бет
   useEffect(() => {
     if (via !== "qr" || !qr) return;
+    if (isBankQr(qr)) { void openBankQr(go, qr, true); return; } // банк QR-ы (мыс. компьютердегі Halyk төлемі)
     if (qrInfo && "error" in qrInfo) { toState((qrInfo.error === "not_medeo_qr" || qrInfo.error === "not_jazl_qr") ? "notqr" : qrInfo.error === "branch_not_found" ? "notpartner" : "fail"); return; }
     if (info?.expired) { toState("expired"); return; }
     if (qrVenue && venuePacks.length === 0) toState("othervenue", "&v=" + encodeURIComponent(qrVenue));
