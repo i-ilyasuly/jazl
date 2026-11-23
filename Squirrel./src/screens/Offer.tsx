@@ -24,6 +24,7 @@ import { TelegramChrome } from "../ui/TelegramChrome";
 import heroBurger from "../assets/icons/heroBurger.svg";
 import share from "../assets/icons/share.svg";
 import heartFill from "../assets/icons/heartFill26.svg";
+import { Money } from "../ui/Money";
 import heartLine from "../assets/icons/heart.svg";
 import s from "./Offer.module.css";
 
@@ -220,14 +221,14 @@ function OfferView({ id }: { id?: string }) {
           {base.packName && <p className={s.productLine}>{offer.title}</p>}
           <p className={s.venueLine}>
             <button className={`${s.link} ${s.venueLink}`} onClick={toVenue}>{offer.venue}<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
-            <span className={s.muted}>{`·  ★ ${String(offer.rating).replace(".", ",")} (${offer.ratingCount})  ·  ${offer.distance}`}</span>
+            <span className={s.muted}>{"·  "}<svg className={s.starIco} width="15" height="15" viewBox="0 0 24 24" aria-hidden><path d="m12 2.8 2.8 5.7 6.3.9-4.5 4.4 1 6.3L12 17.1l-5.6 3 1-6.3L2.9 9.4l6.3-.9z" fill="currentColor" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /></svg>{` ${String(offer.rating).replace(".", ",")} (${offer.ratingCount})  ·  ${offer.distance}`}</span>
           </p>
           {venue?.trust != null && <p className={s.trust}><span aria-hidden>✓</span>{`Сенімді мекеме · ${venue.trust}% қызмет шағымсыз`}</p>}
           {/* Бағадан бұрын контекст (Хормози): клиент әдетте қанша төлейтінін көрсетіп, сосын пакет бағасы */}
           <div className={s.priceRow}>
             <div>
               {/* UX 5 (Патша, 2026-11-23): негізгі баға мен ескі баға бір қатарда; мерзімі — оқылатын өлшемде */}
-              <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}>{fmt(offer.price)}</span><s className={s.oldInline}>{fmt(offer.oldPrice)}</s></p>
+              <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}><Money n={offer.price} /></span><s className={s.oldInline}><Money n={offer.oldPrice} /></s></p>
               {!ended && <p className={s.validity}>{`${d.days ?? 30} күн жарамды`}</p>}
             </div>
             <div className={s.badges} style={ended ? { visibility: "hidden" } : undefined}>
