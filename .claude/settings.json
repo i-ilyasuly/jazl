@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push origin mainmerge:main)",
+      "Bash(git push -q origin mainmerge:main)"
+    ]
+  }
+}
