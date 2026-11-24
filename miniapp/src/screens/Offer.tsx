@@ -231,20 +231,23 @@ function OfferView({ id }: { id?: string }) {
               <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}><Money n={offer.price} /></span><s className={s.oldInline}><Money n={offer.oldPrice} /></s></p>
               {!ended && <p className={s.validity}>{`${d.days ?? 30} күн жарамды`}</p>}
             </div>
-            <div className={s.badges} style={ended ? { visibility: "hidden" } : undefined}>
-              {/* Жасыл белгі (жеңілдік) және дана бағасы сұр капсулада — бағамен таласпайды */}
-              <span className={`${s.badge} ${s.green}`}><b>▼ {discount(offer)}%</b></span>
-              {/* Бөліп төлеу — жеңілдіктің дәл астында, салыстыруға (Патша, 2026-11-24) */}
-              {instBadge(offer) && <span className={`${s.badge} ${s.instPill}`}><b>{instBadge(offer)}</b></span>}
-              <span className={s.unitPill}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
-              {/* Патша (2026-11-21): әлеуметтік дәлел — дана бағасының астында */}
-              {offer.buyers > 0 && <span className={s.buyersLine}><span className={s.buyersIco} aria-hidden />{`${offer.buyers} адам алды`}</span>}
-            </div>
           </div>
+          {/* Патша (2026-11-24): белгілер бағаның астында бір қатарда — сол жақта жеңілдік пен бөліп төлеу, оң жақта дана бағасы мен сатып алушылар */}
+          {!ended && (
+            <div className={s.pillRow}>
+              <span className={s.pillGroup}>
+                <span className={`${s.pill} ${s.green}`}><b>▼ {discount(offer)}%</b></span>
+                {instBadge(offer) && <span className={`${s.pill} ${s.instPill}`}><b>{instBadge(offer)}</b></span>}
+              </span>
+              <span className={s.pillGroup}>
+                <span className={`${s.pill} ${s.unitTag}`}>{fmt(unitPrice(offer))}/{offer.unitWord}</span>
+                {offer.buyers > 0 && <span className={`${s.pill} ${s.buyersTag}`} aria-label={`${offer.buyers} адам алды`}><span className={s.buyersIco} aria-hidden />{offer.buyers}</span>}
+              </span>
+            </div>
+          )}
           {/* Бөліп төлеу (Патша, 2026-11-24): айлық төлем — бағаның астында, сары «0-0-12» белгісімен */}
           {!ended && instLabel(offer) && (
             <div className={s.instRow}>
-              <span className={s.instChip}>{instBadge(offer)}</span>
               <span className={s.instText}>
                 <b>{`Айына ${fmt(instMonthly(offer.price, offer)!)}-ден`}</b>
                 <span>{`Бөліп төлеу: ${offer.installment!.map((m) => `${m} ай`).join(" · ")} · үстемесіз`}</span>
@@ -287,7 +290,7 @@ function OfferView({ id }: { id?: string }) {
             {!ended && base.bonus && <div><dt>Пакетке қоса</dt><dd>{base.bonus}</dd></div>}
             {!ended && base.perk && <div><dt>Пакет иесіне</dt><dd>{base.perk}</dd></div>}
             {base.offPeak && <div><dt>Бос сағат</dt><dd>{`Мекеменің бос уақытында келсең — тағы −${base.offPeak.pct}%: ${winLabel(base.offPeak)}. Сатып алғанда таңдайсың.`}</dd></div>}
-            {!ended && instLabel(base) && <div><dt>Бөліп төлеу</dt><dd>{`${base.installment!.map((m) => `${m}`).join(", ")} айға, бірінші жарнасыз және үстемесіз. «Банк картасы · Halyk» тәсілімен төлегенде банк бетінде таңдайсың.`}</dd></div>}
+            {!ended && instLabel(base) && <div><dt>Бөліп төлеу</dt><dd>{`${base.installment!.map((m) => `${m}`).join(", ")} айға, бірінші жарнасыз және үстемесіз. Төлегенде «Бөліп төлеу» тәсілін таңда.`}</dd></div>}
             {base.saleUntil && !ended && <div><dt>Сатылым</dt><dd>{`${saleDate(base.saleUntil)} дейін сатылады`}</dd></div>}
           </dl>
         </section>

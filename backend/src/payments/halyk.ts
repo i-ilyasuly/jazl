@@ -154,7 +154,7 @@ export function halykProvider(c: HalykConfig): PaymentProvider {
         postLink: c.publicUrl ? c.publicUrl + "/payments/webhook/halyk" : i.returnUrl, failurePostLink: c.publicUrl ? c.publicUrl + "/payments/webhook/halyk" : i.returnUrl,
         language: "RUS", description: i.description.slice(0, 120), accountId: i.user.id, terminal: c.terminalId, amount: i.amount, currency: "KZT", cardSave: Boolean(i.card.save),
         // Бөліп төлеу (Halyk «Installment/Credit»): банк бетінде қосымша бет болып шығады — терминалда рассрочка қосулы болса
-        ...(i.installment?.length ? { installmentConditions: i.installment } : {}), auth: t };
+        ...(i.installment?.length ? { installmentConditions: i.installment, ...(i.preferInstallment ? { defaultCredit: true } : {}) } : {}), auth: t };
       return { status: "action_required", externalId: invoiceId, confirmUrl: H.page + "?params=" + LZString.compressToEncodedURIComponent(encodeParams(params)) };
     },
     async webhook(req) {

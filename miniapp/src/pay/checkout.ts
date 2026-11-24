@@ -2,10 +2,10 @@
 import { api } from "../api";
 import { openExternal, tg } from "../telegram";
 
-export type CheckoutCard = { id: string } | { cryptogram: string; save?: boolean } | { hosted: true; provider: string; save?: boolean } | { hosted: true; provider: string; qr: true };
+export type CheckoutCard = { id: string } | { cryptogram: string; save?: boolean } | { hosted: true; provider: string; save?: boolean; installment?: boolean } | { hosted: true; provider: string; qr: true };
 /** Төлем тәсілінен серверге жіберілетін карта: сақталған / бір реттік криптограмма / банк беті (картаны сақтаймыз — келесіде бір басумен) */
-export const cardOf = (m: { cardId?: string; cryptogram?: string; hosted?: string; qr?: boolean }): CheckoutCard | null =>
-  m.cardId ? { id: m.cardId } : m.hosted && m.qr ? { hosted: true, provider: m.hosted, qr: true } : m.hosted ? { hosted: true, provider: m.hosted, save: true } : m.cryptogram ? { cryptogram: m.cryptogram, save: false } : null;
+export const cardOf = (m: { cardId?: string; cryptogram?: string; hosted?: string; qr?: boolean; installment?: boolean }): CheckoutCard | null =>
+  m.cardId ? { id: m.cardId } : m.hosted && m.qr ? { hosted: true, provider: m.hosted, qr: true } : m.hosted && m.installment ? { hosted: true, provider: m.hosted, installment: true } : m.hosted ? { hosted: true, provider: m.hosted, save: true } : m.cryptogram ? { cryptogram: m.cryptogram, save: false } : null;
 export interface SrvPurchase { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null }
 export type CheckoutResult =
   | { status: "paid"; paymentId: string; pack: SrvPurchase; gift?: { code: string } | null; gifts?: { code: string }[]; carried?: number }

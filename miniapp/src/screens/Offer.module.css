@@ -320,3 +320,15 @@ button.link:active, .link button:active { opacity: 0.55; }
 :global(:root[data-theme="dark"]) .instChip { background: rgba(255, 184, 0, 0.24); color: #ffcf5a; }
 .badges > .instPill { background: #ffe9a8; color: #6b4000; }
 :global(:root[data-theme="dark"]) .badges > .instPill { background: rgba(255, 196, 0, 0.2); color: #ffd25e; }
+/* Белгілер қатары (Патша, 2026-11-24): әрқайсысы өз түсімен, мәтін ортада */
+.pillRow { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 14px; }
+.pillGroup { display: flex; align-items: center; gap: 6px; }
+.pill { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 28px; padding: 0 9px; border-radius: 8px; font-size: 15px; line-height: 20px; white-space: nowrap; }
+.pill b { font-weight: 700; }
+.pill.instPill { border-radius: 14px; background: #ffe9a8; color: #6b4000; }
+.unitTag { background: var(--fill-gray, #f2f3f5); color: var(--text-strong); font-weight: 500; }
+.buyersTag { background: #e5f1fd; color: #1d6fb8; font-weight: 600; }
+.buyersTag .buyersIco { width: 16px; height: 16px; }
+:global(:root[data-theme="dark"]) .pill.instPill { background: rgba(255, 196, 0, 0.2); color: #ffd25e; }
+:global(:root[data-theme="dark"]) .buyersTag { background: rgba(92, 180, 244, 0.18); color: #6ab3f3; }
+.pillRow + .instRow { margin-top: 10px; }
