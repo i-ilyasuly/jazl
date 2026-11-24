@@ -12,7 +12,7 @@ import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { UseSheet } from "../ui/UseSheet";
-import { detailsOf, discount, findOffer, fmt, hasSampleIncludes, instLabel, instMonthly, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
+import { detailsOf, discount, findOffer, fmt, hasSampleIncludes, instBadge, instLabel, instMonthly, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
 import { Sticker } from "../ui/Sticker";
 import { lngLat, venues } from "../mocks/venues";
@@ -234,6 +234,8 @@ function OfferView({ id }: { id?: string }) {
             <div className={s.badges} style={ended ? { visibility: "hidden" } : undefined}>
               {/* Жасыл белгі (жеңілдік) және дана бағасы сұр капсулада — бағамен таласпайды */}
               <span className={`${s.badge} ${s.green}`}><b>▼ {discount(offer)}%</b></span>
+              {/* Бөліп төлеу — жеңілдіктің дәл астында, салыстыруға (Патша, 2026-11-24) */}
+              {instBadge(offer) && <span className={`${s.badge} ${s.instPill}`}><b>{instBadge(offer)}</b></span>}
               <span className={s.unitPill}>{fmt(unitPrice(offer))} / {offer.unitWord}</span>
               {/* Патша (2026-11-21): әлеуметтік дәлел — дана бағасының астында */}
               {offer.buyers > 0 && <span className={s.buyersLine}><span className={s.buyersIco} aria-hidden />{`${offer.buyers} адам алды`}</span>}
@@ -242,7 +244,7 @@ function OfferView({ id }: { id?: string }) {
           {/* Бөліп төлеу (Патша, 2026-11-24): айлық төлем — бағаның астында, сары «0-0-12» белгісімен */}
           {!ended && instLabel(offer) && (
             <div className={s.instRow}>
-              <span className={s.instChip}>{instLabel(offer)}</span>
+              <span className={s.instChip}>{instBadge(offer)}</span>
               <span className={s.instText}>
                 <b>{`Айына ${fmt(instMonthly(offer.price, offer)!)}-ден`}</b>
                 <span>{`Бөліп төлеу: ${offer.installment!.map((m) => `${m} ай`).join(" · ")} · үстемесіз`}</span>

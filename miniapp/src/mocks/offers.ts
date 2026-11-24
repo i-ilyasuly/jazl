@@ -136,5 +136,7 @@ export const hasSampleIncludes = (id: string) => id in includesById;
 
 /** Бөліп төлеу (Патша, 2026-11-24): «0-0-12» — бірінші жарна 0, үстеме 0, ең ұзақ мерзім (ай) */
 export const instLabel = (o: Pick<Offer, "installment">) => (o.installment?.length ? `0-0-${Math.max(...o.installment)}` : null);
+/** Белгідегі толық мәтін: ай саны анық көрінеді (Патша, 2026-11-24) — «0-0-12 ай» */
+export const instBadge = (o: Pick<Offer, "installment">) => (o.installment?.length ? `0-0-${Math.max(...o.installment)} ай` : null);
 /** Ең ұзақ мерзіммен айлық төлем (жоғары қарай дөңгелектеніп) */
 export const instMonthly = (price: number, o: Pick<Offer, "installment">) => (o.installment?.length ? Math.ceil(price / Math.max(...o.installment)) : null);
