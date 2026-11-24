@@ -24,9 +24,11 @@ import { checkLimits } from "../limits.js";
 export const CardBody = z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional(),
   hosted: z.boolean().optional(), provider: z.enum(["halyk"]).optional(),
   /** «Halyk арқылы төлеу»: QR → Homebank (hosted + provider halyk бірге) */
-  qr: z.boolean().optional() }).strict();
+  qr: z.boolean().optional(),
+  /** «Бөліп төлеу» тәсілі (Halyk беті рассрочка қойындысымен ашылады) */
+  installment: z.boolean().optional() }).strict();
 type CardIn = z.infer<typeof CardBody>;
-export type ResolvedCard = { provider: PaymentProvider; card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; qr?: boolean; id?: string; label?: string } };
+export type ResolvedCard = { provider: PaymentProvider; card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; qr?: boolean; installment?: boolean; id?: string; label?: string } };
 /** Төлем қай провайдер арқылы өтеді: сақталған карта — өз провайдері (сол банкте сақталған); банк беті — таңдалған hosted провайдер; әйтпесе — PAYMENTS_PROVIDER */
 export async function resolveCard(db: Db, cfg: Config, userId: string, b: CardIn): Promise<ResolvedCard | { error: string; status: 400 | 404 }> {
   const r = await resolveCardRaw(db, cfg, userId, b);
@@ -46,6 +48,7 @@ async function resolveCardRaw(db: Db, cfg: Config, userId: string, b: CardIn): P
     const provider = hostedProviders(cfg).find((p) => !b.provider || p.name === b.provider);
     if (!provider) return { error: "provider_unavailable", status: 400 };
     if (b.qr) return provider.qr ? { provider, card: { hosted: true, qr: true, label: "Halyk · Homebank" } } : { error: "provider_unavailable", status: 400 };
+    if (b.installment) return { provider, card: { hosted: true, installment: true, label: `Бөліп төлеу · ${provider.name === "halyk" ? "Halyk" : provider.name}` } };
     return { provider, card: { hosted: true, save: b.save ?? false, label: "Банк картасы" } };
   }
   if (b.cryptogram) return { provider: paymentProvider(cfg), card: { cryptogram: b.cryptogram, save: b.save ?? false } };
@@ -305,7 +308,7 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   try {
     res = await provider.charge({ paymentId: created.id, orderNo: created.no, amount: created.amount, description: `Medeo · ${o.title}${count > 1 ? ` × ${count}` : ""}`.slice(0, 60), user: { id: user.id, telegramId: user.telegramId },
       card: { token: card!.token, cryptogram: card!.cryptogram, save: card!.save, hosted: card!.hosted, qr: card!.qr },
-      ...(cfg.HALYK_INSTALLMENT === "on" && card!.hosted && !card!.qr && rules.installment?.length ? { installment: rules.installment } : {}), returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
+      ...(cfg.HALYK_INSTALLMENT === "on" && card!.hosted && !card!.qr && rules.installment?.length ? { installment: rules.installment, preferInstallment: Boolean(card!.installment) } : {}), returnUrl: `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=pay_${created.id}` });
   } catch (e) { res = { status: "failed", reason: e instanceof PaymentError && e.code === "bad_card" ? "declined" : "provider_error" }; }
   if (res.status === "action_required" && opts.background) res = { status: "failed", externalId: res.externalId, reason: "3ds_required" };
   if (res.status === "failed") {

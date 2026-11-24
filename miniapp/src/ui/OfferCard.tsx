@@ -36,14 +36,15 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
   return (
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
-      <p className={`${s.title} ${!ended ? s.titleIcon : ""}`}>{offer.packName ?? offer.title}</p>
-      <p className={`${s.venue} ${!ended && instBadge(offer) ? s.venueNarrow : ""}`}>{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
+      <p className={`${s.title} ${!ended ? s.titleIcon : ""} ${!ended && instBadge(offer) ? s.titleInst : ""}`}>{offer.packName ?? offer.title}</p>
+      <p className={s.venue}>{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
       {/* B нұсқасы (Патша, 2026-11-21): сөзсіз, тек эмодзи — жүрекшенің сол жағында, онымен бірдей өлшемде (Krisha үлгісі) */}
       {/* Патша (2026-11-21): ▼% жеңілдік белгісі — жүрекшенің сол жағында; эмодзи белгілер — астыңғы оң жақта */}
       {/* Жеңілдік пен бөліп төлеу бір бағанда, бірдей енмен — салыстыруға оңай (Патша, 2026-11-24) */}
+      {/* Бір сызықта, әрқайсысы өз пішінінде: бөліп төлеу (капсула) жеңілдіктің сол жағында. Атау сыймаса — қысқарады (кейін шешіледі) */}
       {!ended && <span className={s.topPills}>
-        <span className={s.discTop}><b>▼ {discount(offer)}%</b></span>
         {instBadge(offer) && <span className={s.inst} aria-label={`Бөліп төлеу ${instBadge(offer)}`}>{instBadge(offer)}</span>}
+        <span className={s.discTop}><b>▼ {discount(offer)}%</b></span>
       </span>}
       {!ended && badges.length > 0 && <Badges badges={badges} />}
       <button
@@ -61,6 +62,8 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
         </span>
         {left != null && <span className={`t-cap1 ${s.left} ${left > 10 ? s.leftCalm : ""}`}>{`Қалды ${left} / ${offer.limit!.monthly}`}</span>}
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
+        {/* Патша (2026-11-24): суреттің төменгі оң бұрышында ДА — екі орынның бірі кейін алынады */}
+        {!ended && instBadge(offer) && <span className={`t-cap1 ${s.instThumb}`}>{instBadge(offer)}</span>}
       </div>
       {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
       {/* Squirrel.: бағаның үстінде — жеңілдіксіз бағасы, көмескі әрі сызылған */}

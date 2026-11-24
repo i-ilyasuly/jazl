@@ -4,7 +4,10 @@
 import { Tile } from "./Tile";
 import { kindPic } from "./Emo";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fmt, instLabel, saving, type Offer } from "../mocks/offers";
+import { fmt, instBadge, saving, type Offer } from "../mocks/offers";
+import kaspiLogo from "../assets/icons/payKaspi.svg";
+import halykLogo from "../assets/icons/payHalyk.svg";
+import type { PayMethod } from "../store";
 import { useGo } from "../nav";
 import { offPeakPrice, winLabel } from "../offpeak";
 import { adoptPurchase, setBuyExtra, setDefaultMethod, setKaspiPhone, useDefaultMethod, useKaspiPhone, useMethods } from "../store";
@@ -45,7 +48,13 @@ type Paid = Extract<CheckoutResult, { status: "paid" }>;
 /** charge — сыйлық сияқты «өзіңе емес» төлем: карта сұрауын шақырушы береді, бонус пен бос сағат жеңілдігі көрсетілмейді (Патша, 2026-11-22) */
 export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { offer: Offer; onClose: () => void; onPaid: (r?: Paid) => void; start?: BuyStep; charge?: (card: CheckoutCard) => Promise<CheckoutResult> }) {
   const go = useGo();
-  const methods = useMethods();
+  const allMethods = useMethods();
+  // Бөліп төлеу (Патша, 2026-11-24): мекеме қосса — бөлек тәсіл, қай банк арқылы екені жазылады
+  const methods = useMemo<PayMethod[]>(() => {
+    if (!offer.installment?.length) return allMethods;
+    const inst: PayMethod = { id: "inst:halyk", emoji: "💳", title: "Бөліп төлеу", sub: `Halyk арқылы · ${instBadge(offer)}`, card: true, hosted: "halyk", installment: true, logo: "halyk" };
+    return [allMethods[0], inst, ...allMethods.slice(1)];
+  }, [allMethods, offer]);
   const def = useDefaultMethod();
   const saved = useKaspiPhone();
   const [step, setStep] = useState<BuyStep>(start);
@@ -217,8 +226,8 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
           <div className={s.list}>
             {methods.map((x) => (
               <button key={x.id} className={`${s.opt} ${method === x.id ? s.optOn : ""}`} onClick={() => { if (method !== x.id) { haptic.select(); setMethod(x.id); } }}>
-                <Tile e={x.emoji} size={44} />
-                <span className={s.itemText}><span className={s.itemTitle}>{x.title}</span><span className={s.itemSub}>{x.hosted && !x.qr && instLabel(offer) ? `Бөліп төлеуге болады (${instLabel(offer)}) · банк бетінде таңдайсың` : x.card && !x.hosted ? `Қосылған карта · ${x.sub.replace(/.*(\d\d\/\d\d).*/, "$1")}` : x.sub}</span></span>
+                {x.logo ? <img src={x.logo === "kaspi" ? kaspiLogo : halykLogo} width={44} height={44} className={s.payLogo} alt="" /> : <Tile e={x.emoji} size={44} />}
+                <span className={s.itemText}><span className={s.itemTitle}>{x.title}</span><span className={s.itemSub}>{x.card && !x.hosted ? `Сақталған · ${x.sub.replace(/.*(\d\d\/\d\d).*/, "$1")}` : x.sub}</span></span>
                 <span className={`${s.radio} ${method === x.id ? s.radioOn : ""}`} />
               </button>
             ))}
@@ -230,7 +239,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
         </>}
 
         {step === "kaspi" && <>
-          <div className={s.kaspiHead}><Tile e="🏦" size={44} /><h2 className={s.title}>Kaspi Pay</h2></div>
+          <div className={s.kaspiHead}><img src={kaspiLogo} width={44} height={44} className={s.payLogo} alt="" /><h2 className={s.title}>Kaspi Pay</h2></div>
           <p className={s.lead}>Шот жіберілетін, Kaspi.kz-ке тіркелген нөмірді көрсет</p>
           <label className={s.field}>
             <span className={s.fieldLabel}>Kaspi.kz нөмірі</span>

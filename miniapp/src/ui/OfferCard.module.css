@@ -86,9 +86,11 @@
 .badges > span { display: flex; width: 30px; height: 30px; align-items: center; justify-content: center; }
 .titleIcon { max-width: calc(100% - 136px); }
 
-/* Бөліп төлеу (Патша, 2026-11-24): жеңілдік белгісінің астында, бірдей енмен; сандар дәл ортада */
-.topPills { position: absolute; right: 52px; top: 14px; display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+/* Бөліп төлеу (Патша, 2026-11-24): жеңілдікпен бір сызықта, өз пішінінде (толық дөңгелек капсула), сандар ортада */
+.topPills { position: absolute; right: 52px; top: 14px; display: flex; align-items: center; gap: 6px; }
 .topPills .discTop { position: static; display: inline-flex; align-items: center; justify-content: center; }
-.inst { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 8px; border-radius: 6px; font-size: 14px; line-height: 18px; font-weight: 700; white-space: nowrap; background: #ffe9a8; color: #6b4000; }
-:global(:root[data-theme="dark"]) .inst { background: rgba(255, 196, 0, 0.2); color: #ffd25e; }
-.venueNarrow { max-width: calc(100% - 150px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inst { display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 11px; border-radius: 14px; font-size: 15px; line-height: 20px; font-weight: 700; white-space: nowrap; background: #ffe9a8; color: #6b4000; }
+:global(:root[data-theme="dark"]) .inst, :global(:root[data-theme="dark"]) .instThumb { background: #ffd24d; color: #3d2500; }
+.titleInst { max-width: calc(100% - 214px); }
+/* Суреттің төменгі оң бұрышы (сол жақта — сатып алушылар саны) */
+.instThumb { position: absolute; right: 8px; top: 80px; height: 24px; padding: 0 9px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; white-space: nowrap; background: #ffe08a; color: #5c3700; }

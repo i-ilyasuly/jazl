@@ -1,4 +1,6 @@
 // Figma: «Төлем тәсілдері / Тізім» (13886:36367) және «Карта әрекеттері» (13886:36451)
+import kaspiLogo from "../assets/icons/payKaspi.svg";
+import halykLogo from "../assets/icons/payHalyk.svg";
 import { Tile } from "../ui/Tile";
 import { useCallback, useState } from "react";
 import { useGo } from "../nav";
@@ -31,7 +33,7 @@ export function Payment() {
       <Group>
         {methods.filter((m) => hasCard || !m.card).map((m) => (
           <Row key={m.id} wrap title={m.title} sub={m.sub} onClick={m.card || m.id !== def ? () => { haptic.tap(); setSheet(m); } : undefined}
-            left={<Tile e={m.emoji} size={40} className={leaving === m.id ? s.leave : undefined} />}
+            left={m.logo ? <img src={m.logo === "kaspi" ? kaspiLogo : halykLogo} width={40} height={40} alt="" style={{ borderRadius: 10, background: "#fff", boxShadow: "inset 0 0 0 1px var(--separator)" }} className={leaving === m.id ? s.leave : undefined} /> : <Tile e={m.emoji} size={40} className={leaving === m.id ? s.leave : undefined} />}
             right={m.id === def ? <span key="d" className={`t-cap1 w-600 ${s.def}`}>Әдепкі</span> : <img src={more} width={20} height={20} alt="" />} />
         ))}
         {hasCard && <button className={s.add} onClick={() => go("/profile/card-add")}>

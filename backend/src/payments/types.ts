@@ -24,6 +24,8 @@ export interface ChargeInput {
   card: { token?: string; cryptogram?: string; save?: boolean; hosted?: boolean; qr?: boolean };
   /** Бөліп төлеу айлары (мекеме қосқан, банк беті ұсынады): [3, 6, 12] */
   installment?: number[];
+  /** Клиент «Бөліп төлеу» тәсілін таңдады — банк беті рассрочка қойындысымен ашылады */
+  preferInstallment?: boolean;
   /** 3-D Secure біткен соң клиент оралатын мекенжай */
   returnUrl: string;
 }
