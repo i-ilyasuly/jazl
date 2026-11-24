@@ -60,7 +60,9 @@ function applyCatalog(j: Catalog, t0: number, source: "cache" | "server") {
       patch.limit = o.limit ?? null;
       if (o.rules?.planOnly) patch.planOnly = true;
       if (o.rules?.offPeak) patch.offPeak = o.rules.offPeak;
-      patch.installment = o.rules?.installment?.length ? o.rules.installment : undefined; // сервер жібермесе (банк өшірулі) — үлгі деректегісі де өшеді
+      // Пилотқа дейін (Патша, 2026-11-24): мекеме қоспаса да үлгі деректегі бөліп төлеу көрініп тұрады — дизайнды көру үшін.
+      // Пилот алдында: `else patch.installment = undefined` қосу керек (badges.ts-тегі DEMO сияқты)
+      if (o.rules?.installment?.length) patch.installment = o.rules.installment;
       const found = lists.flatMap((l) => l).find((x) => x.id === o.slug);
       if (found) Object.assign(found, patch);
       else (o.status === "ended" ? endedOffers : moreOffers).push({ id: o.slug, distance: "", favorite: false, rating: 0, ratingCount: 0, address: "", hours: "", buyers: 0, ...patch } as Offer);

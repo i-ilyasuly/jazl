@@ -318,3 +318,5 @@ button.link:active, .link button:active { opacity: 0.55; }
 .instText span { font-size: 14px; line-height: 18px; color: var(--text-secondary); }
 :global(:root[data-theme="dark"]) .instRow { background: rgba(255, 184, 0, 0.1); }
 :global(:root[data-theme="dark"]) .instChip { background: rgba(255, 184, 0, 0.24); color: #ffcf5a; }
+.badges > .instPill { background: #ffe9a8; color: #6b4000; }
+:global(:root[data-theme="dark"]) .badges > .instPill { background: rgba(255, 196, 0, 0.2); color: #ffd25e; }

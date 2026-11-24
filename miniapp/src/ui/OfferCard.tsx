@@ -9,7 +9,7 @@ import { TgEmoji } from "./TgEmoji";
 import { badgesOf, type Badge } from "./badges";
 import { BadgeIcon } from "./BadgeIcon";
 
-import { discount, fmt, instLabel, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
+import { discount, fmt, instBadge, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";
 import heart from "../assets/icons/heart.svg";
@@ -37,10 +37,14 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
       <p className={`${s.title} ${!ended ? s.titleIcon : ""}`}>{offer.packName ?? offer.title}</p>
-      <p className={s.venue}>{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
+      <p className={`${s.venue} ${!ended && instBadge(offer) ? s.venueNarrow : ""}`}>{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
       {/* B нұсқасы (Патша, 2026-11-21): сөзсіз, тек эмодзи — жүрекшенің сол жағында, онымен бірдей өлшемде (Krisha үлгісі) */}
       {/* Патша (2026-11-21): ▼% жеңілдік белгісі — жүрекшенің сол жағында; эмодзи белгілер — астыңғы оң жақта */}
-      {!ended && <span className={s.discTop}><b>▼ {discount(offer)}%</b></span>}
+      {/* Жеңілдік пен бөліп төлеу бір бағанда, бірдей енмен — салыстыруға оңай (Патша, 2026-11-24) */}
+      {!ended && <span className={s.topPills}>
+        <span className={s.discTop}><b>▼ {discount(offer)}%</b></span>
+        {instBadge(offer) && <span className={s.inst} aria-label={`Бөліп төлеу ${instBadge(offer)}`}>{instBadge(offer)}</span>}
+      </span>}
       {!ended && badges.length > 0 && <Badges badges={badges} />}
       <button
         className={s.fav}
@@ -57,8 +61,6 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
         </span>
         {left != null && <span className={`t-cap1 ${s.left} ${left > 10 ? s.leftCalm : ""}`}>{`Қалды ${left} / ${offer.limit!.monthly}`}</span>}
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
-        {/* Бөліп төлеу (Патша, 2026-11-24): «0-0-12» — суреттің төменгі оң бұрышында, сары капсулада (Қазақстанда таныс белгі) */}
-        {!ended && instLabel(offer) && <span className={`t-cap1 ${s.inst}`} aria-label={`Бөліп төлеу ${instLabel(offer)}`}>{instLabel(offer)}</span>}
       </div>
       {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
       {/* Squirrel.: бағаның үстінде — жеңілдіксіз бағасы, көмескі әрі сызылған */}

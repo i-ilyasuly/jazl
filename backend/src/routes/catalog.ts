@@ -10,8 +10,10 @@ import { limitsOf, soldThisMonth } from "../limits.js";
 /** Клиентке көрінетін ережелер: «Тек жоспар бойынша» және бос сағат терезесі (қалғаны — ішкі) */
 const rulesOut = (r: unknown, installmentOn: boolean) => {
   const x = (r ?? {}) as { planOnly?: boolean; offPeak?: unknown; installment?: number[] | null };
-  // Бөліп төлеу — тек банк қосқанда (HALYK_INSTALLMENT=on): әйтпесе клиентке жоқ мүмкіндікті уәде етпейміз
-  const inst = installmentOn && x.installment?.length ? { installment: x.installment } : {};
+  // Бөліп төлеу: Патша (2026-11-24) — пилотқа дейін интерфейсте көрінеді. Пилот алдында банк қоспаса — HALYK_INSTALLMENT
+  // сияқты шартпен жасыру керек (installmentOn). Төлем бетіне жіберу бәрібір тек HALYK_INSTALLMENT=on болғанда.
+  void installmentOn;
+  const inst = x.installment?.length ? { installment: x.installment } : {};
   const out = { ...(x.planOnly ? { planOnly: true, ...(x.offPeak ? { offPeak: x.offPeak } : {}) } : {}), ...inst };
   return Object.keys(out).length ? out : null;
 };
