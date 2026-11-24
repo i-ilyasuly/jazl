@@ -14,6 +14,8 @@ export interface Offer {
   offPeak?: { days: number[]; from: string; to: string; pct: number };
   /** Бөліп төлеу айлары (мекеме қосқан, банк қосулы болса ғана сервер жібереді): [3, 6, 12] → «0-0-12» */
   installment?: number[];
+  /** Қазір белсенді пакеттер саны (бірлігі бар, мерзімі өтпеген). Үлгі деректе — сатылғанның шамамен 40%-ы */
+  active?: number;
   /** Пакеттің маркетингтік атауы (мекеме береді, клиент тілінде): карточкада басты орында, тауар атауы (title) астында */
   packName?: string;
   /** Мекеменің өз еркімен: пакетке қоса берілетін сыйлық және пакет иесінің артықшылығы (клиент тілінде) */
@@ -140,3 +142,5 @@ export const instLabel = (o: Pick<Offer, "installment">) => (o.installment?.leng
 export const instBadge = (o: Pick<Offer, "installment">) => (o.installment?.length ? `0•0•${Math.max(...o.installment)}` : null);
 /** Ең ұзақ мерзіммен айлық төлем (жоғары қарай дөңгелектеніп) */
 export const instMonthly = (price: number, o: Pick<Offer, "installment">) => (o.installment?.length ? Math.ceil(price / Math.max(...o.installment)) : null);
+/** Белсенді пакеттер: сервер бергені, әйтпесе (үлгі) сатылғанның ~40%-ы */
+export const activeOf = (o: Pick<Offer, "buyers" | "active">) => o.active ?? Math.round(o.buyers * 0.4);

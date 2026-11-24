@@ -1,0 +1,3 @@
+.nums { display: inline-flex; align-items: center; font-variant-numeric: tabular-nums; }
+/* Нүкте: сандардың кіші әрпінің ортасында, диаметрі ~ 0.24em, екі жағынан ~ 0.3em бос орын */
+.dot { display: inline-block; flex: none; width: 0.24em; height: 0.24em; margin: 0 0.3em; border-radius: 50%; background: currentColor; opacity: 0.85; }
