@@ -12,7 +12,8 @@ import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
 import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { UseSheet } from "../ui/UseSheet";
-import { detailsOf, discount, findOffer, fmt, hasSampleIncludes, instBadge, instLabel, instMonthly, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
+import { InstNums } from "../ui/InstNums";
+import { activeOf, detailsOf, discount, findOffer, fmt, hasSampleIncludes, instBadge, instLabel, instMonthly, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
 import { Sticker } from "../ui/Sticker";
 import { lngLat, venues } from "../mocks/venues";
@@ -237,11 +238,14 @@ function OfferView({ id }: { id?: string }) {
             <div className={s.pillRow}>
               <span className={s.pillGroup}>
                 <span className={`${s.pill} ${s.green}`}><b>▼ {discount(offer)}%</b></span>
-                {instBadge(offer) && <span className={`${s.pill} ${s.instPill}`}><b>{instBadge(offer)}</b></span>}
+                {instBadge(offer) && <span className={`${s.pill} ${s.instPill}`}><b><InstNums months={offer.installment} /></b></span>}
               </span>
               <span className={s.pillGroup}>
                 <span className={`${s.pill} ${s.unitTag}`}>{fmt(unitPrice(offer))}/{offer.unitWord}</span>
-                {offer.buyers > 0 && <span className={`${s.pill} ${s.buyersTag}`} aria-label={`${offer.buyers} адам алды`}><span className={s.buyersIco} aria-hidden />{offer.buyers}</span>}
+                {/* Патша (2026-11-24): бір белгіде екі сан — барлығы сатылған · қазір белсенді */}
+                {offer.buyers > 0 && <span className={`${s.pill} ${s.buyersTag}`} aria-label={`${offer.buyers} пакет сатылды, ${activeOf(offer)} қазір белсенді`} title={`${offer.buyers} сатылды · ${activeOf(offer)} белсенді`}>
+                  <span className={s.buyersIco} aria-hidden />{offer.buyers}<i className={s.sep} aria-hidden />{activeOf(offer)}
+                </span>}
               </span>
             </div>
           )}
