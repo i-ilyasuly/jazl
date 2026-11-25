@@ -14,6 +14,7 @@ export const CATEGORIES: Record<Kind, Category[]> = {
     { id: "combo", kk: "Комбо", ru: "Комбо", hint: "combo meal with a drink or fries" },
     { id: "chicken", kk: "Тауық", ru: "Курица", hint: "fried chicken, wings, nuggets, тауық, курица" },
     { id: "national", kk: "Ұлттық тағам", ru: "Национальная кухня", hint: "plov, beshbarmak, manty, lagman, palau, ұлттық тағам" },
+    { id: "breakfast", kk: "Таңғы ас", ru: "Завтрак", hint: "breakfast, porridge, eggs, syrniki, таңғы ас, ботқа, жұмыртқа" },
     { id: "salad", kk: "Салат", ru: "Салат", hint: "salads, bowls, healthy food" },
     { id: "dessert", kk: "Десерт", ru: "Десерт", hint: "cakes, desserts, ice cream, pastries, торт" },
     { id: "bakery", kk: "Нан-тоқаш", ru: "Выпечка", hint: "bakery, bread, samsa, pies, бәліш, самса" },
