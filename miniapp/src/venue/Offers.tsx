@@ -133,8 +133,11 @@ export function VOfferWizard() {
   const suggestCat = async () => {
     if (!me) return; setAiCat("busy"); setAiNote("");
     try {
-      const r = await api<{ category: string; confidence: number }>(`/v1/venue/${me.venue.id}/offers/suggest-category`, { method: "POST", body: JSON.stringify({ title: d.title.trim(), packName: d.packName.trim() || undefined, composition: d.composition.trim() || undefined, about: d.about.slice(0, 500) || undefined }) });
-      haptic.success(); setD((x) => ({ ...x, category: r.category })); setAiNote(`${catLabel(r.category, getLang())} · ${Math.round(r.confidence * 100)}%`); setAiCat("idle");
+      const r = await api<{ category: string; confidence: number; top: { category: string; p: number }[] }>(`/v1/venue/${me.venue.id}/offers/suggest-category`, { method: "POST", body: JSON.stringify({ title: d.title.trim(), packName: d.packName.trim() || undefined, composition: d.composition.trim() || undefined, about: d.about.slice(0, 500) || undefined }) });
+      // Сенімділік 70%-дан төмен болса — өзі таңдамаймыз, екі нұсқаны ұсынамыз (сынақ: «Таңғы ас» → 55%, 2026-11-25)
+      if (r.confidence >= 0.7) { haptic.success(); setD((x) => ({ ...x, category: r.category })); setAiNote(`${catLabel(r.category, getLang())} · ${Math.round(r.confidence * 100)}%`); }
+      else { haptic.select(); setAiNote(`Нақты емес: ${r.top.slice(0, 2).map((t) => `${catLabel(t.category, getLang())} ${Math.round(t.p * 100)}%`).join(" не ")} — өзіңіз таңдаңыз`); }
+      setAiCat("idle");
     } catch (e) { const code = (e as { body?: { error?: string } }).body?.error; if (code === "ai_off") setAiCat("off"); else { haptic.error(); setAiNote("Қазір ұсына алмадым — өзіңіз таңдаңыз"); setAiCat("idle"); } }
   };
   const hadExtra = useRef(false);
