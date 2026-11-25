@@ -16,14 +16,14 @@ import clock from "../assets/icons/sClock.svg";
 import remove from "../assets/icons/sRemove.svg";
 import sortIcon from "../assets/icons/sSort.svg";
 import filterIcon from "../assets/icons/sFilter.svg";
+import { score } from "../search";
 import s from "./Search.module.css";
 
 const popular = ["Донер", "Кофе", "Шаш қию", "Бургер", "Латте", "Комбо", "Көлік жуу"];
-const sorts = [{ id: "near", text: "Қашықтық бойынша" }, { id: "cheap", text: "Бағасы төмен" }, { id: "save", text: "Үнемі көп" }, { id: "top", text: "Танымал" }, { id: "new", text: "Жаңа ұсыныстар" }];
+const sorts = [{ id: "rel", text: "Сәйкестігі бойынша" }, { id: "near", text: "Қашықтық бойынша" }, { id: "cheap", text: "Бағасы төмен" }, { id: "save", text: "Үнемі көп" }, { id: "top", text: "Танымал" }, { id: "new", text: "Жаңа ұсыныстар" }];
 const km = (o: Offer) => parseFloat(o.distance.replace(",", "."));
-// Санат сөздері де ізделеді: «кофе» деп жазса латте шығады
-const tags: Record<string, string> = { food: "тағам донер бургер комбо", coffee: "кофе латте", hair: "шаш қию шаштараз барбер" };
-const match = (o: Offer, q: string) => `${o.title} ${o.venue} ${tags[o.kind]}`.toLowerCase().includes(q);
+// Іздеу (search.ts): пакет атауы, тауар, санат, құрам, мекеме — екі тілде, қазақ әріптері бірдейленеді
+const match = (o: Offer, q: string) => score(o, q) > 0;
 
 export function Search() {
   const go = useGo();
@@ -31,7 +31,7 @@ export function Search() {
   useBackButton(back);
   const recent = useRecent();
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState("near");
+  const [sort, setSort] = useState("rel");
   const [sheet, setSheet] = useState(false);
   const [filters, setFilters] = useState<Filters>(noFilters);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -42,8 +42,9 @@ export function Search() {
   useEffect(() => { input.current?.focus({ preventScroll: true }); }, []);
   const query = q.trim().toLowerCase();
   const found = useMemo(() => {
-    const list = allOffers().filter((o) => match(o, query) && pass(o, filters));
-    const by: Record<string, (a: Offer, b: Offer) => number> = { near: (a, b) => km(a) - km(b), cheap: (a, b) => a.price - b.price, save: (a, b) => saving(b) - saving(a), top: (a, b) => b.buyers - a.buyers, new: (a, b) => discount(b) - discount(a) };
+    const sc = new Map(allOffers().map((o) => [o.id, score(o, query)]));
+    const list = allOffers().filter((o) => (sc.get(o.id) ?? 0) > 0 && pass(o, filters));
+    const by: Record<string, (a: Offer, b: Offer) => number> = { rel: (a, b) => (sc.get(b.id) ?? 0) - (sc.get(a.id) ?? 0) || km(a) - km(b), near: (a, b) => km(a) - km(b), cheap: (a, b) => a.price - b.price, save: (a, b) => saving(b) - saving(a), top: (a, b) => b.buyers - a.buyers, new: (a, b) => discount(b) - discount(a) };
     return list.sort(by[sort]);
   }, [query, sort, filters, pass]);
   // Нәтиже шыққан сұраныс 1,2 секундтан кейін «соңғы іздеулерге» түседі
@@ -90,7 +91,7 @@ export function Search() {
             <button className={`t-sub2 w-600 ${s.tool} ${nFilters ? s.toolOn : ""}`} onClick={() => { haptic.tap(); setFilterOpen(true); }}><img src={filterIcon} width={16} height={16} alt="" className={nFilters ? "" : s.gray} />Сүзгі{nFilters ? ` · ${nFilters}` : ""}</button>
           </div>
           <p className={`t-cap1 ${s.count}`}>{`${found.length} ұсыныс • ${venues} мекеме`}</p>
-          <div className={s.list}>{found.map((o, i) => <div key={o.id} className="rise" style={{ ["--i" as string]: i }}><OfferCard offer={o} /></div>)}</div>
+          <div className={s.list}>{found.map((o, i) => <div key={o.id} className="rise" style={{ ["--i" as string]: i }}><OfferCard offer={o} highlight={query} /></div>)}</div>
         </div>
       ) : (
         <div className={s.none} key="none">
