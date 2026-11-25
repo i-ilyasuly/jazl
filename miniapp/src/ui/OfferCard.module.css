@@ -90,10 +90,9 @@
 .topPills { position: absolute; right: 52px; top: 14px; display: flex; align-items: center; gap: 6px; }
 .topPills .discTop { position: static; display: inline-flex; align-items: center; justify-content: center; }
 .inst { display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 11px; border-radius: 14px; font-size: 15px; line-height: 20px; font-weight: 700; white-space: nowrap; background: #ffe9a8; color: #6b4000; }
-:global(:root[data-theme="dark"]) .inst, :global(:root[data-theme="dark"]) .instThumb { background: #ffd24d; color: #3d2500; }
+:global(:root[data-theme="dark"]) .inst { background: #ffd24d; color: #3d2500; }
 .titleInst { max-width: calc(100% - 236px); }
 /* Суреттің төменгі оң бұрышы (сол жақта — сатып алушылар саны) */
-.instThumb { position: absolute; right: 8px; top: 80px; height: 24px; padding: 0 9px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; white-space: nowrap; background: #ffe08a; color: #5c3700; }
 
 /* Іздеуде табылған сөз (Патша, 2026-11-25) */
 .hl { background: color-mix(in srgb, var(--accent, #2f80ed) 18%, transparent); color: inherit; border-radius: 4px; padding: 0 1px; }
