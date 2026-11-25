@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Money } from "./Money";
 import { Photo } from "./Photo";
 import { kindPic } from "./Emo";
@@ -9,6 +9,7 @@ import { TgEmoji } from "./TgEmoji";
 import { badgesOf, type Badge } from "./badges";
 import { BadgeIcon } from "./BadgeIcon";
 import { InstNums } from "./InstNums";
+import { hits } from "../search";
 
 import { discount, fmt, instBadge, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
@@ -22,7 +23,17 @@ import s from "./OfferCard.module.css";
 
 const kindIcon = { food: burger, coffee: cup, hair: scissors };
 
-export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: boolean }) {
+/** Іздеуде табылған сөзді ерекшелеу (search.ts → hits) */
+function Hl({ text, q }: { text: string; q?: string }) {
+  const rs = q ? hits(text, q) : [];
+  if (!rs.length) return <>{text}</>;
+  const out: ReactNode[] = []; let at = 0;
+  rs.forEach(([a, b], i) => { if (a > at) out.push(text.slice(at, a)); out.push(<mark key={i} className={s.hl}>{text.slice(a, b)}</mark>); at = b; });
+  if (at < text.length) out.push(text.slice(at));
+  return <>{out}</>;
+}
+
+export function OfferCard({ offer, ended: endedProp, highlight }: { offer: Offer; ended?: boolean; highlight?: string }) {
   const [broken, setBroken] = useState(false);
   // Айлық лимит таусылса — аяқталған сияқты көрінеді, бірақ «Таусылды» деп (келесі айда не лимит көбейсе қайта ашылады)
   const soldOut = !endedProp && isSoldOut(offer);
@@ -37,8 +48,8 @@ export function OfferCard({ offer, ended: endedProp }: { offer: Offer; ended?: b
   return (
     <Link to={to} viewTransition className={`${s.card} ${ended ? s.ended : ""} ${!ended && offer.promo ? s[offer.promo] : ""}`} onClick={() => { haptic.tap(); setDir("forward"); }}>
       {/* Мекеме берген пакет атауы басты орында, тауар атауы астында (Патша, 2026-11-18). Ақылы жарнама адал белгіленеді. */}
-      <p className={`${s.title} ${!ended ? s.titleIcon : ""} ${!ended && instBadge(offer) ? s.titleInst : ""}`}>{offer.packName ?? offer.title}</p>
-      <p className={s.venue}>{[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")}</p>
+      <p className={`${s.title} ${!ended ? s.titleIcon : ""} ${!ended && instBadge(offer) ? s.titleInst : ""}`}><Hl text={offer.packName ?? offer.title} q={highlight} /></p>
+      <p className={s.venue}><Hl q={highlight} text={[offer.packName ? offer.title : null, offer.venue, offer.packName ? null : offer.distance, !ended && offer.promo ? "Жарнама" : null].filter(Boolean).join(" · ")} /></p>
       {/* B нұсқасы (Патша, 2026-11-21): сөзсіз, тек эмодзи — жүрекшенің сол жағында, онымен бірдей өлшемде (Krisha үлгісі) */}
       {/* Патша (2026-11-21): ▼% жеңілдік белгісі — жүрекшенің сол жағында; эмодзи белгілер — астыңғы оң жақта */}
       {/* Жеңілдік пен бөліп төлеу бір бағанда, бірдей енмен — салыстыруға оңай (Патша, 2026-11-24) */}

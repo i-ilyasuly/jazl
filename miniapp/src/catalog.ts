@@ -8,7 +8,7 @@ import { categoryOffers, endedOffers, moreOffers, offers, type Offer, type Offer
 import { venues } from "./mocks/venues";
 
 interface SrvVenue { slug: string; name: string; kind: OfferKind; rating: number | null; reviewsCount: number; trust?: number | null; branches: { id: string; address: string }[] }
-interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown; composition?: string | null; compositionRu?: string | null; packName?: string | null; packNameRu?: string | null; bonus?: string | null; bonusRu?: string | null; perk?: string | null; perkRu?: string | null; portion?: Offer["portion"] | null } | null; limit?: Offer["limit"]; saleUntil?: string | null; createdAt?: string; rules?: { planOnly?: boolean; offPeak?: { days: number[]; from: string; to: string; pct: number }; installment?: number[] } | null; sizes?: { units: number; price: number }[] | null; stats?: { sold: number; active: number } }
+interface SrvOffer { slug: string; venueSlug: string; title: string; titleRu?: string | null; kind: OfferKind; unitName: string; units: number; price: number; regularUnitPrice: number; photos: string[]; status: "active" | "ended"; details: { buyers?: number; promo?: "hot" | "top" | null; deadline?: string | null; about?: unknown; aboutRu?: unknown; composition?: string | null; compositionRu?: string | null; packName?: string | null; packNameRu?: string | null; bonus?: string | null; bonusRu?: string | null; perk?: string | null; perkRu?: string | null; portion?: Offer["portion"] | null } | null; category?: string | null; limit?: Offer["limit"]; saleUntil?: string | null; createdAt?: string; rules?: { planOnly?: boolean; offPeak?: { days: number[]; from: string; to: string; pct: number }; installment?: number[] } | null; sizes?: { units: number; price: number }[] | null; stats?: { sold: number; active: number } }
 
 export const catalogState: { source: "mock" | "cache" | "server"; venues: number; offers: number; error?: string; ms?: number; branches: { venue: string; slug: string; branchId: string; address: string }[] } = { source: "mock", venues: 0, offers: 0, branches: [] };
 
@@ -52,6 +52,10 @@ function applyCatalog(j: Catalog, t0: number, source: "cache" | "server") {
       if (o.details?.portion) patch.portion = o.details.portion;
       const pn = getLang() === "ru" && o.details?.packNameRu?.trim() ? o.details.packNameRu : o.details?.packName;
       patch.packName = pn?.trim() || undefined;
+      // Іздеу екі тілде де табуы үшін (Патша, 2026-11-25): «Тойымды», «суши», «ролл»
+      const both = (...xs: (string | null | undefined)[]) => xs.filter((x): x is string => Boolean(x?.trim())).join(" ");
+      patch.idx = { name: both(o.details?.packName, o.details?.packNameRu), title: both(o.title.split(" · ")[0], o.titleRu, ruOf(o.title.split(" · ")[0])),
+        cat: o.category ?? "", comp: both(o.details?.composition, o.details?.compositionRu), venue: vName.get(o.venueSlug) ?? "" };
       const loc = (kk?: string | null, ru?: string | null) => ((getLang() === "ru" && ru?.trim() ? ru : kk)?.trim() || undefined);
       patch.bonus = loc(o.details?.bonus, o.details?.bonusRu); patch.perk = loc(o.details?.perk, o.details?.perkRu);
       // Сатылым соңы: 7 күннен аз қалса карточкада шынайы мерзім белгісі («2 күн қалды» — енді нақты деректен)
