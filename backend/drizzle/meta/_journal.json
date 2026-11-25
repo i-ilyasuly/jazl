@@ -246,6 +246,13 @@
       "when": 1795440000000,
       "tag": "0034_venue_payees",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795450000000,
+      "tag": "0035_seed_pack_names",
+      "breakpoints": true
     }
   ]
 }
