@@ -75,7 +75,6 @@ export function OfferCard({ offer, ended: endedProp, highlight }: { offer: Offer
         {left != null && <span className={`t-cap1 ${s.left} ${left > 10 ? s.leftCalm : ""}`}>{`Қалды ${left} / ${offer.limit!.monthly}`}</span>}
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
         {/* Патша (2026-11-24): суреттің төменгі оң бұрышында ДА — екі орынның бірі кейін алынады */}
-        {!ended && instBadge(offer) && <span className={`t-cap1 ${s.instThumb}`}><InstNums months={offer.installment} /></span>}
       </div>
       {/* Бірнеше көлем болса — ең арзан көлемнің бағасы «-дан» деп (Патша, 2026-11-18) */}
       {/* Squirrel.: бағаның үстінде — жеңілдіксіз бағасы, көмескі әрі сызылған */}
