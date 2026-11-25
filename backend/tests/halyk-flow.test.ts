@@ -44,6 +44,17 @@ d("Halyk ePay ағыны", () => {
   });
   afterAll(async () => { vi.unstubAllGlobals(); await dbh?.pool.end(); });
 
+  // Аудит 2026-11-25: сынақтың «банк растауы» маршруты Halyk төлемін ақшасыз «төленді» ете алатын (тесік)
+  it("test-3ds маршруты Halyk төлемін раста алмайды — пакет берілмейді", async () => {
+    const j = await (await post("/v1/purchases", { offerSlug: "doner", method: "card", card: { hosted: true, provider: "halyk" }, idempotencyKey: key() })).json();
+    expect(j.status).toBe("action_required");
+    const r = await post(`/v1/payments/${j.paymentId}/test-3ds`, { approve: true });
+    expect(r.status).toBe(404);
+    const pay = (await dbh.pool.query("select p.status, k.status as pack_status from app.payments p left join app.packs k on k.id = p.pack_id where p.id = $1", [j.paymentId])).rows[0];
+    expect(pay.status).toBe("pending");
+    expect(pay.pack_status).not.toBe("active");
+  });
+
   it("мини аппқа тәсіл көрінеді (сынақ режимі белгісімен)", async () => {
     expect(await (await get("/v1/payments/config")).json()).toMatchObject({ hosted: [{ id: "halyk", test: true, qr: true }] });
   });

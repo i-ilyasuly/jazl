@@ -101,10 +101,12 @@ export function paymentRoutes(cfg: Config, db: Db) {
 
   // Сынақ провайдері ғана: мини апптағы «банк растауы» беті (нақты провайдерде — банктің беті, нәтижесі вебхукпен)
   r.post("/payments/:id/test-3ds", async (c) => {
-    if (paymentProvider(cfg).name !== "test") return c.json({ ok: false, error: "not_found" }, 404);
+    // Аудит 2026-11-25: тек сынақ провайдерінің төлемі және тек сынақ режимінде. Бұрын Halyk төлемін де осы жерден
+    // ақшасыз «төленді» етуге болатын (провайдер тексерілмейтін, нақты режимде де ашық еді).
+    if (cfg.PAYMENTS_MODE === "live" || paymentProvider(cfg).name !== "test") return c.json({ ok: false, error: "not_found" }, 404);
     const b = z.object({ approve: z.boolean() }).strict().safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
-    const [pay] = await db.select().from(payments).where(and(eq(payments.id, c.req.param("id")), eq(payments.userId, c.get("user").id))).limit(1);
+    const [pay] = await db.select().from(payments).where(and(eq(payments.id, c.req.param("id")), eq(payments.userId, c.get("user").id), eq(payments.provider, "test"))).limit(1);
     if (!pay) return c.json({ ok: false, error: "not_found" }, 404);
     if (pay.status === "pending") {
       if (b.data.approve) { const out = await finalizePayment(db, cfg, pay); if ("error" in out) return c.json({ ok: false, error: out.error }, 409); }
