@@ -33,6 +33,8 @@ const Env = z.object({
   /** Бөліп төлеу (Halyk ePay төлем беті: installmentConditions): Halyk терминалда рассрочканы қосқан соң ғана on.
    *  Өшірулі болса мекеменің баптауы сақталады, бірақ клиентке «0-0-12» көрсетілмейді және банкке жіберілмейді. */
   HALYK_INSTALLMENT: z.enum(["on", "off"]).default("off"),
+  /** Gemini Decision 1 (ai.ts): ұсыныс санатын ұсыну. Secret Manager: medeo-gemini-api-key. Жоқ болса — мүмкіндік өшірулі */
+  GEMINI_API_KEY: z.string().min(20).optional(),
   /** Medeo комиссиясы, % (ішкі есеп: мекемеге төленетін соманы есептеу) */
   MEDEO_FEE_PCT: z.coerce.number().default(10),
   /** Мини апп ашылатын бот (чектегі тексеру QR-ы: t.me/<бот>?startapp=rc_<нөмір>) */

@@ -170,6 +170,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
   app.use("/v1/me/pin", lim([{ name: "upin", max: 10, windowSec: 60, by: "user" }]));
   app.use("/v1/me/pin/*", lim([{ name: "upinv", max: 15, windowSec: 60, by: "user" }]));
   app.use("/v1/events", lim([{ name: "events", max: 30, windowSec: 60, by: "user" }]));
+  app.use("/v1/venue/:venueId/offers/suggest-category", lim([{ name: "aicat", max: 20, windowSec: 60, by: "user" }])); // Gemini — ақылы, шектейміз
   app.use("/v1/venue/orders/verify", lim([{ name: "overify", max: 20, windowSec: 60, by: "user" }]));
 
   // Бірлік жұмсау — PIN қойылған болса, серверде расталған PIN токенімен ғана (аудит 2026-11-21)

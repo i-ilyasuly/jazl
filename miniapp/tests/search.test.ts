@@ -23,3 +23,10 @@ describe("іздеу", () => {
   it("басы сәйкес келсе де табады (тойым → Тойымды)", () => expect(find("тойым")).toEqual(["a"]));
   it("ұзындық сақталады — ерекшелеу дәл", () => { expect(norm("Тойымды").length).toBe(7); expect(hits("Тойымды сет", "тойымды")).toEqual([[0, 7]]); });
 });
+
+describe("іздеу сөздері мен санат (2-кезең)", () => {
+  it("мекеменің іздеу сөзі бойынша табады", () => {
+    const o = mk("k", { title: "Сет · 8 дана", idx: { name: "Тойымды", title: "Сет", cat: "Суши Суши ролл жапон", comp: "", venue: "Sakura" } });
+    expect(score(o, "ролл")).toBeGreaterThan(0); expect(score(o, "жапон")).toBeGreaterThan(0); expect(score(o, "пицца")).toBe(0);
+  });
+});
