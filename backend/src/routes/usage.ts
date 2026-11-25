@@ -1,6 +1,7 @@
 // B3 · Пакетті қолдану: кассадағы QR (scan), қазір тапсырыс (order), жоспар/жазылу (plan); бас тарту; кассир растауы.
 // Басты ереже: бірлік тек транзакция ішінде, пакет жолын бұғаттап (SELECT … FOR UPDATE) шегеріледі — екі сұрау қатар келсе де
 // бір бірлік екі рет жұмсалмайды. Әр қолдануға чек (receipts.kind = use | order) жазылады: алу тәсілі, слот, код — ішкі бөлікте.
+import { ipFrom } from "../rateLimit.js";
 import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { onPackChanged } from "../bot/packCard.js";
 import { createHash, randomInt } from "node:crypto";
@@ -56,7 +57,7 @@ async function assertBranch(tx: Tx, only: string[] | null, branchId: string) {
 }
 
 function meta(c: Context<Env>, user: User) {
-  const ip = (c.req.header("x-forwarded-for") ?? "").split(",")[0].trim();
+  const ip = ipFrom(c.req.header("x-forwarded-for")) ?? "";
   return {
     customer: { firstName: user.firstName, lastName: user.lastName, fullName: [user.firstName, user.lastName].filter(Boolean).join(" "), username: user.username ? "@" + user.username : null, phone: user.phone ?? null },
     client: { platform: c.req.header("x-tg-platform") ?? null, tgVersion: c.req.header("x-tg-version") ?? null, appVersion: c.req.header("x-app-version") ?? null, userAgent: c.req.header("user-agent") ?? null,

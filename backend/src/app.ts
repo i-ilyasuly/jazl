@@ -24,7 +24,7 @@ import { complaintRoutes } from "./routes/complaints.js";
 import { paymentRoutes, paymentWebhookRoutes } from "./routes/payments.js";
 import { adminFileRoutes, adminRoutes, adminSigOk, adminWebRoutes } from "./routes/admin.js";
 import { safeEqual } from "./secret.js";
-import { rateLimit, type LimitRule } from "./rateLimit.js";
+import { clientIp, rateLimit, type LimitRule } from "./rateLimit.js";
 import { pinGuard, pinRoutes } from "./routes/pin.js";
 import { getSettings, refreshFees, setSetting } from "./settings.js";
 import { refreshVenueScores } from "./venueScore.js";
@@ -98,6 +98,11 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     await snapshot(db).catch((e) => console.error("metrics snapshot", e)); // күндік сурет (метрикалар)
     await setSetting(db, "lastTick", new Date().toISOString()).catch(() => null);
     return c.json({ ok: true, sent, renewed, cards: cardsDone ?? null });
+  });
+  // IP тақырыбын тексеру (аудит 2026-11-25): Cloud Run X-Forwarded-For-ды қалай құратынын көру үшін. Тек CRON_KEY-мен.
+  app.get("/cron/ip", (c) => {
+    if (!cfg.CRON_KEY || !safeEqual(c.req.header("X-Cron-Key") ?? "", cfg.CRON_KEY)) return c.json({ ok: false, error: "not_found" }, 404);
+    return c.json({ ok: true, xff: c.req.header("x-forwarded-for") ?? null, realIp: c.req.header("x-real-ip") ?? null, chosen: clientIp(c), hops: Number(process.env.IP_HOPS) || 0 });
   });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db, { installment: cfg.HALYK_INSTALLMENT === "on" }));
