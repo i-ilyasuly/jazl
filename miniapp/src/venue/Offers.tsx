@@ -16,16 +16,16 @@ import { err, money, useCurrent, V } from "./api";
 import { Buttons, Note, OfferPic, Sheet, Sk, VPage, VSticker } from "./ui";
 import { pickImage, uploadImage } from "./media";
 import { offPeakPrice, winLabel, WEEK_SHORT, type OffPeak } from "../offpeak";
+import { CATEGORIES, catLabel } from "../categories";
 import s from "./V.module.css";
 
 type Size = { units: number; price: number };
 type PortionUnit = "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min";
-interface Draft { title: string; titleRu: string; packName: string; packNameRu: string; bonus: string; bonusRu: string; perk: string; perkRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
+interface Draft { keywords: string[]; title: string; titleRu: string; packName: string; packNameRu: string; bonus: string; bonusRu: string; perk: string; perkRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
   rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; installment?: number[] | null; branches: string[] | null; monthlyLimit?: number | null; perUserLimit?: number | null; saleUntil?: string | null } }
-interface OfferFull extends Omit<Draft, "titleRu" | "aboutRu" | "composition" | "compositionRu" | "portion" | "packName" | "packNameRu" | "bonus" | "bonusRu" | "perk" | "perkRu"> { packName?: string; packNameRu?: string; bonus?: string; bonusRu?: string; perk?: string; perkRu?: string; titleRu?: string | null; aboutRu?: string | null; composition?: string; compositionRu?: string; portion?: Draft["portion"]; soldMonth?: number; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
+interface OfferFull extends Omit<Draft, "keywords" | "titleRu" | "aboutRu" | "composition" | "compositionRu" | "portion" | "packName" | "packNameRu" | "bonus" | "bonusRu" | "perk" | "perkRu"> { keywords?: string[]; packName?: string; packNameRu?: string; bonus?: string; bonusRu?: string; perk?: string; perkRu?: string; titleRu?: string | null; aboutRu?: string | null; composition?: string; compositionRu?: string; portion?: Draft["portion"]; soldMonth?: number; id: string; slug: string; kind: "food" | "coffee" | "hair"; status: string; reviewNote?: { text: string; field?: string; at?: string } | null; sizes: (Size & { sold: number })[]; stats: { sold: number; active: number; used: number; revenue: number; series: { date: string; n: number }[]; growth: number | null } }
 
 // Санат серверге қазақша сақталады (тілге тәуелсіз мән), ал экранда таңдалған тілде көрінеді: __t(c)
-const cats = { food: [kk("Донер"), kk("Бургер"), kk("Шаурма"), kk("Кофе"), kk("Басқа")], coffee: [kk("Кофе"), kk("Шай"), kk("Десерт"), kk("Басқа")], hair: [kk("Шаш қию"), kk("Сақал"), kk("Балалар"), kk("Басқа")] };
 const DAYS = [7, 14, 30, 60, 90];
 const saving = (x: Size, reg: number) => Math.max(0, Math.round((1 - x.price / (x.units * reg)) * 100));
 
@@ -124,9 +124,21 @@ export function VOfferWizard() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("draft");
   const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
-  const [d, setD] = useState<Draft>({ title: "", titleRu: "", packName: "", packNameRu: "", bonus: "", bonusRu: "", perk: "", perkRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  const [d, setD] = useState<Draft>({ keywords: [], title: "", titleRu: "", packName: "", packNameRu: "", bonus: "", bonusRu: "", perk: "", perkRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  // Іздеу сөздері мен санат ұсынысы (2-кезең)
+  const [kw, setKw] = useState("");
+  const addKw = () => { const v = kw.trim().toLowerCase().replace(/,$/, ""); if (v.length >= 2 && !d.keywords.includes(v) && d.keywords.length < 8) { haptic.select(); setD((x) => ({ ...x, keywords: [...x.keywords, v] })); } setKw(""); };
+  const [aiCat, setAiCat] = useState<"idle" | "busy" | "off">("idle");
+  const [aiNote, setAiNote] = useState("");
+  const suggestCat = async () => {
+    if (!me) return; setAiCat("busy"); setAiNote("");
+    try {
+      const r = await api<{ category: string; confidence: number }>(`/v1/venue/${me.venue.id}/offers/suggest-category`, { method: "POST", body: JSON.stringify({ title: d.title.trim(), packName: d.packName.trim() || undefined, composition: d.composition.trim() || undefined, about: d.about.slice(0, 500) || undefined }) });
+      haptic.success(); setD((x) => ({ ...x, category: r.category })); setAiNote(`${catLabel(r.category, getLang())} · ${Math.round(r.confidence * 100)}%`); setAiCat("idle");
+    } catch (e) { const code = (e as { body?: { error?: string } }).body?.error; if (code === "ai_off") setAiCat("off"); else { haptic.error(); setAiNote("Қазір ұсына алмадым — өзіңіз таңдаңыз"); setAiCat("idle"); } }
+  };
   const hadExtra = useRef(false);
-  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); hadExtra.current = Boolean(o.composition || o.compositionRu || o.portion || o.packName || o.packNameRu || o.bonus || o.bonusRu || o.perk || o.perkRu); setD({ title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", packName: o.packName ?? "", packNameRu: o.packNameRu ?? "", bonus: o.bonus ?? "", bonusRu: o.bonusRu ?? "", perk: o.perk ?? "", perkRu: o.perkRu ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (id && me) api<{ offer: OfferFull }>(`/v1/venue/${me.venue.id}/offers/${id}`).then(({ offer: o }) => { setStatus(o.status); hadExtra.current = Boolean(o.composition || o.compositionRu || o.portion || o.packName || o.packNameRu || o.bonus || o.bonusRu || o.perk || o.perkRu); setD({ keywords: o.keywords ?? [], title: o.title, titleRu: o.titleRu ?? ruOf(o.title) ?? "", packName: o.packName ?? "", packNameRu: o.packNameRu ?? "", bonus: o.bonus ?? "", bonusRu: o.bonusRu ?? "", perk: o.perk ?? "", perkRu: o.perkRu ?? "", category: o.category ?? "", about: o.about, aboutRu: o.aboutRu ?? "", composition: o.composition ?? "", compositionRu: o.compositionRu ?? "", portion: o.portion ?? null, photos: o.photos ?? [], sizes: o.sizes.map(({ units, price }) => ({ units, price })), regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, rules: o.rules }); }).catch(() => null); }, [id, me?.venue.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
   // Бір тілде жазса, екіншісі сөздіктен өзі толады (бос не бұрын өзі толтырылған болса ғана — мекеме жазғанын баспаймыз)
   const setTitle = (v: string) => setD((x) => { const auto = !x.titleRu || x.titleRu === ruOf(x.title); return { ...x, title: v, titleRu: auto ? ruOf(v) ?? (auto && x.titleRu ? "" : x.titleRu) : x.titleRu }; });
@@ -219,10 +231,26 @@ export function VOfferWizard() {
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
           {NAME_TEMPLATES[me.venue.kind].map(([a, b]) => <button key={a} className={`${s.chip} ${d.packName === a ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ packName: a, packNameRu: b }); }}>{getLang() === "ru" ? b : a}</button>)}
         </div>
+        {/* Санат тізімнен (Патша, 2026-11-25): іздеу мен сүзгі дұрыс жұмыс істеуі үшін. «Ұсыну» — Gemini Decision 1 (сервер кілті болса) */}
         <h2 className={s.blueHead}>Санат</h2>
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
-          {cats[me.venue.kind].map((c) => <button key={c} className={`${s.chip} ${d.category === c ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ category: c }); }}>{__t(c)}</button>)}
+          {CATEGORIES[me.venue.kind].map((c) => <button key={c.kk} className={`${s.chip} ${d.category === c.kk ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ category: c.kk }); }}>{catLabel(c.kk, getLang())}</button>)}
         </div>
+        {aiCat !== "off" && <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "-4px 0 4px" }}>
+          <button className={s.link} disabled={aiCat === "busy" || d.title.trim().length < 2} onClick={suggestCat}>{aiCat === "busy" ? "Ойланып жатыр…" : "✨ Санатты ұсыну"}</button>
+          {aiNote && <span className={`t-cap1 ${s.muted}`}>{aiNote}</span>}
+        </div>}
+        {/* Іздеу сөздері (Патша, 2026-11-25): клиент осы сөздермен де табады — «ролл», «сет», «жапон» */}
+        <h2 className={s.blueHead}>Іздеу сөздері · міндетті емес</h2>
+        <div className={s.card} style={{ padding: "10px 16px" }}>
+          <div className={s.chips} style={{ flexWrap: "wrap", padding: 0, margin: d.keywords.length ? "0 0 8px" : 0 }}>
+            {d.keywords.map((k) => <button key={k} className={`${s.chip} ${s.chipOn}`} onClick={() => { haptic.tap(); up({ keywords: d.keywords.filter((x) => x !== k) }); }} aria-label={`${k} — өшіру`}>{k} ✕</button>)}
+          </div>
+          {d.keywords.length < 8 && <input value={kw} maxLength={24} onChange={(e) => setKw(e.target.value)} enterKeyHint="done" placeholder="Мысалы: ролл, сет — Enter"
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addKw(); } }} onBlur={addKw}
+            style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 6px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />}
+        </div>
+        <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Клиент іздеуде осы сөздерді жазса да ұсынысыңызды көреді. 8-ге дейін, екі тілде араласа береді.</p>
         {/* Сипаттама екі тілде (Патша, 2026-11-18): клиент өз тілінде оқиды */}
         <div className={s.card} style={{ padding: "12px 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span className={`t-cap1 ${s.muted}`}>Сипаттама (қазақша)</span><button className={s.link} onClick={() => setEditAbout("kk")}>Өңдеу</button></div>

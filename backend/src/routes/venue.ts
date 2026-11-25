@@ -3,6 +3,7 @@
 // 07 Команда (шақыру, рөлдер, кассир профилі), 08 Қолдану тарихы және тапсырыстар, 09 Есеп, 16 Қайтару.
 // Рөлдер (Figma «Рөлдер мен рұқсаттар»): кассир — тек кассир режимі; басқарушы — + қолдану тарихы, ұсыныстарды өңдеу;
 // иесі — + баға, есеп пен төлем, команданы басқару.
+import { AiError, aiEnabled, suggestCategory } from "../ai.js";
 import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { randomInt } from "node:crypto";
 import { Hono, type Context } from "hono";
@@ -241,6 +242,22 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   });
 
   // ── 06 · Ұсыныстар ───────────────────────────────────────────
+  // Санатты ұсыну (Gemini Decision 1, ai.ts): мекеме ұсыныс жазып жатқанда — «Санатты ұсыну» батырмасы. Тек иесі/менеджері.
+  const Suggest = z.object({ title: z.string().trim().min(2).max(60), packName: z.string().trim().max(40).optional(), composition: z.string().trim().max(300).optional(), about: z.string().max(500).optional() }).strict();
+  r.post("/venue/:venueId/offers/suggest-category", async (c) => {
+    const venueId = c.req.param("venueId");
+    if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
+    if (!aiEnabled(cfg)) return c.json({ ok: false, error: "ai_off" }, 404);
+    const b = Suggest.safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const [v] = await db.select({ kind: venues.kind }).from(venues).where(eq(venues.id, venueId)).limit(1);
+    if (!v) return c.json({ ok: false, error: "not_found" }, 404);
+    try {
+      const out = await suggestCategory(cfg, v.kind, b.data);
+      return c.json({ ok: true, category: out.best.kk, confidence: out.confidence, top: out.top.map((x) => ({ category: x.category.kk, p: x.p })) });
+    } catch (e) { return c.json({ ok: false, error: e instanceof AiError ? e.code : "ai_error" }, 502); }
+  });
+
   r.get("/venue/:venueId/offers", async (c) => {
     const venueId = c.req.param("venueId");
     if (!(await guard(c, venueId))) return deny(c); // кассир де көреді: «Клиенттің пакетін таңда»
@@ -268,11 +285,13 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const Size = z.object({ units: z.number().int().min(1).max(100), price: z.number().int().min(100).max(10_000_000) });
   const Portion = z.object({ value: z.number().positive().max(100_000), unit: z.enum(["g", "kg", "ml", "l", "cm", "pcs", "min"]) }).strict();
   /** Ұсыныстың details ішіне жазылатын құрам/порция (бос жол — жоқ) */
-  const extraDetails = (d: { composition?: string; compositionRu?: string; portion?: { value: number; unit: string } | null; packName?: string; packNameRu?: string; bonus?: string; bonusRu?: string; perk?: string; perkRu?: string }) => ({
+  const extraDetails = (d: { keywords?: string[]; composition?: string; compositionRu?: string; portion?: { value: number; unit: string } | null; packName?: string; packNameRu?: string; bonus?: string; bonusRu?: string; perk?: string; perkRu?: string }) => ({
     ...Object.fromEntries((["bonus", "bonusRu", "perk", "perkRu"] as const).filter((k) => d[k] !== undefined).map((k) => [k, d[k] || null])),
     ...(d.packName !== undefined ? { packName: d.packName || null } : {}), ...(d.packNameRu !== undefined ? { packNameRu: d.packNameRu || null } : {}),
     ...(d.composition !== undefined ? { composition: d.composition || null } : {}), ...(d.compositionRu !== undefined ? { compositionRu: d.compositionRu || null } : {}),
-    ...(d.portion !== undefined ? { portion: d.portion } : {}) });
+    ...(d.portion !== undefined ? { portion: d.portion } : {}),
+    // Іздеу сөздері (Патша, 2026-11-25): «ролл, сет, жапон» — клиент «ролл» деп іздесе де табады. Бос тізім — жоқ
+    ...(d.keywords !== undefined ? { keywords: [...new Set(d.keywords.map((k) => k.trim().toLowerCase()).filter((k) => k.length >= 2))].slice(0, 8) } : {}) });
   const OfferBody = z.object({
     title: z.string().trim().min(2).max(60), titleRu: z.string().trim().min(2).max(60).optional(), category: z.string().trim().max(30).optional(), about: z.string().max(500).default(""), aboutRu: z.string().max(500).optional(),
     sizes: z.array(Size).min(1).max(5), regularUnitPrice: z.number().int().min(50).max(1_000_000), validDays: z.number().int().min(7).max(365),
@@ -298,6 +317,8 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     composition: z.string().trim().max(300).optional(), compositionRu: z.string().trim().max(300).optional(),
     /** Пакеттің маркетингтік атауы (Патша, 2026-11-18): «Түскі ас абонементі» — карточкада басты орында, тауар атауы астында. Міндетті емес, екі тілде */
     packName: z.string().trim().max(40).optional(), packNameRu: z.string().trim().max(40).optional(),
+    /** Іздеу сөздері: 8-ге дейін, әрқайсысы 2–24 таңба (екі тілде араласа береді) */
+    keywords: z.array(z.string().trim().min(2).max(24)).max(8).optional(),
     /** Мекеменің өз еркімен (Патша, 2026-11-19): пакетке қоса берілетін сыйлық («Әр донерге тегін шай») және пакет иесінің артықшылығы («Сусынға 20%») */
     bonus: z.string().trim().max(80).optional(), bonusRu: z.string().trim().max(80).optional(),
     perk: z.string().trim().max(80).optional(), perkRu: z.string().trim().max(80).optional(),
@@ -407,6 +428,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     return c.json({ ok: true, offer: { id: o.id, slug: o.slug, title: o.title.split(" · ")[0], titleRu: o.titleRu, kind: o.kind, status: o.status, reviewNote: o.reviewNote, category: o.category, about: (o.details as { about?: string } | null)?.about ?? "", aboutRu: (o.details as { aboutRu?: string } | null)?.aboutRu ?? null,
       packName: (o.details as { packName?: string } | null)?.packName ?? "", packNameRu: (o.details as { packNameRu?: string } | null)?.packNameRu ?? "",
       ...Object.fromEntries((["bonus", "bonusRu", "perk", "perkRu"] as const).map((k) => [k, (o.details as Record<string, string | undefined> | null)?.[k] ?? ""])),
+      keywords: (o.details as { keywords?: string[] } | null)?.keywords ?? [],
       composition: (o.details as { composition?: string } | null)?.composition ?? "", compositionRu: (o.details as { compositionRu?: string } | null)?.compositionRu ?? "", portion: (o.details as { portion?: unknown } | null)?.portion ?? null,
       soldMonth: (await soldThisMonth(db, [o.id])).get(o.id) ?? 0,
       regularUnitPrice: o.regularUnitPrice, validDays: o.validDays, photos: o.photos, rules: o.rules ?? { carry: true, extend: true, preorder: true, branches: null },
