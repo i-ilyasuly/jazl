@@ -31,7 +31,8 @@ export async function loadCatalog() {
   }
 }
 
-function applyCatalog(j: Catalog, t0: number, source: "cache" | "server") {
+/** Тесттерге де ашық: серверден келген каталогты үлгі тізімдерге жазу */
+export function applyCatalog(j: Catalog, t0: number, source: "cache" | "server") {
   {
     const vName = new Map(j.venues.map((v) => [v.slug, v.name]));
     for (const v of j.venues) { const m = venues.find((x) => x.id === v.slug); if (m) { m.name = v.name; m.rating = v.rating ?? m.rating; m.reviews = v.reviewsCount; m.trust = v.trust ?? null; m.address = v.branches[0]?.address ?? m.address; } }

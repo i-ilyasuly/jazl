@@ -84,7 +84,8 @@ export const categoryOffers: Offer[] = [
   { id: "pizza", packName: kk("Сырлы кеш"), promo: "hot", title: "Ірімшікті пицца · 4 дана", unitWord: "пицца", venue: "Dodo Pizza", distance: "2,1 км", kind: "food", price: 16000, oldPrice: 20000, units: 4, buyers: 54, favorite: false, rating: 4.7, ratingCount: 40, address: "Қарағанды, Ермеков көшесі 29", hours: "Ашық · бүгін 10:00–23:00", installment: [3, 6, 12] },
   { id: "mens-cut", packName: kk("Жігіт сәні"), title: "Ерлердің шашын қию · 4 рет", unitWord: "қию", venue: "Qala Barber", distance: "1,8 км", kind: "hair", price: 10000, oldPrice: 14000, units: 4, buyers: 27, favorite: false, rating: 4.9, ratingCount: 18, address: "Қарағанды, Нұркен Әбдіров даңғылы 24", hours: "Ашық · бүгін 10:00–21:00" },
 ];
-export const allOffers = () => [...offers, ...moreOffers];
+// Іздеу барлық белсенді ұсынысты қарайды — санат беттерінің тізімі де (бұрын «Үлкен аппетит», «Жігіт сәні» табылмайтын, 2026-11-25)
+export const allOffers = () => { const seen = new Set<string>(); return [...offers, ...moreOffers, ...categoryOffers].filter((o) => !seen.has(o.id) && (seen.add(o.id), true)); };
 export const offersOfVenue = (name: string) => [...offers, ...moreOffers, ...categoryOffers].filter((o) => o.venue === name);
 import { kk } from "../i18n";
 import { photoOf } from "./photos";
