@@ -253,6 +253,13 @@
       "when": 1795450000000,
       "tag": "0035_seed_pack_names",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795460000000,
+      "tag": "0036_pack_names_untranslated",
+      "breakpoints": true
     }
   ]
 }

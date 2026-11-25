@@ -184,7 +184,6 @@ export function VOfferWizard() {
     if (step === 1 && d.titleRu.trim().length < 2) { haptic.error(); return nativeAlert("Атауын орысша да жазыңыз: клиенттер орыс тілінде де көреді."); }
     if (step === 1 && d.about.trim() && !d.aboutRu.trim()) { haptic.error(); return nativeAlert("Сипаттаманы орысша да жазыңыз."); }
     if (step === 1 && d.aboutRu.trim() && !d.about.trim()) { haptic.error(); return nativeAlert("Сипаттаманы қазақша да жазыңыз."); }
-    if (step === 1 && d.packName.trim() && !d.packNameRu.trim()) { haptic.error(); return nativeAlert("Пакет атауын орысша да жазыңыз."); }
     if (step === 1 && d.packNameRu.trim() && !d.packName.trim()) { haptic.error(); return nativeAlert("Пакет атауын қазақша да жазыңыз."); }
     if (step === 1 && ([["bonus", "bonusRu"], ["perk", "perkRu"]] as const).some(([a, b]) => Boolean(d[a].trim()) !== Boolean(d[b].trim()))) { haptic.error(); return nativeAlert("Сыйлық пен артықшылықты екі тілде де жазыңыз (не екеуін де бос қалдырыңыз)."); }
     if (step === 1 && d.composition.trim() && !d.compositionRu.trim()) { haptic.error(); return nativeAlert("Құрамын орысша да жазыңыз."); }
@@ -225,11 +224,11 @@ export function VOfferWizard() {
             style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />
         </label>
         <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
-          <span className="t-cap1" style={{ color: "var(--link)" }}>Пакет атауы (орысша)</span>
+          <span className="t-cap1" style={{ color: "var(--link)" }}>Пакет атауы (орысша) · міндетті емес</span>
           <input value={d.packNameRu} maxLength={40} onChange={(e) => up({ packNameRu: e.target.value })} placeholder="Например: Абонемент на обед" lang="ru"
             style={{ display: "block", width: "100%", border: 0, outline: 0, background: "none", font: "inherit", fontSize: 17, padding: "4px 0 10px", color: "var(--text-strong)", borderBottom: "2px solid #229af0" }} />
         </label>
-        <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Клиент карточкада алдымен осы атауды, астында тауар атауын көреді. Бос қалса — тауар атауы шығады.</p>
+        <p className={`t-cap1 ${s.muted}`} style={{ marginTop: -6 }}>Клиент карточкада алдымен осы атауды, астында тауар атауын көреді. Бос қалса — тауар атауы шығады. Брендтік атау аударылмайды: орысшасы бос болса, орыс тілінде де осы атау көрінеді.</p>
         {/* Атау үлгілері (Хормози, MAGIC: себеп + кімге + нәтиже + мерзім + пішін) — басса, екі тілде толады, кейін өзгертуге болады */}
         <div className={s.chips} style={{ flexWrap: "wrap" }}>
           {NAME_TEMPLATES[me.venue.kind].map(([a, b]) => <button key={a} className={`${s.chip} ${d.packName === a ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ packName: a, packNameRu: b }); }}>{getLang() === "ru" ? b : a}</button>)}

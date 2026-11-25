@@ -365,7 +365,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (d.publish && !d.titleRu) return c.json({ ok: false, error: "title_ru_required" }, 400); // клиент орысша да көреді
     if (d.publish && d.about && !d.aboutRu) return c.json({ ok: false, error: "about_ru_required" }, 400);
     if (d.publish && d.composition && !d.compositionRu) return c.json({ ok: false, error: "composition_ru_required" }, 400);
-    if (d.publish && d.packName && !d.packNameRu) return c.json({ ok: false, error: "pack_name_ru_required" }, 400);
+    // Пакет атауы — бренд, аударылмайды (Патша, 2026-11-25): орысшасы міндетті емес, жоқ болса клиент орысша да осы атауды көреді
     if (d.publish && ((d.bonus && !d.bonusRu) || (d.perk && !d.perkRu))) return c.json({ ok: false, error: "extras_ru_required" }, 400);
     if (d.rules.saleUntil && d.rules.saleUntil < new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" })) return c.json({ ok: false, error: "sale_until_past" }, 400);
     const [v] = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1);
@@ -395,7 +395,6 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     if (d.publish && draft && !(d.titleRu ?? cur.titleRu)) return c.json({ ok: false, error: "title_ru_required" }, 400);
     if (d.publish && draft && d.about && !(d.aboutRu ?? (cur.details as { aboutRu?: string } | null)?.aboutRu)) return c.json({ ok: false, error: "about_ru_required" }, 400);
     if (d.composition && !(d.compositionRu ?? (cur.details as { compositionRu?: string } | null)?.compositionRu) && (d.publish || !draft)) return c.json({ ok: false, error: "composition_ru_required" }, 400);
-    if (d.packName && !(d.packNameRu ?? (cur.details as { packNameRu?: string } | null)?.packNameRu) && (d.publish || !draft)) return c.json({ ok: false, error: "pack_name_ru_required" }, 400);
     { const cd = (cur.details ?? {}) as { bonusRu?: string; perkRu?: string };
       if ((d.publish || !draft) && ((d.bonus && !(d.bonusRu ?? cd.bonusRu)) || (d.perk && !(d.perkRu ?? cd.perkRu)))) return c.json({ ok: false, error: "extras_ru_required" }, 400); }
     if (d.rules.saleUntil && d.rules.saleUntil !== (cur.rules as { saleUntil?: string } | null)?.saleUntil && d.rules.saleUntil < new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" })) return c.json({ ok: false, error: "sale_until_past" }, 400);

@@ -285,7 +285,6 @@
     "promo": null,
     "deadline": null,
     "packName": "Тойымды",
-    "packNameRu": "Сытный",
     "keywords": [
      "шаурма",
      "лаваш"
@@ -340,7 +339,6 @@
     "promo": null,
     "deadline": "2 күн қалды",
     "packName": "Ұқыпты",
-    "packNameRu": "Аккуратный",
     "keywords": [
      "барбер",
      "стрижка"
@@ -393,7 +391,6 @@
     "promo": "hot",
     "deadline": null,
     "packName": "Таңғы серпін",
-    "packNameRu": "Утренний заряд",
     "keywords": [
      "латте",
      "сүт"
@@ -447,7 +444,6 @@
     "promo": null,
     "deadline": null,
     "packName": "Екеуі бірге",
-    "packNameRu": "Дуэт",
     "keywords": [
      "донер",
      "сусын"
@@ -502,7 +498,6 @@
     "promo": "top",
     "deadline": null,
     "packName": "Шопан",
-    "packNameRu": "Чабан",
     "keywords": [
      "қой еті",
      "баранина"
@@ -557,7 +552,6 @@
     "promo": "top",
     "deadline": null,
     "packName": "Көбікті күн",
-    "packNameRu": "Пенный день",
     "keywords": [
      "капучино"
     ]
@@ -610,7 +604,6 @@
     "promo": "hot",
     "deadline": null,
     "packName": "Қара алтын",
-    "packNameRu": "Чёрное золото",
     "keywords": [
      "американо",
      "эспрессо"
@@ -664,7 +657,6 @@
     "promo": null,
     "deadline": null,
     "packName": "Үлкен аппетит",
-    "packNameRu": "Большой аппетит",
     "keywords": [
      "фри",
      "картошка"
@@ -719,7 +711,6 @@
     "promo": "hot",
     "deadline": null,
     "packName": "Сырлы кеш",
-    "packNameRu": "Сырный вечер",
     "keywords": [
      "маргарита",
      "ірімшік"
@@ -774,7 +765,6 @@
     "promo": null,
     "deadline": null,
     "packName": "Жігіт сәні",
-    "packNameRu": "Мужской стиль",
     "keywords": [
      "барбер",
      "fade"
@@ -827,7 +817,6 @@
     "promo": null,
     "deadline": null,
     "packName": "Бургер-марафон",
-    "packNameRu": "Бургер-марафон",
     "keywords": [
      "чизбургер"
     ]
