@@ -1,6 +1,7 @@
 // B2 · Сатып алу, пакеттер, чектер.
 // Ереже: баға тек серверде есептеледі (клиент жіберген бағаға сенбейміз); бір сатып алу кілті — бір төлем (идемпотенттік);
 // бәрі бір транзакцияда: төлем → пакет → тарих → чек. Қазір төлем сынақ режимінде (ақша жүрмейді).
+import { ipFrom } from "../rateLimit.js";
 import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { bonusOf, holdBonus, releaseBonus } from "../bonus.js";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
@@ -103,7 +104,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     const parsed = Buy.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ ok: false, error: "bad_request" }, 400);
     const user = c.get("user");
-    const ip = (c.req.header("x-forwarded-for") ?? "").split(",")[0].trim();
+    const ip = ipFrom(c.req.header("x-forwarded-for")) ?? "";
     const client = { platform: c.req.header("x-tg-platform") ?? null, tgVersion: c.req.header("x-tg-version") ?? null, appVersion: c.req.header("x-app-version") ?? null, userAgent: c.req.header("user-agent") ?? null,
       ipHash: ip ? createHash("sha256").update(ip).digest("hex").slice(0, 16) : null, authDate: c.get("auth").authDate, startParam: c.get("auth").startParam ?? null };
     const r = await startPurchase(db, cfg, user, parsed.data, client);

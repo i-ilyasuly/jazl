@@ -16,8 +16,15 @@ function hit(key: string, max: number, windowMs: number, now = Date.now()): { ok
 /** Тесттерге: есептегішті тазалау */
 export const resetRateLimits = () => buckets.clear();
 
-/** Клиенттің IP-і (Cloud Run алдыңғы прокси X-Forwarded-For-дың бірінші мәнін қояды) */
-export const clientIp = (c: Context) => (c.req.header("x-forwarded-for") ?? "").split(",")[0].trim() || c.req.header("x-real-ip") || "unknown";
+/** Клиенттің IP-і X-Forwarded-For тақырыбынан (аудит 2026-11-25).
+ *  Тақырыптың басын клиенттің өзі жаза алады — сенімді мән прокси соңынан қосқан мән. IP_HOPS — оңнан санағанда нешінші мән
+ *  нақты клиент (Cloud Run тікелей: 1, алдында жүктеме теңестіргіш болса: 2). IP_HOPS берілмесе — бұрынғыдай бірінші мән
+ *  (Cloud Run-да тақырып пішімі /cron/ip арқылы тексерілгенше). */
+export function ipFrom(xff: string | undefined, hops = Number(process.env.IP_HOPS) || 0) {
+  const parts = (xff ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return hops > 0 ? parts[Math.max(0, parts.length - hops)] : parts[0];
+}
+export const clientIp = (c: Context) => ipFrom(c.req.header("x-forwarded-for")) || c.req.header("x-real-ip") || "unknown";
 
 export type LimitRule = { name: string; max: number; windowSec: number; by: "user" | "ip" };
 /** enabled=false (автосынақтар) — шек өшірулі */
