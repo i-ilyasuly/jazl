@@ -95,6 +95,7 @@ export const subscribeSettings = subscribe;
 
 // ── Күндер: «16 қарашаға дейін» пішімі ─────────────────────────────────────
 const DAT = ["қаңтарға", "ақпанға", "наурызға", "сәуірге", "мамырға", "маусымға", "шілдеге", "тамызға", "қыркүйекке", "қазанға", "қарашаға", "желтоқсанға"];
+const DAT_GEN = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
 export const untilText = (d: Date) => `${d.getDate()} ${DAT[d.getMonth()]} дейін`;
 /** «16 қарашаға дейін» + N күн → «23 қарашаға дейін» (жыл — ағымдағы). */
 export function shiftUntil(until: string, days: number): string {
@@ -148,7 +149,7 @@ function limitRefused(localId: string, e: unknown) {
   return true;
 }
 
-export interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null; extendLeft?: number; source?: string; autoRenew?: boolean; offPeak?: OffPeak | null }
+export interface SrvPack { id: string; offerSlug: string; unitsTotal: number; unitsLeft: number; validUntil: string; status: string; receipt: { id: string; no: string } | null; extendLeft?: number; source?: string; autoRenew?: boolean; offPeak?: OffPeak | null; rated?: number | null; usedAt?: string | null }
 async function buyOnServer(localId: string, offerSlug: string, methodLabel: string) {
   if (!(window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData) return; // браузерде — тек жергілікті
   try {
@@ -190,6 +191,16 @@ export async function syncServerPacks() {
     const seen = new Set<string>();
     const uniq = packs.filter((p) => !p.serverId || (seen.has(p.serverId) ? false : (seen.add(p.serverId), true)));
     if (uniq.length !== packs.length) { packs = uniq; emit(); }
+    // Бағалау күйі серверден (Патша, 2026-11-26): бағаланған пакет қайта сұралмайды; қолданылып, бағаланбағаны — «Бағала»
+    for (const x of j.packs) {
+      const local = packs.find((p) => p.serverId === x.id); if (!local) continue;
+      if (x.rated) acts = acts.map((a) => (a.packId === local.id && a.action === "rate" ? { ...a, action: "rated", stars: x.rated! } : a));
+      else if (x.usedAt && !acts.some((a) => a.packId === local.id && (a.action === "rate" || a.action === "rated"))) {
+        const o = findOffer(x.offerSlug); const d = new Date(x.usedAt);
+        acts = [{ id: "r" + x.id.slice(0, 8), emoji: o.kind === "hair" ? "✂️" : o.kind === "coffee" ? "☕" : "🍴", title: o.title.replace(/· \d+/, "· 1"), sub: `${o.venue} · ${d.getDate()} ${DAT_GEN[d.getMonth()]}`, packId: local.id, offerId: o.id, action: "rate" }, ...acts];
+      }
+    }
+    applyRated(); emit();
   } catch { /* кірусіз не сервер жоқ */ }
 }
 
@@ -283,9 +294,21 @@ export function extendPack(packId: string, days: number, price: number, paidOnSe
 
 // ── 12 · Бағалау ────────────────────────────────────────────────────────────
 /** Бағалау жолағын (Пакеттерім) жабу — сессия ішінде қайта шықпайды. */
+// Патша (2026-11-26): бір рет бағаласа — болды. Бағалар мен жабылған жолақтар телефонда сақталады (бұрын тек жадта еді,
+// қосымша қайта ашылғанда «Бағала» қайта шығатын).
 let rateHidden: string[] = [];
 export const useRateHidden = () => useSyncExternalStore(subscribe, () => rateHidden);
-export function hideRate(id: string) { rateHidden = [...rateHidden, id]; emit(); }
+export function hideRate(id: string) { rateHidden = [...rateHidden, id]; emit(); kv.set("medeo_rate_hidden", rateHidden.slice(-50).join(",")); }
+/** Осы телефонда қойылған бағалар: әрекет id → жұлдыз */
+let ratedLocal: Record<string, number> = {};
+const applyRated = () => { acts = acts.map((a) => (a.action === "rate" && ratedLocal[a.id] ? { ...a, action: "rated", stars: ratedLocal[a.id] } : a)); };
+void kv.get("medeo_rate_hidden").then((v) => { if (v) { rateHidden = v.split(","); emit(); } });
+void kv.get("medeo_rated").then((v) => { try { if (v) { ratedLocal = JSON.parse(v); applyRated(); emit(); } } catch { /* бүлінген */ } });
+/** Менің пікірлерім (осы телефонда): ұсыныс бетінде бірден көрінеді. Серверге жетпеген (үлгі) пакеттердікі де */
+export interface MyReview { offerId: string; stars: number; tags: string[]; text: string; at: string; server: boolean }
+let myReviews: MyReview[] = [];
+export const useMyReviews = () => useSyncExternalStore(subscribe, () => myReviews);
+void kv.get("medeo_my_reviews").then((v) => { try { if (v) { myReviews = JSON.parse(v); emit(); } } catch { /* бүлінген */ } });
 export const getActivity = (id?: string) => acts.find((a) => a.id === id);
 /** Пакетке қатысты бағаланбаған әрекет (жоқ болса — соңғы әрекеттің негізінде жаңасы жасалады). */
 export function rateActivityOf(packId: string): Activity {
@@ -299,7 +322,11 @@ export function rateActivityOf(packId: string): Activity {
 /** Баға жіберу (бэкенд қосылғанда: POST /ratings). Пікір мәтіні мен себептер әзірге жадта ғана. */
 export function rateActivity(id: string, stars: number, tags: string[], text: string) {
   const a = acts.find((x) => x.id === id);
-  acts = acts.map((x) => (x.id === id ? { ...x, action: "rated", stars } : x)); emit();
+  acts = acts.map((x) => (x.id === id ? { ...x, action: "rated", stars } : x));
+  ratedLocal = { ...ratedLocal, [id]: stars }; kv.set("medeo_rated", JSON.stringify(Object.fromEntries(Object.entries(ratedLocal).slice(-100))));
+  const srv = Boolean(a && getPack(a.packId)?.serverId);
+  if (a) { myReviews = [{ offerId: a.offerId, stars, tags, text, at: new Date().toISOString(), server: srv }, ...myReviews].slice(0, 30); kv.set("medeo_my_reviews", JSON.stringify(myReviews)); }
+  emit();
   // B4: баға серверге — мекеменің рейтингі мен соңғы қолдану чегіне жазылады
   const p = a ? getPack(a.packId) : undefined;
   if (p?.serverId) void api("/v1/ratings", { method: "POST", body: JSON.stringify({ packId: p.serverId, stars, tags: tags.slice(0, 8), text: text || undefined }) }).catch(() => undefined);

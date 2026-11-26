@@ -3,6 +3,7 @@
 // «12 · Бағалау»: «Пакеттерім жолағы» 13886:33115 (Белсенді табының басында), бағалау парағы — ui/RateSheet.
 import { Tile } from "../ui/Tile";
 import { kindPic } from "../ui/Emo";
+import { PackThumb } from "../ui/PackThumb";
 import { Emo } from "../ui/Emo";
 import { useEffect, useRef, useState } from "react";
 import { Sticker, preloadSticker } from "../ui/Sticker";
@@ -36,10 +37,11 @@ function PackCard({ pack, i, onUse, hint, onHint }: { pack: Pack; i: number; onU
       <div className={`${s.info} ${soon ? s.infoSoon : ""}`}>
         {/* Патша (2026-11-21): мерзімі аз қалса — оң жақтағы бос орында сағатты үйрек, орнына сай өлшемде */}
         {soon && <span className={s.clock}><Sticker name="clock" size={92} /></span>}
-        <span className={s.thumb}><img src={kindPic[o.kind]} width={60} height={60} alt="" decoding="sync" style={{ objectFit: "contain" }} /></span>
+        <span className={s.thumb}><PackThumb offer={o} icon={60} /></span>
         <div className={s.text}>
-          <p className="t-headline">{o.title}</p>
-          <p className={`t-sub2 ${s.sub}`}>{o.venue} · {o.distance}</p>
+          {/* Ұсыныс карточкасындағыдай: пакет атауы басты, астында тауар атауы мен мекеме (Патша, 2026-11-26) */}
+          <p className="t-headline">{o.packName ?? o.title}</p>
+          <p className={`t-sub2 ${s.sub}`}>{[o.packName ? o.title : null, o.venue, o.packName ? null : o.distance].filter(Boolean).join(" · ")}</p>
           <span className={`t-cap1 ${s.days} ${soon ? s.daysSoon : ""}`}>{`${pack.daysLeft} күн қалды`}</span>
         </div>
       </div>

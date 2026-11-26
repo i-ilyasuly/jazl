@@ -352,6 +352,8 @@ export const ratings = app.table("ratings", {
   packId: uuid("pack_id").references(() => packs.id),
   stars: smallint("stars").notNull(),
   text: text("text"),
+  /** Белгілер («Тазалық», «Қызмет»…) — ұсыныс бетінде чип болып көрінеді (2026-11-26) */
+  tags: jsonb("tags").$type<string[]>().notNull().default([]),
   /** Мекеменің жауабы (Figma «Пікірге жауап») — барлық клиентке көрінеді */
   reply: text("reply"),
   repliedAt: timestamp("replied_at", { withTimezone: true }),

@@ -1,7 +1,8 @@
 import { getLang, kk } from "../i18n";
 import { routeRows as routeRowsOf } from "../ui/route";
 import { winLabel } from "../offpeak";
-import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink } from "../store";
+import { toggleFav, toggleRestock, useFavs, usePacks, useRestock, appLink, useMyReviews } from "../store";
+import { api } from "../api";
 import { Rich } from "../ui/Rich";
 import { Photo } from "../ui/Photo";
 import { kindPic } from "../ui/Emo";
@@ -93,6 +94,53 @@ function Gallery({ photos, fallback, kind, onIndex }: { photos: string[]; fallba
       </div>
       {photos.length > 1 && <div className={s.dots}>{photos.map((src, i) => <span key={src} className={i === at ? s.dotOn : ""} />)}</div>}
     </>
+  );
+}
+
+// ── Пікірлер (Патша, 2026-11-26): тірі — серверден (клиенттер қойған жұлдыз, белгілер, мәтін, мекеме жауабы)
+// және осы телефонда қойылған, серверге әлі жетпеген баға. Мәтінсіз баға да тізімде: «5 жұлдыз қойды».
+interface SrvReview { name: string; stars: number; tags: string[]; text: string | null; reply: string | null; at: string }
+const MON_REV = [kk("қаңтар"), kk("ақпан"), kk("наурыз"), kk("сәуір"), kk("мамыр"), kk("маусым"), kk("шілде"), kk("тамыз"), kk("қыркүйек"), kk("қазан"), kk("қараша"), kk("желтоқсан")];
+const revDate = (iso: string) => { const d = new Date(iso); return `${d.getDate()} ${MON_REV[d.getMonth()]}`; };
+const starLine = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
+function Reviews({ offerId, live }: { offerId: string; live: boolean }) {
+  const mineAll = useMyReviews();
+  const mine = mineAll.filter((r) => r.offerId === offerId);
+  const [srv, setSrv] = useState<{ count: number; reviews: SrvReview[] } | null>(null);
+  useEffect(() => {
+    if (!live) return;
+    let on = true;
+    api<{ count: number; reviews: SrvReview[] }>(`/v1/catalog/reviews?offer=${encodeURIComponent(offerId)}`, {}, 6000).then((j) => on && setSrv(j)).catch(() => on && setSrv({ count: 0, reviews: [] }));
+    return () => { on = false; };
+  }, [offerId, live, mine.length]);
+  // Серверге жеткен менің пікірім сервер тізімінде бар — қайталамаймыз; жетпегені (үлгі пакет) «Сіз» деп жоғарыда
+  const local: SrvReview[] = mine.filter((r) => !r.server).map((r) => ({ name: "Сіз", stars: r.stars, tags: r.tags, text: r.text || null, reply: null, at: r.at }));
+  const list = [...local, ...(srv?.reviews ?? [])];
+  const count = local.length + (srv?.count ?? 0);
+  const avg = list.length ? Math.round((list.reduce((a, x) => a + x.stars, 0) / list.length) * 10) / 10 : null;
+  return (
+    <section className={`${s.block} ${s.blk}`}>
+      <h2 className={s.blockTitle}>{`Пікірлер · ${count}`}</h2>
+      <div className={s.inner}>
+        {avg != null ? (
+          <div className={s.score}>
+            <b>{String(avg).replace(".", ",")}</b>
+            <span><span className={s.stars}>{starLine(Math.round(avg))}</span><span className={s.venueAddr}>{`${count} бағалау`}</span></span>
+          </div>
+        ) : <p className={s.revEmpty}>{srv || !live ? "Әзірге пікір жоқ. Пакетті қолданған соң бірінші болып бағала." : "Жүктелуде…"}</p>}
+        {list.map((r, i) => (
+          <div key={i} className={s.review}>
+            <span className={s.revAvatar}>{r.name.slice(0, 1)}</span>
+            <div className={s.revBody}>
+              <p className={s.revHead}><b>{r.name}</b><span className={s.stars}>{starLine(r.stars)}</span><span className={s.revDate}>{revDate(r.at)}</span></p>
+              {r.tags.length > 0 && <p className={s.revTags}>{r.tags.map((t) => <span key={t}>{t}</span>)}</p>}
+              <p className={`${s.revText} ${r.text ? "" : s.revTpl}`}>{r.text || `${r.stars} жұлдыз қойды`}</p>
+              {r.reply && <p className={s.revReply}><b>Мекеме жауабы</b>{r.reply}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -355,21 +403,7 @@ function OfferView({ id, preview }: { id?: string; preview?: Offer }) {
           </div>
         </section>
 
-        <section className={`${s.block} ${s.blk}`}>
-          <h2 className={s.blockTitle}>{`Пікірлер · ${offer.ratingCount}`}</h2>
-          <div className={s.inner}>
-            <div className={s.score}>
-              <b>{String(offer.rating).replace(".", ",")}</b>
-              <span><span className={s.stars}>★★★★★</span><span className={s.venueAddr}>{`${offer.ratingCount} бағалау`}</span></span>
-            </div>
-            {d.reviews.map((r) => (
-              <div key={r.name} className={s.review}>
-                <span className={s.revAvatar}>{r.name.slice(0, 1)}</span>
-                <div><p className={s.revHead}><b>{r.name}</b><span className={s.stars}>★★★★★</span></p><p className={s.revText}>{r.text}</p></div>
-              </div>
-            ))}
-          </div>
-        </section>
+        <Reviews offerId={base.id} live={!preview} />
       </div>
       )}
 

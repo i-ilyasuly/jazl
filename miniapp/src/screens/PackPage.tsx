@@ -4,6 +4,7 @@
 // Демо: ?extend=no — мекеме ұзартуға рұқсат бермейді.
 import { Tile } from "../ui/Tile";
 import { kindPic } from "../ui/Emo";
+import { PackThumb } from "../ui/PackThumb";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Confirm } from "../ui/Confirm";
 import { useParams } from "react-router-dom";
@@ -99,9 +100,10 @@ export function PackPage() {
             </div>
           )}
           <div className={s.head}>
-            <span className={s.thumb}><img src={kindPic[o.kind]} width={52} height={52} alt="" style={{ objectFit: "contain" }} /></span>
+            <span className={s.thumb}><PackThumb offer={o} /></span>
             <div className={s.headText}>
-              <p className="t-headline">{o.title}</p>
+              <p className="t-headline">{o.packName ?? o.title}</p>
+              {o.packName && <p className={`t-sub2`} style={{ color: "var(--text-secondary)" }}>{o.title}</p>}
               <button className={s.venue} onClick={() => { if (venueId && findVenue(venueId)) go("/venue/" + venueId); else haptic.tap(); }}><span className="t-sub2 w-600">{o.venue}</span><img src={chev} width={18} height={18} alt="" /></button>
               <span className={`${s.chip} ${s["chip_" + state]}`}>{chip}</span>
             </div>

@@ -20,6 +20,19 @@ const rulesOut = (r: unknown, installmentOn: boolean) => {
 
 export function catalogRoutes(db: Db, opts: { installment?: boolean } = {}) {
   const r = new Hono();
+  // Ұсыныс бетіндегі пікірлер (Патша, 2026-11-26): тірі — клиенттер қойған жұлдыз, белгілер, мәтін, мекеме жауабы.
+  // Аты — «Аты Ж.» ғана (тегі толық көрсетілмейді). Мәтінсіз баға да тізімде («5 жұлдыз қойды» — мини апп жазады).
+  r.get("/reviews", async (c) => {
+    const slug = c.req.query("offer") ?? "";
+    if (!/^[a-z0-9-]{1,80}$/.test(slug)) return c.json({ ok: false, error: "bad_request" }, 400);
+    const rows = (await db.execute(sql`select r.stars::int as stars, r.tags, r.text, r.reply, r.created_at, u.first_name, u.last_name
+      from app.ratings r join app.packs p on p.id = r.pack_id join app.offers o on o.id = p.offer_id join app.users u on u.id = r.user_id
+      where o.slug = ${slug} order by r.created_at desc limit 50`)).rows as { stars: number; tags: string[] | null; text: string | null; reply: string | null; created_at: Date; first_name: string | null; last_name: string | null }[];
+    const [agg] = (await db.execute(sql`select count(*)::int as n, round(avg(r.stars)::numeric, 1)::float as a from app.ratings r join app.packs p on p.id = r.pack_id join app.offers o on o.id = p.offer_id where o.slug = ${slug}`)).rows as { n: number; a: number | null }[];
+    c.header("Cache-Control", "public, max-age=20");
+    return c.json({ ok: true, count: agg?.n ?? 0, avg: agg?.a ?? null, reviews: rows.map((x) => ({ name: [x.first_name?.trim() || "Клиент", x.last_name?.trim() ? x.last_name.trim()[0] + "." : ""].filter(Boolean).join(" "),
+      stars: x.stars, tags: x.tags ?? [], text: x.text, reply: x.reply, at: x.created_at })) });
+  });
   r.get("/", async (c) => {
     const vs = await db.select().from(venues).where(eq(venues.status, "active")).orderBy(asc(venues.name));
     const vIds = vs.map((v) => v.id);

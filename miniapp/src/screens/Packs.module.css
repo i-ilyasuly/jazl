@@ -13,7 +13,7 @@
 .card { position: relative; width: 380px; padding: 16px; border-radius: 20px; background: var(--surface-card); display: flex; flex-direction: column; gap: 12px; overflow: hidden; cursor: pointer; transition: transform 0.12s ease; }
 .card:active { transform: scale(0.985); }
 .info { display: flex; gap: 12px; align-items: flex-start; }
-.thumb { width: 72px; height: 72px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; }
+.thumb { position: relative; width: 72px; height: 72px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; overflow: hidden; }
 .text { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; white-space: nowrap; color: #000; }
 .sub { color: #707579; }
 .days { margin-top: 8px; height: 24px; padding: 4px 8px; border-radius: 6px; background: rgba(95, 107, 122, 0.1); color: #5f6b7a; }

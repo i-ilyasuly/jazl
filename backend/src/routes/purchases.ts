@@ -152,7 +152,12 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     // Ұзарту шегінен қалған күн (мини апп ұзарту парағында тек осыған сыятын нұсқаларды ұсынады)
     const ext = ids.length ? (await db.execute(sql`select pack_id, coalesce(sum((meta->>'days')::int), 0)::int as d from app.pack_events where type = 'extend' and meta->>'via' is null and pack_id in ${ids} group by pack_id`)).rows as { pack_id: string; d: number }[] : [];
     const maxDays = (await getSettings(db)).extendMaxDays;
-    return c.json({ ok: true, packs: rows.map(({ p, o }) => ({ ...packDto(p, o.slug, rcs.find((x) => x.packId === p.id)), extendLeft: Math.max(0, maxDays - Number(ext.find((x) => x.pack_id === p.id)?.d ?? 0)) })) });
+    // Бағалау күйі (Патша, 2026-11-26): бір пакетке бір рет. used — қызмет алынды (баға сұрауға болады), rated — қойған жұлдызы
+    const rate = ids.length ? (await db.execute(sql`select p.id as pack_id, (select stars::int from app.ratings r where r.pack_id = p.id and r.user_id = ${user.id} limit 1) as stars,
+        (select max(at) from (select created_at as at from app.redemptions where pack_id = p.id and cancelled_at is null union all select created_at from app.orders where pack_id = p.id and status = 'done') u) as used_at
+      from app.packs p where p.id in ${ids}`)).rows as { pack_id: string; stars: number | null; used_at: Date | string | null }[] : [];
+    return c.json({ ok: true, packs: rows.map(({ p, o }) => { const rt = rate.find((x) => x.pack_id === p.id);
+      return { ...packDto(p, o.slug, rcs.find((x) => x.packId === p.id)), extendLeft: Math.max(0, maxDays - Number(ext.find((x) => x.pack_id === p.id)?.d ?? 0)), rated: rt?.stars ?? null, usedAt: rt?.used_at ?? null }; }) });
   });
 
   r.get("/receipts/no/:no", async (c) => {

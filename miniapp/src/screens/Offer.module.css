@@ -337,3 +337,12 @@ button.link:active, .link button:active { opacity: 0.55; }
 .pagePreview { min-height: 0; padding-bottom: 16px; }
 :global(:root[data-env="telegram"]) .pagePreview { padding-bottom: 16px; }
 .pagePreview .photo { height: auto; aspect-ratio: 1 / 1; }
+/* Тірі пікірлер (Патша, 2026-11-26) */
+.revBody { flex: 1; min-width: 0; }
+.revDate { margin-left: auto; font-size: 13px; line-height: 16px; color: var(--text-secondary); white-space: nowrap; }
+.revTags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.revTags span { padding: 3px 10px; border-radius: 12px; background: rgba(34, 154, 240, 0.1); color: var(--link); font-size: 13px; line-height: 18px; font-weight: 600; }
+.revTpl { color: var(--text-secondary); font-size: 15px; line-height: 20px; }
+.revReply { margin-top: 8px; padding: 8px 12px; border-radius: 12px; background: var(--surface-page); font-size: 15px; line-height: 20px; color: var(--text-strong); display: flex; flex-direction: column; gap: 2px; }
+.revReply b { font-size: 13px; line-height: 16px; color: var(--text-secondary); }
+.revEmpty { padding: 16px; font-size: 15px; line-height: 20px; color: var(--text-secondary); }

@@ -553,7 +553,7 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const venueId = c.req.param("venueId");
     if (!(await guard(c, venueId, ["owner", "manager"]))) return deny(c);
     const f = c.req.query("filter") ?? "all";
-    const all = (await db.execute(sql`select r.id, r.stars::int, r.text, r.reply, r.replied_at, r.created_at, u.first_name, u.last_name, o.title,
+    const all = (await db.execute(sql`select r.id, r.stars::int, case when jsonb_array_length(r.tags) > 0 then concat_ws(' — ', (select string_agg(x, ', ') from jsonb_array_elements_text(r.tags) x), r.text) else r.text end as text, r.reply, r.replied_at, r.created_at, u.first_name, u.last_name, o.title,
         (select b.address from app.redemptions rd join app.branches b on b.id = rd.branch_id where rd.pack_id = r.pack_id order by rd.created_at desc limit 1) as branch
       from app.ratings r join app.users u on u.id = r.user_id left join app.packs p on p.id = r.pack_id left join app.offers o on o.id = p.offer_id
       where r.venue_id = ${venueId} order by r.created_at desc limit 300`)).rows as { id: string; stars: number; text: string | null; reply: string | null; replied_at: Date | null; created_at: Date; first_name: string; last_name: string | null; title: string | null; branch: string | null }[];

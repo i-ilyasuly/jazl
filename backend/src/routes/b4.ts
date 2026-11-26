@@ -43,16 +43,18 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
     const [{ used }] = (await db.execute(sql`select (exists (select 1 from app.redemptions where pack_id = ${p.p.id} and cancelled_at is null)
       or exists (select 1 from app.orders where pack_id = ${p.p.id} and status = 'done')) as used`)).rows as { used: boolean }[];
     if (!used) return c.json({ ok: false, error: "not_used_yet" }, 409);
-    const text = [b.data.tags.join(", "), b.data.text].filter(Boolean).join(" — ") || null;
+    // Белгілер бөлек (ұсыныс бетінде чип), мәтін — клиент жазғаны ғана. Мекемеге хабарламада екеуі бірге
+    const tags = [...new Set(b.data.tags.map((x) => x.trim()).filter(Boolean))];
+    const text = b.data.text?.trim() || null;
     // Бір пакетке — бір баға: қайта бағаласа, бұрынғысы ауыстырылады (рейтингті бір адам шексіз «құлата» алмайды)
     const [prev] = await db.select({ id: ratings.id }).from(ratings).where(and(eq(ratings.userId, user.id), eq(ratings.packId, p.p.id))).limit(1);
-    if (prev) await db.update(ratings).set({ stars: b.data.stars, text }).where(eq(ratings.id, prev.id));
-    else await db.insert(ratings).values({ userId: user.id, venueId: p.o.venueId, packId: p.p.id, stars: b.data.stars, text }).onConflictDoNothing();
+    if (prev) await db.update(ratings).set({ stars: b.data.stars, text, tags }).where(eq(ratings.id, prev.id));
+    else await db.insert(ratings).values({ userId: user.id, venueId: p.o.venueId, packId: p.p.id, stars: b.data.stars, text, tags }).onConflictDoNothing();
     await db.execute(sql`update app.receipts set internal = jsonb_set(internal, '{rating}', ${JSON.stringify({ stars: b.data.stars, tags: b.data.tags, text: b.data.text ?? null, at: new Date() })}::jsonb)
       where id = (select id from app.receipts where pack_id = ${p.p.id} and kind in ('use','order') order by created_at desc limit 1)`);
     const [agg] = await db.select({ a: avg(ratings.stars), n: count() }).from(ratings).where(eq(ratings.venueId, p.o.venueId));
     await db.update(venues).set({ rating: Math.round(Number(agg.a) * 10) / 10, reviewsCount: Number(agg.n) }).where(eq(venues.id, p.o.venueId));
-    if (!prev) await notify?.review(p.o.venueId, b.data.stars, text);
+    if (!prev) await notify?.review(p.o.venueId, b.data.stars, [tags.join(", "), text].filter(Boolean).join(" — ") || null);
     return c.json({ ok: true, updated: Boolean(prev), venueRating: Math.round(Number(agg.a) * 10) / 10 });
   });
 

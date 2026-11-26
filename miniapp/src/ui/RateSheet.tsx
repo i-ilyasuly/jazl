@@ -73,7 +73,7 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
         {done ? <>
           <Sticker name="love" size={96} className={s.sticker} />
           <h2 className={`t-title3 w-700 ${s.center}`}>Рахмет!</h2>
-          <p className={`t-sub2 ${s.muted} ${s.center}`}>Бағаң мекемеге жеткізіледі. Ол Squirrel сапасын жақсартуға көмектеседі.</p>
+          <p className={`t-sub2 ${s.muted} ${s.center}`}>Бағаң мекемеге жетті және ұсыныс бетіндегі пікірлерде көрінеді.</p>
         </> : <>
           <h2 className="t-title3 w-700">Қалай болды?</h2>
           <div className={s.item}>
@@ -90,7 +90,7 @@ export function RateSheet({ act, initial = 0, onClose }: { act: Activity; initia
             </div>
             <textarea className={s.input} rows={2} maxLength={500} value={text} onChange={(e) => setText(e.target.value)}
               placeholder={low ? "Не болғанын жаз (міндетті емес)" : "Не ұнағанын жаз (міндетті емес)"} />
-            <p className={`t-cap1 ${s.muted}`}>{low ? "Пікір мекемеге жіберіледі, біз де 24 сағат ішінде қараймыз." : "Пікір мекеме бетінде көрінеді (3 бағадан кейін)."}</p>
+            <p className={`t-cap1 ${s.muted}`}>{low ? "Пікір мекемеге жіберіледі, біз де 24 сағат ішінде қараймыз." : "Бағаң мен пікірің ұсыныс бетінде көрінеді."}</p>
           </>}
         </>}
         {!inTelegram && (

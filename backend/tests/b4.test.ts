@@ -39,6 +39,21 @@ d("B4", () => {
     expect((await q("select internal->'rating'->>'stars' s from app.receipts where id=$1", [rd.receipt.id]))[0].s).toBe("4");
     expect((await q("select reviews_count n from app.venues where slug='damdi'"))[0].n).toBe(1);
   });
+  it("пікір тірі: ұсыныс бетінде жұлдыз, белгі, мәтін; пакетте бағаланғаны белгілі (қайта сұралмайды)", async () => {
+    const p = (await buy({}, 702)).pack.id;
+    const before = (await get("/v1/packs", 702)).packs.find((x: { id: string }) => x.id === p);
+    expect(before).toMatchObject({ rated: null, usedAt: null });
+    await post("/v1/redeem", { packId: p, qr: makeDynamicQr(TOKEN, damdi, 1).payload, units: 1, idempotencyKey: key() }, 702);
+    expect((await get("/v1/packs", 702)).packs.find((x: { id: string }) => x.id === p).usedAt).toBeTruthy();
+    await post("/v1/ratings", { packId: p, stars: 5, tags: ["Таза", "Қызмет", "Таза"] }, 702);
+    expect((await get("/v1/packs", 702)).packs.find((x: { id: string }) => x.id === p).rated).toBe(5);
+    const rv = await (await app.request("/v1/catalog/reviews?offer=doner")).json();
+    expect(rv.count).toBe(2);
+    expect(rv.reviews[0]).toMatchObject({ stars: 5, tags: ["Таза", "Қызмет"], text: null });
+    expect(rv.reviews[1]).toMatchObject({ stars: 4, tags: ["Дәмді"], text: "Жақсы" });
+    expect(rv.reviews[0].name).not.toMatch(/\S{2,}\s\S{2,}/); // тегі толық емес
+    expect((await app.request("/v1/catalog/reviews?offer=../x")).status).toBe(400);
+  });
   it("ұзарту: 7 күн тегін бір рет; екінші тегін — 409; 14 күн ақылы — чек 1000 ₸", async () => {
     const p = (await buy()).pack.id;
     const before = (await q("select valid_until v from app.packs where id=$1", [p]))[0].v.getTime();

@@ -4,7 +4,7 @@
 .card { width: 380px; border-radius: 20px; background: #fff; color: var(--text-strong); }
 .main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .head { display: flex; gap: 12px; align-items: center; height: 80px; }
-.thumb { width: 64px; height: 64px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; }
+.thumb { position: relative; width: 64px; height: 64px; border-radius: 12px; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; flex: none; overflow: hidden; }
 .headText { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; white-space: nowrap; }
 .venue { display: flex; align-items: center; gap: 2px; color: var(--link); }
 .status { padding: 3px 10px; border-radius: 12px; background: var(--green-bg); color: var(--green-text); }
