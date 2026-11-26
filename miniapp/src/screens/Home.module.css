@@ -100,3 +100,9 @@
 .packAll { width: 96px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; font-weight: 600; color: var(--link); }
 .packAll i { width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; rotate: -45deg; }
 .intro { flex: 1; min-width: 160px; }
+
+/* Патша (2026-11-26): сұрыптау белгілері — таңдалғаны толық көк, ақ жазумен; қалғандары сұр, көлеңкесіз (күндіз де, түнде де айқын) */
+.sort { background: rgba(118, 118, 128, 0.12); box-shadow: none; }
+.sortOn { background: #229af0; color: #fff; font-weight: 600; box-shadow: 0 4px 12px rgba(34, 154, 240, 0.32); }
+:global(:root[data-theme="dark"]) .sort { background: rgba(255, 255, 255, 0.08); }
+:global(:root[data-theme="dark"]) .sortOn { background: #2f8fde; color: #fff; box-shadow: none; }
