@@ -4,15 +4,15 @@ import { categoryOffers, moreOffers, offers } from "../mocks/offers";
 const feed = [offers[0], categoryOffers[1], offers[1], moreOffers[1], offers[2], categoryOffers[3], moreOffers[0], categoryOffers[0], categoryOffers[2], categoryOffers[4]];
 import { useMock } from "../mocks/useMock";
 import { useGo } from "../nav";
-import { useSettings } from "../store";
+import { packState, usePacks, useSettings } from "../store";
+import { findOffer } from "../mocks/offers";
+import { HowSheet } from "../ui/HowSheet";
 import { haptic } from "../telegram";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { OfferCard } from "../ui/OfferCard";
 import { TelegramChrome } from "../ui/TelegramChrome";
 import searchIcon from "../assets/icons/search.svg";
 import geo from "../assets/icons/geo.svg";
-import { SoonSheet } from "../ui/SoonSheet";
-import { Promo } from "../ui/Promo";
 import { Sticker } from "../ui/Sticker";
 import { TgEmoji } from "../ui/TgEmoji";
 import { BadgeIcon } from "../ui/BadgeIcon";
@@ -23,11 +23,6 @@ import artCoffee from "../assets/tiles/coffee.webp";
 import artHair from "../assets/tiles/hair.webp";
 import s from "./Home.module.css";
 
-const soon = [
-  { pct: 30, fill: 44, venues: 2 },
-  { pct: 20, fill: 30, venues: 1 },
-  { pct: 15, fill: 22, venues: 1 },
-];
 
 // Сұрыптау (Патша, 2026-11-21, 8-тармақ). Бэкендте — сервер жағында сұрыпталып, беттеліп келеді.
 const sorts = [
@@ -45,7 +40,10 @@ const km = (d: string) => parseFloat(d.replace(",", ".")) || 99;
 const PAGE = 10; // Алғашқыда ~10 ұсыныс қана жүктеледі, соңына жақындағанда келесі бет (9-тармақ)
 
 export function Home() {
-  const [sheet, setSheet] = useState<(typeof soon)[number] | null>(null);
+  const [how, setHow] = useState(false);
+  // Патша (2026-11-26): «Жуырда» мен баннерлердің орнына — клиенттің өз жағдайы. Пакеті барда: белсенді пакеттері
+  // (мерзімі жақындағаны алдымен, сарымен); жоқта: «Қалай жұмыс істейді» және ең тиімді ұсыныстар.
+  const mine = usePacks().filter((p) => !p.expired && p.left > 0).sort((a, b) => a.daysLeft - b.daysLeft);
   const go = useGo();
   const icons = useSettings().badgeStyle === "icon";
   const { data, loading } = useMock("home", feed);
@@ -103,18 +101,32 @@ export function Home() {
         </button>
 
         <div className={s.soonRow}>
-          {soon.map((x, i) => (
-            <button key={x.pct} className={s.soon} onClick={() => { haptic.tap(); setSheet(x); }}>
-              <span className={s.soonFill} style={{ width: x.fill, animationDelay: `${0.15 + i * 0.08}s` }} />
-              <span className={s.soonLabel}>Жуырда</span>
-              <span className={s.soonPct}>{x.pct}%</span>
+          {mine.length > 0 ? <>
+            {mine.map((p, i) => {
+              const o = findOffer(p.offerId); const hot = packState(p) === "soon";
+              return (
+                <button key={p.id} className={`${s.soon} ${s.pack} ${hot ? s.packHot : ""}`} onClick={() => { haptic.tap(); go("/pack/" + p.id); }}>
+                  <span className={s.soonFill} style={{ width: `${Math.round((p.left / p.total) * 100)}%`, animationDelay: `${0.15 + i * 0.08}s` }} />
+                  <span className={s.packName}>{o.packName ?? o.title.split(" · ")[0]}</span>
+                  <span className={s.packMeta}><b>{`${p.left}/${p.total}`}</b>{hot ? ` · ${p.daysLeft} күн қалды!` : ` · ${p.daysLeft} күн`}</span>
+                </button>
+              );
+            })}
+            <button className={`${s.soon} ${s.packAll}`} onClick={() => { haptic.tap(); go("/packs"); }}>Барлығы<i aria-hidden /></button>
+          </> : <>
+            <button className={`${s.soon} ${s.intro}`} onClick={() => { haptic.tap(); setHow(true); }}>
+              <span className={s.packName}>Қалай жұмыс істейді?</span>
+              <span className={s.packMeta}>Пакет ал · кассада сканерле</span>
             </button>
-          ))}
+            <button className={`${s.soon} ${s.intro}`} onClick={() => pickSort("best")}>
+              <span className={s.packName}>Ең тиімділері</span>
+              <span className={s.packMeta}>30%-ға дейін үнем</span>
+            </button>
+          </>}
         </div>
       </header>
 
       <main className={s.list}>
-        <Promo />
         <h2 id="offers" className={s.listTitle}>Ұсыныстар</h2>
         <div className={s.sorts} role="radiogroup" aria-label="Сұрыптау">
           {sorts.map((x) => (
@@ -146,7 +158,7 @@ export function Home() {
         <img src={geo} width={18} height={18} alt="" />
         <span>Картада</span>
       </button>
-      {sheet && <SoonSheet pct={sheet.pct} venues={sheet.venues} onClose={() => setSheet(null)} />}
+      {how && <HowSheet onClose={() => setHow(false)} />}
     </div>
   );
 }

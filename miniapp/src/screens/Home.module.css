@@ -87,3 +87,16 @@
 /* UX 2 (Патша, 2026-11-23): «Картада» навигация панелінен 14 px жоғары, айқын көлеңкемен — фоннан бөлініп тұрады */
 .map { bottom: calc(111px + var(--safe-b, 0px)); box-shadow: inset 1.5px 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.98), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5), 0 2px 6px rgba(17, 26, 38, 0.14), 0 8px 24px rgba(17, 26, 38, 0.18) !important; }
 :global(:root[data-theme="dark"]) .map { box-shadow: inset 1.5px 1.5px 0.5px -0.5px rgba(255, 255, 255, 0.4), inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 2px 6px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45) !important; }
+/* Патша (2026-11-26): «Жуырда» орнында — клиенттің белсенді пакеттері (толу жолағы = қалған бірлік үлесі) */
+.pack { width: 168px; }
+.packName { position: absolute; left: 14px; right: 12px; top: 10px; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.packMeta { position: absolute; left: 14px; right: 12px; top: 36px; font-size: 14px; line-height: 20px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.packMeta b { font-size: 18px; color: var(--text-strong); }
+.packHot { background: #fff4d6; }
+.packHot .soonFill { background: rgba(255, 176, 32, 0.28); }
+.packHot .packMeta { color: #b26a00; font-weight: 600; }
+:global(:root[data-theme="dark"]) .packHot { background: #3a3020; }
+:global(:root[data-theme="dark"]) .packHot .packMeta { color: #ffc35a; }
+.packAll { width: 96px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; font-weight: 600; color: var(--link); }
+.packAll i { width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; rotate: -45deg; }
+.intro { flex: 1; min-width: 160px; }
