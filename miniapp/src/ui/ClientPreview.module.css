@@ -1,0 +1,14 @@
+.root { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.seg { display: flex; padding: 3px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); }
+.segBtn { flex: 1; height: 32px; border-radius: 9px; font-size: 15px; line-height: 20px; font-weight: 500; color: var(--text-strong); transition: background 0.2s ease, box-shadow 0.2s ease; }
+.segOn { background: var(--surface-white); font-weight: 600; box-shadow: 0 1px 4px rgba(17, 26, 38, 0.12); }
+:global(:root[data-theme="dark"]) .segOn { background: var(--surface-card); }
+.pager { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; align-items: flex-start; }
+.pager::-webkit-scrollbar { display: none; }
+.slide { flex: none; width: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cardBox { position: relative; overflow: hidden; }
+.still { pointer-events: none; user-select: none; }
+.tap { position: absolute; inset: 0; background: transparent; border-radius: inherit; }
+.hint { margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: var(--text-secondary); }
+/* Ашылған бет: өз ішінде тігінен сырғиды, парақтың сырғуын ұрламайды */
+.detail { max-height: min(64vh, 640px); overflow-y: auto; overscroll-behavior: contain; border-radius: 20px; background: var(--surface-page); -webkit-overflow-scrolling: touch; }

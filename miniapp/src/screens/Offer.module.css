@@ -333,3 +333,7 @@ button.link:active, .link button:active { opacity: 0.55; }
 :global(:root[data-theme="dark"]) .buyersTag { background: rgba(92, 180, 244, 0.18); color: #6ab3f3; }
 .pillRow + .instRow { margin-top: 10px; }
 .buyersTag .sep { display: inline-block; width: 4px; height: 4px; margin: 0 5px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+/* «Клиент көретін көрініс» (Патша, 2026-11-25): бет парақ ішінде — экран биіктігі мен 412 px фото талап етілмейді */
+.pagePreview { min-height: 0; padding-bottom: 16px; }
+:global(:root[data-env="telegram"]) .pagePreview { padding-bottom: 16px; }
+.pagePreview .photo { height: auto; aspect-ratio: 1 / 1; }

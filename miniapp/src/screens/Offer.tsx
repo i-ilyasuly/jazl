@@ -13,7 +13,7 @@ import { useGo } from "../nav";
 import { BuySheet, type BuyStep } from "../ui/BuySheet";
 import { UseSheet } from "../ui/UseSheet";
 import { InstNums } from "../ui/InstNums";
-import { activeOf, detailsOf, discount, findOffer, fmt, hasSampleIncludes, instBadge, instLabel, instMonthly, isEnded, isSoldOut, portionText, saving, unitPrice, type OfferDetails, type OfferKind } from "../mocks/offers";
+import { activeOf, detailsOf, discount, findOffer, fmt, hasSampleIncludes, instBadge, instLabel, instMonthly, isEnded, isSoldOut, portionText, saving, unitPrice, type Offer, type OfferDetails, type OfferKind } from "../mocks/offers";
 import { galleryOf } from "../mocks/photos";
 import { Sticker } from "../ui/Sticker";
 import { lngLat, venues } from "../mocks/venues";
@@ -83,6 +83,8 @@ function Gallery({ photos, fallback, kind, onIndex }: { photos: string[]; fallba
   return (
     <>
       <div className={s.gallery} onScroll={(e) => { const el = e.currentTarget; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== at) { setAt(i); haptic.select(); onIndex?.(i); } }}>
+        {/* Фотосыз жоба (алдын ала қарау): санат белгішесі — үлгі фотолар көрсетілмейді */}
+        {photos.length === 0 && <div className={s.slide}><img src={fallback} className={s.heroIcon} width={180} height={180} alt="" /></div>}
         {photos.map((src, i) => (
           <div key={src} className={s.slide}>
             {bad[i] ? <img src={fallback} className={s.heroIcon} width={180} height={180} alt="" /> : <Photo src={src} kind={kind} className={s.photoImg} alt="" loading={i ? "lazy" : "eager"} onError={() => setBad((b) => ({ ...b, [i]: true }))} />}
@@ -111,9 +113,13 @@ export function OfferPage() {
   return <OfferView key={id} id={id} />;
 }
 
-function OfferView({ id }: { id?: string }) {
+/** «Клиент көретін көрініс» (мекеме формасы, модерация): дәл осы бет, бірақ әрекетсіз — нативті батырмалар, артқа батырмасы,
+ *  статистика, терезе қимылдары қосылмайды (Патша, 2026-11-25) */
+export function OfferPreview({ offer }: { offer: Offer }) { return <OfferView preview={offer} />; }
+
+function OfferView({ id, preview }: { id?: string; preview?: Offer }) {
   const go = useGo();
-  const base = findOffer(id);
+  const base = preview ?? findOffer(id);
   // Пакет көлемі таңдалса, атауы, бағасы мен жеңілдігі сол көлемге ауысады
   const [size, setSize] = useState(0);
   const offer = useMemo(() => { const z = base.sizes?.[size]; return z ? { ...base, ...z, title: base.title.replace(/· \d+ /, `· ${z.units} `) } : base; }, [base, size]);
@@ -122,17 +128,19 @@ function OfferView({ id }: { id?: string }) {
   // Айлық лимит таусылды: сатып алу жабық, «Хабарла» — келесі айда не лимит көбейгенде бот хабарлайды
   const soldOut = !ended && isSoldOut(base);
   const lim = base.limit;
-  const pack = usePacks().find((p) => p.offerId === base.id && p.left > 0 && !p.expired);
+  const myPack = usePacks().find((p) => p.offerId === base.id && p.left > 0 && !p.expired);
+  const pack = preview ? undefined : myPack;
   const waiting = useRestock().includes(base.id);
   const venue = venues.find((v) => v.name === base.venue);
   const [sheet, setSheet] = useState<"route" | "contact" | "how" | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  useEffect(() => { const on = () => setScrolled(window.scrollY > 392); on(); window.addEventListener("scroll", on, { passive: true }); return () => window.removeEventListener("scroll", on); }, []);
+  useEffect(() => { if (preview) return; const on = () => setScrolled(window.scrollY > 392); on(); window.addEventListener("scroll", on, { passive: true }); return () => window.removeEventListener("scroll", on); }, []);
   // Патша, 2026-11-16: фото 412×412 (1:1). Беттің жоғарғы шетінде төмен тартқанда фото созылады (Telegram профиліндегідей,
   // бұлдыратусыз), жібергенде серпіліп орнына қайтады. Көлденең сырғыту (галерея) созуды қоздырмайды.
   const [pull, setPull] = useState(0);
   const [springing, setSpringing] = useState(false);
   useEffect(() => {
+    if (preview) return;
     let st: { x: number; y: number; dir: "v" | "h" | null } | null = null; let cur = 0;
     const start = (e: TouchEvent) => { if (window.scrollY > 0) { st = null; return; } const t = e.touches[0]; st = { x: t.clientX, y: t.clientY, dir: null }; setSpringing(false); };
     const move = (e: TouchEvent) => {
@@ -155,17 +163,19 @@ function OfferView({ id }: { id?: string }) {
   const startStep = (loc.state as { buy?: BuyStep } | null)?.buy;
   const [buying, setBuying] = useState(Boolean(startStep));
   // Пилот воронкасы: ұсынысты көрді, «Сатып алу» парағын ашты (Патша, 2026-11-21)
-  useEffect(() => { if (id) track("view", id); }, [id]);
+  useEffect(() => { if (id && !preview) track("view", id); }, [id, preview]);
   useEffect(() => { if (buying && id) track("buy_start", id); }, [buying, id]);
   const [using, setUsing] = useState(false);
   const [choose, setChoose] = useState(false);
-  const { loading } = useMock("offer:" + offer.id, offer, 450);
+  const mock = useMock("offer:" + offer.id, offer, preview ? 0 : 450);
+  const loading = !preview && mock.loading;
   const d = detailsOf(base);
-  const photos = useMemo(() => galleryOf(base.id, base.kind), [base.id, base.kind]);
+  // Мекеменің нақты фотолары; жоқ болса (үлгі деректер) — санат галереясы
+  const photos = useMemo(() => (base.photos?.length ? base.photos : preview ? [] : galleryOf(base.id, base.kind)), [base.photos, base.id, base.kind, preview]);
   const shareIt = () => { haptic.tap(); track("share", offer.id); const url = "https://t.me/share/url?url=" + encodeURIComponent(appLink("offer", offer.id)) + "&text=" + encodeURIComponent(`${offer.title} — ${offer.venue}, ${fmt(offer.price)}`); if (inTelegram) openChat(url.replace("https://t.me/", "")); else window.open(url, "_blank", "noopener"); };
 
   const back = useCallback(() => go(-1, "back"), [go]);
-  useBackButton(back, !buying && !using);
+  useBackButton(back, !preview && !buying && !using);
   const pay = useMemo(() => ({ text: "Төлеу", shine: true, onClick: () => { haptic.medium(); setBuying(true); } }), []);
   // Сыйлау: таңдалған дана нұсқасымен (Патша, 2026-11-18). Пакеті бар адамда таңдау жасырын — негізгі көлем.
   const giftTo = `/gift/${offer.id}${!pack && offer.units !== base.units ? `?units=${offer.units}` : ""}`;
@@ -187,7 +197,7 @@ function OfferView({ id }: { id?: string }) {
   const mainBtn = ended || (soldOut && !pack) ? notify : pack ? use : pay;
   const secondBtn = ended || soldOut ? undefined : pack ? again : gift;
   const caption = ended ? "Бұл ұсыныс аяқталды" : pack ? `${pack.left} / ${pack.total} қалды · мерзімі ${pack.daysLeft} күн` : soldOut ? "Осы айдың пакеттері таусылды · келесі айдың 1-інде ашылады" : "";
-  useBottomButtons(mainBtn, secondBtn, !buying && !sheet && !using && !choose);
+  useBottomButtons(mainBtn, secondBtn, !preview && !buying && !sheet && !using && !choose);
   const toVenue = () => go("/venue/" + (venue?.id ?? "damdi"));
   const handle = "@" + base.venue.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/ä/g, "a");
   const routeRows: LinkRow[] = routeRowsOf(base.venue, base.address || base.venue, venue ? lngLat(venue) : undefined); // 2ГИС + Google Maps (Патша, 2026-11-21)
@@ -197,10 +207,10 @@ function OfferView({ id }: { id?: string }) {
   ];
 
   return (
-    <div className={`${s.page} ${caption ? s.pageTall : ""}`}>
-      <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`}><p className={`pageTitle ${s.barTitle}`}>{base.packName ?? offer.title}</p></div>
-      <TelegramChrome mode="back" onBack={back} />
-      <div className={`${s.photo} ${ended ? s.photoEnded : ""} ${springing ? s.spring : ""}`} style={{ viewTransitionName: "offer-photo", height: 412 + pull }} onTransitionEnd={() => setSpringing(false)}>
+    <div className={`${s.page} ${caption ? s.pageTall : ""} ${preview ? s.pagePreview : ""}`}>
+      {!preview && <div className={`${s.topBar} ${scrolled ? s.topBarOn : ""}`}><p className={`pageTitle ${s.barTitle}`}>{base.packName ?? offer.title}</p></div>}
+      {!preview && <TelegramChrome mode="back" onBack={back} />}
+      <div className={`${s.photo} ${ended ? s.photoEnded : ""} ${springing ? s.spring : ""}`} style={{ viewTransitionName: preview ? "none" : "offer-photo", height: preview ? undefined : 412 + pull }} onTransitionEnd={() => setSpringing(false)}>
         <Gallery photos={photos} fallback={kindPic[offer.kind]} kind={offer.kind} />
         {ended && <span className={s.endedDuck}><Sticker name="sad" size={150} /></span>}
       </div>
@@ -230,7 +240,7 @@ function OfferView({ id }: { id?: string }) {
             <div>
               {/* UX 5 (Патша, 2026-11-23): негізгі баға мен ескі баға бір қатарда; мерзімі — оқылатын өлшемде */}
               <p className={`${s.priceLine} ${ended ? s.dim : ""}`}><span key={offer.price} className={s.swap}><Money n={offer.price} /></span><s className={s.oldInline}><Money n={offer.oldPrice} /></s></p>
-              {!ended && <p className={s.validity}>{`${d.days ?? 30} күн жарамды`}</p>}
+              {!ended && <p className={s.validity}>{`${base.validDays ?? d.days ?? 30} күн жарамды`}</p>}
             </div>
           </div>
           {/* Патша (2026-11-24): белгілер бағаның астында бір қатарда — сол жақта жеңілдік пен бөліп төлеу, оң жақта дана бағасы мен сатып алушылар */}
@@ -369,7 +379,7 @@ function OfferView({ id }: { id?: string }) {
       {sheet === "how" && <HowSheet onClose={() => setSheet(null)} />}
       {sheet === "route" && <LinkSheet title="Бағыт" rows={routeRows} onClose={() => setSheet(null)} />}
       {sheet === "contact" && <LinkSheet title="Байланыс" rows={contactRows} onClose={() => setSheet(null)} />}
-      {!inTelegram && (
+      {!inTelegram && !preview && (
         <div className={`${s.bar} ${caption ? s.barTall : ""}`}>
           {caption && <p className={`t-cap1 ${s.caption}`}>{caption}</p>}
           {secondBtn && <button className={`t-text w-600 ${s.btn} ${s.secondary}`} onClick={secondBtn.onClick}>{secondBtn.text}</button>}

@@ -1,0 +1,12 @@
+/* Мекеме формасындағы тірі карточка (Патша, 2026-11-25): жоғарыда бекітілген, жиналады */
+.pin { position: sticky; z-index: 6; top: calc(var(--safe-t, 0px) + 8px); display: flex; flex-direction: column; gap: 8px; padding: 8px; margin: 0 -8px; border-radius: 24px;
+  background: color-mix(in srgb, var(--surface-page) 88%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.head { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; font-size: 14px; line-height: 18px; font-weight: 600; color: var(--text-secondary); text-align: left; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #34c759; box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.2); animation: beat 1.6s ease-in-out infinite; }
+@keyframes beat { 50% { box-shadow: 0 0 0 5px rgba(52, 199, 89, 0.08); } }
+.live { padding: 1px 7px; border-radius: 8px; background: rgba(52, 199, 89, 0.14); color: #1f9e48; font-size: 12px; font-weight: 600; }
+.chev { margin-left: auto; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-3px); transition: transform 0.2s ease; }
+.chevUp { transform: rotate(-135deg) translate(-2px, -1px); }
+.card { display: block; width: 100%; padding: 0; overflow: hidden; background: transparent; text-align: left; animation: drop 0.22s ease both; }
+.still { display: block; pointer-events: none; user-select: none; }
+@keyframes drop { from { opacity: 0; transform: translateY(-6px); } }

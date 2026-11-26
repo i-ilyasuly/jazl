@@ -21,3 +21,16 @@ describe("нақты каталогпен іздеу", async () => {
   });
   it("бір ұсыныс бір рет қана", () => { const ids = allOffers().map((o) => o.id); expect(new Set(ids).size).toBe(ids.length); });
 });
+
+// «Клиент көретін көрініс» (Патша, 2026-11-25): алдын ала қарау каталогпен бір функциядан құрылады
+import { offerPatch, previewOffer } from "../src/catalog";
+describe("клиент көрінісі = каталог", () => {
+  it("мерзімі мен фотолары мекеменің нақты деректерінен", () => {
+    const o = { slug: "x", title: "Суши сет · 8 дана", kind: "food" as const, unitName: "дана", units: 8, price: 12000, regularUnitPrice: 2000, validDays: 60, photos: ["https://e/1.jpg", "https://e/2.jpg"], status: "active" as const,
+      details: { packName: "Тойымды", about: "Сет" }, category: "Суши" };
+    const p = offerPatch(o, "Sakura");
+    expect(p).toMatchObject({ validDays: 60, photos: ["https://e/1.jpg", "https://e/2.jpg"], photo: "https://e/1.jpg", packName: "Тойымды", venue: "Sakura", oldPrice: 16000 });
+    const full = previewOffer(o, "Sakura", { id: "draft-preview" });
+    expect(full).toMatchObject({ id: "draft-preview", ...p, active: 0 });
+  });
+});

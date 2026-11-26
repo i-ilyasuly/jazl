@@ -11,7 +11,7 @@ import { BadgeIcon } from "./BadgeIcon";
 import { InstNums } from "./InstNums";
 import { hits } from "../search";
 
-import { discount, fmt, instBadge, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
+import { activeOf, discount, fmt, instBadge, isSoldOut, saving, unitPrice, type Offer } from "../mocks/offers";
 import { askWriteAccess, haptic } from "../telegram";
 import heartFill from "../assets/icons/heartFill.svg";
 import heart from "../assets/icons/heart.svg";
@@ -68,10 +68,11 @@ export function OfferCard({ offer, ended: endedProp, highlight }: { offer: Offer
       </button>
       <div className={s.thumb} style={{ viewTransitionName: moving ? "offer-photo" : "none" }}>
         {offer.photo && !broken ? <Photo src={offer.photo.replace(/([?&])w=\d+/, "$1w=480")} kind={offer.kind} className={s.photo} alt="" loading="lazy" decoding="async" width={176} height={116} onError={() => setBroken(true)} /> : <img src={kindPic[offer.kind]} className={s.thumbIcon} width={96} height={96} alt="" decoding="sync" />}
-        <span className={s.buyers}>
+        {/* Патша (2026-11-25): сан — қазір белсенді пакеттер (сатылғанның бәрі емес). 0 болса көрсетілмейді */}
+        {activeOf(offer) > 0 && <span className={s.buyers} title={`${activeOf(offer)} белсенді пакет`}>
           <img src={group} width={14} height={14} alt="" />
-          <span className="t-cap1 w-700">{offer.buyers}</span>
-        </span>
+          <span className="t-cap1 w-700">{activeOf(offer)}</span>
+        </span>}
         {left != null && <span className={`t-cap1 ${s.left} ${left > 10 ? s.leftCalm : ""}`}>{`Қалды ${left} / ${offer.limit!.monthly}`}</span>}
         {offer.deadline && <span className={`t-cap1 ${s.deadline}`}>{offer.deadline}</span>}
         {/* Патша (2026-11-24): суреттің төменгі оң бұрышында ДА — екі орынның бірі кейін алынады */}

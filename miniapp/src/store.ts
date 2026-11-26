@@ -353,7 +353,7 @@ export function toggleRestock(id: string) {
   restock = on ? [...restock, id] : restock.filter((x) => x !== id); emit();
   api(`/v1/offers/${encodeURIComponent(id)}/wait`, { method: "POST", body: JSON.stringify({ on }) }).catch(() => null);
 }
-export async function loadWaits() { try { const j = await api<{ slugs: string[] }>("/v1/waits"); restock = j.slugs; emit(); } catch { /* бэкенд жоқ */ } }
+export async function loadWaits() { try { const j = await api<{ slugs: string[] }>("/v1/waits"); restock = j.slugs ?? []; emit(); } catch { /* бэкенд жоқ */ } }
 void kv.get("medeo_favs").then((v) => { if (v !== null) { favs = v ? v.split(",") : []; emit(); } });
 
 // ── Төлем тәсілдері ─────────────────────────────────────────────────────────

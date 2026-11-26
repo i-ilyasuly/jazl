@@ -97,6 +97,9 @@ d("Medeo Басқару", () => {
     expect(q.offers.find((x: { id: string }) => x.id === o.offer.id)).toMatchObject({ discount: 20, isNew: true, venue: "Dämdi Doner" });
     const one = (await json(get(`/v1/admin/offers/${o.offer.id}`))).offer;
     expect(one.checks.map((x: { s: string }) => x.s)).toEqual(["ok", "check", "fail", "ok", "ok"]); // фото жоқ
+    // «Клиент көретін көрініс»: клиент каталогындағы пішін (карточка мен бет сонымен салынады)
+    expect(one.client).toMatchObject({ kind: "food", unitName: "дана", status: "active", photos: [] });
+    expect(one.client.title).toMatch(/ · \d+ дана$/); expect(typeof one.client.validDays).toBe("number");
     await post(`/v1/admin/offers/${o.offer.id}/fix`, { field: "photo", text: "Фото қосыңыз" });
     const mine = (await json(get(`/v1/venue/${venueId}/offers/${o.offer.id}`, OWNER))).offer;
     expect(mine.status).toBe("draft"); expect(mine.reviewNote).toMatchObject({ text: "Фото қосыңыз", field: "photo" });

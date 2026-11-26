@@ -45,6 +45,10 @@ export interface Offer {
   favorite: boolean;
   deadline?: string;
   photo?: string;
+  /** Мекеменің барлық фотосы (серверден); жоқ болса ұсыныс беті үлгі галереяны көрсетеді */
+  photos?: string[];
+  /** Жарамдылық мерзімі, күн (серверден) */
+  validDays?: number;
   rating: number;
   ratingCount: number;
   address: string;

@@ -1,6 +1,7 @@
 // Medeo Басқару (Figma «Medeo Басқару» 14060:7998): платформа иесінің беттері.
 // Кіру: ADMIN_IDS тізіміндегі Telegram аккаунты (initData) + жеке PIN → 12 сағаттық X-Admin-Token.
 // Қауіпті әрекеттер (комиссия, тоқтату, қолмен қайтару, ұзарту, техникалық жұмыстар) PIN-мен қайта расталады. Әр өзгеріс — admin_log.
+import { limitsOf } from "../limits.js";
 import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { Hono, type Context } from "hono";
@@ -574,7 +575,12 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       { t: "Сипаттама толық", sub: about.length >= 40 ? "Құрамы мен шектеулері жазылған" : "Тым қысқа", s: about.length >= 40 ? "ok" : "check" },
       { t: "Мерзімі ережеге сай", sub: `${o.validDays} күн`, s: Number(o.validDays) >= 7 && Number(o.validDays) <= 90 ? "ok" : "fail" },
     ];
-    return c.json({ ok: true, offer: { ...o, about, photosList: x.photos, regularUnitPrice: x.regular_unit_price, kindName: kindName[x.kind as string], sizes: x.sizes, checks } });
+    // «Клиент көретін көрініс» (Патша, 2026-11-25): клиент каталогындағы пішінмен — мини апп сол карточка мен бетті салады
+    const lim = limitsOf(x.rules);
+    const client = { slug: x.slug, title: x.title, titleRu: x.title_ru ?? null, kind: x.kind, unitName: x.unit_name, units: Number(x.units), price: Number(x.price), regularUnitPrice: Number(x.regular_unit_price),
+      validDays: Number(x.valid_days), photos: x.photos ?? [], status: "active", details: x.details ?? null, category: x.category ?? null, rules: x.rules ?? null, sizes: x.sizes ?? null,
+      limit: lim.monthlyLimit || lim.perUserLimit ? { monthly: lim.monthlyLimit, left: lim.monthlyLimit, perUser: lim.perUserLimit } : null, saleUntil: (x.rules as { saleUntil?: string | null } | null)?.saleUntil ?? null };
+    return c.json({ ok: true, offer: { ...o, about, photosList: x.photos, regularUnitPrice: x.regular_unit_price, kindName: kindName[x.kind as string], sizes: x.sizes, checks, client } });
   });
   r.post("/admin/offers/:id/approve", async (c) => {
     const [x] = await rows<{ title: string; venue: string; status: string }>(sql`select o.title, v.name as venue, o.status from app.offers o join app.venues v on v.id = o.venue_id where o.id = ${c.req.param("id")}`);

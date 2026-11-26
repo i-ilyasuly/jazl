@@ -17,7 +17,12 @@ import { Buttons, Note, OfferPic, Sheet, Sk, VPage, VSticker } from "./ui";
 import { pickImage, uploadImage } from "./media";
 import { offPeakPrice, winLabel, WEEK_SHORT, type OffPeak } from "../offpeak";
 import { CATEGORIES, catLabel } from "../categories";
+import { OfferCard } from "../ui/OfferCard";
+import { ClientPreview } from "../ui/ClientPreview";
+import { previewOffer } from "../catalog";
+import type { Offer } from "../mocks/offers";
 import s from "./V.module.css";
+import lp from "./LivePin.module.css";
 
 type Size = { units: number; price: number };
 type PortionUnit = "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min";
@@ -114,6 +119,45 @@ function Steps({ n, label }: { n: number; label: string }) {
 }
 
 /** Ұсыныс құру/өңдеу шебері (/v/offers/new, /v/offers/:id/edit) */
+/** Мекеме толтырып жатқан жоба → клиент көретін Offer (каталогтағы offerPatch арқылы — клиенттікімен дәл бірдей) */
+function draftOffer(d: Draft, venue: { name: string; kind: "food" | "coffee" | "hair" }, address = ""): Offer {
+  const z = d.sizes[0] ?? { units: 1, price: 0 };
+  const t = (x: string) => x.trim() || null;
+  return previewOffer({ slug: "draft-preview", title: `${d.title.trim() || __t("Атауы")} · ${z.units} дана`, titleRu: t(d.titleRu), kind: venue.kind, unitName: "дана", units: z.units, price: z.price,
+    regularUnitPrice: d.regularUnitPrice, validDays: d.validDays, photos: d.photos, status: "active", category: t(d.category),
+    details: { about: d.about, aboutRu: d.aboutRu, composition: t(d.composition), compositionRu: t(d.compositionRu), packName: t(d.packName), packNameRu: t(d.packNameRu),
+      bonus: t(d.bonus), bonusRu: t(d.bonusRu), perk: t(d.perk), perkRu: t(d.perkRu), portion: d.portion, keywords: d.keywords },
+    rules: { planOnly: d.rules.planOnly, offPeak: d.rules.offPeak ?? undefined, installment: d.rules.installment ?? undefined },
+    sizes: d.sizes.length > 1 ? d.sizes : null, saleUntil: d.rules.saleUntil ?? null,
+    limit: d.rules.monthlyLimit || d.rules.perUserLimit ? { monthly: d.rules.monthlyLimit ?? null, left: d.rules.monthlyLimit ?? null, perUser: d.rules.perUserLimit ?? null } : null }, venue.name, { address });
+}
+
+/** Толтыру кезінде жоғарыда бекітілген тірі карточка (Патша, 2026-11-25). Мәтін терілгенде жиналады (пернетақта орын алады),
+ *  басса — толық көрініс: карточка мен ашылған беті. */
+function LivePin({ offer }: { offer: Offer }) {
+  const [open, setOpen] = useState(true);
+  const [typing, setTyping] = useState(false);
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    const on = (e: FocusEvent) => setTyping(Boolean((e.target as HTMLElement | null)?.matches?.("input:not([type=checkbox]):not([type=radio]), textarea")));
+    const off = () => setTyping(false);
+    document.addEventListener("focusin", on); document.addEventListener("focusout", off);
+    return () => { document.removeEventListener("focusin", on); document.removeEventListener("focusout", off); };
+  }, []);
+  const shown = open && !typing;
+  return <>
+    <div className={lp.pin}>
+      <button className={lp.head} onClick={() => { haptic.select(); setOpen((x) => !x); }} aria-expanded={shown}>
+        <span className={lp.dot} aria-hidden />Клиент көрінісі<span className={lp.live}>тірі</span><i className={`${lp.chev} ${shown ? lp.chevUp : ""}`} aria-hidden />
+      </button>
+      {shown && <button className={lp.card} onClick={() => { haptic.tap(); setFull(true); }} aria-label="Толық көрініс">
+        <span className={lp.still} inert aria-hidden><OfferCard offer={offer} /></span>
+      </button>}
+    </div>
+    {full && <Sheet title="Клиент көретін көрініс" onClose={() => setFull(false)}><ClientPreview offer={offer} start={1} /></Sheet>}
+  </>;
+}
+
 export function VOfferWizard() {
   const go = useGo();
   const me = useCurrent();
@@ -201,6 +245,7 @@ export function VOfferWizard() {
   return (
     <VPage title={id ? "Ұсынысты өңдеу" : "Ұсыныс құру"} back>
       <Steps n={step} label={label} />
+      {step < 4 && <LivePin offer={draftOffer(d, me.venue, branches[0]?.address)} />}
       {step === 1 && <>
         <label className={s.card} style={{ padding: "10px 16px 0", display: "block" }}>
           <span className="t-cap1" style={{ color: "var(--link)" }}>Атауы (қазақша)</span>
@@ -377,18 +422,8 @@ export function VOfferWizard() {
 
       {step === 4 && <>
         <h2 className={s.blueHead}>Клиент осылай көреді</h2>
-        <div className={s.card} style={{ padding: 16 }}>
-          <b className={s.lead} style={{ fontSize: 19 }}>{d.packName.trim() || `${d.title || "Атауы"} · ${d.sizes[0].units} дана`}</b>
-          <p className={`t-cap1 ${s.muted}`} style={{ marginTop: 2 }}>{d.packName.trim() ? `${d.title || "Атауы"} · ${d.sizes[0].units} дана · ${me.venue.name}` : me.venue.name}</p>
-          <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-            <span style={{ width: 170, height: 110, borderRadius: 14, background: "var(--thumb-bg)", display: "grid", placeItems: "center", overflow: "hidden" }}>{d.photos[0] ? <img src={d.photos[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <OfferPic kind={me.venue.kind} size={40} />}</span>
-            <span style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, justifyContent: "center" }}>
-              <b style={{ fontSize: 24, fontWeight: 700 }}>{money(d.sizes[0].price)}</b>
-              <span className={`${s.tag} ${s.tagYellow}`}>{`${money(Math.round(d.sizes[0].price / d.sizes[0].units))} / дана`}</span>
-              <span className={`${s.tag} ${s.tagGreen}`}>{`${money(d.sizes[0].units * d.regularUnitPrice - d.sizes[0].price)} үнем`}</span>
-            </span>
-          </div>
-        </div>
+        {/* Клиент қосымшасындағы нағыз карточка мен бет (Патша, 2026-11-25) */}
+        <ClientPreview offer={draftOffer(d, me.venue, branches[0]?.address)} />
         <h2 className={s.blueHead}>Тексеру тізімі</h2>
         <div className={s.card}>
           <Check ok={d.title.length > 1 && d.titleRu.length > 1 && Boolean(d.about) && Boolean(d.aboutRu) && Boolean(d.photos[0])} t="Атауы, сипаттама, фото" sub={!d.about ? "Сипаттама жазылмаған" : !d.aboutRu ? "Орысша сипаттама жазылмаған" : !d.photos[0] ? "Фото қосылмаған" : undefined} />

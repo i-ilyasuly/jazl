@@ -9,6 +9,8 @@ import { Buttons, Note, OfferPic, Sheet, Sk, VPage, VSticker } from "../venue/ui
 import { A, money, post } from "./api";
 import { Field, PinSheet } from "./ui";
 import type { OfferKind } from "../mocks/offers";
+import { previewOffer, type SrvOffer } from "../catalog";
+import { ClientPreview } from "../ui/ClientPreview";
 import v from "../venue/V.module.css";
 import s from "./A.module.css";
 
@@ -48,7 +50,7 @@ export function AOffers() {
   );
 }
 
-interface OFull extends ORow { about: string; photosList: string[]; regularUnitPrice: number; kindName: string; validDays: number; checks: { t: string; sub: string; s: "ok" | "check" | "fail" }[] }
+interface OFull extends ORow { client?: SrvOffer; about: string; photosList: string[]; regularUnitPrice: number; kindName: string; validDays: number; checks: { t: string; sub: string; s: "ok" | "check" | "fail" }[] }
 const FIELDS = [["price", "Баға"], ["photo", "Фото"], ["about", "Сипаттама"], ["discount", "Жеңілдік"], ["other", "Басқа"]] as const;
 export function AOffer() {
   const go = useGo();
@@ -88,10 +90,9 @@ export function AOffer() {
       {sheet === "stop" && <StopOffer id={o.id} title={o.title} onClose={() => setSheet(null)} done={() => void reload()} />}
       {sheet === "preview" && (
         <Sheet title="Клиент көретін көрініс" onClose={() => setSheet(null)}>
-          {o.photosList?.[0] ? <img src={o.photosList[0]} alt="" style={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", borderRadius: 16 }} /> : <div className={v.card} style={{ height: 160, display: "grid", placeItems: "center" }}><OfferPic kind={o.kind} size={64} /></div>}
-          <b className={v.rowTitle} style={{ fontSize: 22 }}>{o.title} · {o.units} {o.unitName}</b>
-          <span className={v.rowSub}>{o.venue} · {money(o.price)} · −{o.discount}%</span>
-          <p className="t-sub2" style={{ margin: 0, whiteSpace: "pre-wrap", color: "var(--text-strong)" }}>{o.about || "Сипаттама жоқ"}</p>
+          {/* Клиент қосымшасындағы нағыз карточка мен бет (Патша, 2026-11-25). Сервер жаңармаған болса — бар өрістерден */}
+          <ClientPreview offer={previewOffer(o.client ?? { slug: `preview-${o.id}`, title: `${o.title} · ${o.units} ${o.unitName}`, kind: o.kind, unitName: o.unitName, units: o.units, price: o.price,
+            regularUnitPrice: Number(o.regularUnitPrice), photos: o.photosList ?? [], status: "active", details: { about: o.about }, validDays: o.validDays }, o.venue, { id: `preview-${o.id}` })} />
         </Sheet>
       )}
     </VPage>
