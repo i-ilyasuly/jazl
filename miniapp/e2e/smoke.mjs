@@ -22,6 +22,8 @@ const ctx = await browser.newContext({ ...devices["Pixel 7"], serviceWorkers: "a
 await ctx.addInitScript({ content: require("./tgmock.cjs") });
 await ctx.addInitScript(() => { localStorage.setItem("medeo_onboarded", "1"); localStorage.setItem("medeo_nav_hints", "1"); });
 await ctx.route(/\.run\.app\//, (r) => r.abort()); // сервер жоқ
+// Нағыз telegram-web-app.js жүктелсе, жалған Telegram нысанын бос initData-мен басып тастайды → апп «Telegram-нан тыс» режиміне өтеді
+await ctx.route(/telegram\.org\/js\//, (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: "" }));
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
