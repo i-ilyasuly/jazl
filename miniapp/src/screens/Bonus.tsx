@@ -14,7 +14,7 @@ const dm = (d: string) => { const x = new Date(d); return `${x.getDate()} ${MON[
 export function Bonus() {
   const b = useBonus(true);
   return (
-    <SubPage title="Squirrel бонусы" variant="roomy">
+    <SubPage title="Medeo бонусы" variant="roomy">
       <div className={`${s.hero} rise`}>
         <Sticker name="partyhat" size={112} />
         <span className={s.label}>Қолжетімді</span>
@@ -25,7 +25,7 @@ export function Bonus() {
       {b && b.items.length > 0 && <Group i={2}>
         {b.items.map((x) => (
           <Row key={x.id} inset={68} left={x.left === 0 || x.expired ? <Tile e="↩" size={36} /> : <TgEmoji name="money" size={36} tilt={15} />} dim={x.expired}
-            title={x.title ?? "Squirrel бонусы"}
+            title={x.title ?? "Medeo бонусы"}
             sub={[x.venue, x.expired ? `мерзімі өтті ${dm(x.expiresAt)}` : x.left === 0 ? "толық жұмсалды" : `${x.units ? x.units + " бірліктен · " : ""}${dm(x.expiresAt)} дейін`].filter(Boolean).join(" · ")}
             right={<span className={s.amount}>{x.left > 0 && x.left < x.amount ? `${fmt(x.left)} / ${fmt(x.amount)}` : `+${fmt(x.amount)}`}</span>} />
         ))}

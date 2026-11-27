@@ -187,6 +187,19 @@ d("Фискалдық чек кезегі", () => {
     expect(sent.at(-1)!.kind).toBe("sell_return");
   });
 
+  it("клиент мини апптан «Ақшаны қайтару» басса — қайтару чегі кезекке түсіп, кассаға кетеді", async () => {
+    const buy = await (await app.request("/v1/purchases", { method: "POST", headers: h(903), body: JSON.stringify({ offerSlug: "doner", idempotencyKey: "fk-903-" + Date.now() }) })).json();
+    expect(buy.ok).toBe(true);
+    mode = "ok"; await syncFiscalQueue(dbh.db, cfg); await processFiscal(dbh.db, cfg, client);
+    const packId = buy.pack?.id ?? buy.packs?.[0]?.id ?? (await q("select p.id from app.packs p join app.users u on u.id = p.user_id where u.telegram_id = 903")).rows[0].id;
+    const rr = await (await app.request(`/v1/packs/${packId}/refund`, { method: "POST", headers: h(903) })).json();
+    expect(rr).toMatchObject({ ok: true, refundStatus: "done" });
+    await syncFiscalQueue(dbh.db, cfg); await processFiscal(dbh.db, cfg, client);
+    const fr = (await q("select f.kind, f.status, f.amount from app.fiscal_receipts f join app.payments p on p.id = f.payment_id join app.users u on u.id = p.user_id where u.telegram_id = 903 order by f.created_at")).rows;
+    expect(fr).toEqual([{ kind: "sell", status: "ok", amount: rr.cash }, { kind: "sell_return", status: "ok", amount: rr.cash }]);
+    expect(sent.at(-1)).toMatchObject({ kind: "sell_return", amount: rr.cash });
+  });
+
   it("дерек қатесі — қайталанбайды, failed (Басқару қарайды)", async () => {
     await q("insert into app.fiscal_receipts (payment_id, kind, amount, title, request_id) select id, 'sell', 100, 'x', 'md-test-fix' from app.payments limit 1");
     await q("update app.fiscal_receipts set status = 'ok' where request_id <> 'md-test-fix'");

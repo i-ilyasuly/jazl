@@ -96,7 +96,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
       setBonusNext(false); setBusy(true); tg?.MainButton?.showProgress?.(false);
       void checkoutBonus(offer.id, extra).then((r) => {
         tg?.MainButton?.hideProgress?.(); setBusy(false); void loadBonus(true);
-        if (r.status === "paid") { adoptPurchase(offer.id, r.pack, "Squirrel бонусы"); haptic.success(); onPaid(); return; }
+        if (r.status === "paid") { adoptPurchase(offer.id, r.pack, "Medeo бонусы"); haptic.success(); onPaid(); return; }
         haptic.error(); go(`/pay/fail/${offer.id}?r=${encodeURIComponent(r.status === "failed" ? r.reason : "declined")}`, "up", { replace: true });
       });
       return;
@@ -208,7 +208,7 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
           )}
           <div className={s.row}><span>Жиыны</span><span className={s.total}>{fmt(base)}</span></div>
           {(bonus?.balance ?? 0) > 0 && hasServer() && !charge && <>
-            <div className={s.row}><span className={s.muted}>{`Squirrel бонусы · ${fmt(bonus!.balance)}`}</span><span className={s.method}>{useB && <span className={`w-600 ${s.green}`}>−{fmt(bonusUse)}</span>}<Switch on={useB} onChange={(v) => { haptic.select(); setUseB(v); }} /></span></div>
+            <div className={s.row}><span className={s.muted}>{`Medeo бонусы · ${fmt(bonus!.balance)}`}</span><span className={s.method}>{useB && <span className={`w-600 ${s.green}`}>−{fmt(bonusUse)}</span>}<Switch on={useB} onChange={(v) => { haptic.select(); setUseB(v); }} /></span></div>
             {useB && <div className={s.row}><span>Төленеді</span><span className={s.total}>{fmt(cash)}</span></div>}
           </>}
           <hr className={s.sep} />

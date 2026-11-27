@@ -8,7 +8,7 @@
 //  • Мерзімді ұзарту төлемдері қайтарылмайды (ұзарту ақысы — Medeo-ныкі, Патша шешімі).
 // Провайдерге сұрау дерекқор транзакциясынан ТЫС жіберіледі: алдымен «күтуде» жазылады, сосын провайдер, сосын нәтиже.
 // Провайдер қабылдамаса — refund_status = failed, Басқару «Пульсінде» шығады және «Қайта жіберу» батырмасы бар.
-import { kickFiscal } from "./fiscal/index.js";
+import { settleFiscal } from "./fiscal/index.js";
 import { sql } from "drizzle-orm";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
@@ -122,6 +122,6 @@ export async function pushRefund(db: Db, cfg: Config, paymentId: string, amount?
   }
   await db.execute(sql`update app.payments set refund_status = ${res.ok ? "done" : "failed"}, refund_failure = ${res.ok ? null : res.reason ?? "provider_error"},
       meta = coalesce(meta, '{}'::jsonb) || ${JSON.stringify({ refundAttempts: (pay.meta?.refundAttempts ?? 0) + 1, refundAt: new Date() })}::jsonb where id = ${pay.id}`);
-  if (res.ok) kickFiscal(db, cfg); // қайтару чегі (re:Kassa қосулы болса)
+  if (res.ok) await settleFiscal(db, cfg); // қайтару чегі (re:Kassa қосулы болса) — жауаптан бұрын шығарамыз (Cloud Run фонды тежейді)
   return res.ok ? "done" : "failed";
 }
