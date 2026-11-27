@@ -319,17 +319,23 @@ export function rateActivityOf(packId: string): Activity {
   acts = [fresh, ...acts]; emit();
   return fresh;
 }
-/** Баға жіберу (бэкенд қосылғанда: POST /ratings). Пікір мәтіні мен себептер әзірге жадта ғана. */
-export function rateActivity(id: string, stars: number, tags: string[], text: string) {
+/** Баға жіберу: POST /v1/ratings. Нәтиже: ok — серверге жетті; local — пакет серверде жоқ (үлгі пакет), баға тек осы құрылғыда;
+ *  error — сервер қабылдамады не желі жоқ (Патша, 2026-11-27: бұрын қате үнсіз жұтылып, «мекемеге жетті» деп көрсетілетін). */
+export async function rateActivity(id: string, stars: number, tags: string[], text: string): Promise<{ result: "ok" | "local" | "error"; error?: string }> {
   const a = acts.find((x) => x.id === id);
+  const p = a ? getPack(a.packId) : undefined;
+  if (p?.serverId) {
+    try {
+      await api("/v1/ratings", { method: "POST", body: JSON.stringify({ packId: p.serverId, stars, tags: tags.slice(0, 8), text: text || undefined }) });
+    } catch (e) {
+      return { result: "error", error: srvError(e) };
+    }
+  }
   acts = acts.map((x) => (x.id === id ? { ...x, action: "rated", stars } : x));
   ratedLocal = { ...ratedLocal, [id]: stars }; kv.set("medeo_rated", JSON.stringify(Object.fromEntries(Object.entries(ratedLocal).slice(-100))));
-  const srv = Boolean(a && getPack(a.packId)?.serverId);
-  if (a) { myReviews = [{ offerId: a.offerId, stars, tags, text, at: new Date().toISOString(), server: srv }, ...myReviews].slice(0, 30); kv.set("medeo_my_reviews", JSON.stringify(myReviews)); }
+  if (a) { myReviews = [{ offerId: a.offerId, stars, tags, text, at: new Date().toISOString(), server: Boolean(p?.serverId) }, ...myReviews].slice(0, 30); kv.set("medeo_my_reviews", JSON.stringify(myReviews)); }
   emit();
-  // B4: баға серверге — мекеменің рейтингі мен соңғы қолдану чегіне жазылады
-  const p = a ? getPack(a.packId) : undefined;
-  if (p?.serverId) void api("/v1/ratings", { method: "POST", body: JSON.stringify({ packId: p.serverId, stars, tags: tags.slice(0, 8), text: text || undefined }) }).catch(() => undefined);
+  return { result: p?.serverId ? "ok" : "local" };
 }
 
 export const unitLabel = (p: Pack) => fmt(unitPrice(offerOf(p)));
