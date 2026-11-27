@@ -1,0 +1,88 @@
+---
+// Заңды құжат беті (/docs/…): мини апптағы мәтін (src/legal.ts). Сол жақта — құжаттар мен бөлімдер, оң жақта — мәтін.
+import type { Dict } from "../i18n/kk";
+import { legalDocs, legalUpdated, type SiteLegal } from "../legal";
+import { href, type PageKey } from "../routes";
+interface Props { t: Dict; doc: SiteLegal }
+const { t, doc } = Astro.props;
+const L = t.lang as "kk" | "ru";
+const docs = legalDocs(L);
+const KEY: Record<string, PageKey> = { offer: "offer", terms: "use", privacy: "privacy", refund: "refund", venue: "venueContract" };
+const ui = L === "ru"
+  ? { home: "Главная", docs: "Документы", ed: "Редакция", draft: "Это проект документа: окончательная редакция будет опубликована после проверки юристом. Значения в [квадратных скобках] будут заполнены после регистрации компании.", parts: "Содержание" }
+  : { home: "Басты бет", docs: "Құжаттар", ed: "Редакция", draft: "Бұл — құжаттың жобасы: түпкілікті нұсқасы заңгер тексергеннен кейін жарияланады. [Тік жақшадағы] мәндер компания тіркелген соң толтырылады.", parts: "Мазмұны" };
+// [толтырылатын орын] → белгіленген мәтін (HTML-ге қауіпсіз айналдыру)
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+const mark = (s: string) => esc(s).replace(/\[([^\]]{1,80})\]/g, '<mark>[$1]</mark>');
+const slug = (i: number) => `p${i + 1}`;
+---
+<section class="head">
+  <nav class="crumbs t-label-s muted" aria-label="breadcrumb">
+    <a href={href(L, "home")}>{ui.home}</a><span aria-hidden="true">/</span><span>{ui.docs}</span><span aria-hidden="true">/</span><span aria-current="page">{doc.title}</span>
+  </nav>
+  <h1 class="t-display-l">{doc.title}</h1>
+  <p class="t-body-l soft lead">{doc.short}</p>
+  <p class="t-label-s muted">{ui.ed}: {legalUpdated(L)}</p>
+</section>
+
+<div class="body">
+  <aside class="side">
+    <nav class="toc" aria-label={ui.docs}>
+      <p class="t-label-s muted">{ui.docs}</p>
+      <ul>{docs.map((d) => <li><a href={href(L, KEY[d.id])} aria-current={d.id === doc.id ? "page" : undefined}>{d.title}</a></li>)}</ul>
+    </nav>
+    <nav class="toc parts" aria-label={ui.parts}>
+      <p class="t-label-s muted">{ui.parts}</p>
+      <ol>{doc.parts.map((x, i) => <li><a href={`#${slug(i)}`}>{x.h}</a></li>)}</ol>
+    </nav>
+  </aside>
+
+  <article class="content">
+    <p class="draft t-body-s" set:html={mark(ui.draft)} />
+    {doc.parts.map((x, i) => (
+      <section id={slug(i)} class="card sec">
+        <h2 class="t-heading-s">{x.h}</h2>
+        {x.p.map((para) => <p class="t-body-m soft" set:html={mark(para)} />)}
+      </section>
+    ))}
+  </article>
+</div>
+
+<style>
+  .head { padding-top: 8px; }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+  .crumbs a:hover { color: var(--ink); }
+  .head h1 { margin: 0; }
+  .lead { margin: 16px 0 12px; max-width: 820px; }
+  .head p:last-child { margin: 0; }
+  .body { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start; }
+  .side { position: sticky; top: 124px; display: grid; gap: 16px; max-height: calc(100vh - 148px); overflow: auto; }
+  .toc { background: var(--paper); border-radius: 20px; padding: 20px; }
+  .toc p { margin: 0 0 8px; }
+  .toc ul, .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .toc a { display: block; padding: 9px 12px; border-radius: 10px; font-weight: 500; font-size: 15px; line-height: 20px; color: var(--ink); }
+  .toc a:hover { background: var(--gray-100); }
+  .toc a[aria-current] { background: var(--gray-100); color: var(--blue); }
+  .parts a { font-weight: 400; font-size: 14px; color: var(--ink-2); padding: 7px 12px; }
+  .content { display: grid; gap: 16px; min-width: 0; }
+  .draft { margin: 0; padding: 16px 20px; border-radius: 16px; background: var(--discount-bg); color: var(--ink); }
+  .sec { padding: 32px; border-radius: 24px; scroll-margin-top: 120px; }
+  .sec h2 { margin: 0 0 14px; }
+  .sec p { margin: 0 0 12px; }
+  .sec p:last-child { margin: 0; }
+  .content :global(mark) { background: color-mix(in srgb, var(--lime) 55%, transparent); color: inherit; border-radius: 4px; padding: 0 3px; }
+  @media (max-width: 1100px) {
+    .body { grid-template-columns: 1fr; }
+    .side { position: static; max-height: none; }
+    .parts { display: none; }
+    .toc { background: none; padding: 0; }
+    .toc p { display: none; }
+    .toc ul { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc a { background: var(--paper); border-radius: 999px; padding: 9px 14px; font-size: 14px; }
+    .toc a[aria-current] { background: var(--ink); color: var(--snow); }
+  }
+  @media (max-width: 720px) {
+    .sec { padding: 20px; border-radius: 20px; }
+    .lead { margin: 12px 0 8px; }
+  }
+</style>
