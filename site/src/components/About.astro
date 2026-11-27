@@ -1,0 +1,128 @@
+---
+// «Біз туралы» (28-құжат: атаудың мәні, миссия). Деректемелер — config.ts COMPANY (толтырылмағандары [тік жақшада]).
+import type { Dict } from "../i18n/kk";
+import { PAGES } from "../i18n/pages";
+import { APP_URL, BOT_URL, COMPANY, isBlank } from "../config";
+import { href } from "../routes";
+import Icon from "./Icon.astro";
+import Pass from "./Pass.astro";
+import Contour from "./Contour.astro";
+interface Props { t: Dict }
+const { t } = Astro.props;
+const L = t.lang as "kk" | "ru";
+const a = PAGES[L].about;
+const ru = L === "ru";
+const f = t.footer;
+const req: [string, string][] = [
+  [ru ? "Наименование" : "Атауы", ru ? COMPANY.nameRu : COMPANY.nameKk],
+  [f.bin, COMPANY.bin],
+  [f.legal, ru ? COMPANY.legalAddressRu : COMPANY.legalAddressKk],
+  [f.addressLabel, ru ? COMPANY.addressRu : COMPANY.addressKk],
+  [f.bank, ru ? COMPANY.bankRu : COMPANY.bankKk],
+  [f.iik, COMPANY.iik],
+];
+---
+<section class="card a-hero" aria-labelledby="ab-title">
+  <Contour class="ab-contour" />
+  <p class="t-label-m kicker">{a.kicker}</p>
+  <h1 id="ab-title" class="t-display-xl">{a.title}</h1>
+  <p class="t-body-l soft lead">{a.lead}</p>
+  <div class="btns">
+    <a class="btn btn-primary" href={APP_URL}><Icon name="telegram" size={20} />{a.cta}<Icon name="arrowUpRight" size={16} /></a>
+    <a class="btn btn-ghost" href={href(L, "venues")}>{a.ctaVenue}</a>
+  </div>
+</section>
+
+<section class="name" aria-labelledby="ab-name">
+  <div class="card n-text">
+    <h2 id="ab-name" class="t-display-l">{a.nameTitle}</h2>
+    {a.nameText.map((p) => <p class="t-body-l soft">{p}</p>)}
+  </div>
+  <div class="n-pass" aria-hidden="true"><div class="tilt"><Pass t={t} /></div></div>
+</section>
+
+<section class="mission day" aria-labelledby="ab-mission">
+  <h2 id="ab-mission" class="t-label-m">{a.missionTitle}</h2>
+  <p class="t-display-l">{a.mission}</p>
+</section>
+
+<section aria-labelledby="ab-values">
+  <h2 id="ab-values" class="t-display-l h">{a.valuesTitle}</h2>
+  <ul class="values">
+    {a.values.map((v) => <li class:list={[`tone-${v.tone}`, v.tone === "lime" && "day"]}><h3 class="t-heading-s">{v.t}</h3><p class="t-body-s soft">{v.d}</p></li>)}
+  </ul>
+</section>
+
+<section class="company" aria-labelledby="ab-company">
+  <div class="card co">
+    <h2 id="ab-company" class="t-heading-m">{a.companyTitle}</h2>
+    <dl>
+      {req.map(([k, v]) => <div><dt class="t-body-s muted">{k}</dt><dd class="t-body-m">{v}</dd></div>)}
+    </dl>
+  </div>
+  <div class="card co">
+    <h2 class="t-heading-m">{a.contactsTitle}</h2>
+    <dl>
+      <div><dt class="t-body-s muted">Email</dt><dd class="t-body-m">{isBlank(COMPANY.email) ? COMPANY.email : <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>}</dd></div>
+      <div><dt class="t-body-s muted">{ru ? "Телефон" : "Телефон"}</dt><dd class="t-body-m">{isBlank(COMPANY.phone) ? COMPANY.phone : <a href={`tel:${COMPANY.phone.replace(/[^+\d]/g, "")}`}>{COMPANY.phone}</a>}</dd></div>
+      <div><dt class="t-body-s muted">Telegram</dt><dd class="t-body-m"><a class="link" href={BOT_URL}>{COMPANY.support}</a></dd></div>
+      <div><dt class="t-body-s muted">{ru ? "Часы работы" : "Жұмыс уақыты"}</dt><dd class="t-body-m">{ru ? COMPANY.hoursRu : COMPANY.hoursKk}</dd></div>
+    </dl>
+  </div>
+</section>
+
+<style>
+  .a-hero { position: relative; overflow: hidden; padding: 64px; border-radius: 40px; }
+  :global(.ab-contour) { position: absolute; right: -40px; top: -50px; width: 360px; color: var(--ink); }
+  .kicker { margin: 0 0 16px; color: var(--blue); position: relative; }
+  .a-hero h1 { margin: 0; max-width: 880px; position: relative; }
+  .lead { margin: 24px 0 32px; max-width: 760px; position: relative; }
+  .btns { display: flex; gap: 12px; position: relative; }
+
+  .name { display: grid; grid-template-columns: 1fr 520px; gap: 24px; }
+  .name > * { min-width: 0; }
+  .n-text { padding: 48px; }
+  .n-text h2 { margin: 0 0 20px; }
+  .n-text p { margin: 0 0 16px; }
+  .n-text p:last-child { margin: 0; }
+  .n-pass { display: flex; align-items: center; justify-content: center; border-radius: 32px; background: var(--ice); min-height: 380px; padding: 32px; box-sizing: border-box; }
+  .tilt { transform: rotate(-4deg); width: 100%; max-width: 440px; }
+
+  .mission { border-radius: 32px; padding: 56px 64px; background: var(--lime); color: #15171a; }
+  .mission h2 { margin: 0 0 16px; opacity: .7; }
+  .mission p { margin: 0; max-width: 980px; }
+
+  .h { margin: 0 0 24px; }
+  .values { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; list-style: none; margin: 0; padding: 0; }
+  .values li { border-radius: 24px; padding: 28px; }
+  .values h3 { margin: 0 0 10px; }
+  .values p { margin: 0; }
+  .tone-ice { background: var(--ice); } .tone-peach { background: var(--peach); } .tone-lilac { background: var(--lilac); } .tone-lime { background: var(--lime); color: #15171a; }
+
+  .company { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .co { padding: 40px; }
+  .co h2 { margin: 0 0 20px; }
+  .co dl { margin: 0; display: grid; gap: 0; }
+  .co dl div { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 12px 0; border-top: 1px solid var(--gray-200); }
+  .co dd { margin: 0; }
+  .link { color: var(--blue); }
+
+  @media (max-width: 1100px) {
+    .name, .company { grid-template-columns: 1fr; }
+    .values { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 720px) {
+    .a-hero { padding: 28px 20px; border-radius: 24px; }
+    :global(.ab-contour) { width: 220px; right: -70px; top: -50px; }
+    :global(.ab-contour circle) { display: none; }
+    .lead { margin: 16px 0 24px; }
+    .btns { flex-direction: column; }
+    .n-text { padding: 24px 20px; }
+    .n-pass { min-height: 0; padding: 32px 16px; border-radius: 24px; }
+    .mission { padding: 28px 20px; border-radius: 24px; }
+    .values { grid-template-columns: 1fr; gap: 12px; }
+    .values li { padding: 20px; border-radius: 20px; }
+    .co { padding: 24px 20px; }
+    .co dl div { grid-template-columns: 1fr; gap: 2px; }
+  }
+</style>

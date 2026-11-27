@@ -1,0 +1,9 @@
+---
+import Base from "../../layouts/Base.astro";
+import Offers from "../../components/Offers.astro";
+import { ru } from "../../i18n/ru";
+import { PAGES } from "../../i18n/pages";
+import { loadOffers } from "../../catalog";
+const offers = await loadOffers();
+---
+<Base t={ru} title={PAGES.ru.offers.meta.title} description={PAGES.ru.offers.meta.description} active="offers"><Offers t={ru} offers={offers} /></Base>

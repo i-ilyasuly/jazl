@@ -14,7 +14,7 @@ export const EPAY_URL = "https://epayment.kz";
 export const COMPANY = {
   nameKk: "«Medeo» ЖШС",
   nameRu: "ТОО «Medeo»",
-  bin: "[БСН]",
+  bin: "[000000000000]",
   legalAddressKk: "[Заңды мекенжай]",
   legalAddressRu: "[Юридический адрес]",
   addressKk: "[Нақты мекенжай: Алматы қ., көше, үй]",
