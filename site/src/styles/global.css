@@ -25,6 +25,8 @@
   --gray-200: #e1e3de;
   --gray-100: #eaece7;
   --blue: #2b6bff;
+  /* Мәтін мен сілтемеге (2026-11-27, WCAG AA): #2b6bff ақшыл фонда 4,05:1 — жетпейді; #1d4fd8 — 5,96:1 */
+  --blue-text: #1d4fd8;
   --ice: #d6e6ff;
   --lime: #dcf36e;
   --peach: #ffc9a8;
@@ -49,6 +51,7 @@
   --gray-200: #2b2f35;
   --gray-100: #23272d;
   --blue: #4c84ff;
+  --blue-text: #6f9bff;
   --ice: #1f2d42;
   --lime: #dcf36e;
   --peach: #4a3020;
@@ -73,6 +76,8 @@
   --gray-200: #e1e3de;
   --gray-100: #eaece7;
   --blue: #2b6bff;
+  /* Мәтін мен сілтемеге (2026-11-27, WCAG AA): #2b6bff ақшыл фонда 4,05:1 — жетпейді; #1d4fd8 — 5,96:1 */
+  --blue-text: #1d4fd8;
   --ice: #d6e6ff;
   --peach: #ffc9a8;
   --lilac: #d9ccff;
