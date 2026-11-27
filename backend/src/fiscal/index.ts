@@ -103,6 +103,7 @@ export async function processFiscal(db: Db, cfg: Config, client: RekassaClient =
       ok++;
     } catch (e) {
       let err = e instanceof RekassaError ? e : new RekassaError("INTERNAL", 0, "retry", true);
+      console.error("fiscal error", r.kind, r.request_id, err.code, err.detail || (e as Error).message);
       // Қайтару чегінің протокол қатесі — көбіне осы чектің дерегі (бастапқы чек өрістері): бүкіл кезекті тоқтатпай, тек осы чек кейін қайталанады (10 әрекеттен соң failed)
       if (r.kind === "sell_return" && err.code === "PROTOCOL_ERROR") err = new RekassaError(err.code, err.http, "retry");
       const unknown = err.unknown || err.code === "INTERNAL";

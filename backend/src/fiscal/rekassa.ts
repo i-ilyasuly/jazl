@@ -26,7 +26,8 @@ export function classify(http: number, code: string | null): ErrorClass {
 
 export class RekassaError extends Error {
   /** unknown — жауап келмеді (желі/уақыт): чек шықты ма — белгісіз */
-  constructor(public code: string, public http: number, public cls: ErrorClass, public unknown = false) { super(`rekassa ${http} ${code}`); }
+  /** detail — re:Kassa жауабының мәтіні (қате себебін логта көру үшін, 500 таңбаға дейін) */
+  constructor(public code: string, public http: number, public cls: ErrorClass, public unknown = false, public detail = "") { super(`rekassa ${http} ${code}`); }
 }
 
 export type TicketKind = "sell" | "sell_return";
@@ -78,7 +79,7 @@ export function rekassaClient(o: RekassaOptions) {
     let json: Record<string, unknown> | null = null; try { json = text ? JSON.parse(text) : null; } catch { json = null; }
     if (!res.ok) {
       const code = typeof json?.code === "string" ? json.code : "HTTP_" + res.status;
-      throw new RekassaError(code, res.status, classify(res.status, typeof json?.code === "string" ? json.code : null), res.status >= 500);
+      throw new RekassaError(code, res.status, classify(res.status, typeof json?.code === "string" ? json.code : null), res.status >= 500, text.slice(0, 500));
     }
     return json;
   }
