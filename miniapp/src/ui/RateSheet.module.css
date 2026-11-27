@@ -52,3 +52,8 @@
 /* Патша (2026-11-21): таңдалған жұлдыз — Telegram анимациялық ⭐ */
 .starTg { display: grid; place-items: center; }
 .starTg > span { margin: -2px; }
+
+/* Сервер қабылдамаса (2026-11-27) */
+.err { color: #e5484d; }
+:global(:root[data-theme="dark"]) .err { --dark-fg: #ff7b72; color: #ff7b72; }
+.sheet { transition: bottom 0.2s ease; }
