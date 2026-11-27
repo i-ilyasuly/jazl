@@ -103,8 +103,8 @@ export async function processFiscal(db: Db, cfg: Config, client: RekassaClient =
       ok++;
     } catch (e) {
       let err = e instanceof RekassaError ? e : new RekassaError("INTERNAL", 0, "retry", true);
-      // Қайтару чегінің протокол қатесі — көбіне осы чектің дерегі (бастапқы чек өрістері): бүкіл кезекті тоқтатпай, тек осы чек failed
-      if (r.kind === "sell_return" && err.code === "PROTOCOL_ERROR") err = new RekassaError(err.code, err.http, "fix");
+      // Қайтару чегінің протокол қатесі — көбіне осы чектің дерегі (бастапқы чек өрістері): бүкіл кезекті тоқтатпай, тек осы чек кейін қайталанады (10 әрекеттен соң failed)
+      if (r.kind === "sell_return" && err.code === "PROTOCOL_ERROR") err = new RekassaError(err.code, err.http, "retry");
       const unknown = err.unknown || err.code === "INTERNAL";
       if (KASSA_LEVEL.has(err.cls)) {
         // Касса жұмыс істемейді: осы және әлі қолға алынбаған чектерді 30 минутқа қалдырамыз (әрекет саналмайды), Басқаруға белгі
