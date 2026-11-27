@@ -27,6 +27,8 @@ function fakeKassa(opts: { expireOnce?: boolean; unauthorizeOnce?: boolean; noCr
     if (path.startsWith("/api/crs/1101/shifts?")) return json({ _embedded: { shifts: [{ shiftNumber: shift }, { shiftNumber: shift - 1 }] } });
     const st = path.match(/^\/api\/crs\/1101\/shifts\/(\d+)\/tickets/);
     if (st) return json({ _embedded: { tickets: tickets.filter((t) => t.shiftNumber === Number(st[1])) }, page: { totalPages: 1 } });
+    if (path === "/api/crs/1101/tickets/43605987") return json({ id: 43605987, ticketNumber: "274106435527", offlineTicketNumber: null, messageTime: "2026-11-27T09:05:07.508", offline: false,
+      data: { ticket: { amounts: { total: { bills: "10000", coins: 0 } } }, service: { regInfo: { kkm: { fnsKkmId: "600700014653", serialNumber: "ZNM-1" } } } } });
     if (/^\/api\/crs\/1101\/tickets\/\d+\/receipts$/.test(path)) return json({ id: Number(path.split("/")[4]), extra: { receipts: [body] } });
     if (path === "/api/crs/1101/tickets") {
       if (unauth) { unauth = false; return json({ code: "PERMISSION_ERROR" }, 401); }
@@ -61,6 +63,17 @@ describe("re:Kassa клиенті", () => {
     const k = fakeKassa();
     await rekassaClient(opts(k.f)).ticket({ ...sale, kind: "sell_return", requestId: "md-100001-ret-1" });
     expect((k.calls[1].body as { operation: string }).operation).toBe("OPERATION_SELL_RETURN");
+  });
+  it("бастапқы чектің деректері re:Kassa-дан алынады (messageTime — кассаның жергілікті уақыты)", async () => {
+    const k = fakeKassa();
+    expect(await rekassaClient(opts(k.f)).parentOf(43605987)).toEqual({ number: "274106435527", offline: false, total: { bills: "10000", coins: 0 }, kkmId: "600700014653",
+      at: { date: { year: "2026", month: "11", day: "27" }, time: { hour: "9", minute: "5", second: "7" } } });
+  });
+  it("қайтару чегінде бастапқы чек (parentTicket): ФП, күні-уақыты, сомасы, офлайн белгісі, РНМ — ОФД 2.0.3+", async () => {
+    const k = fakeKassa();
+    const parent = { number: "274106435527", at: { date: { year: "2026", month: "11", day: "27" }, time: { hour: "11", minute: "40", second: "35" } }, total: money(2222), offline: false, kkmId: "600700014653" };
+    await rekassaClient(opts(k.f)).ticket({ ...sale, kind: "sell_return", requestId: "md-100001-ret-1", parent });
+    expect((k.calls[1].body as Record<string, unknown>).parentTicket).toEqual({ parentTicketNumber: "274106435527", parentTicketDateTime: parent.at, kgdKkmId: "600700014653", parentTicketTotal: { bills: "2222", coins: 0 }, parentTicketIsOffline: false });
   });
   it("401 → бір рет қайта кіріп, сол X-Request-ID-мен қайта жібереді", async () => {
     const k = fakeKassa({ unauthorizeOnce: true });
@@ -128,6 +141,7 @@ d("Фискалдық чек кезегі", () => {
     // Нақты касса сияқты: тек соңғы екі ауысымнан іздейді
     findTicket: async (id: string) => { const sh = issued.get(id); return sh !== undefined && sh >= shift - 1 && sh === shift ? { ticketId: 9999, ticketNumber: "F", qrUrl: null, shiftNumber: sh, offline: false } : null; },
     registerReceipt: async (id: number) => { receipts.push(id); },
+    parentOf: async (id: number) => ({ number: "N-" + id, at: { date: { year: "2026", month: "11", day: "27" }, time: { hour: "11", minute: "52", second: "0" } }, total: { bills: "1", coins: 0 }, offline: false, kkmId: "RNM" }),
     login: async () => ({}), closeShift: async () => false,
   } as unknown as RekassaClient;
 
@@ -197,7 +211,8 @@ d("Фискалдық чек кезегі", () => {
     await syncFiscalQueue(dbh.db, cfg); await processFiscal(dbh.db, cfg, client);
     const fr = (await q("select f.kind, f.status, f.amount from app.fiscal_receipts f join app.payments p on p.id = f.payment_id join app.users u on u.id = p.user_id where u.telegram_id = 903 order by f.created_at")).rows;
     expect(fr).toEqual([{ kind: "sell", status: "ok", amount: rr.cash }, { kind: "sell_return", status: "ok", amount: rr.cash }]);
-    expect(sent.at(-1)).toMatchObject({ kind: "sell_return", amount: rr.cash });
+    expect(sent.at(-1)).toMatchObject({ kind: "sell_return", amount: rr.cash, parent: { kkmId: "RNM" } });
+    expect(sent.at(-1)!.parent!.number).toMatch(/^N-\d+$/);
   });
 
   it("дерек қатесі — қайталанбайды, failed (Басқару қарайды)", async () => {
