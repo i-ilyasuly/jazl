@@ -1,0 +1,12 @@
+---
+// Заңды құжаттар (қазақша): /docs/offer, /docs/terms, /docs/privacy, /docs/refund, /docs/venue
+import Base from "../../layouts/Base.astro";
+import LegalPage from "../../components/LegalPage.astro";
+import { kk } from "../../i18n/kk";
+import { legalDocs, type SiteLegal } from "../../legal";
+export function getStaticPaths() {
+  return legalDocs("kk").map((doc) => ({ params: { id: doc.id }, props: { doc } }));
+}
+const { doc } = Astro.props as { doc: SiteLegal };
+---
+<Base t={kk} title={`${doc.title} — Medeo`} description={doc.short}><LegalPage t={kk} doc={doc} /></Base>

@@ -1,0 +1,14 @@
+---
+// Юридические документы (русский): /ru/docs/…
+import Base from "../../../layouts/Base.astro";
+import LegalPage from "../../../components/LegalPage.astro";
+import { ru } from "../../../i18n/ru";
+import { legalDocs, untranslated, type SiteLegal } from "../../../legal";
+export function getStaticPaths() {
+  const miss = untranslated();
+  if (miss.length) console.warn(`[legal] аударылмаған ${miss.length} жол:\n` + miss.join("\n"));
+  return legalDocs("ru").map((doc) => ({ params: { id: doc.id }, props: { doc } }));
+}
+const { doc } = Astro.props as { doc: SiteLegal };
+---
+<Base t={ru} title={`${doc.title} — Medeo`} description={doc.short}><LegalPage t={ru} doc={doc} /></Base>
