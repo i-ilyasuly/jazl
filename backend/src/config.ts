@@ -59,6 +59,16 @@ const Env = z.object({
   /** Басқарудың веб-мекенжайы (бот хабарламасындағы батырмалар осында апарады) */
   ADMIN_WEB_URL: z.string().url().default("https://miniapp-fkro.vercel.app"),
   MAINTENANCE: z.enum(["0", "1"]).default("0").transform((v) => v === "1"),
+  /** Фискалдық чек (онлайн-касса) провайдері. off — чек шығарылмайды (әдепкі). rekassa — re:Kassa Partner API (src/fiscal). */
+  FISCAL: z.enum(["off", "rekassa"]).default("off"),
+  /** re:Kassa: сынақ контуры https://app-test.rekassa.kz/partner, жұмыс контуры https://api.rekassa.kz */
+  REKASSA_URL: z.string().url().default("https://app-test.rekassa.kz/partner"),
+  /** re:Kassa API Key (Secret Manager: medeo-rekassa-test-key / боевой кілт) */
+  REKASSA_API_KEY: z.string().min(8).optional(),
+  /** Кассаның зауыттық нөмірі (ЗНМ/ЗНК) — құпия емес */
+  REKASSA_NUMBER: z.string().min(3).optional(),
+  /** Кассаның интеграция паролі (Secret Manager: medeo-rekassa-test-password) */
+  REKASSA_PASSWORD: z.string().min(3).optional(),
 });
 
 export type Config = z.infer<typeof Env>;

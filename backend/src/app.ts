@@ -14,6 +14,7 @@ import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
 import { emojiRoutes } from "./routes/emoji.js";
 import { eventRoutes } from "./routes/events.js";
+import { fiscalTick } from "./fiscal/index.js";
 import { stickerRoutes } from "./routes/sticker.js";
 import { purchaseRoutes, receiptFileRoutes } from "./routes/purchases.js";
 import { devQrRoutes, usageRoutes } from "./routes/usage.js";
@@ -96,8 +97,9 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     const renewed = await autoRenewTick(db, cfg, notify).catch((e) => { console.error("autoRenew", e); return 0; }); // автожаңарту
     const cardsDone = await cards?.sweep().catch((e) => { console.error("packCards", e); return null; }); // пакет карталары: жаңалары және өзгерген күйлер
     await snapshot(db).catch((e) => console.error("metrics snapshot", e)); // күндік сурет (метрикалар)
+    const fiscal = await fiscalTick(db, cfg).catch((e) => { console.error("fiscal", e); return null; }); // фискалдық чектер (re:Kassa)
     await setSetting(db, "lastTick", new Date().toISOString()).catch(() => null);
-    return c.json({ ok: true, sent, renewed, cards: cardsDone ?? null });
+    return c.json({ ok: true, sent, renewed, cards: cardsDone ?? null, fiscal });
   });
   // IP тақырыбын тексеру (аудит 2026-11-25): Cloud Run X-Forwarded-For-ды қалай құратынын көру үшін. Тек CRON_KEY-мен.
   app.get("/cron/ip", (c) => {

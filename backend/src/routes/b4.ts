@@ -2,6 +2,7 @@
 // Ережелер (14-құжат): сыйлық 7 күн ішінде қабылданбаса — пакет жіберушіге қайтады; 30 күн мерзімі алушы қабылдаған сәттен басталады.
 // Ұзарту: 7 күн — мекеменің бір реттік тегін мүмкіндігі, 14 күн — 1 000 ₸, 30 күн — 2 000 ₸ (баға серверде).
 // Қайтару: src/refund.ts (карта бөлігі провайдер арқылы, бонус бөлігі бонусқа, сыйлықты тек беруші).
+import { kickFiscal } from "../fiscal/index.js";
 import { randomUUID } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { and, avg, count, desc, eq, isNull, or, sql } from "drizzle-orm";
@@ -101,6 +102,7 @@ export function b4Routes(cfg: Config, db: Db, notify?: Notifier) {
       if (res.card) await saveCard(db, provider.name, user.id, res.card);
       const out = await finalizeExtend(db, cfg, pay.id);
       if ("error" in out) return fail(c, new B4Error(out.error));
+      kickFiscal(db, cfg);
       const [fresh] = await db.select().from(payments).where(eq(payments.id, pay.id));
       return c.json(...(await paymentReply(db, user.id, fresh)));
     }
