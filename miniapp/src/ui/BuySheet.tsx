@@ -218,8 +218,17 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
           </button>
           <button className={s.agree} onClick={() => { haptic.select(); setAgree(!agree); }} aria-pressed={agree}>
             <span className={`${s.box} ${agree ? s.boxOn : ""}`}>{agree && <img src={check} width={16} height={16} alt="" />}</span>
-            <span className={s.agreeText}>Пайдалану <b>шарттарымен</b> және <b>қайтару ережелерімен</b> келісемін</span>
+            <span className={s.agreeText}>Төлей отырып, <b onClick={(e) => { e.stopPropagation(); haptic.tap(); go("/legal/offer"); }}>жария офертаны</b> және <b onClick={(e) => { e.stopPropagation(); haptic.tap(); go("/legal/refund"); }}>қайтару ережесін</b> қабылдаймын</span>
           </button>
+          {/* Halyk ePay талабы (2026-11-27): төлем жүйелерінің логотиптері толық түсті, 3-D Secure белгілері және ePay сілтемесі */}
+          <div className={s.brands} aria-label="Төлем жүйелері">
+            <span className={`${s.brand} ${s.visa}`}>VISA</span>
+            <span className={`${s.brand} ${s.mc}`} aria-label="Mastercard"><i /><i /></span>
+            <span className={s.brand}>Visa Secure</span>
+            <span className={s.brand}>ID Check</span>
+            <button className={`${s.brand} ${s.epay}`} onClick={() => { haptic.tap(); openExternal("https://epayment.kz/"); }}>Halyk ePay</button>
+          </div>
+          <p className={s.secure}>Төлемді Halyk Bank (ePay) өңдейді. Карта деректерін Medeo көрмейді және сақтамайды.</p>
         </>}
 
         {step === "method" && <>

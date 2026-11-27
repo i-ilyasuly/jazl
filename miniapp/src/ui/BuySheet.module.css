@@ -88,3 +88,13 @@
 .opt .itemText { white-space: normal; }
 .opt .itemSub { display: block; overflow-wrap: anywhere; }
 .payLogo { flex: none; width: 44px; height: 44px; border-radius: 12px; object-fit: contain; background: #fff; box-shadow: inset 0 0 0 1px var(--separator); }
+
+/* Төлем жүйелерінің белгілері (Halyk ePay талабы, 2026-11-27) */
+.brands { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.brand { display: inline-flex; align-items: center; justify-content: center; height: 26px; padding: 0 9px; border-radius: 7px; background: #fff; border: 1px solid rgba(0, 0, 0, 0.08); font-size: 12px; line-height: 14px; font-weight: 700; color: #1a1f71; white-space: nowrap; }
+.visa { font-style: italic; font-weight: 800; letter-spacing: 0.5px; }
+.mc { gap: 0; padding: 0 8px; }
+.mc i { width: 14px; height: 14px; border-radius: 50%; background: #eb001b; display: block; }
+.mc i + i { background: #f79e1b; margin-left: -6px; mix-blend-mode: multiply; }
+.epay { color: #00805f; }
+.secure { margin: 8px 0 0; font-size: 13px; line-height: 17px; color: var(--text-secondary); }
