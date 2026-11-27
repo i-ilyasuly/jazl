@@ -1,7 +1,7 @@
 // B2 · Сатып алу, пакеттер, чектер.
 // Ереже: баға тек серверде есептеледі (клиент жіберген бағаға сенбейміз); бір сатып алу кілті — бір төлем (идемпотенттік);
 // бәрі бір транзакцияда: төлем → пакет → тарих → чек. Қазір төлем сынақ режимінде (ақша жүрмейді).
-import { kickFiscal } from "../fiscal/index.js";
+import { fiscalForReceipt, kickFiscal } from "../fiscal/index.js";
 import { ipFrom } from "../rateLimit.js";
 import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { bonusOf, holdBonus, releaseBonus } from "../bonus.js";
@@ -166,7 +166,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     if (!Number.isInteger(no)) return c.json({ ok: false, error: "not_found" }, 404);
     const [rc] = await db.select().from(receipts).where(and(eq(receipts.no, no), eq(receipts.userId, c.get("user").id))).limit(1);
     if (!rc) return c.json({ ok: false, error: "not_found" }, 404);
-    return c.json({ ok: true, receipt: publicReceipt(rc, cfg) });
+    return c.json({ ok: true, receipt: { ...publicReceipt(rc, cfg), fiscal: await fiscalForReceipt(db, rc) } });
   });
 
   // Жүктеу сілтемесі: 1 сағат жарамды, қолтаңбалы (Telegram downloadFile тақырып жібере алмайды, сондықтан кіру — сілтемедегі қолтаңбамен)
@@ -189,7 +189,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     const staff = rc && rc.userId !== c.get("user").id && rc.venueId
       ? (await db.execute(sql`select 1 from app.venue_staff where venue_id = ${rc.venueId} and user_id = ${c.get("user").id} and status = 'active'`)).rows.length > 0 : false;
     if (!rc || (rc.userId !== c.get("user").id && !staff)) return c.json({ ok: false, error: "not_found" }, 404);
-    return c.json({ ok: true, receipt: publicReceipt(rc, cfg) });
+    return c.json({ ok: true, receipt: { ...publicReceipt(rc, cfg), fiscal: await fiscalForReceipt(db, rc) } });
   });
 
   return r;
@@ -212,7 +212,7 @@ export function receiptFileRoutes(cfg: Config, db: Db) {
     if (!sigOk(cfg, `receipt:${id}:${e}`, s)) return c.text("Сілтеме жарамсыз", 403);
     const [rc] = await db.select().from(receipts).where(eq(receipts.id, id)).limit(1);
     if (!rc) return c.text("Чек табылмады", 404);
-    const pub = publicReceipt(rc, cfg) as unknown as PublicReceipt;
+    const pub = { ...publicReceipt(rc, cfg), fiscal: await fiscalForReceipt(db, rc) } as unknown as PublicReceipt;
     const pdf = await receiptPdf(pub);
     return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Medeo-chek-${pub.no}.pdf"`, "Cache-Control": "private, max-age=600" } });
   });

@@ -41,3 +41,5 @@
 .btn { width: 100%; height: 48px; border-radius: 8px; background: var(--button); color: #fff; font-size: 17px; line-height: 22px; font-weight: 600; }
 :global(:root[data-theme="dark"]) .paper { background: var(--surface-card); box-shadow: none; }
 :global(:root[data-theme="dark"]) .test { background: rgba(255, 196, 0, 0.14); }
+.qrBtn { border: 0; cursor: pointer; }
+.verify + .verify { margin-top: 16px; }
