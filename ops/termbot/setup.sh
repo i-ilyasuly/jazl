@@ -8,6 +8,12 @@ REGION=europe-west3
 SVC=medeo-termbot
 SA="medeo-termbot@${PROJECT}.iam.gserviceaccount.com"
 echo "Жоба: $PROJECT"
+# 0) gcloud аккаунты таңдалған ба (Cloud Shell кейде рұқсатсыз ашылады) — токенді сұрамас бұрын тексереміз
+if [ -z "$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null)" ]; then
+  echo "gcloud аккаунты таңдалмаған. Алдымен: gcloud auth login  (сілтемені ашып, кодты қойыңыз), сосын осы скриптті қайта іске қосыңыз."
+  exit 1
+fi
+[ -n "$PROJECT" ] || { echo "Жоба таңдалмаған: gcloud config set project jazl-platform"; exit 1; }
 
 # 1) Бот токені (BotFather) және webhook құпиясы — Secret Manager-де
 if ! gcloud secrets describe medeo-termbot-token >/dev/null 2>&1; then
