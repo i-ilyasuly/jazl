@@ -1,0 +1,7 @@
+---
+import Base from "../layouts/Base.astro";
+import About from "../components/About.astro";
+import { kk } from "../i18n/kk";
+import { PAGES } from "../i18n/pages";
+---
+<Base t={kk} title={PAGES.kk.about.meta.title} description={PAGES.kk.about.meta.description} active="about"><About t={kk} /></Base>

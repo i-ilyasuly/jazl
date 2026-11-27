@@ -1,0 +1,118 @@
+---
+// «Ұсыныстар» беті: каталогтағы белсенді пакеттер (санат сүзгісі), «Telegram-да алу» → t.me/<бот>?startapp=offer_<slug>.
+import type { Dict } from "../i18n/kk";
+import { PAGES } from "../i18n/pages";
+import { API_URL, BOT_URL } from "../config";
+import { href } from "../routes";
+import type { SiteOffer } from "../catalog";
+import Icon from "./Icon.astro";
+interface Props { t: Dict; offers: SiteOffer[] }
+const { t, offers } = Astro.props;
+const L = t.lang as "kk" | "ru";
+const p = PAGES[L].offers;
+const fmt = (n: number) => n.toLocaleString("ru-RU").replace(/ /g, " ") + " ₸";
+const titleOf = (o: SiteOffer) => (L === "ru" && o.titleRu ? o.titleRu : o.title);
+const unitsOf = (o: SiteOffer) => (L === "ru" ? `${o.units}${p.unitsSuffix}` : `${o.units} ${o.unitName}`);
+const kinds = ["coffee", "food", "hair"].filter((k) => offers.some((o) => o.kind === k));
+const tone: Record<string, string> = { coffee: "ice", food: "peach", hair: "lilac" };
+---
+<section class="o-head">
+  <h1 class="t-display-l">{p.title}</h1>
+  <p class="t-body-l soft">{p.lead}</p>
+</section>
+
+<section class="o-body" data-offers data-api={`${API_URL}/v1/catalog`} data-lang={L} data-bot={BOT_URL}
+  data-t={JSON.stringify({ valid: p.valid, buy: p.buy, unitsSuffix: p.unitsSuffix, kinds: p.kinds })}>
+  <div class="chips" role="group" aria-label={p.title}>
+    <button type="button" aria-pressed="true" data-kind="all">{p.all}</button>
+    {kinds.map((k) => <button type="button" aria-pressed="false" data-kind={k}>{p.kinds[k]}</button>)}
+  </div>
+
+  <ul class="grid" data-grid>
+    {offers.map((o) => (
+      <li class="offer card" data-kind={o.kind}>
+        <div class={`ph tone-${tone[o.kind] ?? "ice"}`}>
+          {o.photo && <img src={o.photo} alt="" loading="lazy" decoding="async" />}
+          {o.off > 0 && <span class="discount">▼ {o.off}%</span>}
+        </div>
+        <div class="in">
+          <p class="t-label-s muted v">{o.venue} · {p.kinds[o.kind] ?? ""}</p>
+          <h2 class="t-heading-s">{titleOf(o)}</h2>
+          <p class="t-body-s soft">{unitsOf(o)} · {p.valid.replace("{d}", String(o.validDays))}</p>
+          <div class="price"><b>{fmt(o.price)}</b>{o.oldPrice && <s>{fmt(o.oldPrice)}</s>}</div>
+          <a class="btn btn-primary" href={`${BOT_URL}?startapp=offer_${o.slug}`}><Icon name="telegram" size={18} />{p.buy}</a>
+        </div>
+      </li>
+    ))}
+  </ul>
+  <p class="card empty t-body-m soft" data-empty hidden={offers.length > 0}>{p.empty} <a class="link" href={`${BOT_URL}?startapp=site`}>@Mmedeo_bot</a></p>
+  <p class="t-body-s muted note">{p.note} <a class="link" href={href(L, "buy")}>{p.howLink}</a></p>
+</section>
+
+<script>
+  import { toSiteOffers, type SiteOffer } from "../catalog";
+  const box = document.querySelector<HTMLElement>("[data-offers]");
+  if (box) {
+    const grid = box.querySelector<HTMLElement>("[data-grid]")!;
+    const T = JSON.parse(box.dataset.t ?? "{}") as { valid: string; buy: string; unitsSuffix: string; kinds: Record<string, string> };
+    const ru = box.dataset.lang === "ru";
+    let kind = "all";
+    const apply = () => grid.querySelectorAll<HTMLElement>("li").forEach((li) => { li.hidden = kind !== "all" && li.dataset.kind !== kind; });
+    box.querySelectorAll<HTMLButtonElement>("[data-kind]").forEach((b) => {
+      if (b.tagName !== "BUTTON") return;
+      b.addEventListener("click", () => { kind = b.dataset.kind ?? "all"; box.querySelectorAll("button[data-kind]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); apply(); });
+    });
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+    const fmt = (n: number) => n.toLocaleString("ru-RU").replace(/ /g, " ") + " ₸";
+    const tone: Record<string, string> = { coffee: "ice", food: "peach", hair: "lilac" };
+    const TG = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 3.5 2.9 10.7c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.8-.8l3.2-15.2c.3-1.3-.5-1.9-1.9-1.5Z" fill="currentColor"/></svg>';
+    const card = (o: SiteOffer) => `<li class="offer card" data-kind="${esc(o.kind)}">
+      <div class="ph tone-${tone[o.kind] ?? "ice"}">${o.photo ? `<img src="${esc(o.photo)}" alt="" loading="lazy" decoding="async">` : ""}${o.off > 0 ? `<span class="discount">▼ ${o.off}%</span>` : ""}</div>
+      <div class="in"><p class="t-label-s muted v">${esc(o.venue)} · ${esc(T.kinds[o.kind] ?? "")}</p>
+      <h2 class="t-heading-s">${esc(ru && o.titleRu ? o.titleRu : o.title)}</h2>
+      <p class="t-body-s soft">${esc(ru ? `${o.units}${T.unitsSuffix}` : `${o.units} ${o.unitName}`)} · ${esc(T.valid.replace("{d}", String(o.validDays)))}</p>
+      <div class="price"><b>${fmt(o.price)}</b>${o.oldPrice ? `<s>${fmt(o.oldPrice)}</s>` : ""}</div>
+      <a class="btn btn-primary" href="${esc(box.dataset.bot!)}?startapp=offer_${encodeURIComponent(o.slug)}">${TG}${esc(T.buy)}</a></div></li>`;
+    fetch(box.dataset.api!).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      if (!j?.offers) return;
+      const list = toSiteOffers(j);
+      if (!list.length) return;
+      // Скоуп-атрибут (Astro) серверде салынған карточкадан алынады, жаңа карточкаларға да стиль түсуі үшін
+      const scope = [...(grid.querySelector("li")?.attributes ?? [])].find((a) => a.name.startsWith("data-astro-cid"))?.name;
+      grid.innerHTML = list.map(card).join("");
+      if (scope) grid.querySelectorAll("*").forEach((el) => el.setAttribute(scope, ""));
+      box.querySelector<HTMLElement>("[data-empty]")!.hidden = true;
+      apply();
+    }).catch(() => { /* API қолжетімсіз — құрастыру кезіндегі тізім қалады */ });
+  }
+</script>
+
+<style>
+  .o-head h1 { margin: 0 0 16px; }
+  .o-head p { margin: 0; max-width: 760px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .chips button { border: 0; padding: 10px 18px; border-radius: 999px; background: var(--paper); color: var(--ink); font: 500 15px/18px var(--font-sans); cursor: pointer; }
+  .chips button[aria-pressed="true"] { background: var(--ink); color: var(--snow); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; list-style: none; margin: 0; padding: 0; }
+  .offer { overflow: hidden; display: flex; flex-direction: column; border-radius: 24px; }
+  .offer[hidden] { display: none; }
+  .ph { position: relative; aspect-ratio: 4 / 3; overflow: hidden; }
+  .ph img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+  .offer:hover .ph img { transform: scale(1.04); }
+  .ph .discount { position: absolute; left: 14px; top: 14px; }
+  .tone-ice { background: var(--ice); } .tone-peach { background: var(--peach); } .tone-lilac { background: var(--lilac); }
+  .in { display: flex; flex-direction: column; flex: 1; padding: 18px 20px 20px; }
+  .in p, .in h2 { margin: 0; }
+  .v { margin-bottom: 6px !important; }
+  .in h2 { margin-bottom: 6px; }
+  .price { display: flex; align-items: baseline; gap: 8px; margin: 14px 0 16px; }
+  .price b { font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 28px; }
+  .price s { color: var(--gray-500); font-size: 14px; }
+  .in .btn { margin-top: auto; height: 46px; width: 100%; font-size: 15px; }
+  .empty { padding: 28px; border-radius: 24px; margin: 0; }
+  .note { margin: 20px 0 0; }
+  .link { color: var(--blue); }
+  @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; gap: 12px; } .o-head h1 { margin-bottom: 10px; } }
+</style>

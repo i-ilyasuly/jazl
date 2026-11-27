@@ -1,0 +1,7 @@
+---
+import Base from "../../layouts/Base.astro";
+import About from "../../components/About.astro";
+import { ru } from "../../i18n/ru";
+import { PAGES } from "../../i18n/pages";
+---
+<Base t={ru} title={PAGES.ru.about.meta.title} description={PAGES.ru.about.meta.description} active="about"><About t={ru} /></Base>
