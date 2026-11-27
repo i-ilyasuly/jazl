@@ -1,0 +1,49 @@
+---
+// Барлық беттің қаңқасы: тіл, тақырып (жыпылықтамайтын бастапқы скрипт), мәзір, футер.
+import "../styles/global.css";
+import type { Dict } from "../i18n/kk";
+import { otherLang } from "../routes";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+interface Props { t: Dict; title?: string; description?: string; active?: "offers" | "how" | "venues" | "about" }
+const { t, title = t.meta.title, description = t.meta.description, active } = Astro.props;
+const path = Astro.url.pathname;
+const site = Astro.site ?? new URL("https://medeo.kz");
+const kkPath = t.lang === "kk" ? path : otherLang(path, t.lang);
+const ruPath = t.lang === "ru" ? path : otherLang(path, t.lang);
+---
+<!doctype html>
+<html lang={t.htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(path, site)} />
+    <link rel="alternate" hreflang="kk" href={new URL(kkPath, site)} />
+    <link rel="alternate" hreflang="ru" href={new URL(ruPath, site)} />
+    <link rel="alternate" hreflang="x-default" href={new URL(kkPath, site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content={t.lang === "ru" ? "ru_KZ" : "kk_KZ"} />
+    <meta name="theme-color" content="#f2f3f0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1114" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script is:inline>
+      // Тақырып: сақталған таңдау, әйтпесе жүйенікі. Бет ашылмай тұрып қойылады — жыпылықтамайды.
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem("medeo-theme"); } catch (e) {}
+        if (t !== "dark" && t !== "light") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
+  </head>
+  <body>
+    <Nav t={t} active={active} />
+    <main class="wrap stack">
+      <slot />
+    </main>
+    <Footer t={t} />
+  </body>
+</html>

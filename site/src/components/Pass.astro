@@ -1,0 +1,64 @@
+---
+// Абонемент-билет (Figma Pass 1:49): пакеттің басты бейнесі. Тесілген дөңгелектер — қолданылған бірліктер.
+// Күндіз қара, түнде ақшыл (токендер: --ink / --paper ауысады).
+import type { Dict } from "../i18n/kk";
+interface Props { t: Dict; used?: number; total?: number }
+const { t, used = 3, total = 10 } = Astro.props;
+const p = t.pass;
+---
+<div class="pass" role="img" aria-label={`${p.venue} · ${p.title} · ${p.left} · ${p.price}`}>
+  <div class="head">
+    <div>
+      <p class="venue">{p.venue}</p>
+      <p class="title">{p.title}</p>
+    </div>
+    <span class="discount">▼ {p.discount}</span>
+  </div>
+  <ol class="holes" aria-hidden="true">
+    {Array.from({ length: total }, (_, i) => <li class:list={[i < used && "used"]} style={`--i:${i}`}></li>)}
+  </ol>
+  <div class="cut" aria-hidden="true"></div>
+  <div class="foot">
+    <div>
+      <p class="left">{p.left}</p>
+      <p class="price">{p.price} <s>{p.old}</s></p>
+    </div>
+    <p class="valid">{p.valid}</p>
+  </div>
+</div>
+
+<style>
+  .pass {
+    --notch: 12px;
+    position: relative; width: 440px; max-width: 100%; box-sizing: border-box; padding: 28px 36px 28px;
+    background: var(--ink); color: var(--snow); border-radius: 24px;
+    /* бүйірдегі ойықтар (билет) */
+    -webkit-mask: radial-gradient(circle var(--notch) at 0 58%, transparent 98%, #000) left / 51% 100% no-repeat,
+                  radial-gradient(circle var(--notch) at 100% 58%, transparent 98%, #000) right / 51% 100% no-repeat;
+            mask: radial-gradient(circle var(--notch) at 0 58%, transparent 98%, #000) left / 51% 100% no-repeat,
+                  radial-gradient(circle var(--notch) at 100% 58%, transparent 98%, #000) right / 51% 100% no-repeat;
+    box-shadow: 0 24px 48px rgb(0 0 0 / .18);
+  }
+  p { margin: 0; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .venue { font-size: 14px; line-height: 18px; opacity: .85; }
+  .title { margin-top: 6px; font-family: var(--font-display); font-weight: 500; font-size: 22px; line-height: 28px; }
+  .holes { display: flex; gap: 12px; list-style: none; margin: 22px 0 0; padding: 0; }
+  .holes li { width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--snow) 45%, transparent); }
+  .holes li.used { background: var(--snow); box-shadow: none; animation: punch .5s cubic-bezier(.2,.8,.2,1.2) backwards; animation-delay: calc(400ms + var(--i) * 180ms); }
+  @keyframes punch { from { transform: scale(0); opacity: 0; } }
+  .cut { margin: 18px 0 20px; border-top: 1.5px dashed color-mix(in srgb, var(--snow) 35%, transparent); }
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 6px 12px; }
+  .price, .valid, .price s { white-space: nowrap; }
+  .left { font-weight: 500; font-size: 15px; line-height: 20px; }
+  .price { margin-top: 6px; font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 28px; }
+  .price s { margin-left: 6px; font-family: var(--font-sans); font-weight: 400; font-size: 14px; opacity: .55; }
+  .valid { font-size: 14px; opacity: .85; }
+  @media (max-width: 720px) {
+    .pass { padding: 22px 22px; border-radius: 20px; }
+    .title, .price { font-size: 19px; line-height: 24px; }
+    .holes { gap: 7px; }
+    .holes li { width: 20px; height: 20px; }
+    .valid { font-size: 13px; }
+  }
+</style>

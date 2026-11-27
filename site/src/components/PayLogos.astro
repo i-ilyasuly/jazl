@@ -1,0 +1,32 @@
+---
+// Төлем логотиптері (Figma PayLogos, Halyk ePay талабы, 29-құжат): Visa, Mastercard, Visa Secure, Mastercard ID Check, Halyk ePay.
+// Түнде де ақ тақташада, түпнұсқа түсімен. Halyk ePay → epayment.kz. Kaspi логотипі қойылмайды (төлем Halyk арқылы ғана).
+import { EPAY_URL } from "../config";
+interface Props { class?: string }
+const { class: cls } = Astro.props;
+---
+<ul class:list={["pay", cls]} aria-label="Visa, Mastercard, Visa Secure, Mastercard ID Check, Halyk ePay">
+  <li class="visa">VISA</li>
+  <li class="mc" aria-label="Mastercard"><i></i><i></i></li>
+  <li class="vs">Visa Secure</li>
+  <li class="idc">ID Check</li>
+  <li class="epay"><a href={EPAY_URL} target="_blank" rel="noopener">Halyk ePay</a></li>
+</ul>
+
+<style>
+  .pay { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+  .pay li {
+    display: inline-flex; align-items: center; justify-content: center; height: 44px; min-width: 72px; padding: 0 14px;
+    box-sizing: border-box; background: #fff; border-radius: 10px; font-family: var(--font-display); font-weight: 600; white-space: nowrap;
+  }
+  .visa { color: #1a1f71; font-size: 19px; letter-spacing: 0.02em; font-style: italic; }
+  .mc { gap: 0; }
+  .mc i { display: block; width: 24px; height: 24px; border-radius: 50%; }
+  .mc i:first-child { background: #eb001b; }
+  .mc i:last-child { background: #f79e1b; margin-left: -9px; mix-blend-mode: multiply; }
+  .vs { color: #1a1f71; font-size: 13px; }
+  .idc { color: #111; font-size: 13px; }
+  .epay { padding: 0 !important; }
+  .epay a { display: inline-flex; align-items: center; height: 100%; padding: 0 14px; color: #00805a; font-size: 16px; }
+  @media (max-width: 720px) { .pay li { height: 36px; min-width: 56px; padding: 0 10px; } .visa { font-size: 15px; } .mc i { width: 20px; height: 20px; } .epay a { font-size: 14px; padding: 0 10px; } }
+</style>
