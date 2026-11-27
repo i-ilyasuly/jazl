@@ -1,0 +1,121 @@
+---
+// Жоғарғы мәзір (Figma Nav 10:418; мобиль 28:737): логотип, сілтемелер, тіл, тақырып, Telegram.
+import type { Dict } from "../i18n/kk";
+import { APP_URL, href, otherLang } from "../routes";
+import Icon from "./Icon.astro";
+interface Props { t: Dict; active?: "offers" | "how" | "venues" | "about" }
+const { t, active } = Astro.props;
+const L = t.lang;
+const path = Astro.url.pathname;
+const links = [
+  ["offers", t.nav.offers, href(L, "offers")],
+  ["how", t.nav.how, href(L, "how")],
+  ["venues", t.nav.venues, href(L, "venues")],
+  ["about", t.nav.about, href(L, "about")],
+] as const;
+const kkHref = L === "kk" ? path : otherLang(path, L);
+const ruHref = L === "ru" ? path : otherLang(path, L);
+---
+<header class="wrap top">
+  <nav class="bar" aria-label="Medeo">
+    <a class="logo" href={href(L, "home")} aria-label="Medeo">medeo</a>
+    <ul class="links">
+      {links.map(([k, label, h]) => <li><a href={h} aria-current={active === k ? "page" : undefined}>{label}</a></li>)}
+    </ul>
+    <div class="right">
+      <div class="lang" role="group" aria-label="Тіл / Язык">
+        <a href={kkHref} hreflang="kk" lang="kk" aria-current={L === "kk" ? "true" : undefined}>Қаз</a>
+        <a href={ruHref} hreflang="ru" lang="ru" aria-current={L === "ru" ? "true" : undefined}>Рус</a>
+      </div>
+      <button class="theme" type="button" data-theme-toggle aria-label={t.nav.themeDark} data-l-light={t.nav.themeLight} data-l-dark={t.nav.themeDark}>
+        <span class="knob"></span>
+        <Icon name="sun" size={16} class="sun" />
+        <Icon name="moon" size={16} class="moon" />
+      </button>
+      <a class="btn btn-primary cta" href={APP_URL}><Icon name="telegram" size={20} />{t.nav.open}<Icon name="arrowUpRight" size={16} /></a>
+      <button class="burger" type="button" aria-expanded="false" aria-controls="m-menu" aria-label={t.nav.menu} data-menu-open><Icon name="menu" size={22} /></button>
+    </div>
+  </nav>
+
+  <div id="m-menu" class="sheet" hidden>
+    <ul>
+      {links.map(([k, label, h]) => <li><a href={h} aria-current={active === k ? "page" : undefined}>{label}</a></li>)}
+    </ul>
+    <div class="lang wide" role="group" aria-label="Тіл / Язык">
+      <a href={kkHref} hreflang="kk" lang="kk" aria-current={L === "kk" ? "true" : undefined}>Қазақша</a>
+      <a href={ruHref} hreflang="ru" lang="ru" aria-current={L === "ru" ? "true" : undefined}>Русский</a>
+    </div>
+    <a class="btn btn-primary" href={APP_URL}><Icon name="telegram" size={20} />{t.nav.open}<Icon name="arrowUpRight" size={16} /></a>
+  </div>
+</header>
+
+<script>
+  const root = document.documentElement;
+  const sync = () => {
+    const dark = root.dataset.theme === "dark";
+    document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]").forEach((b) => {
+      b.setAttribute("aria-pressed", String(dark));
+      b.setAttribute("aria-label", (dark ? b.dataset.lLight : b.dataset.lDark) ?? "");
+    });
+  };
+  sync();
+  document.querySelectorAll("[data-theme-toggle]").forEach((b) => b.addEventListener("click", () => {
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("medeo-theme", root.dataset.theme); } catch {}
+    sync();
+  }));
+  const btn = document.querySelector<HTMLButtonElement>("[data-menu-open]");
+  const sheet = document.getElementById("m-menu");
+  btn?.addEventListener("click", () => {
+    const open = btn.getAttribute("aria-expanded") !== "true";
+    btn.setAttribute("aria-expanded", String(open));
+    if (sheet) sheet.hidden = !open;
+  });
+  sheet?.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => { if (sheet) sheet.hidden = true; btn?.setAttribute("aria-expanded", "false"); }));
+</script>
+
+<style>
+  .top { position: sticky; top: 0; z-index: 20; padding-top: 24px; padding-bottom: 0; }
+  .bar {
+    display: flex; align-items: center; gap: 24px; height: 76px; padding: 0 12px 0 28px; box-sizing: border-box;
+    background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-radius: 999px;
+  }
+  .logo { font-family: var(--font-display); font-weight: 600; font-size: 26px; letter-spacing: -0.02em; color: var(--ink); }
+  .links { display: flex; gap: 32px; list-style: none; margin: 0 auto; padding: 0; }
+  .links a { font-weight: 500; font-size: 16px; color: var(--ink-2); transition: color .15s; }
+  .links a:hover, .links a[aria-current] { color: var(--blue); }
+  .right { display: flex; align-items: center; gap: 12px; }
+  .lang { display: flex; padding: 4px; gap: 2px; border-radius: 999px; background: var(--gray-100); }
+  .lang a { padding: 9px 16px; border-radius: 999px; font-weight: 500; font-size: 14px; line-height: 18px; color: var(--gray-500); }
+  .lang a[aria-current] { background: var(--paper); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .06); }
+  .theme {
+    position: relative; display: flex; align-items: center; justify-content: space-between; width: 68px; height: 40px; padding: 0 9px;
+    box-sizing: border-box; border: 0; border-radius: 999px; background: var(--gray-100); color: var(--gray-500); cursor: pointer;
+  }
+  .theme .knob { position: absolute; left: 4px; top: 4px; width: 32px; height: 32px; border-radius: 50%; background: var(--paper); box-shadow: 0 1px 3px rgb(0 0 0 / .12); transition: transform .25s ease; }
+  :global([data-theme="dark"]) .theme .knob { transform: translateX(28px); }
+  .theme :global(svg) { position: relative; z-index: 1; }
+  .theme :global(.sun) { color: #f5a524; }
+  :global([data-theme="dark"]) .theme :global(.sun) { color: var(--gray-500); }
+  :global([data-theme="dark"]) .theme :global(.moon) { color: var(--ink); }
+  .cta { height: 52px; }
+  .burger { display: none; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--ink); color: var(--snow); align-items: center; justify-content: center; cursor: pointer; }
+  .sheet { margin-top: 8px; padding: 16px; border-radius: 24px; background: var(--paper); box-shadow: 0 12px 32px rgb(0 0 0 / .12); }
+  .sheet ul { list-style: none; margin: 0 0 12px; padding: 0; }
+  .sheet li a { display: block; padding: 14px 8px; font-weight: 500; font-size: 18px; border-bottom: 1px solid var(--gray-200); }
+  .sheet .lang { margin-bottom: 12px; }
+  .sheet .lang a { flex: 1; text-align: center; }
+  @media (min-width: 1101px) { .sheet { display: none; } }
+  @media (max-width: 1100px) {
+    .links, .lang, .cta { display: none; }
+    .sheet .lang { display: flex; }
+    .burger { display: inline-flex; }
+    .right { margin-left: auto; }
+  }
+  @media (max-width: 720px) {
+    .top { padding-top: 12px; }
+    .bar { height: 60px; padding: 0 10px 0 20px; }
+    .logo { font-size: 22px; }
+  }
+</style>

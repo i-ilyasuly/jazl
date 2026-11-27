@@ -1,0 +1,14 @@
+---
+// Нақты QR (құрастыру кезінде SVG болып шығады): камерамен сканерлегенде ботқа апарады.
+import QRCode from "qrcode";
+interface Props { url: string; size?: number; class?: string; label: string }
+const { url, size = 56, class: cls, label } = Astro.props;
+const qr = QRCode.create(url, { errorCorrectionLevel: "M" });
+const n = qr.modules.size;
+let d = "";
+for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (qr.modules.get(x, y)) d += `M${x} ${y}h1v1h-1z`;
+---
+<svg class={cls} width={size} height={size} viewBox={`-1 -1 ${n + 2} ${n + 2}`} role="img" aria-label={label} shape-rendering="crispEdges">
+  <rect x="-1" y="-1" width={n + 2} height={n + 2} fill="#fff" />
+  <path d={d} fill="#15171a" />
+</svg>
