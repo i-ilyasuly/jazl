@@ -1,0 +1,138 @@
+---
+// Банк талап ететін бет (Figma 69:2232 …): нан үгіндісі, тақырып, мазмұн тізімі (сол жақта / мобильде чиптер), бөлім карточкалары.
+import type { Dict } from "../i18n/kk";
+import { DOCS, DOC_ORDER, DOC_UI, DEMO_PLACES, type DocPage } from "../i18n/docs";
+import { APP_URL, DEMO } from "../config";
+import { href } from "../routes";
+import Icon from "./Icon.astro";
+interface Props { t: Dict; page: DocPage }
+const { t, page } = Astro.props;
+const L = t.lang as "kk" | "ru";
+const ui = DOC_UI[L];
+const pages = DOC_ORDER.map((k) => DOCS[L].find((p) => p.key === k)!);
+const places = page.key === "places" && DEMO ? DEMO_PLACES[L] : [];
+const cats = [...new Set(places.map((p) => p.cat))];
+---
+<section class="head">
+  <nav class="crumbs t-label-s muted" aria-label="breadcrumb">
+    <a href={href(L, "home")}>{ui.home}</a><span aria-hidden="true">/</span><span>{ui.docs}</span><span aria-hidden="true">/</span><span aria-current="page">{page.title}</span>
+  </nav>
+  <h1 class="t-display-l">{page.title}</h1>
+  <p class="t-body-l soft lead">{page.lead}</p>
+  <p class="t-label-s muted">{ui.updated}: {ui.date}</p>
+</section>
+
+<div class="body">
+  <nav class="toc" aria-label={ui.docs}>
+    <p class="t-label-s muted">{ui.docs}</p>
+    <ul>
+      {pages.map((p) => <li><a href={href(L, p.key)} aria-current={p.key === page.key ? "page" : undefined}>{p.title}</a></li>)}
+    </ul>
+  </nav>
+
+  <div class="content">
+    {page.sections.map((s) => (
+      <section class="card sec">
+        <h2 class="t-heading-s">{s.h}</h2>
+        {s.items.length === 1 ? <p class="t-body-m soft">{s.items[0]}</p> : (
+          <ul>{s.items.map((x) => <li class="t-body-m soft">{x}</li>)}</ul>
+        )}
+      </section>
+    ))}
+
+    {page.key === "places" && (places.length ? (
+      <div class="places" data-places>
+        <div class="chips" role="group">
+          <button type="button" aria-pressed="true" data-cat="all">{ui.filterAll}</button>
+          {cats.map((c) => <button type="button" aria-pressed="false" data-cat={c}>{ui.filters[c]}</button>)}
+        </div>
+        <p class="t-body-s muted">{ui.demoNote}</p>
+        <ul>
+          {places.map((p) => (
+            <li class="card place" data-cat={p.cat}>
+              <span class={`av tone-${p.tone}`} aria-hidden="true">{p.letter}</span>
+              <div class="pi">
+                <p class="t-heading-s">{p.name} <span aria-hidden="true">·</span> {p.kind}</p>
+                <p class="t-body-m soft">{p.address}</p>
+                <p class="t-body-s muted">{p.contact}</p>
+              </div>
+              <a class="map t-label-s" href={`https://2gis.kz/almaty/search/${encodeURIComponent(p.address)}`} target="_blank" rel="noopener">{p.map} <Icon name="arrowUpRight" size={14} /></a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : (
+      <section class="card sec empty">
+        <p class="t-body-m soft">{ui.empty}</p>
+        <a class="btn btn-primary inline" href={APP_URL}><Icon name="telegram" size={20} />{ui.emptyCta}</a>
+      </section>
+    ))}
+  </div>
+</div>
+
+<script>
+  const box = document.querySelector<HTMLElement>("[data-places]");
+  box?.querySelectorAll<HTMLButtonElement>("[data-cat]").forEach((b) => {
+    if (b.tagName !== "BUTTON") return;
+    b.addEventListener("click", () => {
+      const c = b.dataset.cat;
+      box.querySelectorAll("button[data-cat]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      box.querySelectorAll<HTMLElement>("li[data-cat]").forEach((li) => { li.hidden = c !== "all" && li.dataset.cat !== c; });
+    });
+  });
+</script>
+
+<style>
+  .head { padding-top: 8px; }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+  .crumbs a:hover { color: var(--ink); }
+  .head h1 { margin: 0; }
+  .lead { margin: 16px 0 12px; max-width: 820px; }
+  .head p:last-child { margin: 0; }
+  .body { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start; }
+  .toc { position: sticky; top: 124px; background: var(--paper); border-radius: 20px; padding: 24px; }
+  .toc p { margin: 0 0 8px; }
+  .toc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .toc a { display: block; padding: 10px 12px; border-radius: 10px; font-weight: 500; font-size: 15px; line-height: 20px; color: var(--ink); }
+  .toc a:hover { background: var(--gray-100); }
+  .toc a[aria-current] { background: var(--gray-100); color: var(--blue); }
+  .content { display: grid; gap: 16px; }
+  .sec { padding: 32px; border-radius: 24px; }
+  .sec h2 { margin: 0 0 14px; }
+  .sec p { margin: 0; }
+  .sec ul { margin: 0; padding: 0 0 0 4px; list-style: none; display: grid; gap: 8px; }
+  .sec li { position: relative; padding-left: 18px; }
+  .sec li::before { content: ""; position: absolute; left: 0; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+  .empty { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; }
+
+  .places > p { margin: 12px 0 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { border: 0; padding: 10px 18px; border-radius: 999px; background: var(--paper); color: var(--ink); font: 500 15px/18px var(--font-sans); cursor: pointer; }
+  .chips button[aria-pressed="true"] { background: var(--ink); color: var(--snow); }
+  .places ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .place { display: flex; align-items: center; gap: 20px; padding: 24px 28px; border-radius: 24px; }
+  .place[hidden] { display: none; }
+  .av { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px; font-family: var(--font-display); font-weight: 600; font-size: 24px; }
+  .tone-ice { background: var(--ice); } .tone-peach { background: var(--peach); } .tone-lilac { background: var(--lilac); }
+  .pi { flex: 1; min-width: 0; }
+  .pi p { margin: 0; }
+  .pi p + p { margin-top: 4px; }
+  .map { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 10px 14px; border-radius: 999px; background: var(--gray-100); color: var(--blue); }
+  .map:hover { background: var(--ice); }
+
+  @media (max-width: 1100px) {
+    .body { grid-template-columns: 1fr; }
+    .toc { position: static; background: none; padding: 0; }
+    .toc p { display: none; }
+    .toc ul { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc a { background: var(--paper); border-radius: 999px; padding: 9px 14px; font-size: 14px; }
+    .toc a[aria-current] { background: var(--ink); color: var(--snow); }
+  }
+  @media (max-width: 720px) {
+    .sec { padding: 20px; border-radius: 20px; }
+    .lead { margin: 12px 0 8px; }
+    .place { display: grid; grid-template-columns: 44px 1fr; align-items: start; padding: 20px; gap: 14px; }
+    .av { width: 44px; height: 44px; font-size: 20px; border-radius: 12px; }
+    .map { grid-column: 1 / -1; justify-self: start; }
+  }
+</style>
