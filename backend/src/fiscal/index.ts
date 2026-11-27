@@ -145,3 +145,12 @@ export async function fiscalForReceipt(db: Db, rc: { kind: string; paymentId: st
   if (x.status === "ok" || x.status === "offline") return { status: "ok", qrUrl: x.qr_url, number: x.ticket_number, offline: x.offline };
   return x.status === "pending" ? { status: "pending" } : null;
 }
+
+/** Қайтарудан кейін чекті жауап қайтармай тұрып шығару (ең көбі ms). Cloud Run жауаптан кейін процессорды тежейді — фондағы
+ *  «түрткі» кейде тек келесі сұраныста не cron-да (15 мин) орындалады. Уақыт бітсе — чек кезекте қалады, cron шығарады. */
+export async function settleFiscal(db: Db, cfg: Config, ms = 8000) {
+  if (!fiscalEnabled(cfg)) return;
+  let t: NodeJS.Timeout | undefined;
+  await Promise.race([fiscalTick(db, cfg).catch((e) => console.error("fiscal settle", (e as Error).message)), new Promise((r) => { t = setTimeout(r, ms); })]);
+  clearTimeout(t);
+}
