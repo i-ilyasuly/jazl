@@ -131,3 +131,17 @@ export function kickFiscal(db: Db, cfg: Config) {
   if (!fiscalEnabled(cfg)) return;
   void fiscalTick(db, cfg).catch((e) => console.error("fiscal kick", (e as Error).message));
 }
+
+/** Клиент чегіндегі фискалдық чек (2026-11-27): сатып алу/сыйлық/ұзарту чегіне — төлемнің сатылым чегі, қайтару чегіне — уақыты
+ *  ең жақын қайтару чегі. Тек шыққаны (ok/offline) көрсетіледі; кезекте тұрса — «дайындалуда». Қате/салыстыру күйі клиентке көрінбейді. */
+export type PublicFiscal = { status: "ok"; qrUrl: string | null; number: string | null; offline: boolean } | { status: "pending" };
+export async function fiscalForReceipt(db: Db, rc: { kind: string; paymentId: string | null; createdAt: Date }): Promise<PublicFiscal | null> {
+  if (!rc.paymentId || !["purchase", "gift", "extend", "refund"].includes(rc.kind)) return null;
+  const kind = rc.kind === "refund" ? "sell_return" : "sell";
+  const [x] = (await db.execute(sql`select status, qr_url, ticket_number, offline from app.fiscal_receipts
+    where payment_id = ${rc.paymentId} and kind = ${kind}
+    order by abs(extract(epoch from created_at - ${rc.createdAt.toISOString()}::timestamptz)) limit 1`)).rows as { status: string; qr_url: string | null; ticket_number: string | null; offline: boolean }[];
+  if (!x) return null;
+  if (x.status === "ok" || x.status === "offline") return { status: "ok", qrUrl: x.qr_url, number: x.ticket_number, offline: x.offline };
+  return x.status === "pending" ? { status: "pending" } : null;
+}

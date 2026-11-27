@@ -14,13 +14,16 @@ export interface PublicReceipt {
   payment?: { label: string; ref: string; mode: string };
   pack?: { validFrom: string; validUntil: string; validDays: number; howToUse: string };
   verifyUrl: string;
+  /** Онлайн-кассаның фискалдық чегі (src/fiscal): шықса — ОФД сілтемесі бар QR */
+  fiscal?: { status: "ok"; qrUrl: string | null; number: string | null; offline: boolean } | { status: "pending" } | null;
 }
 
 const C = { ink: "#111A26", sub: "#5F6B7A", line: "#E3E8EF", blue: "#229AF0", blueDark: "#1F73C2", green: "#1B6B2E", greenBg: "#E5F6E9", amber: "#8A5A00", amberBg: "#FFF4D6", paper: "#FFFFFF", page: "#F2F4F7" };
 const money = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " ₸";
 
 export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
-  const W = 340, H = 906, P = 24;
+  const fq = r.fiscal?.status === "ok" ? r.fiscal : null;
+  const W = 340, H = 906 + (fq?.qrUrl ? 98 : 0), P = 24;
   const doc = new PDFDocument({ size: [W, H], margin: 0, info: { Title: `Medeo чек ${r.no}`, Author: "Medeo", Subject: r.item.title } });
   doc.registerFont("R", font("MedeoSans-Regular")); doc.registerFont("S", font("MedeoSans-SemiBold"));
   doc.registerFont("B", font("MedeoSans-Bold")); doc.registerFont("M", font("MedeoMono-Medium"));
@@ -109,20 +112,24 @@ export async function receiptPdf(r: PublicReceipt): Promise<Buffer> {
   y += 8; doc.circle(x, y, 9).fill(C.page); doc.circle(x + w, y, 9).fill(C.page);
   doc.moveTo(x + 16, y).lineTo(x + w - 16, y).dash(4, { space: 4 }).lineWidth(1).strokeColor(C.line).stroke().undash(); y += 18;
 
-  // Тексеру QR-ы
-  const qr = QRCode.create(r.verifyUrl, { errorCorrectionLevel: "M" });
-  const n = qr.modules.size, cell = 84 / n, qx = x + 16, qy = y;
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (qr.modules.get(i, j)) doc.rect(qx + j * cell, qy + i * cell, cell + 0.15, cell + 0.15).fill(C.ink);
-  doc.font("S").fontSize(10).fillColor(C.ink).text("Чекті тексеру", qx + 98, qy + 10);
-  doc.font("R").fontSize(9).fillColor(C.sub).text("QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Medeo ботында ашылады.", qx + 98, qy + 26, { width: w - 130, lineGap: 1 });
-  doc.font("M").fontSize(9).fillColor(C.blueDark).text(r.no, qx + 98, qy + 68);
-  y += 98;
+  // Тексеру QR-ы (және болса — фискалдық чек QR-ы)
+  const qrBlock = (url: string, title: string, note: string, tail: string) => {
+    const qr = QRCode.create(url, { errorCorrectionLevel: "M" });
+    const n = qr.modules.size, cell = 84 / n, qx = x + 16, qy = y;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (qr.modules.get(i, j)) doc.rect(qx + j * cell, qy + i * cell, cell + 0.15, cell + 0.15).fill(C.ink);
+    doc.font("S").fontSize(10).fillColor(C.ink).text(title, qx + 98, qy + 10);
+    doc.font("R").fontSize(9).fillColor(C.sub).text(note, qx + 98, qy + 26, { width: w - 130, lineGap: 1 });
+    doc.font("M").fontSize(9).fillColor(C.blueDark).text(tail, qx + 98, qy + 68);
+    y += 98;
+  };
+  qrBlock(r.verifyUrl, "Чекті тексеру", "QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Medeo ботында ашылады.", r.no);
+  if (fq?.qrUrl) qrBlock(fq.qrUrl, "Фискалдық чек", "QR-ды телефон камерасымен сканерлесеңіз, чек фискалдық деректер операторының сайтында ашылады.", fq.number ? `№ ${fq.number}` : "");
 
   if (r.payment?.mode === "test") {
     doc.roundedRect(x + 16, y, w - 32, 26, 8).fill(C.amberBg);
     doc.font("S").fontSize(9).fillColor(C.amber).text("Сынақ төлемі — ақша алынған жоқ", x + 16, y + 9, { width: w - 32, align: "center" }); y += 36;
   }
-  doc.font("R").fontSize(8).fillColor(C.sub).text(`${r.pack ? r.pack.howToUse + ". " : ""}Medeo — агент: пакет мекемеден Medeo сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.`, x + 16, y, { width: w - 32, lineGap: 1.5, align: "center" });
+  doc.font("R").fontSize(8).fillColor(C.sub).text(`${r.pack ? r.pack.howToUse + ". " : ""}Medeo — агент: пакет мекемеден Medeo сервисі арқылы алынды. ${fq ? "Фискалдық чекті Medeo онлайн-кассасы берді." : "Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді."}`, x + 16, y, { width: w - 32, lineGap: 1.5, align: "center" });
 
   doc.end();
   return done;

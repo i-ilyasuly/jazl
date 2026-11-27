@@ -25,6 +25,8 @@ interface Rc {
   pack?: { validFrom: string; validUntil: string; validDays: number; howToUse: string };
   /** Қайтару чегі (2026-11-18): картаға/Kaspi-ге, бонусқа және ескі пакетке оралған бөліктер */
   refund?: { cash: number; bonus: number; carriedBack?: number };
+  /** Онлайн-кассаның фискалдық чегі (re:Kassa, 2026-11-27): шықса — ОФД сілтемесі, кезекте болса — «дайындалуда» */
+  fiscal?: { status: "ok"; qrUrl: string | null; number: string | null; offline: boolean } | { status: "pending" } | null;
 }
 
 const Row = ({ k, v, mono, copy }: { k: string; v: string; mono?: boolean; copy?: boolean }) => (
@@ -40,11 +42,17 @@ export function ServerReceipt() {
   const [rc, setRc] = useState<Rc | null>(null);
   const [err, setErr] = useState(false);
   const [qr, setQr] = useState("");
+  const [fqr, setFqr] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     api<{ receipt: Rc }>(no ? "/v1/receipts/no/" + no : "/v1/receipts/" + id).then((j) => setRc(j.receipt)).catch(() => setErr(true));
   }, [id, no]);
-  useEffect(() => { if (rc) void QRCode.toString(rc.verifyUrl, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#111a26", light: "#0000" } }).then(setQr); }, [rc]);
+  useEffect(() => {
+    if (!rc) return;
+    const opt = { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#111a26", light: "#0000" } } as const;
+    void QRCode.toString(rc.verifyUrl, opt).then(setQr);
+    if (rc.fiscal?.status === "ok" && rc.fiscal.qrUrl) void QRCode.toString(rc.fiscal.qrUrl, opt).then(setFqr);
+  }, [rc]);
   const back = useCallback(() => go(-1, "back"), [go]);
   useBackButton(back);
   const download = useCallback(async () => {
@@ -64,6 +72,7 @@ export function ServerReceipt() {
     <div className={s.page}><TelegramChrome mode="back" onBack={back} /><p className={`t-sub2 ${s.state}`}>{err ? "Чекті жүктеу мүмкін болмады" : "Жүктелуде…"}</p></div>
   );
   const i = rc.item;
+  const fiscal = rc.fiscal?.status === "ok" ? rc.fiscal : null;
   const buy = Boolean(rc.payment && rc.pack);
   // Ескі қайтару чектерінде мекеме дерегі жоқ (2026-11-18 дейін) — бет құламауы үшін
   const seller = rc.seller ?? { name: "Medeo", address: null, bin: null };
@@ -133,8 +142,13 @@ export function ServerReceipt() {
           <span className={s.qr} dangerouslySetInnerHTML={{ __html: qr }} />
           <span className={s.vText}><b>Чекті тексеру</b><small>QR-ды Telegram камерасымен сканерлесеңіз, чектің түпнұсқасы Medeo ботында ашылады.</small><em className="mono">{rc.no}</em></span>
         </div>
+        {fiscal?.qrUrl && <div className={s.verify}>
+          <button type="button" className={`${s.qr} ${s.qrBtn}`} aria-label="Фискалдық чекті ашу" onClick={() => openExternal(fiscal.qrUrl!)} dangerouslySetInnerHTML={{ __html: fqr }} />
+          <span className={s.vText}><b>Фискалдық чек</b><small>QR-ды телефон камерасымен сканерлесеңіз не басыңыз — чек фискалдық деректер операторының сайтында ашылады.</small>{fiscal.number && <em className="mono">№ {fiscal.number}</em>}</span>
+        </div>}
+        {rc.fiscal?.status === "pending" && <p className={s.legal}>{"Фискалдық чек дайындалуда — бірнеше минутта осы бетте шығады"}</p>}
         {rc.payment?.mode === "test" && <p className={s.test}>Сынақ төлемі — ақша алынған жоқ</p>}
-        <p className={s.legal}>{`${rc.pack ? trs(rc.pack.howToUse) + ". " : ""}Medeo — агент: пакет мекемеден Medeo сервисі арқылы алынды. Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді.`}</p>
+        <p className={s.legal}>{`${rc.pack ? trs(rc.pack.howToUse) + ". " : ""}Medeo — агент: пакет мекемеден Medeo сервисі арқылы алынды. ${fiscal ? "Фискалдық чекті Medeo онлайн-кассасы берді." : "Бұл — электрондық түбіртек; фискалдық чекті мекеме не төлем жүйесі береді."}`}</p>
       </article>
       {!inTelegram && <div className={s.bar}><button className={s.btn} onClick={() => void download()}>{main.text}</button></div>}
     </div>
