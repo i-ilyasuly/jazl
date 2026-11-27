@@ -77,6 +77,7 @@ gcloud run services describe medeo-api --region ${REGION} --format='value(status
   tick: { title: "⏱ Кезек", style: "success", desc: "cron/tick қазір іске қосу", cmd: `URL=$(gcloud run services describe medeo-api --region ${REGION} --format='value(status.url)')
 curl -s -X POST "$URL/cron/tick" -H "X-Cron-Key: $(gcloud secrets versions access latest --secret medeo-cron-key)" | jq .` },
   fiscal: { title: "🧾 Чектер", desc: "re:Kassa логы (3 сағат)", cmd: `gcloud logging read 'resource.labels.service_name="medeo-api" AND textPayload:"fiscal"' --freshness=3h --limit=30 --format='value(timestamp,textPayload)'` },
+  widget: { title: "🧩 Виджет", desc: "Telegram виджеті ашық па (сынақ виджеті + жауап)", cmd: `git fetch -q origin main && git reset -q --hard origin/main && bash ops/widget-probe.sh` },
   logs: { title: "📜 Лог", desc: "medeo-api соңғы жазбалары (1 сағат)", cmd: `gcloud logging read 'resource.labels.service_name="medeo-api" AND textPayload!=""' --freshness=1h --limit=40 --format='value(timestamp,textPayload)'` },
   status: { title: "ℹ️ Күй", desc: "нұсқа, URL, соңғы коммит", cmd: `gcloud run services describe medeo-api --region ${REGION} --format='value(status.url,status.latestReadyRevisionName)'
 git fetch -q origin main && git log --oneline -3 origin/main` },

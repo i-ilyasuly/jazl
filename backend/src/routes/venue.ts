@@ -36,6 +36,9 @@ const short = (f: string, l: string | null) => (l ? `${f} ${l.slice(0, 1)}.` : f
 interface UseRow { id: string; kind: "scan" | "order"; at: Date; units: number; unit_price: number; amount: number; fee_pct: number; cancelled_at: Date | null; title: string; slug: string; first_name: string; last_name: string | null;
   branch_id: string; address: string; order_no: number | null; cashier_id: string | null; left: number; total: number }
 
+/** Ең кіші пакет (Starter): бірлік саны — бұдан аз көлемді ұсыныс жарияланбайды (бұрынғы ұсыныстар өзгермейді) */
+export const MIN_PACK_UNITS = 3;
+
 export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   const r = new Hono<Env>();
   // мекеме шотына түсетін бөлік: мекеменің өз комиссиясы (Medeo Басқару «Комиссия»), жоқ болса — әдепкі
@@ -282,7 +285,8 @@ export function venueRoutes(cfg: Config, db: Db, notify?: Notifier) {
   });
 
   // ── 06 · Ұсыныс құру, ұсыныс беті, бағаны өзгерту (Figma 14007/14008/14018) ──
-  const Size = z.object({ units: z.number().int().min(1).max(100), price: z.number().int().min(100).max(10_000_000) });
+  // Ең кіші пакет — 3 бірлік, «Starter» (Патша, 2026-11-27; founder-skill панелі: 10 бірлікті пакетті 5% алды, 3 бірліктіні 30%)
+  const Size = z.object({ units: z.number().int().min(MIN_PACK_UNITS).max(100), price: z.number().int().min(100).max(10_000_000) });
   const Portion = z.object({ value: z.number().positive().max(100_000), unit: z.enum(["g", "kg", "ml", "l", "cm", "pcs", "min"]) }).strict();
   /** Ұсыныстың details ішіне жазылатын құрам/порция (бос жол — жоқ) */
   const extraDetails = (d: { keywords?: string[]; composition?: string; compositionRu?: string; portion?: { value: number; unit: string } | null; packName?: string; packNameRu?: string; bonus?: string; bonusRu?: string; perk?: string; perkRu?: string }) => ({

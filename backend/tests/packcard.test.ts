@@ -112,4 +112,41 @@ d("Пакет картасы", () => {
     expect(of("sendWidget").length).toBe(widgetsBefore); // бас тартқан соң виджетті қайта сұрамаймыз
     refuse = false; _resetWidgetRefusal();
   });
+
+  it("виджет қайта ашылса (6 сағаттан кейін): жоспарлы тексеріс мәтіндік картаны виджетке ауыстырады, ескі мәтінді өшіреді; әлі жабық болса — бір рет қана сұрайды", async () => {
+    const { _resetWidgetRefusal, _expireWidgetRefusal } = await import("../src/bot/packCard.js");
+    const c2 = loadConfig({ DATABASE_URL: URL, BOT_TOKEN: TOKEN, DB_SSL: "disable", NODE_ENV: "test", CRON_KEY: "cron-key-1234567890" });
+    const app2 = createApp(c2, dbh.db, { botCall: call });
+    const cron = async () => (await app2.request("/cron/tick", { method: "POST", headers: { "X-Cron-Key": "cron-key-1234567890" } })).json();
+    _resetWidgetRefusal(); refuse = true;
+    const pack = (await pj("/v1/purchases", { offerSlug: "doner", method: "test", idempotencyKey: key() }, 9104)).pack.id;
+    await tick();
+    const textId = (await dbh.pool.query("select widget_msg_id from app.packs where id = $1", [pack])).rows[0].widget_msg_id;
+    expect((await dbh.pool.query("select widget_state from app.packs where id = $1", [pack])).rows[0].widget_state).toMatch(/^T\|/);
+    // 6 сағат өтті, Telegram әлі жабық: бір ғана сынақ сұрауы, карта мәтін болып қалады
+    _expireWidgetRefusal();
+    let before = of("sendWidget").length;
+    let r = await cron();
+    expect(of("sendWidget").length).toBe(before + 1);
+    expect(r.cards.upgraded).toBe(0);
+    expect(r.cards.widget.refused).toBe(true);
+    // Келесі тексерісте (6 сағат толмай) — сұрамаймыз
+    before = of("sendWidget").length;
+    await cron();
+    expect(of("sendWidget").length).toBe(before);
+    // Telegram виджетті ашты
+    refuse = false; _expireWidgetRefusal();
+    r = await cron();
+    expect(r.cards.upgraded).toBeGreaterThanOrEqual(1);
+    expect(r.cards.widget.refused).toBe(false);
+    const row = (await dbh.pool.query("select widget_msg_id, widget_state from app.packs where id = $1", [pack])).rows[0];
+    expect(row.widget_state).not.toMatch(/^T\|/);
+    expect(row.widget_msg_id).not.toBe(textId);
+    expect(of("deleteMessage").some((c) => c.body.message_id === textId && c.body.chat_id === 9104)).toBe(true);
+    // Бірлік қолданылса — енді виджет жаңарады (editMessageWidgetData)
+    expect((await pj("/v1/redeem", { packId: pack, qr: makeDynamicQr(TOKEN, damdi, 1).payload, units: 1, idempotencyKey: key() }, 9104)).ok).toBe(true);
+    await tick();
+    expect(state(of("editMessageWidgetData").at(-1)!)).toMatchObject({ id: pack, l: 3 });
+    _resetWidgetRefusal();
+  });
 });

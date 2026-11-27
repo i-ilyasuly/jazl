@@ -38,6 +38,50 @@ const KIND: Record<string, string> = { coffee: "Кофе", food: "Тамақ", h
 const DOWS = ["", "Дс", "Сс", "Ср", "Бс", "Жм", "Сб", "Жс"];
 const REASON: Record<string, string> = { price: "Қымбат", inconvenient: "Ыңғайсыз", quality: "Сапа", other: "Басқа" };
 
+/** Пилот көрсеткіштері (GET /v1/admin/pilot, 30-құжат): «өтті / өзгерту керек» сызықтарымен */
+type Grade = "pass" | "fix" | "watch" | "no_data";
+interface Pilot {
+  sales: { packs: number; perDay: number; buyers: number; venues: number; starterShare: N };
+  secondPack: { value: N; matured: number; repeat: number; grade: Grade };
+  newToVenue: { value: N; asked: number; answered: number; first: number; sometimes: number; regular: number; grade: Grade };
+  gifts: { value: N; count: number; grade: Grade };
+  till: { medianSec: N; p90Sec: N; done: number; incomplete: number; incompleteShare: N; grade: Grade };
+  channels: { channel: string; users: number; buyers: number; repeat: number }[];
+  byVenue: { venue: string; packs: number; new_share: N }[];
+}
+const GRADE: Record<Grade, [string, string]> = { pass: ["Өтті", v.tagGreen], fix: ["Өзгерту керек", v.tagRed], watch: ["Бақылауда", ""], no_data: ["Дерек аз", ""] };
+const Gr = ({ g }: { g: Grade }) => <span className={`${v.tag} ${GRADE[g][1]}`} style={{ alignSelf: "flex-start" }}>{GRADE[g][0]}</span>;
+function PilotBlock({ days, desk }: { days: number; desk: boolean }) {
+  const pd = Math.min(90, days);
+  const [d] = useCached<{ pilot: Pilot }>(`a:pilot:${pd}`, () => A(`/pilot?days=${pd}`));
+  const p = d?.pilot;
+  const G = desk ? s.stats4 : v.stats;
+  if (!p) return <Sk h={160} />;
+  const Card = ({ t, hint, val, g }: { t: string; hint: string; val: string | number; g: Grade }) => (
+    <div className={v.stat}><span className={v.statLabel}>{t}</span><span className={v.statNum} style={{ fontSize: 22, lineHeight: "28px" }}>{val}</span><Gr g={g} />
+      <span className={v.statLabel} style={{ fontSize: 12, lineHeight: "16px" }}>{hint}</span></div>
+  );
+  return <>
+    <H t="Пилот" hint={`Соңғы ${pd} күн · ${p.sales.packs} пакет (күніне ${p.sales.perDay}), ${p.sales.venues} мекеме, Starter үлесі ${P(p.sales.starterShare)}`} />
+    <div className={G} style={grid(desk)}>
+      <Card t="Екінші пакет" hint={`Бірінші пакетінен 14 күн өткен ${p.secondPack.matured} адамнан ${p.secondPack.repeat} қайта алды. Өтті ≥ 40%, < 25% — модельді өзгерту`} val={P(p.secondPack.value)} g={p.secondPack.grade} />
+      <Card t="Мекемеге жаңа клиент" hint={`Ботта «Medeo-ға дейін бардың ба?» сұрағы: ${p.newToVenue.answered}/${p.newToVenue.asked} жауап (алғаш ${p.newToVenue.first} · кейде ${p.newToVenue.sometimes} · жиі ${p.newToVenue.regular}). Өтті ≥ 30%`} val={P(p.newToVenue.value)} g={p.newToVenue.grade} />
+      <Card t="Сыйлық үлесі" hint={`${p.gifts.count} сыйлық. Өтті ≥ 10%`} val={P(p.gifts.value)} g={p.gifts.grade} />
+      <Card t="Кассадағы уақыт" hint={`QR ашылғаннан расталғанға дейін, медиана (p90 ${p.till.p90Sec ?? "–"} с). ${p.till.done} сәтті, ${p.till.incomplete} аяқталмаған (${P(p.till.incompleteShare)}). Өтті ≤ 10 с, ≤ 2%`} val={p.till.medianSec == null ? "–" : `${p.till.medianSec} с`} g={p.till.grade} />
+    </div>
+    {p.channels.length > 0 && <>
+      <H t="Арналар" hint="Сілтеме: t.me/<бот>?startapp=ad_<код> (мысалы ad_sticker-bc1, ad_tg-univer, ad_hr-kaspi). Қайта алғандар — екінші пакетке жеткендер" />
+      <div className={v.card} style={{ overflowX: "auto" }}>
+        <table className={s.table} style={{ minWidth: 360 }}>
+          <thead><tr><th>Арна</th><th className={s.num}>Адам</th><th className={s.num}>Сатып алды</th><th className={s.num}>Қайта алды</th></tr></thead>
+          <tbody>{p.channels.map((c) => <tr key={c.channel} style={{ cursor: "default" }}><td>{SRC[c.channel] ?? c.channel}</td><td className={s.num}>{c.users}</td><td className={s.num}>{c.buyers}</td><td className={s.num}>{c.repeat}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </>}
+    {p.byVenue.length > 0 && <Kv rows={p.byVenue.map((x) => [x.venue, `${x.packs} пакет · жаңа ${P(x.new_share)}`])} />}
+  </>;
+}
+
 /** Бір көрсеткіш: атауы, түсіндірмесі (термин), мәні, өсуі */
 function St({ t, hint, val, g, blue }: { t: string; hint: string; val: string | number; g?: N; blue?: boolean }) {
   return (
@@ -86,6 +130,8 @@ export function AMetrics() {
           <St blue t="Аптасына қолданылған бірлік" hint="North Star — соңғы 7 күн, алдыңғы аптамен салыстыру" val={m.northStar.units} g={m.northStar.growth} />
           <St t="Бұрынғы апта" hint="Салыстыру үшін" val={m.northStar.prev} />
         </div>
+
+        <PilotBlock days={days} desk={desk} />
 
         <H t="Өсу" hint={`Соңғы ${days} күн, алдыңғы ${days} күнмен салыстыру`} />
         <div className={G} style={grid(desk)}>

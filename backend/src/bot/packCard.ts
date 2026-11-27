@@ -61,9 +61,22 @@ export function packCardText(state: string, lang: BotLang) {
   const st = d.s === "a" ? d.d : d.s === "u" ? (ru ? "Пакет полностью использован" : "Пакет толық қолданылды") : d.s === "e" ? (ru ? "⏳ Срок истёк" : "⏳ Мерзімі бітті") : (ru ? "↩️ Возвращён" : "↩️ Қайтарылды");
   return `🎟 <b>${escH(d.t)}</b>\n${escH(d.v)}\n\n<b>${d.l}</b> / ${d.n} ${ru ? "осталось" : "қалды"}   ${bar}\n${escH(st)}`;
 }
-/** Telegram виджетті қайтарса (NOT_ALLOWED) — осы процесс бойы бірден мәтіндік картамен жібереміз (әр сатып алуда бос сұрау жасамау үшін) */
-let widgetsRefused = false;
-export const _resetWidgetRefusal = () => { widgetsRefused = false; };
+/** Telegram виджетті қайтарса (NOT_ALLOWED) — 6 сағат бойы бірден мәтіндік картамен жібереміз (әр сатып алуда бос сұрау жасамау үшін).
+ *  6 сағаттан кейін келесі карта виджетпен қайта байқап көреді (2026-11-27, Патша: «виджет қайта қосылса — енгіз»): Telegram ашса, өзі виджетке көшеді. */
+export const WIDGET_RETRY_MS = 6 * 3600_000;
+let refusedAt = 0;
+const widgetsRefused = () => refusedAt > 0 && Date.now() - refusedAt < WIDGET_RETRY_MS;
+export const _resetWidgetRefusal = () => { refusedAt = 0; };
+export const _expireWidgetRefusal = () => { if (refusedAt) refusedAt = Date.now() - WIDGET_RETRY_MS - 1; };
+/** Виджеттің соңғы белгілі күйі (Басқару пульсі және /cron/tick есебі үшін) */
+let lastWidget: { ok: boolean; at: string; description?: string } | null = null;
+export const widgetStatus = () => ({ refused: widgetsRefused(), retryAt: refusedAt ? new Date(refusedAt + WIDGET_RETRY_MS).toISOString() : null, last: lastWidget });
+const isRefusal = (d?: string) => /WIDGET_NOT_ALLOWED|METHOD_NOT_FOUND|method not found/i.test(d ?? "");
+const noteWidget = (r: { ok: boolean; description?: string }) => {
+  lastWidget = { ok: r.ok, at: new Date().toISOString(), ...(r.ok ? {} : { description: r.description }) };
+  if (r.ok) { if (refusedAt) console.info("packCard: виджет қайта ашылды"); refusedAt = 0; }
+  else if (isRefusal(r.description)) { if (!widgetsRefused()) console.warn("packCard: виджет жабық, мәтіндік карта"); refusedAt = Date.now(); }
+};
 const TEXT = "T|"; // widget_state басындағы белгі: бұл карта — мәтіндік хабарлама
 
 export function packCards(cfg: Config, db: Db, call: TgCall) {
@@ -71,6 +84,26 @@ export function packCards(cfg: Config, db: Db, call: TgCall) {
   const q = (where: ReturnType<typeof sql>) => db.execute(sql`select p.id, u.telegram_id as tg, u.lang, o.title, o.title_ru, v.name as venue, p.units_left, p.units_total, p.valid_until, p.status, p.widget_msg_id, p.widget_state
     from app.packs p join app.users u on u.id = p.user_id join app.offers o on o.id = p.offer_id join app.venues v on v.id = o.venue_id where ${where}`).then((r) => r.rows as PackRow[]);
 
+  const markupOf = (p: PackRow, l: BotLang) => ({ inline_keyboard: [[{ text: L[l].open, url: `https://t.me/${bot}?startapp=pk_${p.id}`, style: "primary" }]] });
+  async function sendWidget(p: PackRow, l: BotLang, state: string, title: string) {
+    const r = await call("sendWidget", { chat_id: Number(p.tg), html: packCardHtml(l, bot), chat_data: state, height: 0,
+      caption: `${L[l].cap}: ${title} — ${p.venue}`, reply_markup: markupOf(p, l), disable_notification: true });
+    if (r.ok || isRefusal(r.description)) noteWidget(r); // бот бұғатталуы т.б. виджеттің ашық-жабықтығы туралы ештеңе айтпайды
+    return r;
+  }
+  /** Мәтіндік картаны виджетке ауыстыру (виджет қайта ашылғанда): алдымен виджет жіберіледі, сәтті болса ғана ескі мәтін өшіріледі */
+  async function upgradeCard(p: PackRow): Promise<"ok" | "refused" | "skip"> {
+    const l: BotLang = p.lang === "ru" ? "ru" : "kk";
+    const state = cardState(p);
+    const title = (l === "ru" && p.title_ru ? p.title_ru : p.title);
+    const r = await sendWidget(p, l, state, title);
+    if (!r.ok) return isRefusal(r.description) ? "refused" : "skip";
+    const msgId = (r.result as { message_id?: number } | undefined)?.message_id;
+    if (!msgId) return "skip";
+    await db.execute(sql`update app.packs set widget_msg_id = ${msgId}, widget_state = ${state} where id = ${p.id}`);
+    if (p.widget_msg_id && p.widget_msg_id > 0) await call("deleteMessage", { chat_id: Number(p.tg), message_id: p.widget_msg_id }).catch(() => null);
+    return "ok";
+  }
   async function sendCard(p: PackRow) {
     const l: BotLang = p.lang === "ru" ? "ru" : "kk";
     const state = cardState(p);
@@ -78,14 +111,11 @@ export function packCards(cfg: Config, db: Db, call: TgCall) {
     // Бірінші болып иелік алады (екі қатар шақыру екі карта жібермесін): 0 — «жіберілуде»
     const claimed = (await db.execute(sql`update app.packs set widget_msg_id = 0 where id = ${p.id} and (widget_msg_id is null or widget_msg_id = -1) returning id`)).rows.length;
     if (!claimed) return;
-    const markup = { inline_keyboard: [[{ text: L[l].open, url: `https://t.me/${bot}?startapp=pk_${p.id}`, style: "primary" }]] };
-    let r = widgetsRefused ? { ok: false, description: "INPUT_MEDIA_WIDGET_NOT_ALLOWED" } : await call("sendWidget", { chat_id: Number(p.tg), html: packCardHtml(l, bot), chat_data: state, height: 0,
-      caption: `${L[l].cap}: ${title} — ${p.venue}`, reply_markup: markup, disable_notification: true });
+    const markup = markupOf(p, l);
+    let r = widgetsRefused() ? { ok: false, description: "INPUT_MEDIA_WIDGET_NOT_ALLOWED" } : await sendWidget(p, l, state, title);
     let saved = state;
-    if (!r.ok && /WIDGET_NOT_ALLOWED/i.test(r.description ?? "")) {
+    if (!r.ok && isRefusal(r.description)) {
       // Виджет жабық — сол картаның мәтіндік нұсқасы (санағы бәрібір жаңарып тұрады)
-      if (!widgetsRefused) console.warn("packCard: виджет жабық, мәтіндік карта");
-      widgetsRefused = true;
       r = await call("sendMessage", { chat_id: Number(p.tg), text: packCardText(state, l), parse_mode: "HTML", reply_markup: markup, disable_notification: true });
       saved = TEXT + state;
     }
@@ -120,14 +150,22 @@ export function packCards(cfg: Config, db: Db, call: TgCall) {
     },
     /** Жоспарлы тексеріс (15 минут): жаңа белсенді пакеттерге карта, өзгерген күйлерді жаңарту (мерзім біту, қайтару, ұзарту т.б.) */
     sweep: async () => {
-      if (cfg.PACK_CARDS !== "1") return { sent: 0, updated: 0 };
-      let sent = 0, updated = 0;
+      if (cfg.PACK_CARDS !== "1") return { sent: 0, updated: 0, upgraded: 0, widget: widgetStatus() };
+      let sent = 0, updated = 0, upgraded = 0;
       // -1 — виджет жабылған кезде (2026-11-18) сәтсіз болғандар: мәтіндік картамен бір рет қайта
       for (const p of await q(sql`(p.widget_msg_id is null or p.widget_msg_id = -1) and p.status = 'active' and p.units_left > 0 and p.created_at > now() - interval '3 days' limit 50`)) { await sendCard(p); sent++; }
       for (const p of await q(sql`p.widget_msg_id > 0 and (p.status = 'active' or p.created_at > now() - interval '120 days') limit 500`)) {
         if (changed(p)) { await updateCard(p); updated++; }
       }
-      return { sent, updated };
+      // Виджет жабық емес (не 6 сағаттық күту өтті) — белсенді пакеттердің мәтіндік карталарын виджетке ауыстыру (бір тексерісте 20-дан, біреуі жабық десе — тоқтаймыз)
+      if (!widgetsRefused()) {
+        for (const p of await q(sql`p.widget_msg_id > 0 and p.widget_state like 'T|%' and p.status = 'active' and p.units_left > 0 and p.valid_until > now() order by p.created_at desc limit 20`)) {
+          const r = await upgradeCard(p);
+          if (r === "refused") break;
+          if (r === "ok") upgraded++;
+        }
+      }
+      return { sent, updated, upgraded, widget: widgetStatus() };
     },
   };
 }

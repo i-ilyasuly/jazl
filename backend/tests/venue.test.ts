@@ -129,6 +129,7 @@ d("C мекеме бөлімі", () => {
     const d = await json(post(`/v1/venue/${venueId}/offers`, body, 701));
     expect(d.offer.status).toBe("draft");
     expect((await post(`/v1/venue/${venueId}/offers`, { ...body, publish: true, sizes: [{ units: 4, price: 7900 }] }, 701)).status).toBe(409); // 1,25% ғана жеңілдік
+    expect((await post(`/v1/venue/${venueId}/offers`, { ...body, sizes: [{ units: 2, price: 3000 }] }, 701)).status).toBe(400); // Starter: ең кіші пакет — 3 бірлік (Патша, 2026-11-27)
     const noRu = await post(`/v1/venue/${venueId}/offers`, { ...body, titleRu: undefined, publish: true, sizes: [{ units: 4, price: 6000 }] }, 701); // орысша атаусыз жарияланбайды
     expect(noRu.status).toBe(400); expect((await noRu.json()).error).toBe("title_ru_required");
     expect((await app.request(`/v1/venue/${venueId}/offers/${d.offer.id}`, { method: "PUT", headers: h(701), body: JSON.stringify({ ...body, publish: true, sizes: [{ units: 4, price: 6000 }, { units: 8, price: 11200 }] }) })).status).toBe(200);

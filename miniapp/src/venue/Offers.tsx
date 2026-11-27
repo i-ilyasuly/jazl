@@ -25,6 +25,8 @@ import s from "./V.module.css";
 import lp from "./LivePin.module.css";
 
 type Size = { units: number; price: number };
+/** Ең кіші пакет — 3 бірлік, «Starter» (Патша, 2026-11-27); сервер де тексереді (routes/venue.ts MIN_PACK_UNITS) */
+const MIN_PACK_UNITS = 3;
 type PortionUnit = "g" | "kg" | "ml" | "l" | "cm" | "pcs" | "min";
 interface Draft { keywords: string[]; title: string; titleRu: string; packName: string; packNameRu: string; bonus: string; bonusRu: string; perk: string; perkRu: string; category: string; about: string; aboutRu: string; composition: string; compositionRu: string; portion: { value: number; unit: PortionUnit } | null; photos: string[]; sizes: Size[]; regularUnitPrice: number; validDays: number;
   rules: { carry: boolean; extend: boolean; preorder: boolean; planOnly?: boolean; offPeak?: OffPeak | null; installment?: number[] | null; branches: string[] | null; monthlyLimit?: number | null; perUserLimit?: number | null; saleUntil?: string | null } }
@@ -168,7 +170,7 @@ export function VOfferWizard() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("draft");
   const [photoState, setPhotoState] = useState<"" | "loading" | "error">("");
-  const [d, setD] = useState<Draft>({ keywords: [], title: "", titleRu: "", packName: "", packNameRu: "", bonus: "", bonusRu: "", perk: "", perkRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: 4, price: 6000 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
+  const [d, setD] = useState<Draft>({ keywords: [], title: "", titleRu: "", packName: "", packNameRu: "", bonus: "", bonusRu: "", perk: "", perkRu: "", category: "", about: "", aboutRu: "", composition: "", compositionRu: "", portion: null, photos: [], sizes: [{ units: MIN_PACK_UNITS, price: 5100 }], regularUnitPrice: 2000, validDays: 30, rules: { carry: true, extend: true, preorder: true, branches: null } });
   // Іздеу сөздері мен санат ұсынысы (2-кезең)
   const [kw, setKw] = useState("");
   const addKw = () => { const v = kw.trim().toLowerCase().replace(/,$/, ""); if (v.length >= 2 && !d.keywords.includes(v) && d.keywords.length < 8) { haptic.select(); setD((x) => ({ ...x, keywords: [...x.keywords, v] })); } setKw(""); };
@@ -556,8 +558,9 @@ function SizeSheet({ size, reg, canDelete, onClose, onSave, onDelete }: { size: 
       <NumField label="Бірлік саны" value={x.units} suffix=" бірлік" onChange={(units) => setX({ ...x, units })} />
       <NumField label="Пакет бағасы" value={x.price} suffix=" ₸" onChange={(price) => setX({ ...x, price })} />
       {x.units > 0 && x.price > 0 && <div style={{ display: "flex", gap: 8 }}><span className={`${s.tag} ${s.tagGreen}`}>{`Үнем ${saving(x, reg)}%`}</span><span className={s.tag}>{`Бірлікке ${money(Math.round(x.price / x.units))}`}</span></div>}
+      {x.units > 0 && x.units < MIN_PACK_UNITS && <Note tone="warn">{`Ең кіші пакет — ${MIN_PACK_UNITS} бірлік (Starter). Клиенттер алдымен шағын пакетпен танысады, сосын үлкенін алады.`}</Note>}
       {canDelete && <button className={`${s.textBtn} ${s.redText}`} style={{ alignSelf: "flex-start" }} onClick={onDelete}>Көлемді өшіру</button>}
-      <Buttons main={{ text: "Сақтау", onClick: () => onSave(x), disabled: !x.units || !x.price }} second={{ text: "Бас тарту", onClick: onClose }} />
+      <Buttons main={{ text: "Сақтау", onClick: () => onSave(x), disabled: !x.units || !x.price || x.units < MIN_PACK_UNITS }} second={{ text: "Бас тарту", onClick: onClose }} />
     </Sheet>
   );
 }

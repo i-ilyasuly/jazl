@@ -184,6 +184,9 @@ export const packs = app.table("packs", {
   /** Пакет картасы — клиенттің жеке чатындағы виджет (0024): хабарлама ID (-1 — жіберу мүмкін болмады) және соңғы күйі */
   widgetMsgId: integer("widget_msg_id"),
   widgetState: text("widget_state"),
+  /** Пилот өлшеуі (0041): клиент бұл мекемеге Medeo-ға дейін барды ма — n (алғаш рет) | s (кейде) | r (жиі); сұрақ бір мекемедегі бірінші пакетке ғана */
+  priorVisit: text("prior_visit"),
+  priorAskedAt: timestamp("prior_asked_at", { withTimezone: true }),
   createdAt: created(),
 }, (t) => [index("packs_user").on(t.userId)]);
 
