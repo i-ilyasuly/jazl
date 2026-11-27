@@ -1,0 +1,13 @@
+---
+// Банк талап ететін беттер (қазақша): /payment, /how-to-buy, /service-terms, /payment-security, /personal-data, /places
+import Base from "../layouts/Base.astro";
+import DocPage from "../components/DocPage.astro";
+import { kk } from "../i18n/kk";
+import { DOCS, type DocPage as Doc } from "../i18n/docs";
+import { href } from "../routes";
+export function getStaticPaths() {
+  return DOCS.kk.map((page) => ({ params: { doc: href("kk", page.key).slice(1) }, props: { page } }));
+}
+const { page } = Astro.props as { page: Doc };
+---
+<Base t={kk} title={`${page.title} — Medeo`} description={page.lead}><DocPage t={kk} page={page} /></Base>
