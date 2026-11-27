@@ -73,7 +73,7 @@ export function paymentRoutes(cfg: Config, db: Db) {
   });
 
   // Банк бетіндегі төлем тәсілдері (кілттері бапталған провайдерлер): мини апп «Банк картасы · Halyk» тәсілін осыдан біледі
-  r.get("/payments/config", (c) => c.json({ ok: true, hosted: hostedProviders(cfg).map((p) => ({ id: p.name, test: Boolean(p.testMode), qr: Boolean(p.qr) })) }));
+  r.get("/payments/config", (c) => c.json({ ok: true, live: cfg.PAYMENTS_MODE === "live", hosted: hostedProviders(cfg).map((p) => ({ id: p.name, test: Boolean(p.testMode), qr: Boolean(p.qr) })) }));
 
   // «Halyk арқылы төлеу»: компьютерде көрсетілген QR-ды клиент телефондағы мини апп сканерімен оқыса — сол клиенттің
   // күтудегі төлемін QR мәтіні бойынша табамыз, мини апп Homebank-ті ашады (2026-11-24, Патша). Тек өз төлемі, 25 минут ішінде.
