@@ -11,6 +11,7 @@ import { hostedProviders, paymentProvider, providerByName, type PaymentProvider,
 import { PaymentError } from "../payments/types.js";
 import { finalizePurchase, paymentReply, saveCard } from "./purchases.js";
 import { finalizeExtend } from "./b4.js";
+import { kickFiscal } from "../fiscal/index.js";
 
 /** Төлем түріне қарай аяқтау: сатып алу (пакет, сыйлық, қайта алу) не мерзімді ұзарту */
 const finalizePayment = async (db: Db, cfg: Config, pay: typeof payments.$inferSelect) =>
@@ -43,6 +44,7 @@ async function applyEvent(db: Db, cfg: Config, p: PaymentProvider, pay: typeof p
     if (ev.card && pay.userId) await saveCard(db, p.name, pay.userId, ev.card);
     const out = await finalizePayment(db, cfg, pay);
     if ("error" in out) { console.error("payment finalize", pay.id, out.error); return { ok: false, error: out.error, status: 409 }; }
+    kickFiscal(db, cfg); // фискалдық чек (re:Kassa қосулы болса)
   } else if (pay.status !== "paid") { await db.update(payments).set({ status: "failed", failure: ev.reason ?? "declined" }).where(eq(payments.id, pay.id)); await releaseBonus(db, pay.id); }
   return { ok: true };
 }
