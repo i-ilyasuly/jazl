@@ -3,8 +3,8 @@ import { defineConfig } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  // Домен алынған соң осы жерге жазылады (canonical, hreflang)
-  site: "https://medeo.kz",
+  // Домен алынған соң (medeo.kz) осы жерге жазылады (canonical, hreflang). Әзірге — Vercel мекенжайы
+  site: "https://medeo-site.vercel.app",
   trailingSlash: "ignore",
   build: { format: "directory" },
   vite: { plugins: [tailwindcss()] },
