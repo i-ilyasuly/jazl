@@ -13,7 +13,7 @@ type Btn = { text: string; url?: string; callback_data?: string; style?: "primar
 type Update = {
   update_id: number;
   message?: { message_id: number; chat: { id: number; type: string }; from?: { id: number; first_name?: string; language_code?: string; is_bot?: boolean }; text?: string };
-  callback_query?: { id: string; from: { id: number; first_name?: string; language_code?: string }; message?: { chat: { id: number } }; data?: string };
+  callback_query?: { id: string; from: { id: number; first_name?: string; language_code?: string }; message?: { message_id?: number; chat: { id: number } }; data?: string };
 };
 const MON = { kk: ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"], ru: ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"] };
 const dayText = (d: Date, l: BotLang) => { const x = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Almaty" })); return `${x.getDate()} ${MON[l][x.getMonth()]}`; };
@@ -66,6 +66,16 @@ export function makeBot(cfg: Config, db: Db, call: TgCall = tgApi(cfg)) {
   async function handle(u: Update) {
     if (u.callback_query) {
       const q = u.callback_query; const chatId = q.message?.chat.id ?? q.from.id;
+      // 📋 Пилот сұрағы (0041): «pv:<пакет>:n|s|r» — тек пакет иесінің жауабы, бір рет жазылады
+      const pv = /^pv:([0-9a-f-]{36}):([nsr])$/.exec(q.data ?? "");
+      if (pv) {
+        const { lang } = await userOf(q.from.id, q.from.language_code);
+        const done = (await db.execute(sql`update app.packs p set prior_visit = ${pv[2]} from app.users u
+          where p.id = ${pv[1]} and u.id = p.user_id and u.telegram_id = ${q.from.id} and p.prior_visit is null returning p.id`)).rows.length > 0;
+        void call("answerCallbackQuery", { callback_query_id: q.id, text: lang === "ru" ? "Спасибо!" : "Рақмет!" });
+        if (done && q.message?.message_id) await call("editMessageText", { chat_id: chatId, message_id: q.message.message_id, text: TXT.priorThanks[lang] });
+        return;
+      }
       void call("answerCallbackQuery", { callback_query_id: q.id });
       const { lang } = await userOf(q.from.id, q.from.language_code);
       if (q.data === "help") await help(chatId, lang);
