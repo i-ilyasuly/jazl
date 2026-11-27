@@ -54,6 +54,22 @@ d("B4", () => {
     expect(rv.reviews[0].name).not.toMatch(/\S{2,}\s\S{2,}/); // тегі толық емес
     expect((await app.request("/v1/catalog/reviews?offer=../x")).status).toBe(400);
   });
+  it("сайт пікірлері: тек 4–5 жұлдыз және мәтіні барлары; жалпы баға — барлық бағаның орташасы", async () => {
+    const rate = async (id: number, stars: number, text?: string) => {
+      const p = (await buy({}, id)).pack.id;
+      await post("/v1/redeem", { packId: p, qr: makeDynamicQr(TOKEN, damdi, 1).payload, units: 1, idempotencyKey: key() }, id);
+      await post("/v1/ratings", { packId: p, stars, ...(text ? { text } : {}) }, id);
+    };
+    await rate(711, 5, "Өте дәмді, кезексіз алдым, рахмет!");
+    await rate(712, 2, "Нашар болды, суық тамақ берді");
+    await rate(713, 5, "Жақсы"); // мәтіні тым қысқа
+    const s = await (await app.request("/v1/catalog/site-reviews")).json();
+    expect(s.ok).toBe(true);
+    expect(s.reviews.map((r: { text: string }) => r.text)).toEqual(["Өте дәмді, кезексіз алдым, рахмет!"]);
+    expect(s.reviews[0]).toMatchObject({ stars: 5, venue: expect.any(String), kind: "food" });
+    const all = await q("select count(*)::int n, round(avg(stars)::numeric,1)::float a from app.ratings");
+    expect(s).toMatchObject({ count: all[0].n, avg: all[0].a });
+  });
   it("ұзарту: 7 күн тегін бір рет; екінші тегін — 409; 14 күн ақылы — чек 1000 ₸", async () => {
     const p = (await buy()).pack.id;
     const before = (await q("select valid_until v from app.packs where id=$1", [p]))[0].v.getTime();

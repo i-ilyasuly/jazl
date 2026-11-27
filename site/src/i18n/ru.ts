@@ -80,12 +80,20 @@ export const ru: Dict = {
     lead: "Каждый отзыв привязан к оплаченному пакету. Здесь — избранные отзывы, а общая оценка — среднее по всем.",
     avg: "4,8",
     count: "средняя оценка по 128 отзывам",
+    kinds: { food: "Еда", coffee: "Кофе", hair: "Стрижка" } as Record<string, string>,
+    /** {n} — барлық баға саны */
+    countTpl: "средняя оценка по {n} отзывам",
     all: "Все отзывы",
     items: [
       { cat: "Стрижка", text: "Мастер отличный, записаться легко. Один раз продлевал срок.", who: "Дана Т.", venue: "Qala Barber", tone: "lilac" },
       { cat: "Еда", text: "Беру обеденное комбо три раза в неделю. Сколько осталось — видно в телефоне.", who: "Ерлан Ж.", venue: "Dämdi Doner", tone: "peach" },
       { cat: "Кофе", text: "По утрам беру кофе без очереди, экономлю около трёх тысяч в месяц.", who: "Айгерим С.", venue: "Qala Coffee", tone: "paper" },
     ],
+  },
+  partners: {
+    title: "С нами работают",
+    cta: "Стать партнёром",
+    names: ["Qala Coffee", "Dämdi Doner", "Qala Barber", "Taudan Bakery", "Köktem Tea", "Samsa Lab", "Dala Grill", "Bulaq Bowls"],
   },
   venueCta: {
     title: "У вас есть заведение?",
