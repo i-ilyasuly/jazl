@@ -16,6 +16,8 @@ import { siteRoutes } from "./routes/site.js";
 import { emojiRoutes } from "./routes/emoji.js";
 import { eventRoutes } from "./routes/events.js";
 import { fiscalTick } from "./fiscal/index.js";
+import { moderatePending } from "./reviewAi.js";
+import { aiEnabled } from "./ai.js";
 import { stickerRoutes } from "./routes/sticker.js";
 import { purchaseRoutes, receiptFileRoutes } from "./routes/purchases.js";
 import { devQrRoutes, usageRoutes } from "./routes/usage.js";
@@ -99,8 +101,9 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     const cardsDone = await cards?.sweep().catch((e) => { console.error("packCards", e); return null; }); // пакет карталары: жаңалары және өзгерген күйлер
     await snapshot(db).catch((e) => console.error("metrics snapshot", e)); // күндік сурет (метрикалар)
     const fiscal = await fiscalTick(db, cfg).catch((e) => { console.error("fiscal", e); return null; }); // фискалдық чектер (re:Kassa)
+    const reviewAi = await moderatePending(db, cfg).catch((e) => { console.error("review ai", e); return null; }); // пікірлердің Gemini тексерісі
     await setSetting(db, "lastTick", new Date().toISOString()).catch(() => null);
-    return c.json({ ok: true, sent, renewed, cards: cardsDone ?? null, fiscal });
+    return c.json({ ok: true, sent, renewed, cards: cardsDone ?? null, fiscal, reviewAi });
   });
   // IP тақырыбын тексеру (аудит 2026-11-25): Cloud Run X-Forwarded-For-ды қалай құратынын көру үшін. Тек CRON_KEY-мен.
   app.get("/cron/ip", (c) => {
@@ -108,7 +111,7 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
     return c.json({ ok: true, xff: c.req.header("x-forwarded-for") ?? null, realIp: c.req.header("x-real-ip") ?? null, chosen: clientIp(c), hops: Number(process.env.IP_HOPS) || 0 });
   });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
-  app.route("/v1/catalog", catalogRoutes(db, { installment: cfg.HALYK_INSTALLMENT === "on" }));
+  app.route("/v1/catalog", catalogRoutes(db, { installment: cfg.HALYK_INSTALLMENT === "on", reviewAi: aiEnabled(cfg) }));
   // Сайттың өтінім формасы (кірусіз): IP бойынша 5 өтінім / 10 мин
   app.use("/v1/site/lead", lim([{ name: "sitelead", max: 5, windowSec: 600, by: "ip" }]));
   app.route("/v1/site", siteRoutes(db, notify));

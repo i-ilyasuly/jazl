@@ -2,7 +2,7 @@
 // бір дерекқорда қатар тұра алады. Ақша — теңгемен бүтін сан (тиынсыз). Уақыт — timestamptz (UTC).
 // Логикасы мен ID ережесі: Drive «14 Бэкенд логикасы».
 import { sql } from "drizzle-orm";
-import { bigint, bigserial, boolean, customType, doublePrecision, index, integer, jsonb, pgSchema, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, bigserial, boolean, customType, doublePrecision, index, integer, jsonb, pgSchema, primaryKey, real, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const app = pgSchema("app");
 
@@ -357,6 +357,11 @@ export const ratings = app.table("ratings", {
   /** Мекеменің жауабы (Figma «Пікірге жауап») — барлық клиентке көрінеді */
   reply: text("reply"),
   repliedAt: timestamp("replied_at", { withTimezone: true }),
+  /** Gemini тексерісі (0040): pending | ok | negative | unsafe | error | skip. Сайтқа тек ok (сенімділік ≥ 0,8) — src/reviewAi.ts */
+  aiStatus: text("ai_status").notNull().default("pending"),
+  aiConfidence: real("ai_confidence"),
+  aiAttempts: integer("ai_attempts").notNull().default(0),
+  aiCheckedAt: timestamp("ai_checked_at", { withTimezone: true }),
   createdAt: created(),
 }, (t) => [index("ratings_venue").on(t.venueId), uniqueIndex("ratings_user_pack").on(t.userId, t.packId).where(sql`pack_id is not null`)]);
 

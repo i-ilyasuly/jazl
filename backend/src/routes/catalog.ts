@@ -6,6 +6,7 @@ import type { Db } from "../db/client.js";
 import { branches, offers, venues } from "../db/schema.js";
 import { getSettings } from "../settings.js";
 import { limitsOf, soldThisMonth } from "../limits.js";
+import { SITE_MIN_CONFIDENCE } from "../reviewAi.js";
 
 /** Клиентке көрінетін ережелер: «Тек жоспар бойынша» және бос сағат терезесі (қалғаны — ішкі) */
 const rulesOut = (r: unknown, installmentOn: boolean) => {
@@ -18,7 +19,7 @@ const rulesOut = (r: unknown, installmentOn: boolean) => {
   return Object.keys(out).length ? out : null;
 };
 
-export function catalogRoutes(db: Db, opts: { installment?: boolean } = {}) {
+export function catalogRoutes(db: Db, opts: { installment?: boolean; reviewAi?: boolean } = {}) {
   const r = new Hono();
   // Ұсыныс бетіндегі пікірлер (Патша, 2026-11-26): тірі — клиенттер қойған жұлдыз, белгілер, мәтін, мекеме жауабы.
   // Аты — «Аты Ж.» ғана (тегі толық көрсетілмейді). Мәтінсіз баға да тізімде («5 жұлдыз қойды» — мини апп жазады).
@@ -35,11 +36,13 @@ export function catalogRoutes(db: Db, opts: { installment?: boolean } = {}) {
   });
   // Сайттағы «Пікірді тек сатып алғандар қалдырады» блогы (28-құжат, 2026-11-27): мини апптағы нақты пікірлер.
   // Сайтқа тек 4–5 жұлдыз және мәтіні барлары шығады (жаман пікір мини апптың ұсыныс бетінде көрінеді, сайтта — жоқ).
-  // Жалпы баға мен сан — БАРЛЫҚ бағаның шынайы орташасы. Gemini «оң әрі таза» тексерісі әлі қосылмаған.
+  // Жалпы баға мен сан — БАРЛЫҚ бағаның шынайы орташасы. Gemini қосулы болса (GEMINI_API_KEY) — тек «оң әрі таза» деп тексерілгені
+  // (ai_status = ok, сенімділік ≥ 0,8; src/reviewAi.ts). Тексерілмегені (pending/error) — шықпайды.
   r.get("/site-reviews", async (c) => {
     const rows = (await db.execute(sql`select r.stars::int as stars, r.text, r.created_at, u.first_name, u.last_name, v.name as venue, v.kind::text as kind
       from app.ratings r join app.users u on u.id = r.user_id join app.venues v on v.id = r.venue_id
       where r.stars >= 4 and char_length(btrim(coalesce(r.text, ''))) >= 10
+        and (${!opts.reviewAi} or (r.ai_status = 'ok' and r.ai_confidence >= ${SITE_MIN_CONFIDENCE}))
       order by r.created_at desc limit 12`)).rows as { stars: number; text: string; created_at: Date; first_name: string | null; last_name: string | null; venue: string; kind: string }[];
     const [agg] = (await db.execute(sql`select count(*)::int as n, round(avg(stars)::numeric, 1)::float as a from app.ratings`)).rows as { n: number; a: number | null }[];
     c.header("Cache-Control", "public, max-age=60");
