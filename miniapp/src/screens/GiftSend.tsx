@@ -23,7 +23,7 @@ const MAX = 120;
 /** Сыйлықты Telegram контактісіне/чатына жіберу — нативті таңдау терезесі. */
 export async function shareGift(id: string, pack: string): Promise<boolean> {
   const preparedId = await prepareGift(id);
-  return shareToChat({ preparedId, url: giftLink(id), text: `🎁 Саған Squirrel сыйлығы: ${pack}` });
+  return shareToChat({ preparedId, url: giftLink(id), text: `🎁 Саған Medeo сыйлығы: ${pack}` });
 }
 
 export function GiftSend() {
@@ -74,7 +74,7 @@ export function GiftSend() {
       await waitGift(gid); // сервердегі код дайын болсын — сілтеме сонымен жіберіледі
       if (userOk) {
         // Алушының чаты ашылады, хабарлама дайын тұрады (сілтеме көшіріледі де — қажет болса қоюға)
-        const text = `🎁 Саған Squirrel сыйлығы: ${o.title}\n${giftLink(gid)}`;
+        const text = `🎁 Саған Medeo сыйлығы: ${o.title}\n${giftLink(gid)}`;
         try { await navigator.clipboard.writeText(giftLink(gid)); } catch { /* рұқсат жоқ */ }
         const url = `https://t.me/${user}?text=${encodeURIComponent(text)}`;
         if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank", "noopener");

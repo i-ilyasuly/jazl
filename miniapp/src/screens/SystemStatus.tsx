@@ -86,7 +86,7 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
         {list.map((b) => <button key={b.branchId} onClick={() => setPick(b)} className="t-cap1" style={chip(b.branchId === pick.branchId)}>{b.venue}</button>)}
       </div>
       <div style={{ display: "flex", gap: 8, padding: "4px 16px" }}>
-        <button className="t-sub2" style={chip(mode === "medeo")} onClick={() => setMode("medeo")}>Squirrel QR · дана</button>
+        <button className="t-sub2" style={chip(mode === "medeo")} onClick={() => setMode("medeo")}>Medeo QR · дана</button>
         <button className="t-sub2" style={chip(mode === "bank")} onClick={() => setMode("bank")}>Банк терминалы · сома</button>
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "8px 16px" }}>
@@ -104,7 +104,7 @@ function TestQrs({ list }: { list: { venue: string; branchId: string; address: s
         <span style={{ width: 200, height: 200 }} dangerouslySetInnerHTML={{ __html: svg }} />
         <span className="t-sub2" style={{ textAlign: "center" }}>{pick.venue} · {pick.address}</span>
         {mode === "medeo" && <span className="t-cap1 w-600" style={{ color: left <= 5 ? "#e53935" : "var(--link)" }}>{`QR ${left} секундтан кейін жаңарады`}</span>}
-        <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Компьютерден ашып, телефондағы Squirrel → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — серверде шегеріледі; басқа мекемеден болса — ескерту шығады.</span>
+        <span className="t-cap1" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Компьютерден ашып, телефондағы Medeo → Сканер арқылы оқыңыз. Пакет осы мекемеден болса — серверде шегеріледі; басқа мекемеден болса — ескерту шығады.</span>
       </div>
     </Group>
   );

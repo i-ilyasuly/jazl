@@ -364,7 +364,7 @@ function OfferView({ id, preview }: { id?: string; preview?: Offer }) {
 
         {/* UX 3 (Патша, 2026-11-23): кепілдік пен ережелер бір блокта; қысқа тақырыптар көрінеді, толығы — ашылмалы тізімде */}
         <section className={`${s.blk} ${s.rules}`}>
-          <h2 className={`${s.blockTitle} ${s.rulesTitle}`}>Squirrel кепілдігі</h2>
+          <h2 className={`${s.blockTitle} ${s.rulesTitle}`}>Medeo кепілдігі</h2>
           <Fold title="Ақшаң күймейді" sub="Қолданылмаған бірлік бонус болып қайтады">
             <p>Мерзімінде қолданылмаған бірліктің құны Medeo бонусы болып қайтады — 12 ай жарамды. Мерзімі бітерден 3 күн бұрын бот еске салады.</p>
             <button className={s.gLink} onClick={() => { haptic.tap(); go("/rules/carry"); }}>Мерзімі және көшіру ережесі</button>

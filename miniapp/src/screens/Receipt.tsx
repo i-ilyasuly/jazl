@@ -71,7 +71,7 @@ export function UseReceipt() {
   if (!pack) return <SubPage title="Төлем чегі"><p className="t-sub2" style={{ textAlign: "center", color: "var(--text-secondary)" }}>Чек табылмады</p></SubPage>;
   const o = offerOf(pack);
   const last = pack.history.find((h) => h.title.includes("пайдаланылды"));
-  const rows = [["Пакет", o.title], ["Мекеме", o.venue], ["Күні", last ? last.sub.split(" • ")[0] : "—"], ["Төлем тәсілі", "Squirrel пакеті • Бірыңғай QR"], ["Банк референсі", "MD-8F3K29"]];
+  const rows = [["Пакет", o.title], ["Мекеме", o.venue], ["Күні", last ? last.sub.split(" • ")[0] : "—"], ["Төлем тәсілі", "Medeo пакеті • Бірыңғай QR"], ["Банк референсі", "MD-8F3K29"]];
   return (
     <SubPage title="Төлем чегі" top={92}>
       <div className={s.hero}>

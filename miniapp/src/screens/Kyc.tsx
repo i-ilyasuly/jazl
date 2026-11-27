@@ -49,7 +49,7 @@ export function Kyc() {
         </label>
       </Group>
       {tried && !ok && <p className={`t-sub2 ${s.errText}`} role="alert">Барлық өрісті толтыр: ЖСН 12 цифр, телефон толық, тегі мен аты.</p>}
-      <p className={`t-sub2 ${s.note} infoBox rise`} style={{ ["--i" as string]: 1 }}>Деректер тек банкке жіберіледі және Squirrel профилінде көрсетілмейді.<i>”</i></p>
+      <p className={`t-sub2 ${s.note} infoBox rise`} style={{ ["--i" as string]: 1 }}>Деректер тек банкке жіберіледі және Medeo профилінде көрсетілмейді.<i>”</i></p>
       {!inTelegram && <div className={b.bar}><button className={b.btn} onClick={next.onClick}>Жалғастыру</button></div>}
     </SubPage>
   );
