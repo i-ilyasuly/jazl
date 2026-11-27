@@ -33,3 +33,26 @@ export async function suggestCategory(cfg: Config, kind: Kind, offer: { title: s
     .sort((x, y) => y.p - x.p).slice(0, 3);
   return { best, confidence: a.confidence, top };
 }
+
+/** Пікірді сайтқа жариялауға бола ма (Патша, 2026-11-27; 28-құжат «оң әрі таза, сенімділік ≥ 0,8»).
+ *  Тек пікір мәтіні мен жұлдыз саны жіберіледі — клиенттің аты, телефоны, ID-і жіберілмейді. */
+export type ReviewVerdict = "ok" | "negative" | "unsafe";
+export async function moderateReview(cfg: Config, review: { stars: number; text: string }, fetchFn: typeof fetch = fetch): Promise<{ verdict: ReviewVerdict; confidence: number }> {
+  if (!cfg.GEMINI_API_KEY) throw new AiError("ai_off");
+  const criteria: Record<ReviewVerdict, string> = {
+    ok: "Positive or mostly positive about the venue, its food, drinks or service; polite; a small remark is fine. Suitable to publish on the website.",
+    negative: "Mainly a complaint, criticism, disappointment or mixed review where the negative part dominates.",
+    unsafe: "Contains profanity, insults, threats, discrimination, personal data (phone, address, full name of staff), links, advertising, spam, gibberish or text unrelated to the venue.",
+  };
+  const input = JSON.stringify({ stars: review.stars, review: review.text.slice(0, 500) });
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+  let res: Response;
+  try {
+    res = await fetchFn(URL, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-goog-api-key": cfg.GEMINI_API_KEY },
+      body: JSON.stringify({ model: "gemini-decision-1", input, questions: { verdict: { type: "choice", instructions: "A customer left this review of a cafe, restaurant or barbershop in a prepaid-package app. The text may be in Kazakh or Russian. Can it be shown on the public website as a positive, clean testimonial?", criteria } } }) });
+  } catch (e) { throw new AiError((e as Error).name === "AbortError" ? "ai_timeout" : "ai_error"); } finally { clearTimeout(t); }
+  if (!res.ok) { console.error("gemini review", res.status, (await res.text().catch(() => "")).slice(0, 300)); throw new AiError("ai_error"); }
+  const a = ((await res.json()) as { answers?: Record<string, ChoiceAnswer> }).answers?.verdict;
+  if (!a || !(a.choice in criteria)) throw new AiError("ai_error");
+  return { verdict: a.choice as ReviewVerdict, confidence: a.confidence };
+}
