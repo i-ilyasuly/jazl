@@ -88,13 +88,23 @@ export async function processFiscal(db: Db, cfg: Config, client: RekassaClient =
       if (!done) {
         const shift = await client.currentShift();
         await db.execute(sql`update app.fiscal_receipts set sent_shift = ${shift} where id = ${r.id}`);
-        done = await client.ticket({ requestId: r.request_id, kind: r.kind, title: r.title, amount: r.amount });
+        // Қайтару: бастапқы сату чегінің деректері (ОФД талабы). Табылмаса — дерек қатесі (Басқару қарайды), кезекті тоқтатпаймыз
+        let parent = null;
+        if (r.kind === "sell_return") {
+          const [s] = (await db.execute(sql`select s.ticket_id from app.fiscal_receipts s join app.fiscal_receipts x on x.payment_id = s.payment_id
+            where x.id = ${r.id} and s.kind = 'sell' and s.status in ('ok','offline') and s.ticket_id is not null limit 1`)).rows as { ticket_id: string | number }[];
+          parent = s ? await client.parentOf(Number(s.ticket_id)) : null;
+          if (!parent) throw new RekassaError("NO_PARENT_TICKET", 0, "fix");
+        }
+        done = await client.ticket({ requestId: r.request_id, kind: r.kind, title: r.title, amount: r.amount, parent });
       }
       await saveOk(db, r.id, done);
       await client.registerReceipt(done.ticketId).catch((e) => console.error("fiscal receipt", r.request_id, (e as Error).message));
       ok++;
     } catch (e) {
-      const err = e instanceof RekassaError ? e : new RekassaError("INTERNAL", 0, "retry", true);
+      let err = e instanceof RekassaError ? e : new RekassaError("INTERNAL", 0, "retry", true);
+      // Қайтару чегінің протокол қатесі — көбіне осы чектің дерегі (бастапқы чек өрістері): бүкіл кезекті тоқтатпай, тек осы чек failed
+      if (r.kind === "sell_return" && err.code === "PROTOCOL_ERROR") err = new RekassaError(err.code, err.http, "fix");
       const unknown = err.unknown || err.code === "INTERNAL";
       if (KASSA_LEVEL.has(err.cls)) {
         // Касса жұмыс істемейді: осы және әлі қолға алынбаған чектерді 30 минутқа қалдырамыз (әрекет саналмайды), Басқаруға белгі

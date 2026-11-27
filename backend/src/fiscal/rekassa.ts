@@ -30,7 +30,9 @@ export class RekassaError extends Error {
 }
 
 export type TicketKind = "sell" | "sell_return";
-export interface TicketInput { requestId: string; kind: TicketKind; title: string; amount: number }
+/** Қайтару чегіндегі бастапқы (сату) чек: ОФД протоколы 2.0.3+ талабы — ФП, күні-уақыты, сомасы, офлайн белгісі, касса РНМ-і */
+export interface ParentTicket { number: string; at: ReturnType<typeof protocolNow>; total: Money; offline: boolean; kkmId: string | null }
+export interface TicketInput { requestId: string; kind: TicketKind; title: string; amount: number; parent?: ParentTicket | null }
 export interface TicketResult { ticketId: number; ticketNumber: string | null; qrUrl: string | null; shiftNumber: number | null; offline: boolean }
 
 export interface RekassaOptions { url: string; apiKey: string; number: string; password: string; fetch?: typeof fetch; now?: () => Date }
@@ -52,6 +54,8 @@ export function ticketBody(t: TicketInput, now: Date) {
     items: [{ type: "ITEM_TYPE_COMMODITY", commodity: { name: t.title.slice(0, 128), sectionCode: "1", quantity: 1000, price: sum, sum, measureUnitCode: "796", auxiliary: [{ key: "UNIT_TYPE", value: "PIECE" }] } }],
     payments: [{ type: "PAYMENT_CARD", sum }],
     amounts: { total: sum, taken: sum, change: money(0) },
+    ...(t.kind === "sell_return" && t.parent ? { parentTicket: { parentTicketNumber: t.parent.number, parentTicketDateTime: t.parent.at,
+      ...(t.parent.kkmId ? { kgdKkmId: t.parent.kkmId } : {}), parentTicketTotal: t.parent.total, parentTicketIsOffline: t.parent.offline } } : {}),
   };
 }
 
@@ -136,6 +140,18 @@ export function rekassaClient(o: RekassaOptions) {
     return null;
   }
 
+  /** Бастапқы чектің деректері (қайтару үшін): GET /api/crs/{id}/tickets/{ticketId}. messageTime — кассаның жергілікті уақыты */
+  async function parentOf(ticketId: number): Promise<ParentTicket | null> {
+    const j = await authed("GET", (s) => `/api/crs/${s.id}/tickets/${ticketId}`) as Record<string, any> | null;
+    const number = (j?.ticketNumber as string | null) ?? (j?.offlineTicketNumber as string | null) ?? null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(String(j?.messageTime ?? ""));
+    const total = j?.data?.ticket?.amounts?.total as Money | undefined;
+    if (!number || !m || !total) return null;
+    const n = (x: string) => String(Number(x));
+    return { number, offline: Boolean(j?.offline), total, kkmId: (j?.data?.service?.regInfo?.kkm?.fnsKkmId as string | undefined) ?? null,
+      at: { date: { year: m[1], month: n(m[2]), day: n(m[3]) }, time: { hour: n(m[4]), minute: n(m[5]), second: n(m[6]) } } };
+  }
+
   /** Чектің клиентке берілгенін тіркеу (re:Kassa талабы, 3-қадам): QR — чек Medeo түбіртегінде QR болып көрсетіледі */
   async function registerReceipt(ticketId: number, type: "QR" | "DOWNLOAD" = "QR") {
     await authed("POST", (s) => `/api/crs/${s.id}/tickets/${ticketId}/receipts`, { body: { type } });
@@ -152,6 +168,6 @@ export function rekassaClient(o: RekassaOptions) {
     }
   }
 
-  return { login, ticket, closeShift, currentShift, findTicket, registerReceipt };
+  return { login, ticket, closeShift, currentShift, findTicket, registerReceipt, parentOf };
 }
 export type RekassaClient = ReturnType<typeof rekassaClient>;
