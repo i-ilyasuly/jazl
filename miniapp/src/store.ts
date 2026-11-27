@@ -413,15 +413,17 @@ export async function loadCards() {
   try {
     const [j, conf] = await Promise.all([
       api<{ cards: { id: string; brand: string; last4: string; exp: string }[] }>("/v1/cards"),
-      api<{ hosted: { id: string; test: boolean; qr?: boolean }[] }>("/v1/payments/config").catch(() => ({ hosted: [] as { id: string; test: boolean; qr?: boolean }[] })),
+      api<{ hosted: { id: string; test: boolean; qr?: boolean }[]; live?: boolean }>("/v1/payments/config").catch(() => ({ hosted: [] as { id: string; test: boolean; qr?: boolean }[], live: false })),
     ]);
     const once = methods.filter((m) => m.cryptogram);
     // Банк беті арқылы төлем (2026-11-18: Halyk ePay, әзірге банктің сынақ ортасы — нақты карта өтпейді, тек сынақ карталары)
     const hosted: PayMethod[] = conf.hosted.map((h) => ({ id: "hosted:" + h.id, emoji: "💳", title: h.test ? "Банк картасы (сынақ)" : "Банк картасы", sub: h.test ? "Тек сынақ карталары" : "Кез келген банк картасы", card: true, hosted: h.id }));
     // «Halyk арқылы төлеу» (2026-11-24, 21-құжат): сервер HALYK_QR=on десе ғана — Homebank ашылады, клиент бір рет растайды
     const viaApp: PayMethod[] = conf.hosted.filter((h) => h.qr).map((h) => ({ id: "qr:" + h.id, emoji: "v:bank", title: h.test ? "Halyk (сынақ)" : "Halyk", sub: "Homebank-те растайсыз", card: true, hosted: h.id, qr: true, logo: "halyk" as const }));
-    methods = [methods[0], ...viaApp, ...hosted, ...j.cards.map((c) => ({ id: "card:" + c.id, emoji: "💳", title: `${c.brand} •• ${c.last4}`, sub: c.exp ? `Жарамдылық мерзімі ${c.exp}` : "Сақталған карта", card: true, cardId: c.id })), ...once];
-    if (!methods.some((m) => m.id === defaultMethod)) defaultMethod = "kaspi";
+    // Нақты режимде (PAYMENTS_MODE=live) Kaspi Pay жолы серверде жабық, Halyk ePay оны өңдемейді — тізімде көрсетпейміз (адастырмау үшін, 2026-11-27)
+    const kaspi = conf.live ? [] : methods.filter((m) => m.id === "kaspi");
+    methods = [...kaspi, ...viaApp, ...hosted, ...j.cards.map((c) => ({ id: "card:" + c.id, emoji: "💳", title: `${c.brand} •• ${c.last4}`, sub: c.exp ? `Жарамдылық мерзімі ${c.exp}` : "Сақталған карта", card: true, cardId: c.id })), ...once];
+    if (!methods.some((m) => m.id === defaultMethod)) defaultMethod = methods[0]?.id ?? "kaspi";
     emit();
   } catch { /* сервер жоқ — үлгі карталар қалады */ }
 }
