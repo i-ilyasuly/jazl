@@ -12,7 +12,7 @@ const p = t.pass;
       <p class="venue">{p.venue}</p>
       <p class="title">{p.title}</p>
     </div>
-    <span class="discount">▼ {p.discount}</span>
+    <span class="day badge"><span class="discount">▼ {p.discount}</span></span>
   </div>
   <ol class="holes" aria-hidden="true">
     {Array.from({ length: total }, (_, i) => <li class:list={[i < used && "used"]} style={`--i:${i}`}></li>)}
