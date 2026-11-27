@@ -54,7 +54,8 @@ export function ticketBody(t: TicketInput, now: Date) {
     domain: { type: "DOMAIN_SERVICES" },
     items: [{ type: "ITEM_TYPE_COMMODITY", commodity: { name: t.title.slice(0, 128), sectionCode: "1", quantity: 1000, price: sum, sum, measureUnitCode: "796", auxiliary: [{ key: "UNIT_TYPE", value: "PIECE" }] } }],
     payments: [{ type: "PAYMENT_CARD", sum }],
-    amounts: { total: sum, taken: sum, change: money(0) },
+    // taken — клиенттен алынған қолма-қол. Қайтаруда re:Kassa «amounts taken must be 0» талап етеді (2026-11-27, нақты жауап)
+    amounts: { total: sum, taken: t.kind === "sell_return" ? money(0) : sum, change: money(0) },
     // Өріс атаулары — re:Kassa протоколының өзіндегідей (kkm.proto.TicketRequest.ParentTicket; «DataTime» — олардың жазылуы).
     // Бесеуі де міндетті; kgdKkmId — бастапқы чек шыққан кассаның РНМ-і (re:Kassa қосымшасы да солай толтырады)
     ...(t.kind === "sell_return" && t.parent ? { parentTicket: { parentTicketNumber: t.parent.number, parentTicketDataTime: t.parent.at,

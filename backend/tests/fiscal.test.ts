@@ -73,6 +73,7 @@ describe("re:Kassa клиенті", () => {
     const k = fakeKassa();
     const parent = { number: "274106435527", at: { date: { year: "2026", month: "11", day: "27" }, time: { hour: "11", minute: "40", second: "35" } }, total: money(2222), offline: false, kkmId: "600700014653" };
     await rekassaClient(opts(k.f)).ticket({ ...sale, kind: "sell_return", requestId: "md-100001-ret-1", parent });
+    expect((k.calls[1].body as { amounts: unknown }).amounts).toEqual({ total: { bills: "10400", coins: 0 }, taken: { bills: "0", coins: 0 }, change: { bills: "0", coins: 0 } });
     expect((k.calls[1].body as Record<string, unknown>).parentTicket).toEqual({ parentTicketNumber: "274106435527", parentTicketDataTime: parent.at, kgdKkmId: "600700014653", parentTicketTotal: { bills: "2222", coins: 0 }, parentTicketIsOffline: false });
   });
   it("401 → бір рет қайта кіріп, сол X-Request-ID-мен қайта жібереді", async () => {
