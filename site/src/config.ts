@@ -30,9 +30,12 @@ export const COMPANY = {
   hoursRu: "Пн–Вс, 09:00–23:00",
 };
 
-/** Үлгі деректер (Figma-дағы мысал ұсыныстар мен пікірлер) — тек PUBLIC_DEMO=1 болса (дизайнды қарау үшін).
- *  Әдепкіде өшірулі: нақты ұсыныстар каталогтан, пікірлер нақты сатып алудан (28-құжат: кемінде 10 расталған пікір) келгенде ғана. */
-export const DEMO = import.meta.env.PUBLIC_DEMO === "1";
+/** Үлгі деректер (мысал ұсыныстар, серіктес белгілері, мысал пікірлер). Патша (2026-11-27): пилотқа дейін көрінеді —
+ *  «пилот басталғалы жатыр» бұйрығымен өшіріледі (PUBLIC_DEMO=0 не осы мәнді false). Нақты пікір болса — үлгінің орнына сол шығады. */
+export const DEMO = import.meta.env.PUBLIC_DEMO !== "0";
+
+/** Medeo API (мини апппен бірдей). Сайттағы нақты пікірлер: GET /v1/catalog/site-reviews (CORS: ALLOWED_ORIGINS-та сайт домені болуы керек) */
+export const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://medeo-api-595435045772.europe-west3.run.app";
 
 /** [тік жақшадағы] мән — әлі толтырылмаған */
 export const isBlank = (v: string) => v.startsWith("[");

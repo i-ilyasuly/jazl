@@ -2,7 +2,7 @@
 // Басты бет (Figma: десктоп 10:417 / 42:826, мобиль 28:736 / 42:1550). Бір DOM, екі макет — CSS арқылы.
 // Үлгі бөлімдер (танымал ұсыныстар, пікірлер) тек DEMO режимінде: нақты деректер келгенде API-ден толтырылады.
 import type { Dict } from "../i18n/kk";
-import { APP_URL, BOT_URL, DEMO } from "../config";
+import { API_URL, APP_URL, BOT_URL, DEMO } from "../config";
 import { href } from "../routes";
 import Icon from "./Icon.astro";
 import Pass from "./Pass.astro";
@@ -126,24 +126,44 @@ const first = sv.tabs[0];
   </div>
 </section>
 
-<!-- ── 5. Пікірлер (үлгі; нақты 10 пікір жиналғанда ғана) ── -->
-{DEMO && (
-  <section class="reviews" aria-labelledby="r-title">
-    <div class="stack-cards" aria-hidden="false">
-      {t.reviews.items.map((r, i) => (
-        <figure class:list={["rv", `rv-${i}`, `tone-${r.tone}`]}>
-          <span class="chip t-label-s">{r.cat}</span>
-          <p class="stars" aria-label="5/5">★★★★★</p>
-          <blockquote class="t-body-l">{r.text}</blockquote>
-          <figcaption class="t-label-s"><b>{r.who}</b> <span class="muted">{r.venue}</span> <Icon name="verified" size={14} class="ok" /></figcaption>
+<!-- ── 5. Пікірлер: мини апптағы нақты пікірлер (4–5 жұлдыз, мәтіні бар), жоқ болса — үлгі (DEMO). Карталар кезекпен ауысады ── -->
+<section class="reviews" aria-labelledby="r-title" data-reviews hidden={!DEMO}
+  data-api={`${API_URL}/v1/catalog/site-reviews`} data-demo={DEMO ? JSON.stringify(t.reviews.items) : "[]"}
+  data-kinds={JSON.stringify(t.reviews.kinds)} data-count-tpl={t.reviews.countTpl}>
+  <div class="stack-cards" aria-live="polite">
+    {[0, 1, 2].map((i) => {
+      const r = t.reviews.items[i];
+      return (
+        <figure class:list={["rv", `tone-${r.tone}`]} data-slot={i}>
+          <span class="chip t-label-s" data-f="cat">{r.cat}</span>
+          <p class="stars" data-f="stars" aria-label="5/5">★★★★★</p>
+          <blockquote class="t-body-l" data-f="text">{r.text}</blockquote>
+          <figcaption class="t-label-s"><b data-f="who">{r.who}</b> <span class="muted" data-f="venue">{r.venue}</span> <Icon name="verified" size={14} class="ok" /></figcaption>
         </figure>
-      ))}
+      );
+    })}
+  </div>
+  <div class="r-text">
+    <h2 id="r-title" class="t-display-l">{t.reviews.title}</h2>
+    <p class="t-body-l soft">{t.reviews.lead}</p>
+    <div class="avg"><span class="t-number-xl" data-f="avg">{t.reviews.avg}</span><span><span class="stars">★★★★★</span><span class="t-body-s soft" data-f="count">{t.reviews.count}</span></span></div>
+    <a class="t-label-m link" href={APP_URL}>{t.reviews.all}</a>
+  </div>
+</section>
+
+<!-- ── 5б. Серіктестер (үлгі белгілер, DEMO): жүгіртпе жол ── -->
+{DEMO && (
+  <section class="partners" aria-labelledby="pt-title">
+    <div class="pt-head">
+      <h2 id="pt-title" class="t-display-l">{t.partners.title}</h2>
+      <a class="t-label-m link" href={href(L, "venues")}>{t.partners.cta}</a>
     </div>
-    <div class="r-text">
-      <h2 id="r-title" class="t-display-l">{t.reviews.title}</h2>
-      <p class="t-body-l soft">{t.reviews.lead}</p>
-      <div class="avg"><span class="t-number-xl">{t.reviews.avg}</span><span><span class="stars">★★★★★</span><span class="t-body-s soft">{t.reviews.count}</span></span></div>
-      <a class="t-label-m link" href={APP_URL}>{t.reviews.all}</a>
+    <div class="marquee">
+      <ul class="track">
+        {[...t.partners.names, ...t.partners.names].map((n, i) => (
+          <li class={`logo l${i % t.partners.names.length}`} aria-hidden={i >= t.partners.names.length ? "true" : undefined}><span>{n}</span></li>
+        ))}
+      </ul>
     </div>
   </section>
 )}
@@ -179,6 +199,49 @@ const first = sv.tabs[0];
 </section>
 
 <script>
+  // Пікірлер: үш карта кезекпен ауысады (алдыңғысы артқа кетіп, келесі пікірді көрсетеді). Нақты пікірлер API-ден.
+  type Rv = { cat: string; text: string; who: string; venue: string; tone: string; stars?: number };
+  const rs = document.querySelector<HTMLElement>("[data-reviews]");
+  if (rs) {
+    const cards = [...rs.querySelectorAll<HTMLElement>(".rv")];
+    const demo: Rv[] = JSON.parse(rs.dataset.demo ?? "[]");
+    const kinds: Record<string, string> = JSON.parse(rs.dataset.kinds ?? "{}");
+    let list: Rv[] = demo.slice();
+    let next = 3;
+    const fillCard = (el: HTMLElement, r: Rv) => {
+      const f = (k: string) => el.querySelector<HTMLElement>(`[data-f="${k}"]`)!;
+      f("cat").textContent = r.cat; f("text").textContent = r.text; f("who").textContent = r.who; f("venue").textContent = r.venue;
+      const n = r.stars ?? 5; f("stars").textContent = "★".repeat(n) + "☆".repeat(5 - n); f("stars").setAttribute("aria-label", `${n}/5`);
+      el.className = `rv tone-${r.tone}`;
+    };
+    const rotate = () => {
+      if (list.length < 2) return;
+      cards.forEach((c) => { c.dataset.slot = String((Number(c.dataset.slot) + 1) % 3); });
+      const back = cards.find((c) => c.dataset.slot === "0");
+      if (back && list.length > 3) setTimeout(() => { fillCard(back, list[next % list.length]); next++; }, 350);
+    };
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let timer = reduce ? 0 : window.setInterval(rotate, 4500);
+    rs.addEventListener("mouseenter", () => { clearInterval(timer); });
+    rs.addEventListener("mouseleave", () => { if (!reduce) timer = window.setInterval(rotate, 4500); });
+    const tone: Record<string, string> = { food: "peach", coffee: "paper", hair: "lilac" };
+    fetch(rs.dataset.api!, { headers: { Accept: "application/json" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { count: number; avg: number | null; reviews: { name: string; stars: number; text: string; venue: string; kind: string }[] } | null) => {
+        if (!j || !j.reviews?.length) return;
+        const live: Rv[] = j.reviews.map((x) => ({ cat: kinds[x.kind] ?? "", text: x.text, who: x.name, venue: x.venue, tone: tone[x.kind] ?? "paper", stars: x.stars }));
+        list = live.length >= 3 ? live : [...live, ...demo].slice(0, Math.max(3, live.length));
+        // Ең жаңа нақты пікір — алдыңғы картада (slot 2)
+        const order = [2, 1, 0];
+        order.forEach((slot, i) => { const c = cards.find((x) => x.dataset.slot === String(slot)); if (c && list[i % list.length]) fillCard(c, list[i % list.length]); });
+        next = 3;
+        if (j.avg != null) rs.querySelector('[data-f="avg"]')!.textContent = String(j.avg).replace(".", ",");
+        rs.querySelector('[data-f="count"]')!.textContent = (rs.dataset.countTpl ?? "").replace("{n}", String(j.count));
+        rs.hidden = false;
+      })
+      .catch(() => { /* API қолжетімсіз (CORS / желі) — үлгі қалады */ });
+  }
+
   // Үнем есебі: айына N рет, пакетпен бір бірлік арзан. Сақталатын сома = N × (толық баға − пакет бағасы).
   type Tab = { id: string; label: string; full: number; pack: number; per: "week" | "month"; min: number; max: number; value: number; unit: string };
   const box = document.querySelector<HTMLElement>("[data-calc]");
@@ -294,17 +357,42 @@ const first = sv.tabs[0];
 
   /* ── 5. Пікірлер ── */
   .reviews { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; min-height: 420px; }
-  .stack-cards { position: relative; height: 420px; }
-  .rv { position: absolute; margin: 0; width: 380px; padding: 24px; box-sizing: border-box; border-radius: 24px; box-shadow: 0 16px 40px rgb(0 0 0 / .1); }
-  .rv-0 { left: 64px; top: 0; transform: rotate(-4deg); }
-  .rv-1 { left: 8px; top: 120px; transform: rotate(4deg); }
-  .rv-2 { left: 152px; top: 200px; transform: rotate(-3deg); }
+  .reviews[hidden] { display: none; }
+  .stack-cards { position: relative; height: 440px; }
+  .rv { position: absolute; margin: 0; width: 380px; max-width: calc(100% - 24px); padding: 24px; box-sizing: border-box; border-radius: 24px;
+    box-shadow: 0 16px 40px rgb(0 0 0 / .1); transition: transform .7s cubic-bezier(.2,.8,.2,1), left .7s cubic-bezier(.2,.8,.2,1), top .7s cubic-bezier(.2,.8,.2,1), opacity .5s ease; }
+  .rv[data-slot="0"] { left: 64px; top: 0; transform: rotate(-4deg) scale(.96); z-index: 1; }
+  .rv[data-slot="1"] { left: 8px; top: 120px; transform: rotate(4deg) scale(.98); z-index: 2; }
+  .rv[data-slot="2"] { left: 152px; top: 200px; transform: rotate(-3deg); z-index: 3; }
+  .rv blockquote { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .rv .chip { display: inline-block; padding: 6px 12px; border-radius: 999px; background: var(--paper); }
+  .rv .chip:empty { display: none; }
+  .rv.tone-paper { background: var(--paper); }
   .rv.tone-paper .chip { background: var(--ice); }
   .rv .stars { margin: 12px 0 8px; letter-spacing: 2px; }
   .rv blockquote { margin: 0 0 14px; }
   .rv figcaption { display: flex; gap: 8px; align-items: center; }
   .rv :global(.ok) { color: var(--blue); }
+
+  /* ── 5б. Серіктестер ── */
+  .pt-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .pt-head h2 { margin: 0; }
+  .marquee { overflow: hidden; -webkit-mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+  .track { display: flex; gap: 48px; width: max-content; list-style: none; margin: 0; padding: 16px 0; animation: marquee 40s linear infinite; }
+  .marquee:hover .track { animation-play-state: paused; }
+  @keyframes marquee { to { transform: translateX(calc(-50% - 24px)); } }
+  .logo { flex: none; display: flex; align-items: center; justify-content: center; height: 84px; min-width: 84px; padding: 0 18px; box-sizing: border-box; border-radius: 4px; text-align: center; line-height: 1; }
+  .l0 { background: #2b1d14; color: #f3e5d0; font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
+  .l1 { background: #e4322b; color: #fff; font-family: var(--font-display); font-weight: 600; font-size: 20px; }
+  .l2 { background: #111; color: #fff; font-style: italic; font-size: 18px; }
+  .l3 { background: #f6c445; color: #3b2a00; font-family: var(--font-display); font-weight: 500; font-size: 17px; border-radius: 42px; }
+  .l4 { background: #2f6b3b; color: #e9f5d8; font-size: 17px; letter-spacing: .02em; }
+  .l5 { background: #fff; color: #d2531d; box-shadow: inset 0 0 0 2px #d2531d; font-family: var(--font-display); font-weight: 600; font-size: 18px; }
+  .l6 { background: #3b2f64; color: #ffd36b; font-family: var(--font-display); font-weight: 600; font-size: 18px; text-transform: uppercase; }
+  .l7 { background: #d6e6ff; color: #133a7c; font-weight: 500; font-size: 17px; border-radius: 42px; }
+  .logo span { max-width: 120px; }
+  @media (prefers-reduced-motion: reduce) { .track { animation: none; } }
+
   .r-text h2 { margin: 0 0 20px; }
   .r-text p { margin: 0; }
   .avg { display: flex; align-items: center; gap: 16px; margin: 28px 0 24px; }
@@ -389,8 +477,16 @@ const first = sv.tabs[0];
     .r-text { order: -1; }
     .avg { margin: 20px 0 0; }
     .r-text .link { display: none; }
-    .stack-cards { height: auto; display: grid; gap: 12px; }
-    .rv { position: static; width: auto; transform: none !important; box-shadow: none; padding: 20px; }
+    .stack-cards { height: 330px; }
+    .rv { width: calc(100% - 24px); padding: 20px; }
+    .rv[data-slot="0"] { left: 18px; top: 0; }
+    .rv[data-slot="1"] { left: 0; top: 40px; }
+    .rv[data-slot="2"] { left: 12px; top: 90px; }
+    .rv blockquote { font-size: 16px; line-height: 24px; }
+    .pt-head { margin-bottom: 12px; }
+    .pt-head .link { display: none; }
+    .track { gap: 24px; }
+    .logo { height: 50px; min-width: 50px; padding: 0 10px; font-size: 12px !important; }
 
     .venue-cta { min-height: 0; padding: 24px 20px; }
     .venue-cta p { margin-bottom: 24px; }
