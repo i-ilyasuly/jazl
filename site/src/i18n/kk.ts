@@ -99,8 +99,6 @@ export const kk = {
   partners: {
     title: "Бізбен жұмыс істейді",
     cta: "Серіктес болу",
-    /** Ойдан шығарылған белгілер (нақты брендтер емес): серіктестермен шарт жасалғанда олардың логотиптері қойылады */
-    names: ["Qala Coffee", "Dämdi Doner", "Qala Barber", "Taudan Bakery", "Köktem Tea", "Samsa Lab", "Dala Grill", "Bulaq Bowls"],
   },
   venueCta: {
     title: "Мекемеңіз бар ма?",
