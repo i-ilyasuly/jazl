@@ -181,7 +181,7 @@ export function PackPage() {
         </section>
       </div>
 
-      {askRefund && <Confirm title="Ақшаны қайтару?" text="Пакеттен бірде-бір бірлік жұмсалмаған — ақша толық қайтарылады, пакет жабылады. Картадан төленген бөлігі картаңа, Squirrel бонусымен төленген бөлігі бонусыңа оралады." cancel="Жоқ" ok="Қайтару" danger onClose={() => setAskRefund(false)}
+      {askRefund && <Confirm title="Ақшаны қайтару?" text="Пакеттен бірде-бір бірлік жұмсалмаған — ақша толық қайтарылады, пакет жабылады. Картадан төленген бөлігі картаңа, Medeo бонусымен төленген бөлігі бонусыңа оралады." cancel="Жоқ" ok="Қайтару" danger onClose={() => setAskRefund(false)}
         onOk={() => { setAskRefund(false); void refundPack(pack.id).then((r) => { if (r.ok) { haptic.success(); go("/packs", "fade", { replace: true }); } else { haptic.error(); setToast(r.error === "too_late" ? "14 күн өтіп кеткен — қайтару мүмкін емес" : r.error === "gift_refund_giver" ? "Сыйлықты тек сыйлаған адам қайтара алады" : r.error === "units_used" ? "Пакеттен бірлік жұмсалған — қайтару мүмкін емес" : "Қайтару мүмкін болмады"); } }); }} />}
       {extending && <ExtendSheet pack={pack} onClose={() => setExtending(false)} onDone={onExtended} />}
       {rating && <RateSheet act={rating} onClose={() => setRating(null)} />}

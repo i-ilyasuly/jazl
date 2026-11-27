@@ -72,7 +72,7 @@ export function Profile() {
   ];
   // Medeo бонусы (күйген бірліктен қайтқан ақша): «Төлем тәсілдері» жолының астында
   const bonus = useBonus();
-  const withBonus = groups.map((g, i) => (i !== 1 || !hasServer() ? g : { ...g, rows: [...g.rows.slice(0, 2), { icon: "", tile: "💰", title: "Squirrel бонусы", sub: "Қайтқан ақша", value: bonus ? fmt(bonus.balance) : undefined, to: "/profile/bonus" }, ...g.rows.slice(2)] }));
+  const withBonus = groups.map((g, i) => (i !== 1 || !hasServer() ? g : { ...g, rows: [...g.rows.slice(0, 2), { icon: "", tile: "💰", title: "Medeo бонусы", sub: "Қайтқан ақша", value: bonus ? fmt(bonus.balance) : undefined, to: "/profile/bonus" }, ...g.rows.slice(2)] }));
   const all: typeof groups = top.length ? [{ rows: top }, ...withBonus] : withBonus;
   const subOf = (r: RowDef) => (r.to === "/profile/security" ? `Экран құлпы: ${st.lock ? "қосулы" : "өшірулі"}` : r.to === "/profile/language" ? (getLang() === "ru" ? "Русский" : "Қазақша") : r.to === "/profile/motion" ? (st.motion !== false ? "Қосулы" : "Өшірулі") : r.sub);
   const [how, setHow] = useState(false);

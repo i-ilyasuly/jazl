@@ -366,7 +366,7 @@ function OfferView({ id, preview }: { id?: string; preview?: Offer }) {
         <section className={`${s.blk} ${s.rules}`}>
           <h2 className={`${s.blockTitle} ${s.rulesTitle}`}>Squirrel кепілдігі</h2>
           <Fold title="Ақшаң күймейді" sub="Қолданылмаған бірлік бонус болып қайтады">
-            <p>Мерзімінде қолданылмаған бірліктің құны Squirrel бонусы болып қайтады — 12 ай жарамды. Мерзімі бітерден 3 күн бұрын бот еске салады.</p>
+            <p>Мерзімінде қолданылмаған бірліктің құны Medeo бонусы болып қайтады — 12 ай жарамды. Мерзімі бітерден 3 күн бұрын бот еске салады.</p>
             <button className={s.gLink} onClick={() => { haptic.tap(); go("/rules/carry"); }}>Мерзімі және көшіру ережесі</button>
           </Fold>
           <Fold title="Ақшаны қайтару" sub="14 күн ішінде не мекеме кінәлі болса">
