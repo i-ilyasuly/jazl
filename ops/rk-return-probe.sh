@@ -39,7 +39,7 @@ BODY=$(echo "$P" | TZ=Asia/Almaty jq -c --arg title "$TITLE" --argjson amt "$AMT
      domain: {type: "DOMAIN_SERVICES"},
      items: [{type: "ITEM_TYPE_COMMODITY", commodity: {name: $title[0:128], sectionCode: "1", quantity: 1000, price: $sum, sum: $sum, measureUnitCode: "796", auxiliary: [{key: "UNIT_TYPE", value: "PIECE"}]}}],
      payments: [{type: "PAYMENT_CARD", sum: $sum}],
-     amounts: {total: $sum, taken: $sum, change: {bills: "0", coins: 0}},
+     amounts: {total: $sum, taken: {bills: "0", coins: 0}, change: {bills: "0", coins: 0}},
      parentTicket: {parentTicketNumber: (.ticketNumber // .offlineTicketNumber),
        parentTicketDataTime: {date: {year: $t.y, month: ($t.mo|tonumber|tostring), day: ($t.d|tonumber|tostring)}, time: {hour: ($t.h|tonumber|tostring), minute: ($t.mi|tonumber|tostring), second: ($t.s|tonumber|tostring)}},
        kgdKkmId: .data.service.regInfo.kkm.fnsKkmId, parentTicketTotal: .data.ticket.amounts.total, parentTicketIsOffline: (.offline // false)}}')
