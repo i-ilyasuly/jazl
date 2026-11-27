@@ -229,7 +229,12 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
       const [a] = await rows<{ name: string | null; kind: string | null; docs: number }>(sql`select a.data->>'name' as name, a.data->>'kind' as kind, (select count(distinct kind) from app.venue_docs d where d.application_id = a.id)::int as docs from app.venue_applications a where a.id = ${appId}`);
       if (!a) return;
       const kinds: Record<string, string> = { food: "Тағамдар", coffee: "Кофе", hair: "Шаштараз" };
-      await toAdmins("application", `🏪 Жаңа мекеме өтінімі\n${a.name ?? "Атаусыз"} · ${kinds[a.kind ?? ""] ?? "—"} · Қарағанды. Құжаттар: ${a.docs} / 4 жүктелген.`, { text: "Өтінімді ашу", path: `/apps/${appId}` });
+      await toAdmins("application", `🏪 Жаңа мекеме өтінімі\n${a.name ?? "Атаусыз"} · ${kinds[a.kind ?? ""] ?? "—"}. Құжаттар: ${a.docs} / 4 жүктелген.`, { text: "Өтінімді ашу", path: `/apps/${appId}` });
+    }),
+    /** Басқаруға: сайттағы «Өтінім қалдырыңыз» формасы (мекеме иесі хабарласуды сұрады) */
+    adminSiteLead: (l: { no: number; venue: string; kind: string; name: string; phone: string; pos: string | null; lang: string }) => safe("adminSiteLead", async () => {
+      const kinds: Record<string, string> = { food: "Тағам", coffee: "Кофехана", hair: "Шаштараз" };
+      await toAdmins("application", `🌐 Сайттан өтінім №${l.no}\n${l.venue} · ${kinds[l.kind] ?? l.kind}\n${l.name} · ${l.phone}${l.pos ? `\nКасса: ${l.pos}` : ""} · ${l.lang === "ru" ? "орысша" : "қазақша"}\nХабарласып, 15 минутта көрсетіңіз.`);
     }),
     /** Басқаруға: жаңа шағым (шұғыл) */
     adminComplaint: (id: string, hours: number) => safe("adminComplaint", async () => {
