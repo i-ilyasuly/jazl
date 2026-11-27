@@ -164,6 +164,19 @@ d("Фискалдық чек кезегі", () => {
     expect(receipts).toEqual([7001]); // чектің берілгені тіркелді
   });
 
+  it("клиент чегінде фискалдық чек: QR сілтемесі мен нөмірі (API), PDF-те екінші QR; кезекте болса — «pending»", async () => {
+    const rc = (await q("select r.id from app.receipts r join app.fiscal_receipts f on f.payment_id = r.payment_id where r.kind = 'purchase'")).rows[0];
+    const j = await (await app.request("/v1/receipts/" + rc.id, { headers: h(902) })).json();
+    expect(j.receipt.fiscal).toEqual({ status: "ok", qrUrl: "https://4ek.kz/x", number: "N1", offline: false });
+    const { receiptPdf } = await import("../src/receipt/pdf.js");
+    const pdf = await receiptPdf(j.receipt); expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
+    await q("update app.fiscal_receipts set status = 'pending'");
+    expect((await (await app.request("/v1/receipts/" + rc.id, { headers: h(902) })).json()).receipt.fiscal).toEqual({ status: "pending" });
+    await q("update app.fiscal_receipts set status = 'failed'");
+    expect((await (await app.request("/v1/receipts/" + rc.id, { headers: h(902) })).json()).receipt.fiscal).toBeNull();
+    await q("update app.fiscal_receipts set status = 'ok'");
+  });
+
   it("ақша қайтарылса (refund_status = done) — қайтару чегі, сатылым атауымен және қайтарылған сомамен", async () => {
     const pay = (await q("select p.id, p.amount from app.payments p join app.fiscal_receipts f on f.payment_id = p.id")).rows[0];
     await q("update app.payments set refunded = $2, refund_status = 'done' where id = $1", [pay.id, pay.amount]);
