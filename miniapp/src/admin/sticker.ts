@@ -68,8 +68,8 @@ export async function drawSticker(cv: HTMLCanvasElement, s: StickerData, W = 124
   g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
   // Бренд
   g.textBaseline = "alphabetic"; g.textAlign = "left";
-  g.font = F(800, 76); g.fillStyle = INK; g.fillText("Squirrel", pad, 170 * k);
-  const bw = g.measureText("Squirrel").width; g.fillStyle = BLUE; g.fillText(".", pad + bw, 170 * k);
+  g.font = F(800, 76); g.fillStyle = INK; g.fillText("Medeo", pad, 170 * k);
+  const bw = g.measureText("Medeo").width; g.fillStyle = BLUE; g.fillText(".", pad + bw, 170 * k);
   // Код (оң жақта, кассир мен қолдау үшін)
   g.font = F(700, 34); g.textAlign = "right"; g.fillStyle = BLUE;
   const cw = g.measureText(s.code).width + 44 * k;
@@ -100,7 +100,7 @@ export async function drawSticker(cv: HTMLCanvasElement, s: StickerData, W = 124
   });
   // Ескерту
   g.font = F(600, 26); g.fillStyle = GREY; g.textAlign = "center";
-  g.fillText("Сканерлегенде тек Squirrel. ашылуы керек", W / 2, H - 70 * k);
+  g.fillText("Сканерлегенде тек Medeo. ашылуы керек", W / 2, H - 70 * k);
   return cv;
 }
 

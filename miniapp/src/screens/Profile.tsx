@@ -117,7 +117,7 @@ export function Profile() {
             ))}
           </section>
         ))}
-        <button className={`t-cap1 ${s.version}`} onClick={() => go("/profile/about")}>Squirrel v0.1 (MVP)</button>
+        <button className={`t-cap1 ${s.version}`} onClick={() => go("/profile/about")}>Medeo v0.1 (MVP)</button>
       </div>
       {how && <HowSheet onClose={() => setHow(false)} />}
       {ask && <Confirm title="Сұрақ қою" text="Алдымен жиі қойылатын сұрақтарды қарап шық: жауап сол жерде болуы мүмкін." cancel="Сұрақ қою" ok="ЖҚС-ке өту"
