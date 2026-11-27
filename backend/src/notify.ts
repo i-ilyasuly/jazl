@@ -8,7 +8,9 @@ import { sql } from "drizzle-orm";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
 
-export interface Msg { chatId: number; text: string; button?: { text: string; start?: string; url?: string } }
+export interface Msg { chatId: number; text: string; button?: { text: string; start?: string; url?: string };
+  /** Бір қатар callback батырмалары (бот өзі өңдейді: bot/handler.ts) — мысалы, пилот сұрағы «pv:<пакет>:n» */
+  choices?: { text: string; data: string }[] }
 export type Sender = (m: Msg) => Promise<void>;
 
 /** Telegram Bot API арқылы жіберу. Токен журналға ешқашан жазылмайды. */
@@ -19,7 +21,8 @@ export function telegramSender(cfg: Config): Sender {
     const body = {
       chat_id: m.chatId, text: m.text, link_preview_options: { is_disabled: true },
       // style: батырма түсі (Bot API 9.4, «primary» — көк); ескі клиенттер елемейді. Мәтін кәдімгі (parse_mode жоқ): атауларды экрандау қажет емес
-      ...(m.button ? { reply_markup: { inline_keyboard: [[{ text: m.button.text, url: m.button.url ?? `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=${m.button.start}`, style: "primary" }]] } } : {}),
+      ...(m.choices?.length ? { reply_markup: { inline_keyboard: [m.choices.map((c) => ({ text: c.text, callback_data: c.data }))] } }
+        : m.button ? { reply_markup: { inline_keyboard: [[{ text: m.button.text, url: m.button.url ?? `https://t.me/${cfg.MINIAPP_BOT_USERNAME}?startapp=${m.button.start}`, style: "primary" }]] } } : {}),
     };
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(4000) });
     if (!r.ok) console.warn(`notify: telegram ${r.status} ${(await r.text().catch(() => "")).slice(0, 160)}`);
@@ -73,10 +76,11 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
   const rows = async <T = Row>(q: ReturnType<typeof sql>) => (await db.execute(q)).rows as T[];
   /** Алушының тілі (users.lang): мини апп тіл таңдағанда PATCH /v1/me арқылы жаңартады */
   const langOf = async (chatId: number): Promise<Lang> => (await rows<{ lang: string }>(sql`select lang from app.users where telegram_id = ${chatId}`))[0]?.lang === "ru" ? "ru" : "kk";
-  type LMsg = { chatId: number; text: Txt; button?: { text: Txt; start?: string; url?: string } };
+  type LMsg = { chatId: number; text: Txt; button?: { text: Txt; start?: string; url?: string }; choices?: { text: Txt; data: string }[] };
   const send = async (m: LMsg) => {
-    const l = typeof m.text === "string" && (!m.button || typeof m.button.text === "string") ? "kk" : await langOf(m.chatId);
-    await rawSend({ chatId: m.chatId, text: pick(m.text, l), ...(m.button ? { button: { ...m.button, text: pick(m.button.text, l) } } : {}) });
+    const l = typeof m.text === "string" && (!m.button || typeof m.button.text === "string") && !m.choices?.some((c) => typeof c.text !== "string") ? "kk" : await langOf(m.chatId);
+    await rawSend({ chatId: m.chatId, text: pick(m.text, l), ...(m.button ? { button: { ...m.button, text: pick(m.button.text, l) } } : {}),
+      ...(m.choices ? { choices: m.choices.map((c) => ({ text: pick(c.text, l), data: c.data })) } : {}) });
   };
   const safe = async (what: string, f: () => Promise<void>) => { try { await f(); } catch (e) { console.warn(`notify ${what}: ${(e as Error).message}`); } };
   /** Кілт бойынша бір рет: журналда бар болса — false */
@@ -262,7 +266,7 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
 
     /** Жоспарлы жұмыс (Cloud Scheduler, 15 минут сайын): өтінім нәтижелері, 22:00 күндік қорытынды, 10:00 мерзім ескертуі */
     tick: async (now = new Date()) => {
-      const out = { applications: 0, daily: 0, expiry: 0, bonus: 0, soldOut: 0, restock: 0, lastUnit: 0, idle: 0, savings: 0, saleEnded: 0 };
+      const out = { applications: 0, daily: 0, expiry: 0, expiry5: 0, priorAsked: 0, bonus: 0, soldOut: 0, restock: 0, lastUnit: 0, idle: 0, savings: 0, saleEnded: 0 };
       // 🎁 Күйген бірлік → клиентке Medeo бонусы (мекемеге үлес жоқ — Патша, 2026-11-17)
       for (const b of await creditBreakage(db, now).catch((e) => { console.error("creditBreakage", e); return []; })) {
         if (b.amount <= 0 || !(await once(`bonus:${b.packId}`))) continue;
@@ -354,6 +358,35 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
           out.expiry++;
         }
         const pref = (x: Partial<typeof clientPrefDefaults> | null, k: keyof typeof clientPrefDefaults) => ({ ...clientPrefDefaults, ...(x ?? {}) })[k];
+        // ⏳ Мерзімге 5 күн қалды (Патша, 2026-11-27: «бір рет тегін 7 күн ұзарту» ережесі): тегін ұзарту әлі қолданылмаса — соны ұсынамыз.
+        // Ұсыныс ұзартуға рұқсат бермесе (rules.extend = false) не тегін ұзарту қолданылған болса — бұл ескерту жіберілмейді (3 күндік ескерту бәрібір келеді)
+        const soon5 = await rows<{ id: string; tg: string; title: string; title_ru: string | null; left: number; unit_name: string; notify: Partial<typeof clientPrefDefaults> | null }>(sql`
+          select p.id, u.telegram_id as tg, f.title, f.title_ru, p.units_left as left, f.unit_name, u.notify from app.packs p join app.offers f on f.id = p.offer_id join app.users u on u.id = p.user_id
+          where p.status = 'active' and p.units_left > 0 and not p.free_extend_used and coalesce((f.rules->>'extend')::boolean, true)
+            and p.valid_until between now() + interval '4 days' and now() + interval '5 days'
+            and not exists (select 1 from app.notify_log l where l.key = 'exp5:' || p.id) limit 500`);
+        for (const p of soon5) {
+          if (!pref(p.notify, "expiry") || !(await once(`exp5:${p.id}`))) continue;
+          await send({ chatId: Number(p.tg), text: L(`⏳ «${head(p.title)}» пакетінің мерзіміне 5 күн қалды, ${p.left} ${p.unit_name || "дана"} әлі бар. Үлгермесең — бір рет тегін 7 күнге ұзартуға болады.`,
+            `⏳ До конца срока пакета «${p.title_ru ?? head(p.title)}» 5 дней, осталось ${p.left} ед. Не успеваете — один раз можно бесплатно продлить на 7 дней.`), button: { text: L("Тегін ұзарту", "Продлить бесплатно"), start: `pk_${p.id}` } }).catch(() => null);
+          out.expiry5++;
+        }
+        // 📋 Пилот өлшеуі (0041): бір мекемедегі бірінші пакеттен кейін бір сұрақ — Medeo-ға дейін осы мекемеге барды ма (жаңа клиент пе, тұрақты ма)
+        const fresh = await rows<{ id: string; tg: string; venue: string }>(sql`
+          update app.packs p set prior_asked_at = now() from app.offers f, app.venues v, app.users u
+          where f.id = p.offer_id and v.id = f.venue_id and u.id = p.user_id and p.prior_asked_at is null and p.prior_visit is null
+            and p.status in ('active', 'used') and p.source = 'purchase' and p.price_paid > 0
+            and p.created_at between now() - interval '6 hours' and now() - interval '10 minutes'
+            and coalesce((u.notify->>'offers')::boolean, true)
+            and not exists (select 1 from app.packs q join app.offers g on g.id = q.offer_id where q.user_id = p.user_id and g.venue_id = f.venue_id
+              and q.id <> p.id and q.status <> 'pending_payment' and q.created_at < p.created_at)
+          returning p.id, u.telegram_id as tg, v.name as venue`);
+        for (const p of fresh) {
+          await send({ chatId: Number(p.tg), text: L(`📋 Бір қысқа сұрақ (Medeo-ны жақсартуға көмектеседі): «${p.venue}» мекемесіне Medeo-ға дейін барып па едің?`,
+            `📋 Один короткий вопрос (поможет улучшить Medeo): вы бывали в «${p.venue}» до Medeo?`),
+            choices: [{ text: L("Жоқ, алғаш рет", "Нет, впервые"), data: `pv:${p.id}:n` }, { text: L("Кейде", "Иногда"), data: `pv:${p.id}:s` }, { text: L("Иә, жиі", "Да, часто"), data: `pv:${p.id}:r` }] }).catch(() => null);
+          out.priorAsked++;
+        }
         // 🍽 Соңғы бірлік қолданылды (Хормози: ең жақсы сату сәті — пайданы жаңа көрген сәт) → сол бағамен қайта алу ұсынысы.
         // Автожаңарту қосулы, жаңасы алынған не ұсыныс сатылмайтын болса — жібермейміз
         const done = await rows<{ id: string; tg: string; slug: string; title: string; title_ru: string | null; notify: Partial<typeof clientPrefDefaults> | null }>(sql`

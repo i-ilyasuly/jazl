@@ -13,6 +13,7 @@ import type { Db } from "../db/client.js";
 import { adminLog, admins, branches, financeEntries, users, venueApplications, venueNotes, venuePayees, venuePayouts, venues } from "../db/schema.js";
 import { accrued, almatyDayStart, balance, balances, payeesOf, payoutsOf } from "../venueMoney.js";
 import { metricsReport, snapshot } from "../metrics.js";
+import { pilotReport } from "../pilot.js";
 import { validateLoginWidget } from "../auth/telegram.js";
 import { adminPrefDefaults, type Notifier } from "../notify.js";
 import { getSettings, refreshFees, setSetting, SETTING_DEFAULTS, type Settings } from "../settings.js";
@@ -209,6 +210,11 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
         (select count(distinct p.user_id) from app.packs p where p.offer_id = o.id and p.status <> 'pending_payment' and p.source = 'purchase' and p.created_at > ${from})::int as buyers
       from v left join app.offers o on o.slug = v.ref order by v.viewers desc`);
     return c.json({ ok: true, days, funnel: f, top });
+  });
+  // Пилот көрсеткіштері (Патша, 2026-11-27; 30-құжат): екінші пакет, жаңа клиент үлесі, сыйлық, кассадағы уақыт, арналар — «өтті / өзгерту керек» белгісімен
+  r.get("/admin/pilot", async (c) => {
+    const days = [7, 14, 30, 60, 90].includes(Number(c.req.query("days"))) ? Number(c.req.query("days")) : 30;
+    return c.json({ ok: true, pilot: await pilotReport(db, days) });
   });
   // Мини апп қателері (соңғы 7 күн): бірдей хабарламалар топталады — неше рет, неше адамда, соңғысы қашан, қай бетте
   r.get("/admin/errors", async (c) => {
