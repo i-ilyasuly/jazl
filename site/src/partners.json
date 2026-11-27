@@ -1,0 +1,128 @@
+[
+ {
+  "name": "Bahandi",
+  "src": "/partners/bahandi.webp",
+  "w": 234,
+  "h": 60
+ },
+ {
+  "name": "Coffee BOOM",
+  "src": "/partners/coffee-boom.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Shaurma Food",
+  "src": "/partners/shaurma-food.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Don Rido",
+  "src": "/partners/don-rido.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Daily Deli",
+  "src": "/partners/daily-deli.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Mangal Doner",
+  "src": "/partners/mangal-doner.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Qaganat",
+  "src": "/partners/qaganat.webp",
+  "w": 189,
+  "h": 64
+ },
+ {
+  "name": "Döp Döner",
+  "src": "/partners/dop-doner.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "IZMIR",
+  "src": "/partners/izmir.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Lavash Food",
+  "src": "/partners/lavash-food.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "CULT",
+  "src": "/partners/cult.webp",
+  "w": 156,
+  "h": 64
+ },
+ {
+  "name": "Chekhov",
+  "src": "/partners/chekhov.webp",
+  "w": 157,
+  "h": 64
+ },
+ {
+  "name": "Burger Land",
+  "src": "/partners/burger-land.webp",
+  "w": 85,
+  "h": 84
+ },
+ {
+  "name": "Pokestar",
+  "src": "/partners/pokestar.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Chi Chi",
+  "src": "/partners/chi-chi.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Rau Food",
+  "src": "/partners/rau-food.webp",
+  "w": 83,
+  "h": 84
+ },
+ {
+  "name": "Doner Club",
+  "src": "/partners/doner-club.webp",
+  "w": 127,
+  "h": 64
+ },
+ {
+  "name": "Qonaqta",
+  "src": "/partners/qonaqta.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "LVL Doner",
+  "src": "/partners/lvl-doner.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Big Bite",
+  "src": "/partners/big-bite.webp",
+  "w": 84,
+  "h": 84
+ },
+ {
+  "name": "Pâté",
+  "src": "/partners/pate.webp",
+  "w": 132,
+  "h": 64
+ }
+]

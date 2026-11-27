@@ -8,6 +8,7 @@ import Icon from "./Icon.astro";
 import Pass from "./Pass.astro";
 import PayLogos from "./PayLogos.astro";
 import Qr from "./Qr.astro";
+import PARTNERS from "../partners.json";
 interface Props { t: Dict }
 const { t } = Astro.props;
 const L = t.lang;
@@ -151,7 +152,7 @@ const first = sv.tabs[0];
   </div>
 </section>
 
-<!-- ── 5б. Серіктестер (үлгі белгілер, DEMO): жүгіртпе жол ── -->
+<!-- ── 5б. Серіктестер (Figma 18:689 логотиптері; Патша, 2026-11-27: пилотқа дейін үлгі ретінде, DEMO): жүгіртпе жол ── -->
 {DEMO && (
   <section class="partners" aria-labelledby="pt-title">
     <div class="pt-head">
@@ -160,8 +161,10 @@ const first = sv.tabs[0];
     </div>
     <div class="marquee">
       <ul class="track">
-        {[...t.partners.names, ...t.partners.names].map((n, i) => (
-          <li class={`logo l${i % t.partners.names.length}`} aria-hidden={i >= t.partners.names.length ? "true" : undefined}><span>{n}</span></li>
+        {[...PARTNERS, ...PARTNERS].map((p, i) => (
+          <li class="logo" aria-hidden={i >= PARTNERS.length ? "true" : undefined}>
+            <img src={p.src} alt={i < PARTNERS.length ? p.name : ""} width={p.w} height={p.h} style={`--w:${p.w}px;--h:${p.h}px`} loading="lazy" decoding="async" />
+          </li>
         ))}
       </ul>
     </div>
@@ -378,19 +381,11 @@ const first = sv.tabs[0];
   .pt-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
   .pt-head h2 { margin: 0; }
   .marquee { overflow: hidden; -webkit-mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
-  .track { display: flex; gap: 48px; width: max-content; list-style: none; margin: 0; padding: 16px 0; animation: marquee 40s linear infinite; }
+  .track { display: flex; align-items: center; gap: 64px; width: max-content; list-style: none; margin: 0; padding: 16px 0; animation: marquee 60s linear infinite; }
   .marquee:hover .track { animation-play-state: paused; }
-  @keyframes marquee { to { transform: translateX(calc(-50% - 24px)); } }
-  .logo { flex: none; display: flex; align-items: center; justify-content: center; height: 84px; min-width: 84px; padding: 0 18px; box-sizing: border-box; border-radius: 4px; text-align: center; line-height: 1; }
-  .l0 { background: #2b1d14; color: #f3e5d0; font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
-  .l1 { background: #e4322b; color: #fff; font-family: var(--font-display); font-weight: 600; font-size: 20px; }
-  .l2 { background: #111; color: #fff; font-style: italic; font-size: 18px; }
-  .l3 { background: #f6c445; color: #3b2a00; font-family: var(--font-display); font-weight: 500; font-size: 17px; border-radius: 42px; }
-  .l4 { background: #2f6b3b; color: #e9f5d8; font-size: 17px; letter-spacing: .02em; }
-  .l5 { background: #fff; color: #d2531d; box-shadow: inset 0 0 0 2px #d2531d; font-family: var(--font-display); font-weight: 600; font-size: 18px; }
-  .l6 { background: #3b2f64; color: #ffd36b; font-family: var(--font-display); font-weight: 600; font-size: 18px; text-transform: uppercase; }
-  .l7 { background: #d6e6ff; color: #133a7c; font-weight: 500; font-size: 17px; border-radius: 42px; }
-  .logo span { max-width: 120px; }
+  @keyframes marquee { to { transform: translateX(calc(-50% - 32px)); } }
+  .logo { flex: none; display: flex; align-items: center; height: 84px; }
+  .logo img { display: block; width: var(--w); height: var(--h); }
   @media (prefers-reduced-motion: reduce) { .track { animation: none; } }
 
   .r-text h2 { margin: 0 0 20px; }
@@ -485,8 +480,10 @@ const first = sv.tabs[0];
     .rv blockquote { font-size: 16px; line-height: 24px; }
     .pt-head { margin-bottom: 12px; }
     .pt-head .link { display: none; }
-    .track { gap: 24px; }
-    .logo { height: 50px; min-width: 50px; padding: 0 10px; font-size: 12px !important; }
+    .track { gap: 32px; }
+    @keyframes marquee { to { transform: translateX(calc(-50% - 16px)); } }
+    .logo { height: 50px; }
+    .logo img { width: calc(var(--w) * .6); height: calc(var(--h) * .6); }
 
     .venue-cta { min-height: 0; padding: 24px 20px; }
     .venue-cta p { margin-bottom: 24px; }
