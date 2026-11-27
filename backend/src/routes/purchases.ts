@@ -1,6 +1,7 @@
 // B2 · Сатып алу, пакеттер, чектер.
 // Ереже: баға тек серверде есептеледі (клиент жіберген бағаға сенбейміз); бір сатып алу кілті — бір төлем (идемпотенттік);
 // бәрі бір транзакцияда: төлем → пакет → тарих → чек. Қазір төлем сынақ режимінде (ақша жүрмейді).
+import { kickFiscal } from "../fiscal/index.js";
 import { ipFrom } from "../rateLimit.js";
 import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { bonusOf, holdBonus, releaseBonus } from "../bonus.js";
@@ -308,6 +309,7 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   if (!created.viaProvider) {
     const out = await finalizePurchase(db, cfg, created.id);
     if ("error" in out) return err(out.error);
+    kickFiscal(db, cfg);
     return { type: "paid", paymentId: created.id, out };
   }
   let res: Awaited<ReturnType<typeof provider.charge>>;
@@ -330,6 +332,7 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
   if (res.card) await saveCard(db, provider.name, user.id, res.card);
   const out = await finalizePurchase(db, cfg, created.id);
   if ("error" in out) return err(out.error);
+  kickFiscal(db, cfg);
   return { type: "paid", paymentId: created.id, out };
 }
 

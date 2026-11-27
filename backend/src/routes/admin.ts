@@ -149,7 +149,7 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       + (select count(*) from app.orders where status not in ('cancelled','failed') and created_at >= ${from} and created_at < ${to}))::int as units`))[0].units;
   const attention = async () => {
     const s = await getSettings(db);
-    const [x] = await rows<{ apps: number; oldest: Date | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold: number; refund_failed: number; app_errors: number }>(sql`select
+    const [x] = await rows<{ apps: number; oldest: Date | null; offers_new: number; offers_changed: number; complaints: number; due_today: number; failed: number; grace: number; sold: number; refund_failed: number; app_errors: number; fiscal_problems: number }>(sql`select
       (select count(*) from app.venue_applications where status = 'review')::int as apps,
       (select min(submitted_at) from app.venue_applications where status = 'review') as oldest,
       (select count(*) from app.offers o where o.status = 'review' and not exists (select 1 from app.packs p where p.offer_id = o.id))::int as offers_new,
@@ -160,8 +160,9 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       (select count(*) from app.packs where units_left > 0 and valid_until < now() and valid_until > now() - make_interval(days => ${s.graceDays}) and valid_until + make_interval(days => ${s.graceDays}) < now() + interval '1 day')::int as grace,
       (select count(*) from app.packs where status <> 'pending_payment' and source <> 'carry')::int as sold,
       (select count(*) from app.payments where refund_status = 'failed' or (refund_status = 'pending' and coalesce((meta->>'refundAt')::timestamptz, created_at) < now() - interval '15 minutes'))::int as refund_failed,
-      (select count(distinct user_id) from app.client_events where kind = 'error' and created_at > now() - interval '1 day')::int as app_errors`);
-    return { ...x, tickAt: s.lastTick || null };
+      (select count(distinct user_id) from app.client_events where kind = 'error' and created_at > now() - interval '1 day')::int as app_errors,
+      (select count(*) from app.fiscal_receipts where status in ('failed','reconcile') or (status = 'pending' and created_at < now() - interval '1 hour'))::int as fiscal_problems`);
+    return { ...x, tickAt: s.lastTick || null, fiscalAlert: s.fiscalAlert || null };
   };
   r.get("/admin/pulse", async (c) => {
     const p = periodOf(c.req.query("period") ?? "today");
