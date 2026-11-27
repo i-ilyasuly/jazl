@@ -33,6 +33,20 @@ export function catalogRoutes(db: Db, opts: { installment?: boolean } = {}) {
     return c.json({ ok: true, count: agg?.n ?? 0, avg: agg?.a ?? null, reviews: rows.map((x) => ({ name: [x.first_name?.trim() || "Клиент", x.last_name?.trim() ? x.last_name.trim()[0] + "." : ""].filter(Boolean).join(" "),
       stars: x.stars, tags: x.tags ?? [], text: x.text, reply: x.reply, at: x.created_at })) });
   });
+  // Сайттағы «Пікірді тек сатып алғандар қалдырады» блогы (28-құжат, 2026-11-27): мини апптағы нақты пікірлер.
+  // Сайтқа тек 4–5 жұлдыз және мәтіні барлары шығады (жаман пікір мини апптың ұсыныс бетінде көрінеді, сайтта — жоқ).
+  // Жалпы баға мен сан — БАРЛЫҚ бағаның шынайы орташасы. Gemini «оң әрі таза» тексерісі әлі қосылмаған.
+  r.get("/site-reviews", async (c) => {
+    const rows = (await db.execute(sql`select r.stars::int as stars, r.text, r.created_at, u.first_name, u.last_name, v.name as venue, v.kind::text as kind
+      from app.ratings r join app.users u on u.id = r.user_id join app.venues v on v.id = r.venue_id
+      where r.stars >= 4 and char_length(btrim(coalesce(r.text, ''))) >= 10
+      order by r.created_at desc limit 12`)).rows as { stars: number; text: string; created_at: Date; first_name: string | null; last_name: string | null; venue: string; kind: string }[];
+    const [agg] = (await db.execute(sql`select count(*)::int as n, round(avg(stars)::numeric, 1)::float as a from app.ratings`)).rows as { n: number; a: number | null }[];
+    c.header("Cache-Control", "public, max-age=60");
+    return c.json({ ok: true, count: agg?.n ?? 0, avg: agg?.a ?? null, reviews: rows.map((x) => ({
+      name: [x.first_name?.trim() || "Клиент", x.last_name?.trim() ? x.last_name.trim()[0] + "." : ""].filter(Boolean).join(" "),
+      stars: x.stars, text: x.text.trim().slice(0, 280), venue: x.venue, kind: x.kind, at: x.created_at })) });
+  });
   r.get("/", async (c) => {
     const vs = await db.select().from(venues).where(eq(venues.status, "active")).orderBy(asc(venues.name));
     const vIds = vs.map((v) => v.id);
