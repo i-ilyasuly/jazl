@@ -21,5 +21,6 @@ Telegram-нан Cloud Shell сияқты команда орындау: ноут
 2. `cd ~/jazl && git pull && bash ops/termbot/setup.sh` → токенді енгізу (экранда көрінбейді).
 3. Жаңа ботқа `/start`.
 
-Ботты жаңарту: `/deploy` емес — `bash ops/termbot/setup.sh` (ботқа да жазуға болады: `bash ops/termbot/setup.sh`).
+Ботты жаңарту: ботқа `/selfupdate` (немесе Cloud Shell-де `bash ops/termbot/setup.sh`).
+Bot API 10.x: Rich Messages, ағынды жоба + `<tg-thinking>`, Telegram «Тоқтату» батырмасы, түсті батырмалар, жеке чат тақырыптары (/topics). Rich қолжетімсіз болса — ескі тәсіл.
 Өшіру: `gcloud run services delete medeo-termbot --region europe-west3` (немесе BotFather-де токенді /revoke).
