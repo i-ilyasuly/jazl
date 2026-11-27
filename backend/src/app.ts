@@ -12,6 +12,7 @@ import { guidePdf, tentPdf } from "./receipt/guide.js";
 import { validateInitData } from "./auth/telegram.js";
 import { z } from "zod";
 import { catalogRoutes } from "./routes/catalog.js";
+import { siteRoutes } from "./routes/site.js";
 import { emojiRoutes } from "./routes/emoji.js";
 import { eventRoutes } from "./routes/events.js";
 import { fiscalTick } from "./fiscal/index.js";
@@ -108,6 +109,9 @@ export function createApp(cfg: Config, db: Db, opts: { send?: Sender; botCall?: 
   });
   app.route("/dev", devQrRoutes(cfg, db)); // тек PAYMENTS_MODE=test
   app.route("/v1/catalog", catalogRoutes(db, { installment: cfg.HALYK_INSTALLMENT === "on" }));
+  // Сайттың өтінім формасы (кірусіз): IP бойынша 5 өтінім / 10 мин
+  app.use("/v1/site/lead", lim([{ name: "sitelead", max: 5, windowSec: 600, by: "ip" }]));
+  app.route("/v1/site", siteRoutes(db, notify));
   app.route("/", stickerRoutes(cfg, db)); // мекеме жапсырмасы: /b/<код> → Mini App (кейін қосымша)
   app.route("/v1/emoji", emojiRoutes(cfg)); // Telegram анимациялық эмодзилері (ашық, кіру талап етілмейді)
 

@@ -1,0 +1,7 @@
+---
+import Base from "../layouts/Base.astro";
+import Venues from "../components/Venues.astro";
+import { kk } from "../i18n/kk";
+import { VENUES } from "../i18n/venues";
+---
+<Base t={kk} title={VENUES.kk.meta.title} description={VENUES.kk.meta.description} active="venues"><Venues t={kk} /></Base>
