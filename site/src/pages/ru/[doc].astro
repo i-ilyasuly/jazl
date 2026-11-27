@@ -1,0 +1,13 @@
+---
+// Страницы по требованию банка (русский): /ru/payment …
+import Base from "../../layouts/Base.astro";
+import DocPage from "../../components/DocPage.astro";
+import { ru } from "../../i18n/ru";
+import { DOCS, type DocPage as Doc } from "../../i18n/docs";
+import { href } from "../../routes";
+export function getStaticPaths() {
+  return DOCS.ru.map((page) => ({ params: { doc: href("ru", page.key).slice(4) }, props: { page } }));
+}
+const { page } = Astro.props as { page: Doc };
+---
+<Base t={ru} title={`${page.title} — Medeo`} description={page.lead}><DocPage t={ru} page={page} /></Base>
