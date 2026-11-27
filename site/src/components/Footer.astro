@@ -1,7 +1,7 @@
 ---
 // Футер (Figma Footer/Rich 10:651; мобиль Footer 30:816). Figma-да күндізгі режимге бекітілген: түнде де осындай.
 import type { Dict } from "../i18n/kk";
-import { BOT_URL, COMPANY } from "../config";
+import { BOT_URL, COMPANY, isBlank } from "../config";
 import { href, otherLang, type PageKey } from "../routes";
 import Icon from "./Icon.astro";
 import PayLogos from "./PayLogos.astro";
@@ -55,8 +55,8 @@ const path = Astro.url.pathname;
       <div class="col">
         <h2>{f.cols.contacts}</h2>
         <ul>
-          <li><a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a></li>
-          <li><a href={`tel:${COMPANY.phone.replace(/[^+\d]/g, "")}`}>{COMPANY.phone}</a></li>
+          <li>{isBlank(COMPANY.email) ? COMPANY.email : <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>}</li>
+          <li>{isBlank(COMPANY.phone) ? COMPANY.phone : <a href={`tel:${COMPANY.phone.replace(/[^+\d]/g, "")}`}>{COMPANY.phone}</a>}</li>
           <li><a href={BOT_URL}>Telegram: {COMPANY.support}</a></li>
           <li class="desk">{ru ? COMPANY.addressRu : COMPANY.addressKk}</li>
           <li class="desk">{ru ? COMPANY.hoursRu : COMPANY.hoursKk}</li>

@@ -3,10 +3,10 @@
 
 export const BOT = "Mmedeo_bot";
 export const BOT_URL = `https://t.me/${BOT}`;
-/** Мини аппты ашу (бот «Main Mini App» баптауымен) */
+/** Мини аппты ашу. startapp=site — мини апп бетті ауыстырмайды (main.tsx), бірақ «Көздер» есебінде сайттан келгені көрінеді */
 export const APP_URL = `https://t.me/${BOT}?startapp=site`;
-/** Мекеме өтінімі (мини апптағы бар apply ағыны): кейін сайттағы формаға ауысады */
-export const VENUE_APPLY_URL = `https://t.me/${BOT}?startapp=apply`;
+/** Мекеме тіркелуі: мини апптағы бар ағын (startapp=v_new → /v/apply). Кейін сайттағы формаға ауысады */
+export const VENUE_APPLY_URL = `https://t.me/${BOT}?startapp=v_new`;
 
 /** Halyk ePay талабы: логотип epayment.kz сайтына апарады */
 export const EPAY_URL = "https://epayment.kz";
@@ -30,6 +30,9 @@ export const COMPANY = {
   hoursRu: "Пн–Вс, 09:00–23:00",
 };
 
-/** Үлгі деректер (Figma-дағы мысал ұсыныстар мен пікірлер). Сайт жарияланар алдында false болуы ТИІС:
- *  нақты ұсыныстар каталогтан, пікірлер нақты сатып алудан (28-құжат: кемінде 10 расталған пікір) келгенде ғана көрсетіледі. */
-export const DEMO = import.meta.env.PUBLIC_DEMO !== "0";
+/** Үлгі деректер (Figma-дағы мысал ұсыныстар мен пікірлер) — тек PUBLIC_DEMO=1 болса (дизайнды қарау үшін).
+ *  Әдепкіде өшірулі: нақты ұсыныстар каталогтан, пікірлер нақты сатып алудан (28-құжат: кемінде 10 расталған пікір) келгенде ғана. */
+export const DEMO = import.meta.env.PUBLIC_DEMO === "1";
+
+/** [тік жақшадағы] мән — әлі толтырылмаған */
+export const isBlank = (v: string) => v.startsWith("[");
