@@ -93,7 +93,6 @@ export const ru: Dict = {
   partners: {
     title: "С нами работают",
     cta: "Стать партнёром",
-    names: ["Qala Coffee", "Dämdi Doner", "Qala Barber", "Taudan Bakery", "Köktem Tea", "Samsa Lab", "Dala Grill", "Bulaq Bowls"],
   },
   venueCta: {
     title: "У вас есть заведение?",
