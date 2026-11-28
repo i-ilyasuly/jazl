@@ -21,6 +21,8 @@ export interface AppData {
   iban?: string; ownAccount?: boolean; agreeTerms?: boolean; agreePrivacy?: boolean;
   /** Касса бағдарламасы (Патша, 2026-11-18): POS интеграциясын қайсысынан бастауды мекемелердің өздері көрсетеді */
   pos?: Pos; posOther?: string;
+  /** Мекеме туралы (Патша, 2026-11-28): ашылған ай, 2ГИС бағасы, бос сағаттар, айлық табыс (тек Medeo көреді), басқа несие/аванс */
+  opened?: string; rating2gis?: number; quietHours?: string; monthlyRevenue?: number; otherFinancing?: boolean;
 }
 type Pos = "iiko" | "r_keeper" | "poster" | "syrve" | "paloma" | "other" | "none";
 const POS: [Pos, string][] = [["iiko", "iiko"], ["r_keeper", "r_keeper"], ["poster", "Poster"], ["syrve", "Syrve"], ["paloma", "Paloma365"], ["other", "Басқа"], ["none", "Жоқ"]];
@@ -100,7 +102,8 @@ export function VApplyStep() {
     if (n === 1) return !d.kind ? "Мекеме түрін таңдаңыз" : !d.name || d.name.trim().length < 2 ? "Мекеме атауын жазыңыз" : !d.about || d.about.trim().length < 20 ? "Сипаттама кемінде 20 таңба" : null;
     if (n === 2) return !binOk ? "БСН/ЖСН дұрыс емес (12 сан)" : !d.legalName ? "Заңды тұлғаның атауын жазыңыз" : !d.authorized ? "Өкілеттікті растаңыз" : null;
     if (n === 3) return !d.contactName ? "Байланыс тұлғасын жазыңыз" : !d.phone || !/^\+?\d[\d\s()-]{9,}$/.test(d.phone) ? "Телефон дұрыс емес" : !d.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email) ? "E-mail дұрыс емес" : null;
-    if (n === 4) return !d.branches?.length ? "Кемінде бір филиал қосыңыз" : !d.pos ? "Касса бағдарламасын таңдаңыз" : d.pos === "other" && !d.posOther?.trim() ? "Касса бағдарламасының атауын жазыңыз" : null;
+    if (n === 4) return !d.branches?.length ? "Кемінде бір филиал қосыңыз" : !d.pos ? "Касса бағдарламасын таңдаңыз" : d.pos === "other" && !d.posOther?.trim() ? "Касса бағдарламасының атауын жазыңыз"
+      : !d.opened ? "Мекеме қашан ашылғанын көрсетіңіз" : d.rating2gis == null ? "2ГИС-тегі бағаңызды жазыңыз" : !d.quietHours?.trim() ? "Бос сағаттарыңызды жазыңыз" : d.monthlyRevenue == null ? "Айлық орташа табысты жазыңыз" : d.otherFinancing == null ? "Басқа несие не аванс туралы сұраққа жауап беріңіз" : null;
     if (n === 5) return !d.logoUrl ? "Логотип жүктеңіз" : !d.coverUrl ? "Мұқаба жүктеңіз" : (d.gallery?.length ?? 0) < 3 ? "Галереяға кемінде 3 фото қосыңыз" : null;
     if (n === 6) return !bank?.valid ? "IBAN дұрыс емес (KZ-пен басталатын 20 таңба)" : !d.ownAccount ? "Шот мекеме атына ашылғанын растаңыз" : null;
     if (n === 7) { const k = (a?.docs ?? []).map((x) => x.kind); return !k.includes("bin") ? "БИН анықтамасын жүктеңіз" : !k.includes("id") ? "Басшының жеке куәлігін жүктеңіз" : d.kind === "food" && !k.includes("halal") ? "Тамақ мекемесіне халал сертификаты керек" : null; }
@@ -207,6 +210,16 @@ export function VApplyStep() {
         <div className={s.chips} style={{ flexWrap: "wrap", overflow: "visible" }}>{POS.map(([k, t]) => <button key={k} className={`${s.chip} ${d.pos === k ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ pos: k }); }}>{t}</button>)}</div>
         {d.pos === "other" && <Field label="Бағдарлама атауы" value={d.posOther ?? ""} max={40} onChange={(v) => up({ posOther: v })} placeholder="Мысалы: Kaspi Kassa, 1C" />}
         <Note>Medeo кассамен QR арқылы қазірдің өзінде жұмыс істейді. Жауабыңыз келесі қадамға көмектеседі: Medeo-ны касса бағдарламаңыздың ішіне қосамыз.</Note>
+        <h2 className={s.blueHead}>Мекеме туралы</h2>
+        <label className={s.card} style={{ padding: "8px 14px", display: "block" }}><span className={`t-cap1 ${s.muted}`}>Қашан ашылдыңыз (ай, жыл)</span><input type="month" value={d.opened ?? ""} max={new Date().toISOString().slice(0, 7)} onChange={(e) => up({ opened: e.target.value || undefined })} style={{ display: "block", border: 0, background: "none", font: "inherit", fontSize: 17, color: "var(--text-strong)" }} /></label>
+        <Field label="2ГИС-тегі бағаңыз" value={d.rating2gis != null ? String(d.rating2gis).replace(".", ",") : ""} inputMode="text" max={4} placeholder="Мысалы: 4,6"
+          onChange={(v) => { const t = v.replace(",", ".").replace(/[^\d.]/g, ""); const x = Number(t); up({ rating2gis: t === "" || !Number.isFinite(x) ? undefined : Math.min(5, x) }); }} />
+        <Field label="Бос сағаттарыңыз" value={d.quietHours ?? ""} max={60} onChange={(v) => up({ quietHours: v || undefined })} placeholder="Мысалы: 15:00–18:00, жұмыс күндері" />
+        <Field label="Айлық орташа табыс, ₸" value={d.monthlyRevenue != null ? d.monthlyRevenue.toLocaleString("ru-RU") : ""} inputMode="numeric" max={16} placeholder="Мысалы: 4 000 000"
+          onChange={(v) => { const t = v.replace(/\D/g, ""); up({ monthlyRevenue: t ? Number(t) : undefined }); }} />
+        <span className={`t-sub2 ${s.muted}`}>Басқа несие не аванс алдыңыз ба (банк, табыстан аванс)?</span>
+        <div className={s.chips}>{([[false, "Жоқ"], [true, "Иә"]] as const).map(([k, t]) => <button key={t} className={`${s.chip} ${d.otherFinancing === k ? s.chipOn : ""}`} onClick={() => { haptic.select(); up({ otherFinancing: k }); }}>{t}</button>)}</div>
+        <Note>Бұл деректерді тек Medeo командасы көреді. Олар мекемеңізге неше пакет сатуға болатынын есептеуге көмектеседі: пакет бос сағаттары бар мекемеге көбірек тиімді.</Note>
       </>}
       {n === 5 && <>
         <h1 className={s.h1} style={{ fontSize: 22 }}>Суреттер</h1>

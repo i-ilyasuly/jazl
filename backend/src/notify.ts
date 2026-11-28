@@ -266,7 +266,7 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
 
     /** Жоспарлы жұмыс (Cloud Scheduler, 15 минут сайын): өтінім нәтижелері, 22:00 күндік қорытынды, 10:00 мерзім ескертуі */
     tick: async (now = new Date()) => {
-      const out = { applications: 0, daily: 0, expiry: 0, expiry5: 0, priorAsked: 0, bonus: 0, bonusSoon: 0, soldOut: 0, restock: 0, lastUnit: 0, idle: 0, savings: 0, saleEnded: 0 };
+      const out = { applications: 0, daily: 0, expiry: 0, expiry5: 0, priorAsked: 0, bonus: 0, bonusSoon: 0, venueAsked: 0, soldOut: 0, restock: 0, lastUnit: 0, idle: 0, savings: 0, saleEnded: 0 };
       // 🎁 Күйген бірлік → клиентке Medeo бонусы (мекемеге үлес жоқ — Патша, 2026-11-17)
       for (const b of await creditBreakage(db, now).catch((e) => { console.error("creditBreakage", e); return []; })) {
         if (b.amount <= 0 || !(await once(`bonus:${b.packId}`))) continue;
@@ -397,6 +397,24 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
             `📋 Один короткий вопрос (поможет улучшить Medeo): вы бывали в «${p.venue}» до Medeo?`),
             choices: [{ text: L("Жоқ, алғаш рет", "Нет, впервые"), data: `pv:${p.id}:n` }, { text: L("Кейде", "Иногда"), data: `pv:${p.id}:s` }, { text: L("Иә, жиі", "Да, часто"), data: `pv:${p.id}:r` }] }).catch(() => null);
           out.priorAsked++;
+        }
+        // 🏪 Мекемеге ай сайынғы сұрақ (Патша, 2026-11-28; inKind Toca Madera дәлелі — 32-құжат): Medeo арқылы келген жаңа клиенттер кейін пакетсіз де қайта келе ме.
+        // Тек Medeo-дан «алғаш келген» клиенті болған мекемеге (14–60 күн бұрын), айына бір рет, бір иесіне. Жауап — бот батырмасымен (vf:<id>:n|s|r|u)
+        const month = now.toLocaleDateString("sv-SE", { timeZone: "Asia/Almaty" }).slice(0, 7);
+        const ask = await rows<{ id: string; tg: string; venue: string }>(sql`
+          with cand as (
+            select distinct on (v.id) v.id as venue_id, v.name, st.user_id, u.telegram_id as tg from app.venues v
+            join app.venue_staff st on st.venue_id = v.id and st.role = 'owner' and st.status = 'active' join app.users u on u.id = st.user_id
+            where v.status = 'active' and exists (select 1 from app.packs p join app.offers o on o.id = p.offer_id where o.venue_id = v.id and p.prior_visit = 'n'
+              and p.created_at between now() - interval '60 days' and now() - interval '14 days')
+            order by v.id, st.created_at),
+          ins as (insert into app.venue_feedback (venue_id, user_id, month) select venue_id, user_id, ${month} from cand on conflict (venue_id, month) do nothing returning id, venue_id)
+          select ins.id, cand.tg, cand.name as venue from ins join cand on cand.venue_id = ins.venue_id`);
+        for (const f of ask) {
+          await send({ chatId: Number(f.tg), text: L(`🏪 «${f.venue}» үшін бір сұрақ (айына бір рет): Medeo арқылы алғаш келген клиенттер кейін пакетсіз де, өз ақшасымен қайта келе ме?`,
+            `🏪 Один вопрос для «${f.venue}» (раз в месяц): гости, впервые пришедшие через Medeo, потом возвращаются и без пакета, за свои деньги?`),
+            choices: [{ text: L("Жоқ", "Нет"), data: `vf:${f.id}:n` }, { text: L("Кейде", "Иногда"), data: `vf:${f.id}:s` }, { text: L("Иә, жиі", "Да, часто"), data: `vf:${f.id}:r` }, { text: L("Білмеймін", "Не знаю"), data: `vf:${f.id}:u` }] }).catch(() => null);
+          out.venueAsked++;
         }
         // 🍽 Соңғы бірлік қолданылды (Хормози: ең жақсы сату сәті — пайданы жаңа көрген сәт) → сол бағамен қайта алу ұсынысы.
         // Автожаңарту қосулы, жаңасы алынған не ұсыныс сатылмайтын болса — жібермейміз

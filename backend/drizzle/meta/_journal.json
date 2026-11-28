@@ -302,6 +302,13 @@
       "when": 1795860000000,
       "tag": "0042_bonus_venue",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795870000000,
+      "tag": "0043_venue_risk",
+      "breakpoints": true
     }
   ]
 }

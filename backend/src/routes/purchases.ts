@@ -20,7 +20,7 @@ import { leftValue } from "../value.js";
 import { onPackChanged } from "../bot/packCard.js";
 import { getSettings } from "../settings.js";
 import { offPeakPrice, type OffPeakT } from "../offpeak.js";
-import { checkLimits } from "../limits.js";
+import { checkLimits, checkVenueCap } from "../limits.js";
 
 /** Карта: сақталған (id), жаңа картаның криптограммасы (сынақ провайдері) не банктің қорғалған беті (hosted — Halyk т.б.). save — картаны сақтау */
 export const CardBody = z.object({ id: z.string().uuid().optional(), cryptogram: z.string().min(8).max(4000).optional(), save: z.boolean().optional(),
@@ -286,6 +286,10 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
     await tx.execute(sql`select id from app.offers where id = ${o.id} for update`);
     const lim = await checkLimits(tx, o, user.id, count);
     if (lim) return { limit: lim } as const;
+    // Бір мекемедегі міндеттеме шегі (мекеме жолы құлыпталады — екі сатылым бірге шектен асып кетпеуі үшін)
+    await tx.execute(sql`select id from app.venues where id = ${row.v.id} for update`);
+    const cap = await checkVenueCap(tx, row.v, price * count, await getSettings(db));
+    if (cap) return { limit: cap } as const;
     // Бонус бірден ұсталады (екі рет жұмсалмауы үшін); төлем өтпесе releaseBonus қайтарады
     const bonus = body.useBonus ? await holdBonus(tx, user.id, total, o.venueId) : { used: 0, from: [] };
     const cash = total - bonus.used;

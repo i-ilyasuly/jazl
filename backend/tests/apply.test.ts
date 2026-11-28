@@ -46,7 +46,7 @@ d("02 мекемені тіркеу", () => {
     expect(sub.status).toBe(409); expect((await sub.json()).missing).toEqual(expect.arrayContaining(["legal", "contact", "branches", "photos", "bank", "docs", "terms"]));
     a = (await (await req("PUT", "/v1/venue/application", 900, { data: {
       bin: makeBin(), legalName: "ТОО «Дала Донер»", director: "Бекенов Нұрлан", authorized: true, contactName: "Бекенов Нұрлан", phone: "+7 701 234 56 78", email: "info@dala.kz",
-      branches: [{ address: "Бұхар-Жырау, 52", open: "09:00", close: "23:00" }], pos: "poster", logoUrl: "https://example.com/l.webp", coverUrl: "https://example.com/c.webp",
+      branches: [{ address: "Бұхар-Жырау, 52", open: "09:00", close: "23:00" }], pos: "poster", opened: "2024-03", rating2gis: 4.6, quietHours: "15:00–18:00", monthlyRevenue: 5000000, otherFinancing: false, logoUrl: "https://example.com/l.webp", coverUrl: "https://example.com/c.webp",
       gallery: ["https://example.com/1.webp", "https://example.com/2.webp", "https://example.com/3.webp"], iban: makeIban(), ownAccount: true, agreeTerms: true, agreePrivacy: true } })).json()).application;
     expect(a.missing).toEqual(["docs"]);
     // Касса бағдарламасы міндетті: «Басқа» таңдалса — атауы да керек

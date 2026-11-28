@@ -49,6 +49,9 @@ const Data = z.object({
   logoUrl: Url.nullable().optional(), coverUrl: Url.nullable().optional(), gallery: z.array(Url).max(9).optional(),
   /** Касса бағдарламасы (Патша, 2026-11-18): алғашқы мекемелердің жауабы POS интеграциясын қайсысынан бастауды көрсетеді */
   pos: z.enum(POS_KINDS).optional(), posOther: z.string().trim().max(40).optional(),
+  /** Мекеме тәуекелі (Патша, 2026-11-28; 32-құжат): ашылған ай, 2ГИС бағасы, бос сағаттар, айлық табыс (тек Medeo көреді), басқа несие/аванс бар ма */
+  opened: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(), rating2gis: z.number().min(0).max(5).optional(), quietHours: z.string().trim().max(60).optional(),
+  monthlyRevenue: z.number().int().min(0).max(10_000_000_000).optional(), otherFinancing: z.boolean().optional(),
   iban: z.string().max(40).optional(), ownAccount: z.boolean().optional(), agreeTerms: z.boolean().optional(), agreePrivacy: z.boolean().optional(),
 }).strict();
 export type AppData = z.infer<typeof Data>;
@@ -61,12 +64,25 @@ export function missing(d: AppData, docs: string[]) {
   if (!d.kind || !d.name || d.name.length < 2 || !d.about || d.about.length < 20) m.push("about");
   if (!d.bin || !validBin(d.bin) || !d.legalName || !d.authorized) m.push("legal");
   if (!d.contactName || !d.phone || !/^\+?\d[\d\s()-]{9,}$/.test(d.phone) || !d.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) m.push("contact");
-  if (!d.branches?.length || !d.pos || (d.pos === "other" && !d.posOther)) m.push("branches"); // филиалдар қадамында касса бағдарламасы да
+  if (!d.branches?.length || !d.pos || (d.pos === "other" && !d.posOther)
+    || !d.opened || d.rating2gis == null || !d.quietHours || d.monthlyRevenue == null || d.otherFinancing == null) m.push("branches"); // филиалдар қадамында касса бағдарламасы мен мекеме деректері де
   if (!d.logoUrl || !d.coverUrl || (d.gallery?.length ?? 0) < 3) m.push("photos");
   if (!d.iban || !validIban(d.iban) || !d.ownAccount) m.push("bank");
   if (!docs.includes("bin") || !docs.includes("id") || (d.kind === "food" && !docs.includes("halal"))) m.push("docs");
   if (!d.agreeTerms || !d.agreePrivacy) m.push("terms");
   return m;
+}
+
+/** Қабылдау шарттары (Патша, 2026-11-28): 2ГИС ≥ admitMinRating, кемінде admitMinMonths ай жұмыс істеп тұр, бос сағаттары бар.
+ *  Орындалмаса — Басқару себебін жазып қана бекіте алады. Басқа несие/аванс — тек ескерту (бас тартуға негіз емес). */
+export function admission(d: AppData, rules: { admitMinRating: number; admitMinMonths: number }, now = new Date()) {
+  const months = d.opened ? (now.getFullYear() - Number(d.opened.slice(0, 4))) * 12 + (now.getMonth() + 1 - Number(d.opened.slice(5, 7))) : null;
+  const checks = [
+    { key: "rating", ok: d.rating2gis != null && d.rating2gis >= rules.admitMinRating, label: `2ГИС бағасы ≥ ${String(rules.admitMinRating).replace(".", ",")}★`, value: d.rating2gis != null ? String(d.rating2gis).replace(".", ",") + "★" : null },
+    { key: "age", ok: months != null && months >= rules.admitMinMonths, label: `Кемінде ${rules.admitMinMonths} ай жұмыс істеп тұр`, value: months != null ? `${Math.max(0, months)} ай` : null },
+    { key: "quiet", ok: Boolean(d.quietHours?.trim()), label: "Бос сағаттары бар", value: d.quietHours ?? null },
+  ];
+  return { ok: checks.every((x) => x.ok), checks, warn: d.otherFinancing ? "Басқа несие не аванс алған (тексеру кезінде сұраңыз)" : null };
 }
 
 export function applyRoutes(cfg: Config, db: Db, notify?: Notifier) {
@@ -167,7 +183,7 @@ export async function approve(db: Db, a: typeof venueApplications.$inferSelect) 
   const d = a.data as AppData;
   return db.transaction(async (tx) => {
     const [v] = await tx.insert(venues).values({ slug: `${translit(d.name ?? "venue")}-${randomInt(1000, 10000)}`, name: d.name!, kind: d.kind!, city: "karaganda", about: d.about ?? null,
-      logoUrl: d.logoUrl ?? null, coverUrl: d.coverUrl ?? null, gallery: d.gallery ?? [], status: "active" }).returning();
+      logoUrl: d.logoUrl ?? null, coverUrl: d.coverUrl ?? null, gallery: d.gallery ?? [], status: "active", monthlyRevenue: d.monthlyRevenue ?? null }).returning();
     // Негізгі ақша алушы (0034) — өтінімдегі заңды тұлға; франшиза филиалдарына Басқару кейін бөлек алушы қосады
     const [pe] = await tx.insert(venuePayees).values({ venueId: v.id, legalName: d.legalName || d.name!, bin: d.bin || null, iban: d.iban ? d.iban.replace(/\s/g, "").toUpperCase() : null, bank: d.iban ? bankOf(d.iban)?.[0] ?? null : null, isMain: true }).returning({ id: venuePayees.id });
     for (const b of d.branches ?? []) await tx.insert(branches).values({ venueId: v.id, address: b.address, payeeId: pe.id, hours: { days: Array.from({ length: 7 }, () => ({ on: true, open: b.open, close: b.close })) } });
