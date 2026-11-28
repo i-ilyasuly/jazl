@@ -1,4 +1,4 @@
-// Medeo бонусы (Патша, 2026-11-17): күйген бірлік → клиентке 12 ай бонус; бонуспен төлеу; «Мекеме қабылдамады» шағымы; жеңілдік шегі 30% (TEST_DATABASE_URL)
+// Medeo бонусы (Патша, 2026-11-17; «Ә» 2026-11-28): күйген бірлік → клиентке бонус (жаңа пакет — сол мекемеде 3 ай, бұрынғы — кез келген, 12 ай); бонуспен төлеу; «Мекеме қабылдамады» шағымы; жеңілдік шегі 30% (TEST_DATABASE_URL)
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
 import { createApp } from "../src/app.js";
@@ -9,6 +9,7 @@ import { signInitData } from "../src/auth/telegram.js";
 import { loadConfig } from "../src/config.js";
 import { makeTestCryptogram } from "../src/payments/test.js";
 import { creditBreakage } from "../src/bonus.js";
+import { makeNotifier, type Msg } from "../src/notify.js";
 
 const URL = process.env.TEST_DATABASE_URL;
 const TOKEN = "123456:TEST-token-not-real";
@@ -49,7 +50,9 @@ d("Medeo бонусы", () => {
     const b = await json(get("/v1/bonus", 810));
     expect(b.balance).toBe(unit * left);
     const days = (new Date(b.nextExpiry).getTime() - Date.now()) / 86400_000;
-    expect(days).toBeGreaterThan(360); expect(days).toBeLessThan(370); // 12 ай
+    expect(days).toBeGreaterThan(85); expect(days).toBeLessThan(95); // жаңа пакет → тек сол мекемеде, 3 ай (Патша, 2026-11-28)
+    expect(b.items[0].onlyAt).toBeTruthy();
+    expect(out[0]).toMatchObject({ onlyAt: expect.any(String), months: 3 });
     // Мекеме бетінде: «клиентке бонус», мекемеге сома жоқ
     const ex = await json(get(`/v1/venue/${venueId}/expired`, 801));
     expect(ex.items.find((x: { id: string }) => x.id === packId)).toMatchObject({ state: "bonus", units: left, amount: unit * left });
@@ -79,6 +82,37 @@ d("Medeo бонусы", () => {
     expect(j.status).toBe("paid"); // карта қолданылмады (0002 болса да)
     expect((await q("select amount, method, provider from app.payments where id = $1", [j.paymentId])).rows[0]).toEqual({ amount: 0, method: "bonus", provider: "bonus" });
     expect(j.receipt.payment.label).toBe("Medeo бонусы");
+  });
+
+  it("«Ә» нұсқасы: жаңа бонус басқа мекемеде жұмсалмайды, сол мекемеде жұмсалады; бұрынғы пакет (any) — кез келген мекемеде, 12 ай; мерзімге 7 күн қалғанда бір рет ескерту", async () => {
+    const U = 820;
+    const p1 = (await json(post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, U))).pack.id as string;
+    await q("update app.packs set units_left = 1, valid_until = now() - interval '5 days' where id = $1", [p1]);
+    const [nb] = await creditBreakage(dbh.db);
+    expect(nb).toMatchObject({ packId: p1, months: 3, onlyAt: expect.any(String) });
+    // Басқа мекеме (coffee-lab): жарамды бонус 0, сатып алуда бонус ұсталмайды
+    expect((await json(get("/v1/bonus?offer=latte", U))).usable).toBe(0);
+    const other = await json(post("/v1/purchases", { offerSlug: "latte", useBonus: true, idempotencyKey: key() }, U));
+    expect((await q("select amount from app.payments where id = $1", [other.paymentId])).rows[0].amount).toBe(other.pack.pricePaid);
+    expect((await json(get("/v1/bonus", U))).balance).toBe(nb.amount);
+    // Сол мекеме (damdi, басқа ұсыныс): жұмсалады
+    expect((await json(get("/v1/bonus?offer=doner-drink", U))).usable).toBe(nb.amount);
+    const same = await json(post("/v1/purchases", { offerSlug: "doner-drink", useBonus: true, idempotencyKey: key() }, U));
+    expect((await q("select amount from app.payments where id = $1", [same.paymentId])).rows[0].amount).toBe(same.pack.pricePaid - nb.amount);
+    // Бұрынғы пакет (0042-ге дейін): кез келген мекемеде, 12 ай
+    const p2 = (await json(post("/v1/purchases", { offerSlug: "doner", idempotencyKey: key() }, U))).pack.id as string;
+    await q("update app.packs set bonus_scope = 'any', units_left = 1, valid_until = now() - interval '5 days' where id = $1", [p2]);
+    const [ob] = await creditBreakage(dbh.db);
+    expect(ob).toMatchObject({ packId: p2, months: 12, onlyAt: null });
+    expect((await json(get("/v1/bonus?offer=latte", U))).usable).toBe(ob.amount);
+    // Мерзімге 7 күн қалды → бір рет ескерту (тек осы мекеме аталады)
+    await q("update app.bonuses set expires_at = now() + interval '5 days' where pack_id = $1", [p2]);
+    const sent: Msg[] = [];
+    const notify = makeNotifier(dbh.db, async (m) => { sent.push(m); });
+    const noon = new Date("2026-12-02T07:00:00Z");
+    expect((await notify.tick(noon)).bonusSoon).toBeGreaterThanOrEqual(1);
+    expect(sent.some((m) => m.text.includes("бонусыңның мерзіміне 7 күн қалды") && m.text.includes("кез келген мекемеде"))).toBe(true);
+    expect((await notify.tick(noon)).bonusSoon).toBe(0);
   });
 
   it("мерзімі өткен бонус есептелмейді", async () => {

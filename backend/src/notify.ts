@@ -266,13 +266,13 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
 
     /** Жоспарлы жұмыс (Cloud Scheduler, 15 минут сайын): өтінім нәтижелері, 22:00 күндік қорытынды, 10:00 мерзім ескертуі */
     tick: async (now = new Date()) => {
-      const out = { applications: 0, daily: 0, expiry: 0, expiry5: 0, priorAsked: 0, bonus: 0, soldOut: 0, restock: 0, lastUnit: 0, idle: 0, savings: 0, saleEnded: 0 };
+      const out = { applications: 0, daily: 0, expiry: 0, expiry5: 0, priorAsked: 0, bonus: 0, bonusSoon: 0, soldOut: 0, restock: 0, lastUnit: 0, idle: 0, savings: 0, saleEnded: 0 };
       // 🎁 Күйген бірлік → клиентке Medeo бонусы (мекемеге үлес жоқ — Патша, 2026-11-17)
       for (const b of await creditBreakage(db, now).catch((e) => { console.error("creditBreakage", e); return []; })) {
         if (b.amount <= 0 || !(await once(`bonus:${b.packId}`))) continue;
         const [u] = await rows<{ tg: string }>(sql`select telegram_id as tg from app.users where id = ${b.userId}`);
-        if (u) await send({ chatId: Number(u.tg), text: L(`🎁 «${head(b.title)}» пакетінің ${b.units} бірлігі пайдаланылмай қалды. Ақшаң күйген жоқ: ${money(b.amount)} Medeo бонусы болып қайтты. Бонус 12 ай жарамды, кез келген мекемеде келесі сатып алуға жұмсалады.`,
-          `🎁 В пакете «${b.titleRu ?? head(b.title)}» осталось неиспользованных единиц: ${b.units}. Деньги не сгорели: ${money(b.amount)} вернулись бонусом Medeo. Бонус действует 12 месяцев, его можно потратить на следующую покупку в любом заведении.`), button: { text: L("Бонусты көру", "Посмотреть бонус"), start: "p_bonus" } }).catch(() => null);
+        if (u) await send({ chatId: Number(u.tg), text: L(`🎁 «${head(b.title)}» пакетінің ${b.units} бірлігі пайдаланылмай қалды. Ақшаң күйген жоқ: ${money(b.amount)} Medeo бонусы болып қайтты. ${b.onlyAt ? `Бонус ${b.months} ай жарамды, «${b.onlyAt}» мекемесінде келесі сатып алуға жұмсалады.` : `Бонус ${b.months} ай жарамды, кез келген мекемеде келесі сатып алуға жұмсалады.`}`,
+          `🎁 В пакете «${b.titleRu ?? head(b.title)}» осталось неиспользованных единиц: ${b.units}. Деньги не сгорели: ${money(b.amount)} вернулись бонусом Medeo. ${b.onlyAt ? `Бонус действует ${b.months} мес., его можно потратить на следующую покупку в «${b.onlyAt}».` : `Бонус действует ${b.months} мес., его можно потратить на следующую покупку в любом заведении.`}`), button: { text: L("Бонусты көру", "Посмотреть бонус"), start: "p_bonus" } }).catch(() => null);
         out.bonus++;
       }
       // ⌛ Сатылым соңы (мекеме қойған күн, Алматы бойынша сол күн қоса): өткен ұсыныс «аяқталды» болады — каталог, сатып алу, «Хабарла», автожаңарту өзі тоқтайды
@@ -370,6 +370,17 @@ export function makeNotifier(db: Db, rawSend: Sender, opts: { adminIds?: string;
           await send({ chatId: Number(p.tg), text: L(`⏳ «${head(p.title)}» пакетінің мерзіміне 5 күн қалды, ${p.left} ${p.unit_name || "дана"} әлі бар. Үлгермесең — бір рет тегін 7 күнге ұзартуға болады.`,
             `⏳ До конца срока пакета «${p.title_ru ?? head(p.title)}» 5 дней, осталось ${p.left} ед. Не успеваете — один раз можно бесплатно продлить на 7 дней.`), button: { text: L("Тегін ұзарту", "Продлить бесплатно"), start: `pk_${p.id}` } }).catch(() => null);
           out.expiry5++;
+        }
+        // 💰 Бонус мерзіміне 7 күн қалды (Патша, 2026-11-28: жаңа бонус 3 ай, тек сол мекемеде — inKind-тің «кенет күйген» қатесін қайталамау үшін бір рет ескертеміз)
+        const bsoon = await rows<{ id: string; tg: string; left: number; venue: string | null; notify: Record<string, boolean> | null }>(sql`
+          select b.id, u.telegram_id as tg, b."left", v.name as venue, u.notify from app.bonuses b join app.users u on u.id = b.user_id left join app.venues v on v.id = b.venue_id
+          where b."left" > 0 and b.expires_at between now() and now() + interval '7 days'
+            and not exists (select 1 from app.notify_log l where l.key = 'bexp:' || b.id) limit 500`);
+        for (const b of bsoon) {
+          if (!pref(b.notify, "expiry") || !(await once(`bexp:${b.id}`))) continue;
+          await send({ chatId: Number(b.tg), text: L(`💰 ${money(b.left)} Medeo бонусыңның мерзіміне 7 күн қалды.${b.venue ? ` Оны «${b.venue}» мекемесінде келесі пакетке жұмсай аласың.` : " Оны кез келген мекемеде келесі пакетке жұмсай аласың."}`,
+            `💰 До конца срока бонуса Medeo ${money(b.left)} осталось 7 дней.${b.venue ? ` Его можно потратить на следующий пакет в «${b.venue}».` : " Его можно потратить на следующий пакет в любом заведении."}`), button: { text: L("Бонусты көру", "Посмотреть бонус"), start: "p_bonus" } }).catch(() => null);
+          out.bonusSoon++;
         }
         // 📋 Пилот өлшеуі (0041): бір мекемедегі бірінші пакеттен кейін бір сұрақ — Medeo-ға дейін осы мекемеге барды ма (жаңа клиент пе, тұрақты ма)
         const fresh = await rows<{ id: string; tg: string; venue: string }>(sql`
