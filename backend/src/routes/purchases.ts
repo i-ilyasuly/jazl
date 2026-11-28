@@ -142,7 +142,7 @@ export function purchaseRoutes(cfg: Config, db: Db) {
     return c.json({ ok: true });
   });
 
-  r.get("/bonus", async (c) => c.json({ ok: true, ...(await bonusOf(db, c.get("user").id)) }));
+  r.get("/bonus", async (c) => c.json({ ok: true, ...(await bonusOf(db, c.get("user").id, c.req.query("offer") || undefined)) })); // ?offer=<slug> — осы ұсыныста жұмсалатын бөлігі (usable)
 
   r.get("/packs", async (c) => {
     const user = c.get("user");
@@ -287,7 +287,7 @@ export async function startPurchase(db: Db, cfg: Config, user: BuyUser, body: Bu
     const lim = await checkLimits(tx, o, user.id, count);
     if (lim) return { limit: lim } as const;
     // Бонус бірден ұсталады (екі рет жұмсалмауы үшін); төлем өтпесе releaseBonus қайтарады
-    const bonus = body.useBonus ? await holdBonus(tx, user.id, total) : { used: 0, from: [] };
+    const bonus = body.useBonus ? await holdBonus(tx, user.id, total, o.venueId) : { used: 0, from: [] };
     const cash = total - bonus.used;
     const viaProvider = Boolean(card) && cash > 0;
     if (cfg.PAYMENTS_MODE === "live" && !viaProvider && cash > 0) throw new PurchaseError("payment_method_unavailable");

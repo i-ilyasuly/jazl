@@ -295,6 +295,13 @@
       "when": 1795780000000,
       "tag": "0041_prior_visit",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795860000000,
+      "tag": "0042_bonus_venue",
+      "breakpoints": true
     }
   ]
 }
