@@ -53,6 +53,10 @@ export async function pilotReport(db: Db, days: number) {
       b as (select p.user_id, count(*) as n from app.packs p where ${SOLD} and p.source = 'purchase' group by p.user_id)
     select u.channel, count(*)::int as users, count(b.user_id)::int as buyers, count(*) filter (where b.n >= 2)::int as repeat
     from u left join b on b.user_id = u.id group by u.channel order by users desc limit 20`);
+  // Мекеме жауабы (0043): Medeo-дан алғаш келген клиент кейін пакетсіз қайта келе ме
+  const [vf] = await rows<{ asked: number; n: number; s: number; r: number; u: number }>(sql`
+    select count(*)::int as asked, count(*) filter (where answer = 'n')::int as n, count(*) filter (where answer = 's')::int as s,
+      count(*) filter (where answer = 'r')::int as r, count(*) filter (where answer = 'u')::int as u from app.venue_feedback where asked_at > ${from}`);
   const byVenue = await rows<{ venue: string; packs: number; new_share: number | null }>(sql`
     select v.name as venue, count(*)::int as packs,
       round(100.0 * count(*) filter (where p.prior_visit = 'n') / nullif(count(*) filter (where p.prior_visit is not null), 0), 1)::float as new_share
@@ -76,6 +80,8 @@ export async function pilotReport(db: Db, days: number) {
     gifts: { value: gifts, count: s.gifts, grade: grade(gifts, L.gifts.pass) },
     till: { medianSec: median, p90Sec: till.p90 == null ? null : Math.round(till.p90 * 10) / 10, done: till.done, incomplete: till.incomplete, incompleteShare: incomplete,
       grade: till.done < 5 ? "no_data" : median != null && median <= L.tillMedianSec.pass && (incomplete ?? 0) <= L.tillIncomplete.pass ? "pass" : "fix" },
+    venueReturn: { asked: vf.asked, answered: vf.n + vf.s + vf.r + vf.u, none: vf.n, sometimes: vf.s, often: vf.r, unknown: vf.u,
+      value: pct(vf.s + vf.r, vf.n + vf.s + vf.r) },
     channels, byVenue, lines: L,
   };
 }

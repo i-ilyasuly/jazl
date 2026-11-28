@@ -76,6 +76,16 @@ export function makeBot(cfg: Config, db: Db, call: TgCall = tgApi(cfg)) {
         if (done && q.message?.message_id) await call("editMessageText", { chat_id: chatId, message_id: q.message.message_id, text: TXT.priorThanks[lang] });
         return;
       }
+      // 🏪 Мекеме сұрағы (0043): «vf:<сұрау>:n|s|r|u» — тек сұралған иесінің жауабы, бір рет
+      const vf = /^vf:([0-9a-f-]{36}):([nsru])$/.exec(q.data ?? "");
+      if (vf) {
+        const { lang } = await userOf(q.from.id, q.from.language_code);
+        const done = (await db.execute(sql`update app.venue_feedback f set answer = ${vf[2]}, answered_at = now() from app.users u
+          where f.id = ${vf[1]} and u.id = f.user_id and u.telegram_id = ${q.from.id} and f.answer is null returning f.id`)).rows.length > 0;
+        void call("answerCallbackQuery", { callback_query_id: q.id, text: lang === "ru" ? "Спасибо!" : "Рақмет!" });
+        if (done && q.message?.message_id) await call("editMessageText", { chat_id: chatId, message_id: q.message.message_id, text: TXT.priorThanks[lang] });
+        return;
+      }
       void call("answerCallbackQuery", { callback_query_id: q.id });
       const { lang } = await userOf(q.from.id, q.from.language_code);
       if (q.data === "help") await help(chatId, lang);
