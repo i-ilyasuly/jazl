@@ -81,17 +81,19 @@ export function AVenues() {
 }
 
 interface VCard { id: string; name: string; kind: string; kindName: string; city: string; status: string; statusNote: string | null; createdAt: string; rating: number | null; reviews: number; feePct: number; feeCustom: boolean;
-  sales30: number; salesGrowth: number | null; fee30: number; complaintShare: number; branches: number; offers: number; team: number; complaints: number; notes: number; activePacks: number; eligible8: boolean; burnShare: number; burnAvg: number; refused30: number }
+  sales30: number; salesGrowth: number | null; fee30: number; complaintShare: number; branches: number; offers: number; team: number; complaints: number; notes: number; activePacks: number; eligible8: boolean; burnShare: number; burnAvg: number; refused30: number;
+  outstanding?: number; liabilityCap?: number; monthlyRevenue?: number | null; capCustom?: boolean }
 export function AVenue() {
   const go = useGo();
   const { id = "" } = useParams();
   const [d, , reload] = useCached<{ venue: VCard }>(`a:venue:${id}`, () => A(`/venues/${id}`));
-  const [sheet, setSheet] = useState<"fee" | "stop" | "msg" | null>(null);
+  const [sheet, setSheet] = useState<"fee" | "stop" | "msg" | "risk" | null>(null);
   const x = d?.venue;
   if (!x) return <VPage title="Мекеме" back><Sk h={80} /><Sk h={200} /></VPage>;
   const [t, k] = statusTag[x.status] ?? statusTag.active;
   const rows = [
     { e: "a:fee", t: "Комиссия", r: `${x.feePct}%`, on: () => setSheet("fee") },
+    { e: "a:fee", t: "Міндеттеме шегі", r: x.liabilityCap != null ? `${money(x.outstanding ?? 0)} / ${money(x.liabilityCap)}` : "", on: () => setSheet("risk") },
     { e: "a:branches", t: "Филиалдар", r: String(x.branches), on: () => go(`/a/venues/${id}/branches`) },
     { e: "a:branches", t: "Жапсырмалар (QR)", r: "", on: () => go(`/a/venues/${id}/stickers`) },
     { e: "a:fee", t: "Аударымдар", r: "", on: () => go(`/a/venues/${id}/payouts`) },
@@ -127,9 +129,29 @@ export function AVenue() {
       ))}</div>
       <Buttons main={x.status === "active" ? { text: "Тоқтату", onClick: () => setSheet("stop"), danger: true } : { text: "Қайта қосу", onClick: () => setSheet("stop") }} second={{ text: "Хабарлама жазу", onClick: () => setSheet("msg") }} />
       {sheet === "fee" && <FeeSheet x={x} onClose={() => setSheet(null)} done={() => void reload()} />}
+      {sheet === "risk" && <RiskSheet x={x} onClose={() => setSheet(null)} done={() => void reload()} />}
       {sheet === "stop" && <StopSheet x={x} onClose={() => setSheet(null)} done={() => void reload()} />}
       {sheet === "msg" && <MsgSheet x={x} onClose={() => setSheet(null)} />}
     </VPage>
+  );
+}
+
+/** Міндеттеме шегі (Патша, 2026-11-28; 32-құжат): мекемеде жұмсалмаған бірліктердің құны шектен аспайды — асса, жаңа сату уақытша жабылады.
+ *  Шек: қолмен қойылса — сол; әйтпесе айлық табыстың 10%-ы (Басқару → Баптаулар → venueLiabilityPct); табыс белгісіз — 1 000 000 ₸. */
+function RiskSheet({ x, onClose, done }: { x: VCard; onClose: () => void; done: () => void }) {
+  const num = (t: string) => { const d = t.replace(/\D/g, ""); return d ? Number(d) : null; };
+  const [rev, setRev] = useState(x.monthlyRevenue != null ? String(x.monthlyRevenue) : "");
+  const [cap, setCap] = useState(x.capCustom && x.liabilityCap != null ? String(x.liabilityCap) : "");
+  const [pin, setPin] = useState(false);
+  if (pin) return <PinSheet text={`${x.name}: айлық табыс ${rev ? money(num(rev) ?? 0) : "—"}, шек ${cap ? money(num(cap) ?? 0) : "автоматты"}.`} onClose={onClose}
+    run={async (p) => { await post(`/venues/${x.id}/risk`, { monthlyRevenue: num(rev), liabilityCap: num(cap), pin: p }); done(); }} />;
+  return (
+    <Sheet title="Міндеттеме шегі" onClose={onClose}>
+      <Note>{`Қазір клиенттерде ${money(x.outstanding ?? 0)} жұмсалмаған бірлік бар, шек — ${money(x.liabilityCap ?? 0)}. Шекке жетсе, жаңа пакет уақытша сатылмайды.`}</Note>
+      <Field label="Айлық орташа табыс, ₸" value={rev} onChange={(t) => setRev(t.replace(/\D/g, ""))} placeholder="Мысалы: 4000000" />
+      <Field label="Қолмен шек, ₸ (бос — табыстың 10%-ы)" value={cap} onChange={(t) => setCap(t.replace(/\D/g, ""))} placeholder="Бос қалдыруға болады" />
+      <Buttons main={{ text: "Сақтау", onClick: () => setPin(true) }} second={{ text: "Бас тарту", onClick: onClose }} />
+    </Sheet>
   );
 }
 
@@ -269,7 +291,9 @@ export function AApps() {
 }
 
 interface AppFull { id: string; status: string; note: string | null; submittedAt: string | null; venueId: string | null; docs: { id: string; kind: string; file_name: string; mime: string; size: number }[];
-  data: { name?: string; kindName: string; legalName?: string; bin?: string; director?: string; contactName?: string; phone?: string; email?: string; iban?: string; bank: string | null; branches?: { address: string; open: string; close: string }[]; about?: string; posName?: string | null } }
+  data: { name?: string; kindName: string; legalName?: string; bin?: string; director?: string; contactName?: string; phone?: string; email?: string; iban?: string; bank: string | null; branches?: { address: string; open: string; close: string }[]; about?: string; posName?: string | null;
+    opened?: string; rating2gis?: number; quietHours?: string; monthlyRevenue?: number; otherFinancing?: boolean };
+  admission?: { ok: boolean; checks: { key: string; ok: boolean; label: string; value: string | null }[]; warn: string | null } }
 const DOCS = [["bin", "Тіркеу куәлігі"], ["id", "Жеке куәлік"], ["charter", "Жарғы"], ["halal", "Халал сертификаты"]] as const;
 const REASONS = ["Құжат жетіспейді", "Деректер сәйкес емес", "Санат сәйкес келмейді", "Басқа себеп"];
 export function AApp() {
@@ -279,9 +303,12 @@ export function AApp() {
   const [ret, setRet] = useState(false);
   const [busy, setBusy] = useState(false);
   const a = d?.application;
-  const approve = useCallback(async () => {
-    if (!a || busy) return; setBusy(true);
-    try { await post(`/applications/${a.id}/approve`); haptic.success(); go(`/a/apps/${a.id}/done`, "up", { replace: true }); }
+  const [why, setWhy] = useState<string | null>(null); // шарт орындалмаса — «бәрібір бекіту» себебі
+  const approve = useCallback(async (reason?: string) => {
+    if (!a || busy) return;
+    if (a.admission && !a.admission.ok && !reason) { setWhy(""); return; }
+    setBusy(true);
+    try { await post(`/applications/${a.id}/approve`, reason ? { override: true, reason } : undefined); haptic.success(); go(`/a/apps/${a.id}/done`, "up", { replace: true }); }
     catch { haptic.error(); nativeAlert("Бекітілмеді. Қайталап көріңіз."); } finally { setBusy(false); }
   }, [a, busy, go]);
   const openDoc = async (docId: string) => { try { const r = await A<{ url: string }>(`/docs/${docId}/link`); openExternal(API_URL + r.url); } catch { haptic.error(); } };
@@ -307,8 +334,19 @@ export function AApp() {
       <h2 className={v.blueHead}>Шот</h2>
       <div className={v.card} style={{ padding: "4px 16px" }}>{kv("IBAN", iban)}{kv("Банк", x.bank)}</div>
       <h2 className={v.blueHead}>Байланыс және филиалдар</h2>
+      {a.admission && <>
+        <h2 className={v.blueHead}>Қабылдау шарттары</h2>
+        <div className={v.card} style={{ padding: "4px 16px" }}>{a.admission.checks.map((c) => kv(`${c.ok ? "✅" : "⚠️"} ${c.label}`, c.value))}
+          {kv("Айлық табыс", x.monthlyRevenue != null ? money(x.monthlyRevenue) : null)}{kv("Басқа несие/аванс", x.otherFinancing == null ? null : x.otherFinancing ? "Иә" : "Жоқ")}</div>
+        {!a.admission.ok && <Note tone="warn">Шарт орындалмаған. Бекітсеңіз, себебін жазу керек болады.</Note>}
+        {a.admission.warn && <Note tone="warn">{a.admission.warn}</Note>}
+      </>}
       <div className={v.card} style={{ padding: "4px 16px" }}>{kv("Байланыс", x.contactName)}{kv("Телефон", x.phone)}{kv("Email", x.email)}{(x.branches ?? []).map((b, i) => kv(`Филиал ${i + 1}`, `${b.address} · ${b.open}–${b.close}`))}{kv("Касса бағдарламасы", x.posName)}</div>
       {a.status === "review" && <Buttons main={{ text: busy ? "…" : "Бекіту", onClick: () => void approve(), disabled: busy }} second={{ text: "Қайтару", onClick: () => setRet(true) }} />}
+      {why != null && <Sheet title="Бәрібір бекіту" onClose={() => setWhy(null)}>
+        <Field label="Себебі (журналға жазылады)" value={why} onChange={setWhy} placeholder="Мысалы: жаңа филиал, желінің басқа нүктелері 4,7★" />
+        <Buttons main={{ text: "Бекіту", onClick: () => { if (why.trim().length < 3) return nativeAlert("Себебін жазыңыз."); const r = why.trim(); setWhy(null); void approve(r); }, disabled: busy }} />
+      </Sheet>}
       {a.status === "approved" && a.venueId && <Buttons main={{ text: "Мекеме картасы", onClick: () => go(`/a/venues/${a.venueId}`) }} />}
       {ret && <ReturnSheet id={a.id} onClose={() => setRet(false)} done={() => go(-1, "back")} />}
     </VPage>

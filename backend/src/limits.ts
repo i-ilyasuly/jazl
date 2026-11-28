@@ -55,3 +55,20 @@ export async function checkLimits(db: Exec, offer: { id: string; rules: unknown 
   }
   return null;
 }
+
+/** Бір мекемедегі міндеттеме шегі (Патша, 2026-11-28; inKind/True Food Kitchen сабағы, 32-құжат): мекемеде әлі жұмсалмаған бірліктердің
+ *  жалпы құны (белсенді пакеттер + 2 сағаттан жас «күтуде» пакеттер) жаңа сатылыммен бірге шектен аспайды.
+ *  Шек: Басқару қолмен қойса — liability_cap; әйтпесе айлық табыстың pct %-ы; табыс белгісіз болса — fallback ₸. */
+export async function venueOutstanding(db: Exec, venueId: string): Promise<number> {
+  const [r] = (await db.execute(sql`select coalesce(sum(${sql.raw("(p.value_total - floor(p.value_total::numeric * (p.units_total - p.units_left) / greatest(p.units_total, 1)))")}), 0)::bigint as v
+    from app.packs p join app.offers o on o.id = p.offer_id
+    where o.venue_id = ${venueId} and p.units_left > 0 and (p.status = 'active' or (p.status = 'pending_payment' and p.created_at > now() - interval '2 hours'))`)).rows as { v: string }[];
+  return Number(r?.v ?? 0);
+}
+export const venueCapOf = (v: { monthlyRevenue: number | null; liabilityCap: number | null }, s: { venueLiabilityPct: number; venueLiabilityDefault: number }) =>
+  v.liabilityCap ?? (v.monthlyRevenue ? Math.round((v.monthlyRevenue * s.venueLiabilityPct) / 100) : s.venueLiabilityDefault);
+export async function checkVenueCap(db: Exec, v: { id: string; monthlyRevenue: number | null; liabilityCap: number | null }, add: number, s: { venueLiabilityPct: number; venueLiabilityDefault: number }) {
+  const cap = venueCapOf(v, s);
+  const out = await venueOutstanding(db, v.id);
+  return out + add > cap ? { code: "venue_cap" as const, extra: { left: Math.max(0, cap - out) } } : null;
+}

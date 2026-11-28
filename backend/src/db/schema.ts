@@ -71,8 +71,23 @@ export const venues = app.table("venues", {
   reliabilityN: integer("reliability_n").notNull().default(0),
   /** Жапсырма QR-ымен (тұрақты, кассирсіз) бірлік жұмсауға рұқсат (0029, Патша 2026-11-22: пилот) */
   stickerEnabled: boolean("sticker_enabled").notNull().default(false),
+  /** Айлық орташа табыс, ₸ (өтінімнен; Басқару түзете алады) — міндеттеме шегін есептеу үшін (0043) */
+  monthlyRevenue: integer("monthly_revenue"),
+  /** Басқару қолмен қойған шек, ₸: жұмсалмаған бірліктердің жалпы құны осыдан аспайды (бос — айлық табыстың settings.venueLiabilityPct %-ы) */
+  liabilityCap: integer("liability_cap"),
   createdAt: created(),
 }, (t) => [uniqueIndex("venues_slug").on(t.slug)]);
+
+/** Ай сайынғы сұрау (0043): Medeo арқылы келген жаңа клиент кейін пакетсіз де қайта келе ме — n жоқ, s кейде, r жиі, u білмеймін */
+export const venueFeedback = app.table("venue_feedback", {
+  id: id(),
+  venueId: uuid("venue_id").notNull().references(() => venues.id),
+  userId: uuid("user_id").references(() => users.id),
+  month: text("month").notNull(),
+  answer: text("answer"),
+  askedAt: timestamp("asked_at", { withTimezone: true }).notNull().defaultNow(),
+  answeredAt: timestamp("answered_at", { withTimezone: true }),
+}, (t) => [uniqueIndex("venue_feedback_month").on(t.venueId, t.month)]);
 
 export const branches = app.table("branches", {
   id: id(),

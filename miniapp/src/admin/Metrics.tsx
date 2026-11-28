@@ -45,6 +45,7 @@ interface Pilot {
   secondPack: { value: N; matured: number; repeat: number; grade: Grade };
   newToVenue: { value: N; asked: number; answered: number; first: number; sometimes: number; regular: number; grade: Grade };
   gifts: { value: N; count: number; grade: Grade };
+  venueReturn?: { asked: number; answered: number; none: number; sometimes: number; often: number; unknown: number; value: N };
   till: { medianSec: N; p90Sec: N; done: number; incomplete: number; incompleteShare: N; grade: Grade };
   channels: { channel: string; users: number; buyers: number; repeat: number }[];
   byVenue: { venue: string; packs: number; new_share: N }[];
@@ -67,6 +68,7 @@ function PilotBlock({ days, desk }: { days: number; desk: boolean }) {
       <Card t="Екінші пакет" hint={`Бірінші пакетінен 14 күн өткен ${p.secondPack.matured} адамнан ${p.secondPack.repeat} қайта алды. Өтті ≥ 40%, < 25% — модельді өзгерту`} val={P(p.secondPack.value)} g={p.secondPack.grade} />
       <Card t="Мекемеге жаңа клиент" hint={`Ботта «Medeo-ға дейін бардың ба?» сұрағы: ${p.newToVenue.answered}/${p.newToVenue.asked} жауап (алғаш ${p.newToVenue.first} · кейде ${p.newToVenue.sometimes} · жиі ${p.newToVenue.regular}). Өтті ≥ 30%`} val={P(p.newToVenue.value)} g={p.newToVenue.grade} />
       <Card t="Сыйлық үлесі" hint={`${p.gifts.count} сыйлық. Өтті ≥ 10%`} val={P(p.gifts.value)} g={p.gifts.grade} />
+      {p.venueReturn && <Card t="Мекеме: пакетсіз қайта келді" hint={`Мекеме иесіне ай сайынғы сұрақ: ${p.venueReturn.answered}/${p.venueReturn.asked} жауап (жоқ ${p.venueReturn.none} · кейде ${p.venueReturn.sometimes} · жиі ${p.venueReturn.often} · білмейді ${p.venueReturn.unknown})`} val={P(p.venueReturn.value)} g={p.venueReturn.answered ? "watch" : "no_data"} />}
       <Card t="Кассадағы уақыт" hint={`QR ашылғаннан расталғанға дейін, медиана (p90 ${p.till.p90Sec ?? "–"} с). ${p.till.done} сәтті, ${p.till.incomplete} аяқталмаған (${P(p.till.incompleteShare)}). Өтті ≤ 10 с, ≤ 2%`} val={p.till.medianSec == null ? "–" : `${p.till.medianSec} с`} g={p.till.grade} />
     </div>
     {p.channels.length > 0 && <>

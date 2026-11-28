@@ -1,7 +1,7 @@
 // Medeo Басқару (Figma «Medeo Басқару» 14060:7998): платформа иесінің беттері.
 // Кіру: ADMIN_IDS тізіміндегі Telegram аккаунты (initData) + жеке PIN → 12 сағаттық X-Admin-Token.
 // Қауіпті әрекеттер (комиссия, тоқтату, қолмен қайтару, ұзарту, техникалық жұмыстар) PIN-мен қайта расталады. Әр өзгеріс — admin_log.
-import { limitsOf } from "../limits.js";
+import { limitsOf, venueCapOf, venueOutstanding } from "../limits.js";
 import { hmac, safeEqual, sigOk, signKey, verifyKeys } from "../secret.js";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { Hono, type Context } from "hono";
@@ -19,7 +19,7 @@ import { adminPrefDefaults, type Notifier } from "../notify.js";
 import { getSettings, refreshFees, setSetting, SETTING_DEFAULTS, type Settings } from "../settings.js";
 import { leftValueSql } from "../value.js";
 import { pushRefund } from "../refund.js";
-import { approve, bankOf, posName, validBin, validIban, type AppData } from "./apply.js";
+import { admission, approve, bankOf, posName, validBin, validIban, type AppData } from "./apply.js";
 import { decideComplaint } from "./complaints.js";
 import { stickerUrl } from "./sticker.js";
 
@@ -352,7 +352,21 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
       feePct: fee, feeCustom: v.fee_pct !== null, sales30: s.sales30, salesGrowth: growth(s.sales30, s.prev30), fee30: Math.round((s.sales30 * fee) / 100), complaintShare,
       branches: s.branches, offers: s.offers, team: s.team, complaints: s.complaints, notes: s.notes, activePacks: s.active_packs,
       burnShare: pct(g.burned, g.sold), burnAvg: pct(g.burned_all, g.sold_all), refused30: g.refused,
-      eligible8: Number(v.rating ?? 0) >= 4.7 && Number(v.reviews) >= 20 && complaintShare < 2 } });
+      eligible8: Number(v.rating ?? 0) >= 4.7 && Number(v.reviews) >= 20 && complaintShare < 2,
+      // Міндеттеме шегі (0043): жұмсалмаған бірліктердің құны / шек
+      outstanding: await venueOutstanding(db, id), liabilityCap: venueCapOf({ monthlyRevenue: v.monthly_revenue as number | null, liabilityCap: v.liability_cap as number | null }, await getSettings(db)),
+      monthlyRevenue: v.monthly_revenue ?? null, capCustom: v.liability_cap != null } });
+  });
+  // Мекеме тәуекелі: айлық табыс және қолмен шек (бос — айлық табыстың %-ы) — PIN-мен
+  r.post("/admin/venues/:id/risk", async (c) => {
+    const b = z.object({ monthlyRevenue: z.number().int().min(0).max(10_000_000_000).nullable(), liabilityCap: z.number().int().min(0).max(1_000_000_000).nullable(), pin: z.string() }).safeParse(await c.req.json().catch(() => null));
+    if (!b.success) return c.json({ ok: false, error: "bad_request" }, 400);
+    const bad = await danger(c, b.data.pin); if (bad) return bad;
+    const [v] = await db.select().from(venues).where(eq(venues.id, c.req.param("id"))).limit(1);
+    if (!v) return c.json({ ok: false, error: "not_found" }, 404);
+    await db.update(venues).set({ monthlyRevenue: b.data.monthlyRevenue, liabilityCap: b.data.liabilityCap }).where(eq(venues.id, v.id));
+    await log(c, "Мекеме шегі өзгерді", v.name, { venueId: v.id, before: { monthlyRevenue: v.monthlyRevenue, liabilityCap: v.liabilityCap }, after: { monthlyRevenue: b.data.monthlyRevenue, liabilityCap: b.data.liabilityCap } });
+    return c.json({ ok: true });
   });
   // Комиссия (10 — негізгі, 8 — жоғары рейтинг): PIN-мен
   r.post("/admin/venues/:id/fee", async (c) => {
@@ -517,7 +531,8 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const d = a.data as AppData;
     const docs = await rows<{ id: string; kind: string; file_name: string; mime: string; size: number }>(sql`select id, kind, file_name, mime, size from app.venue_docs where application_id = ${a.id} order by created_at`);
     const bank = d.iban ? bankOf(d.iban) : null;
-    return c.json({ ok: true, application: { id: a.id, status: a.status, note: a.note, submittedAt: a.submittedAt, data: { ...d, kindName: kindName[d.kind ?? ""] ?? "—", bank: bank?.[0] ?? null, posName: d.pos ? (d.pos === "other" ? d.posOther || posName.other : posName[d.pos]) : null }, docs, venueId: a.venueId } });
+    return c.json({ ok: true, application: { id: a.id, status: a.status, note: a.note, submittedAt: a.submittedAt, data: { ...d, kindName: kindName[d.kind ?? ""] ?? "—", bank: bank?.[0] ?? null, posName: d.pos ? (d.pos === "other" ? d.posOther || posName.other : posName[d.pos]) : null }, docs, venueId: a.venueId,
+      admission: admission(d, await getSettings(db)) } });
   });
   // Мекемелер қандай касса бағдарламасын қолданады (жіберілген өтінімдер бойынша) — POS интеграциясын қайсысынан бастауды шешу үшін
   r.get("/admin/pos-stats", async (c) => {
@@ -536,8 +551,12 @@ export function adminRoutes(cfg: Config, db: Db, notify?: Notifier) {
     const [a] = await db.select().from(venueApplications).where(eq(venueApplications.id, c.req.param("id"))).limit(1);
     if (!a) return c.json({ ok: false, error: "not_found" }, 404);
     if (a.status !== "review") return c.json({ ok: false, error: "not_in_review" }, 409);
+    // Қабылдау шарттары орындалмаса — тек себебі жазылған «бәрібір бекіту» (Патша, 2026-11-28)
+    const adm = admission(a.data as AppData, await getSettings(db));
+    const ov = z.object({ override: z.literal(true), reason: z.string().trim().min(3).max(200) }).safeParse(await c.req.json().catch(() => null));
+    if (!adm.ok && !ov.success) return c.json({ ok: false, error: "admission_failed", failed: adm.checks.filter((x) => !x.ok).map((x) => x.label) }, 409);
     const venueId = await approve(db, a);
-    await log(c, "Өтінім бекітілді", (a.data as AppData).name ?? "—", { applicationId: a.id, venueId });
+    await log(c, "Өтінім бекітілді", (a.data as AppData).name ?? "—", { applicationId: a.id, venueId, ...(adm.ok ? {} : { override: ov.success ? ov.data.reason : null, failed: adm.checks.filter((x) => !x.ok).map((x) => x.key) }) });
     await notify?.application(a.id);
     return c.json({ ok: true, venueId });
   });
