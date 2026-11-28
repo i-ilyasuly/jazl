@@ -7,6 +7,8 @@ import type { TgEmojiName } from "./TgEmoji";
 export type Badge = { emo: TgEmojiName; label: string; paid?: boolean };
 
 const H48 = 48 * 3600_000;
+/** Рейтинг белгісінің ең төменгі шегі (Патша, 2026-11-28) */
+export const STAR_MIN = 4.6;
 /** Сатылым соңы (Алматы уақытымен сол күн қоса) — қалған мс */
 const leftMs = (until: string) => Date.parse(until + "T23:59:59+05:00") - Date.now();
 
@@ -25,7 +27,7 @@ const LABEL: Record<string, string> = { hourglass: "Аяқталуға жақы�
 
 export function badgesOf(o: Offer): Badge[] {
   const out = realBadges(o);
-  for (const e of DEMO[o.id] ?? []) if (!out.some((b) => b.emo === e)) out.push({ emo: e, label: LABEL[e] });
+  for (const e of DEMO[o.id] ?? []) if (!out.some((b) => b.emo === e) && (e !== "star" || o.rating >= STAR_MIN)) out.push({ emo: e, label: LABEL[e] });
   // Реті тұрақты: ақылылар, сосын маңыздылығы бойынша
   const order: Badge["emo"][] = ["fire", "top", "hourglass", "zap", "rocket", "new", "star"];
   return out.sort((a, b) => order.indexOf(a.emo) - order.indexOf(b.emo));
@@ -39,6 +41,7 @@ function realBadges(o: Offer): Badge[] {
   if (o.limit?.monthly != null && o.limit.left != null && o.limit.left > 0 && o.limit.left < 10) out.push({ emo: "zap", label: "Аз қалды" });
   if (hits(o.kind).has(o.id)) out.push({ emo: "rocket", label: "Хит" });
   if (o.createdAt && Date.now() - Date.parse(o.createdAt) < 7 * 86400_000) out.push({ emo: "new", label: "Жаңа" });
-  if (o.rating >= 4.8 && o.ratingCount >= 20) out.push({ emo: "star", label: "Жоғары рейтинг" });
+  // Патша (2026-11-28): рейтинг белгісі тек 4,6★ және одан жоғары болса; төмен болса — ештеңе көрсетілмейді
+  if (o.rating >= STAR_MIN && o.ratingCount >= 20) out.push({ emo: "star", label: "Жоғары рейтинг" });
   return out;
 }
