@@ -13,7 +13,7 @@ import { useGo } from "../nav";
 import { offPeakPrice, winLabel } from "../offpeak";
 import { adoptPurchase, setBuyExtra, setDefaultMethod, setKaspiPhone, useDefaultMethod, useKaspiPhone, useMethods } from "../store";
 import { cardOf, checkoutBonus, checkoutCard, hasServer, openBank, pendingPay, type CheckoutCard, type CheckoutResult } from "../pay/checkout";
-import { loadBonus, setBonusNext, useBonus } from "../pay/bonus";
+import { loadBonus, setBonusNext, useBonus, useBonusFor } from "../pay/bonus";
 import { Switch } from "./SubPage";
 import { askPhone, haptic, inTelegram, openExternal, tg, useBackButton, useBottomButtons } from "../telegram";
 import burger from "../assets/icons/sheetBurger.svg";
@@ -75,9 +75,11 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
   const price = step === "price" ? newPrice : base;
   const extra = cheap && offer.offPeak && !charge ? { offPeak: true } : {};
   // Medeo бонусы: бағадан шегеріледі (әдепкі — қосулы), қалғаны таңдалған тәсілмен төленеді
+  // Жаңа бонус тек сол мекемеде (Патша, 2026-11-28): сервер осы ұсынысқа жарайтын бөлігін (usable) береді
   const bonus = useBonus(true);
+  const usable = useBonusFor(offer.id, (bonus?.balance ?? 0) > 0 && !charge) ?? 0;
   const [useB, setUseB] = useState(true);
-  const bonusUse = useB && hasServer() && !charge ? Math.min(bonus?.balance ?? 0, price) : 0;
+  const bonusUse = useB && hasServer() && !charge ? Math.min(usable, price) : 0;
   const cash = price - bonusUse;
 
   const close = useMemo(() => () => { haptic.soft(); setClosing(true); setTimeout(onClose, 220); }, [onClose]);
@@ -207,8 +209,8 @@ export function BuySheet({ offer, onClose, onPaid, start = "sum", charge }: { of
             </div>
           )}
           <div className={s.row}><span>Жиыны</span><span className={s.total}>{fmt(base)}</span></div>
-          {(bonus?.balance ?? 0) > 0 && hasServer() && !charge && <>
-            <div className={s.row}><span className={s.muted}>{`Medeo бонусы · ${fmt(bonus!.balance)}`}</span><span className={s.method}>{useB && <span className={`w-600 ${s.green}`}>−{fmt(bonusUse)}</span>}<Switch on={useB} onChange={(v) => { haptic.select(); setUseB(v); }} /></span></div>
+          {usable > 0 && hasServer() && !charge && <>
+            <div className={s.row}><span className={s.muted}>{`Medeo бонусы · ${fmt(usable)}`}</span><span className={s.method}>{useB && <span className={`w-600 ${s.green}`}>−{fmt(bonusUse)}</span>}<Switch on={useB} onChange={(v) => { haptic.select(); setUseB(v); }} /></span></div>
             {useB && <div className={s.row}><span>Төленеді</span><span className={s.total}>{fmt(cash)}</span></div>}
           </>}
           <hr className={s.sep} />

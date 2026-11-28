@@ -78,7 +78,7 @@ export function AMore() {
   );
 }
 
-type Settings = { maintenance: boolean; maintenanceText: string; moderation: boolean; graceDays: number; complaintHours: number; maxDiscount: number; refusedPauseAt: number; bonusMonths: number };
+type Settings = { maintenance: boolean; maintenanceText: string; moderation: boolean; graceDays: number; complaintHours: number; maxDiscount: number; refusedPauseAt: number; bonusMonths: number; bonusVenueMonths?: number };
 export function ARules() {
   const [d, , reload] = useCached<{ settings: Settings; feePct: number; paymentsMode: string }>("a:settings", () => A("/settings"));
   const [edit, setEdit] = useState<null | { key: keyof Settings; title: string; options: (number | boolean)[]; fmt: (v: number | boolean) => string }>(null);
@@ -93,7 +93,7 @@ export function ARules() {
     { t: "Шағымға жауап мерзімі", r: `${x.complaintHours} сағат`, on: () => { setVal(x.complaintHours); setEdit({ key: "complaintHours", title: "Шағымға жауап мерзімі", options: [12, 24, 48, 72], fmt: (v) => `${v} сағат` }); } },
     { t: "Жеңілдік шегі (ұсыныс)", r: `${x.maxDiscount ?? 30}%-дан аспайды`, on: () => { setVal(x.maxDiscount ?? 30); setEdit({ key: "maxDiscount", title: "Жеңілдік шегі", options: [20, 30, 40, 50], fmt: (v) => `${v}%` }); } },
     { t: "«Мекеме қабылдамады» → тоқтату", r: `30 күнде ${x.refusedPauseAt ?? 5} клиент`, on: () => { setVal(x.refusedPauseAt ?? 5); setEdit({ key: "refusedPauseAt", title: "Неше түрлі клиенттен кейін тоқтатылады", options: [3, 5, 7, 10], fmt: (v) => `${v} клиент` }); } },
-    { t: "Күйген бірлік", r: `клиентке бонус · ${x.bonusMonths ?? 12} ай` },
+    { t: "Күйген бірлік", r: `клиентке бонус · сол мекемеде ${x.bonusVenueMonths ?? 3} ай (бұрынғы пакеттер — кез келген, ${x.bonusMonths ?? 12} ай)` },
     { t: "Жаңа ұсынысты тексеру (модерация)", r: x.moderation ? "қосулы" : "өшірулі", on: () => { setVal(x.moderation); setEdit({ key: "moderation", title: "Модерация", options: [true, false], fmt: (v) => (v ? "Қосулы: жаңа ұсыныс тексеруге түседі" : "Өшірулі: бірден жарияланады") }); } },
     { t: "Техникалық жұмыстар мәтіні", r: "өзгерту", on: () => { setText(x.maintenanceText); setEdit({ key: "maintenanceText", title: "Техникалық жұмыстар мәтіні", options: [], fmt: String }); } },
     { t: "Төлем режимі", r: d.paymentsMode === "test" ? "сынақ" : "нақты" },

@@ -168,6 +168,8 @@ export const packs = app.table("packs", {
   source: text("source").notNull().default("purchase"),
   /** Мекеменің бір реттік тегін ұзартуы пайдаланылды ма (B4) */
   freeExtendUsed: boolean("free_extend_used").notNull().default(false),
+  /** Күйген бірлік бонусы қайда жұмсалады (0042, Патша 2026-11-28): venue — тек сол мекемеде (жаңа пакеттер), any — кез келген (бұрынғылар) */
+  bonusScope: text("bonus_scope").notNull().default("venue"),
   /** Пакеттің толық құны (₸) = төленген баға + қайта алғанда көшірілген бірліктердің құны. Әр бірліктің құны осыдан бөлінеді,
    *  қалдық тиын соңғы бірлікке түседі (value.ts). Бос болса — дерекқор триггері price_paid-ті қояды. */
   valueTotal: integer("value_total"),
@@ -280,6 +282,8 @@ export const bonuses = app.table("bonuses", {
   left: integer("left").notNull(),
   packId: uuid("pack_id").references(() => packs.id),
   units: smallint("units").notNull().default(0),
+  /** Бос — кез келген мекемеде; толы — тек осы мекемеде (0042) */
+  venueId: uuid("venue_id").references(() => venues.id),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: created(),
 }, (t) => [index("bonuses_user").on(t.userId, t.expiresAt), uniqueIndex("bonuses_pack").on(t.packId)]);
